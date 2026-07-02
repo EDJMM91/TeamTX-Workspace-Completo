@@ -1,0 +1,328 @@
+#include "ObfReaderUtilities.h"
+
+#include "QtExtensions.h"
+#include "ignore_warnings_on_external_includes.h"
+#include <QtEndian>
+#include <QThread>
+#include <QMap>
+#include "restore_internal_warnings.h"
+
+#include "ignore_warnings_on_external_includes.h"
+#include "OBF.pb.h"
+#include <google/protobuf/wire_format_lite.h>
+#include "restore_internal_warnings.h"
+
+#include "ObfSectionInfo.h"
+#include "Logging.h"
+#include "CollatorStringMatcher.h"
+
+bool OsmAnd::ObfReaderUtilities::readQString(gpb::io::CodedInputStream* cis, QString& output)
+{
+    std::string value;
+    if (!gpb::internal::WireFormatLite::ReadString(cis, &value))
+        return false;
+
+    output = QString::fromStdString(value);
+    return true;
+}
+
+int32_t OsmAnd::ObfReaderUtilities::readSInt32(gpb::io::CodedInputStream* cis)
+{
+    gpb::uint32 value;
+    cis->ReadVarint32(&value);
+
+    auto decodedValue = gpb::internal::WireFormatLite::ZigZagDecode32(value);
+    return decodedValue;
+}
+
+int64_t OsmAnd::ObfReaderUtilities::readSInt64(gpb::io::CodedInputStream* cis)
+{
+    gpb::uint64 value;
+    cis->ReadVarint64(&value);
+
+    auto decodedValue = gpb::internal::WireFormatLite::ZigZagDecode64(value);
+    return decodedValue;
+}
+
+uint32_t OsmAnd::ObfReaderUtilities::readBigEndianInt(gpb::io::CodedInputStream* cis)
+{
+    gpb::uint32 be;
+    cis->ReadRaw(&be, sizeof(be));
+    auto ne = qFromBigEndian(be);
+    return ne;
+}
+
+uint32_t OsmAnd::ObfReaderUtilities::readLength(gpb::io::CodedInputStream* cis)
+{
+    gpb::uint32 length;
+    cis->ReadVarint32(&length);
+    return length;
+}
+
+void OsmAnd::ObfReaderUtilities::readStringTable(gpb::io::CodedInputStream* cis, QStringList& stringTableOut)
+{
+    for (;;)
+    {
+        const auto tag = cis->ReadTag();
+        switch (gpb::internal::WireFormatLite::GetTagFieldNumber(tag))
+        {
+            case 0:
+                if (!ObfReaderUtilities::reachedDataEnd(cis))
+                    return;
+
+                return;
+            case OBF::StringTable::kSFieldNumber:
+            {
+                QString value;
+                if (readQString(cis, value))
+                    stringTableOut.push_back(qMove(value));
+                break;
+            }
+            default:
+                skipUnknownField(cis, tag);
+                break;
+        }
+    }
+}
+
+bool OsmAnd::ObfReaderUtilities::matchIndexedStringTablePrefix(
+    const QStringList& queries,
+    const QString& key,
+    QVector<bool>& matched,
+    QVector<bool>& matchedSubtables)
+{
+    bool shouldWeReadSubtable = false;
+
+    for (int i = 0; i < queries.size(); ++i)
+    {
+        const QString& query = queries.at(i);
+        matched[i] = false;
+        matchedSubtables[i] = false;
+        if (query.isNull())
+        {
+            continue;
+        }
+        bool keyStartsWithQuery = CollatorStringMatcher::cmatches(key, query, StringMatcherMode::CHECK_ONLY_STARTS_WITH);
+        bool queryStartsWithKey = CollatorStringMatcher::cmatches(query, key, StringMatcherMode::CHECK_ONLY_STARTS_WITH);
+        bool potentialBranchMatch = keyStartsWithQuery || queryStartsWithKey;
+        matched[i] = potentialBranchMatch;
+        matchedSubtables[i] = potentialBranchMatch;
+        if (potentialBranchMatch)
+        {
+            shouldWeReadSubtable = true;
+        }
+    }
+
+    return shouldWeReadSubtable;
+}
+
+void OsmAnd::ObfReaderUtilities::readIndexedStringTablePrefixes(
+            OsmAnd::gpb::io::CodedInputStream* cis,
+            const QStringList& queries,
+            const QString& prefix,
+            QList<QMap<QString, int>>& prefixesByQuery)
+{
+    QString key;
+    QVector<bool> matched(queries.size(), false);
+    QVector<bool> matchedSubtables(queries.size(), false);
+    bool shouldWeReadSubtable = false;
+    for (;;)
+    {
+        const auto tag = cis->ReadTag();
+        switch (gpb::internal::WireFormatLite::GetTagFieldNumber(tag))
+        {
+            case 0:
+                return;
+            case OBF::IndexedStringTable::kKeyFieldNumber:
+            {
+                readQString(cis, key);
+                if (!prefix.isEmpty())
+                    key.prepend(prefix);
+                shouldWeReadSubtable = matchIndexedStringTablePrefix(queries, key, matched, matchedSubtables);
+                break;
+            }
+            case OBF::IndexedStringTable::kValFieldNumber:
+            {
+                const auto value = readBigEndianInt(cis);
+                for (int i = 0; i < queries.size(); i++)
+                {
+                    if (matched[i] && !key.isEmpty())
+                    {
+                        QMap<QString, int>& tokenPrefixes = prefixesByQuery[i];
+                        if (!tokenPrefixes.contains(key))
+                        {
+                            tokenPrefixes.insert(key, value);
+                        }
+                        else
+                        {
+                            int previousValue = tokenPrefixes.value(key);
+                            if (previousValue != value)
+                            {
+                                throw std::runtime_error("Indexed string table contains multiple offsets for key: " + key.toStdString());
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            case OBF::IndexedStringTable::kSubtablesFieldNumber:
+            {
+                const auto len = ObfReaderUtilities::readLength(cis);
+                const auto oldLimit = cis->PushLimit(len);
+                if (shouldWeReadSubtable)
+                {
+                    QStringList subqueries = queries;
+                    for (int i = 0; i < queries.size(); ++i)
+                    {
+                        if (!matchedSubtables[i])
+                        {
+                            subqueries[i] = QString();
+                        }
+                    }
+                    readIndexedStringTablePrefixes(cis, subqueries, key, prefixesByQuery);
+                }
+                else
+                {
+                    cis->Skip(cis->BytesUntilLimit());
+                }
+                ObfReaderUtilities::ensureAllDataWasRead(cis);
+                cis->PopLimit(oldLimit);
+                break;
+            }
+            default:
+                skipUnknownField(cis, tag);
+                break;
+        }
+    }
+}
+
+QList<QList<OsmAnd::QueryToken::Prefix>> OsmAnd::ObfReaderUtilities::readIndexedStringTablePrefixes(
+            OsmAnd::gpb::io::CodedInputStream* cis,
+            const QStringList& queries,
+            const QString& keysPrefix)
+{
+    QList<QMap<QString, int>> prefixesByQuery;
+    prefixesByQuery.reserve(queries.size());
+    for (int i = 0; i < queries.size(); i++)
+    {
+        prefixesByQuery.append(QMap<QString, int>());
+    }
+    readIndexedStringTablePrefixes(cis, queries, QStringLiteral(""), prefixesByQuery);
+    QList<QList<OsmAnd::QueryToken::Prefix>> result;
+    result.reserve(queries.size());
+    for (const QMap<QString, int>& prefixes : prefixesByQuery)
+    {
+        QList<OsmAnd::QueryToken::Prefix> tokenPrefixes;
+        tokenPrefixes.reserve(prefixes.size());
+        QMap<QString, int>::const_iterator it = prefixes.constBegin();
+        while (it != prefixes.constEnd())
+        {
+            tokenPrefixes.append(OsmAnd::QueryToken::Prefix(it.key(), it.value()));
+            ++it;
+        }
+        result.append(tokenPrefixes);
+    }
+    return result;
+}
+
+void OsmAnd::ObfReaderUtilities::readTileBox(gpb::io::CodedInputStream* cis, AreaI& outArea)
+{
+    for (;;)
+    {
+        const auto tag = cis->ReadTag();
+        switch (gpb::internal::WireFormatLite::GetTagFieldNumber(tag))
+        {
+            case 0:
+                if (!reachedDataEnd(cis))
+                    return;
+
+                return;
+            case OBF::OsmAndTileBox::kLeftFieldNumber:
+                cis->ReadVarint32(reinterpret_cast<gpb::uint32*>(&outArea.left()));
+                break;
+            case OBF::OsmAndTileBox::kRightFieldNumber:
+                cis->ReadVarint32(reinterpret_cast<gpb::uint32*>(&outArea.right()));
+                break;
+            case OBF::OsmAndTileBox::kTopFieldNumber:
+                cis->ReadVarint32(reinterpret_cast<gpb::uint32*>(&outArea.top()));
+                break;
+            case OBF::OsmAndTileBox::kBottomFieldNumber:
+                cis->ReadVarint32(reinterpret_cast<gpb::uint32*>(&outArea.bottom()));
+                break;
+            default:
+                skipUnknownField(cis, tag);
+                break;
+        }
+    }
+}
+
+void OsmAnd::ObfReaderUtilities::skipUnknownField(gpb::io::CodedInputStream* cis, int tag)
+{
+    const auto wireType = gpb::internal::WireFormatLite::GetTagWireType(tag);
+    if (wireType == gpb::internal::WireFormatLite::WIRETYPE_FIXED32_LENGTH_DELIMITED)
+    {
+        const auto length = readBigEndianInt(cis);
+        cis->Skip(length);
+        return;
+    }
+    
+    gpb::internal::WireFormatLite::SkipField(cis, tag);
+}
+
+void OsmAnd::ObfReaderUtilities::skipBlockWithLength(gpb::io::CodedInputStream* cis)
+{
+    cis->Skip(readLength(cis));
+}
+
+QString OsmAnd::ObfReaderUtilities::encodeIntegerToString(const uint32_t value)
+{
+    QString fakeQString(2, QChar(QChar::Null));
+    fakeQString.data()[0].unicode() = static_cast<ushort>((value >> 16 * 0) & 0xffff);
+    fakeQString.data()[1].unicode() = static_cast<ushort>((value >> 16 * 1) & 0xffff);
+
+    assert(decodeIntegerFromString(fakeQString) == value);
+
+    return fakeQString;
+}
+
+uint32_t OsmAnd::ObfReaderUtilities::decodeIntegerFromString(const QString& container)
+{
+    uint32_t res = 0;
+
+    ushort value;
+
+    value = container.at(0).unicode();
+    res |= (value & 0xffff) << 16 * 0;
+
+    value = container.at(1).unicode();
+    res |= (value & 0xffff) << 16 * 1;
+
+    return res;
+}
+
+bool OsmAnd::ObfReaderUtilities::reachedDataEnd(gpb::io::CodedInputStream* cis)
+{
+    if (cis->ConsumedEntireMessage())
+        return true;
+
+    LogPrintf(LogSeverityLevel::Warning,
+        "Unexpected data end at %d, %d byte(s) not read",
+        cis->CurrentPosition(),
+        cis->BytesUntilLimit());
+
+    return false;
+}
+
+void OsmAnd::ObfReaderUtilities::ensureAllDataWasRead(gpb::io::CodedInputStream* cis)
+{
+    const auto bytesUntilLimit = cis->BytesUntilLimit();
+    if (bytesUntilLimit == 0)
+        return;
+
+    LogPrintf(LogSeverityLevel::Warning,
+        "Unexpected %d unread byte(s) at %d",
+        cis->BytesUntilLimit(),
+        cis->CurrentPosition());
+
+    cis->Skip(cis->BytesUntilLimit());
+}

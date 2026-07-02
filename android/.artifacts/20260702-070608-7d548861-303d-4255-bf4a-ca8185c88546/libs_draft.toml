@@ -1,0 +1,151 @@
+[versions]
+# Project
+osmand-minSdk = "24"
+osmand-targetSdk = "35"
+osmand-compileSdk = "35"
+osmand-buildTools = "35.0.0"
+
+# Plugins
+agp = "8.7.3"
+kotlin = "2.1.20"
+google-services = "4.4.2"
+sqldelight = "1.5.5"
+huawei-agcp = "1.9.1.303"
+download-plugin = "4.1.1"
+
+# AndroidX
+appcompat = "1.7.1"
+material = "1.14.0"
+multidex = "2.0.1"
+gridlayout = "1.1.0"
+cardview = "1.0.0"
+browser = "1.0.0"
+preference = "1.1.0"
+lifecycle = "2.6.0"
+activity = "1.10.1"
+compose-bom = "2026.06.00"
+sqlite = "2.3.1"
+test-runner = "1.5.2"
+test-rules = "1.5.0"
+espresso = "3.5.1"
+junit-ext = "1.1.5"
+car-app = "1.7.0"
+
+# KotlinX
+serialization = "1.6.3"
+coroutines = "1.8.1"
+datetime = "0.6.1"
+
+# Libraries
+gson = "2.8.9"
+json = "20171018"
+commons-compress = "1.17"
+commons-logging = "1.2"
+commons-codec = "1.11"
+junidecode = "0.1.1"
+jts = "1.14.0"
+openlocationcode = "1.0.4"
+billing = "8.0.0"
+picasso = "2.71828"
+rhino = "1.7.9"
+taptargetview = "1.15.0"
+textfieldboxes = "1.4.5"
+scribejava = "7.1.1"
+colorpicker = "1.1.0"
+bouncycastle = "1.56"
+play-review = "2.0.2"
+play-location = "21.3.0"
+shimmer = "0.5.0"
+stately = "2.1.0"
+ktor = "3.1.3"
+coil = "3.1.0"
+okio = "3.9.0"
+kxml2 = "2.3.0"
+sqliter = "1.3.1"
+sqlite-jdbc = "3.34.0"
+
+[libraries]
+# AndroidX
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-multidex = { group = "androidx.multidex", name = "multidex", version.ref = "multidex" }
+androidx-gridlayout = { group = "androidx.gridlayout", name = "gridlayout", version.ref = "gridlayout" }
+androidx-cardview = { group = "androidx.cardview", name = "cardview", version.ref = "cardview" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
+androidx-preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycle" }
+androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-sqlite = { group = "androidx.sqlite", name = "sqlite", version.ref = "sqlite" }
+androidx-sqlite-framework = { group = "androidx.sqlite", name = "sqlite-framework", version.ref = "sqlite" }
+androidx-car-app = { group = "androidx.car.app", name = "app", version.ref = "car-app" }
+androidx-car-app-projected = { group = "androidx.car.app", name = "app-projected", version.ref = "car-app" }
+
+# KotlinX
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
+
+# Ktor
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor-client-encoding = { group = "io.ktor", name = "ktor-client-encoding", version.ref = "ktor" }
+ktor-network = { group = "io.ktor", name = "ktor-network", version.ref = "ktor" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
+ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
+
+# Other
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+immutables-gson = { group = "org.immutables", name = "gson", version = "2.5.0" }
+json = { group = "org.json", name = "json", version.ref = "json" }
+commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commons-compress" }
+commons-logging = { group = "commons-logging", name = "commons-logging", version.ref = "commons-logging" }
+commons-codec = { group = "commons-codec", name = "commons-codec", version.ref = "commons-codec" }
+junidecode = { group = "com.moparisthebest", name = "junidecode", version.ref = "junidecode" }
+jts-core = { group = "com.vividsolutions", name = "jts-core", version.ref = "jts" }
+openlocationcode = { group = "com.google.openlocationcode", name = "openlocationcode", version.ref = "openlocationcode" }
+billing = { group = "com.android.billingclient", name = "billing", version.ref = "billing" }
+picasso = { group = "com.squareup.picasso", name = "picasso", version.ref = "picasso" }
+rhino = { group = "org.mozilla", name = "rhino", version.ref = "rhino" }
+taptargetview = { group = "com.getkeepsafe.taptargetview", name = "taptargetview", version.ref = "taptargetview" }
+textfieldboxes = { group = "com.github.HITGIF", name = "TextFieldBoxes", version.ref = "textfieldboxes" }
+scribejava = { group = "com.github.scribejava", name = "scribejava-apis", version.ref = "scribejava" }
+colorpicker = { group = "com.jaredrummler", name = "colorpicker", version.ref = "colorpicker" }
+bouncycastle = { group = "org.bouncycastle", name = "bcpkix-jdk15on", version.ref = "bouncycastle" }
+play-review = { group = "com.google.android.play", name = "review", version.ref = "play-review" }
+play-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "play-location" }
+shimmer = { group = "com.facebook.shimmer", name = "shimmer", version.ref = "shimmer" }
+stately-concurrent-collections = { group = "co.touchlab", name = "stately-concurrent-collections", version.ref = "stately" }
+coil-core = { group = "io.coil-kt.coil3", name = "coil-core", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
+kxml2 = { group = "net.sf.kxml", name = "kxml2", version.ref = "kxml2" }
+sqliter-driver = { group = "co.touchlab", name = "sqliter-driver", version.ref = "sqliter" }
+sqlite-jdbc = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqlite-jdbc" }
+hms-iap = { group = "com.huawei.hms", name = "iap", version = "6.4.0.301" }
+hms-appservice = { group = "com.huawei.hms", name = "appservice", version = "6.8.0.300" }
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version = "2.1.3" }
+
+# Test
+junit = { group = "junit", name = "junit", version = "4.12" }
+hamcrest-core = { group = "org.hamcrest", name = "hamcrest-core", version = "1.3" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "test-runner" }
+androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "test-rules" }
+androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
+androidx-test-espresso-contrib = { group = "androidx.test.espresso", name = "espresso-contrib", version.ref = "espresso" }
+androidx-test-junit-ext = { group = "androidx.test.ext", name = "junit", version.ref = "junit-ext" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
+sqldelight = { id = "com.squareup.sqldelight", version.ref = "sqldelight" }
+download = { id = "de.undercouch.download", version.ref = "download-plugin" }

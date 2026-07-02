@@ -1,0 +1,150 @@
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+apply plugin: 'ivy-publish'
+
+configurations {
+	android
+}
+
+tasks.withType(JavaCompile).configureEach {
+	sourceCompatibility = "17"
+	targetCompatibility = "17"
+}
+
+tasks.register('collectRoutingResources', Sync) {
+	from "../../resources/routing"
+	into "src/main/resources/net/osmand/router"
+	include "*.xml"
+}
+
+tasks.register('collectMiscResources', Copy) {
+	into "src/main/resources/net/osmand/osm"
+	from("../../resources/obf_creation") {
+		include "rendering_types.xml"
+	}
+	from("../../resources/poi") {
+		include "poi_types.xml"
+	}
+	from("../../resources/poi") {
+		include "activities.json"
+	}
+}
+
+tasks.register('collectRenderingStylesResources', Sync) {
+	from "../../resources/rendering_styles"
+	into "src/main/resources/net/osmand/render"
+	include "*.xml"
+}
+
+tasks.register('collectRegionsInfoResources', Download) {
+	src 'https://builder.osmand.net/basemap/regions.ocbf'
+	dest 'src/main/resources/net/osmand/map/regions.ocbf'
+	onlyIfModified true
+}
+
+
+tasks.register('collectTestPhrasesResources', Copy) {
+	into "src/test/resources/phrases/en/"
+	from("../OsmAnd/res/values") {
+		include "phrases.xml"
+	}
+}
+
+tasks.register('collectTestResources', Copy) {
+	delete fileTree("src/test/resources/search")
+	into "src/test/resources/"
+	from("../../resources/test-resources") {
+		include "*"
+		include "/search/*"
+		include "/routing/*"
+		include "/approximation/*"
+	}
+	from("../../resources/poi") {
+		include "poi_types.xml"
+	}
+}
+
+processResources {
+	dependsOn collectRoutingResources,
+		collectRenderingStylesResources,
+		collectRegionsInfoResources,
+		collectMiscResources
+}
+
+processTestResources {
+	dependsOn collectTestResources, collectTestPhrasesResources
+}
+
+tasks.register('collectExternalResources') {
+	dependsOn collectRoutingResources,
+			collectRenderingStylesResources,
+			collectRegionsInfoResources,
+			collectTestResources,
+			collectTestPhrasesResources,
+			collectMiscResources
+}
+
+tasks.register('androidJar', Jar) {
+	if (!project.hasProperty('osmandCoreSimple')) {
+		dependsOn collectExternalResources, build
+	} else {
+		dependsOn build
+	}
+	archiveAppendix = "android"
+	from(sourceSets.main.java.classesDirectory) {
+		exclude("**/PlatformUtil.*")
+	}
+	from sourceSets.main.resources
+}
+
+compileJava {
+	if (!project.hasProperty('osmandCoreSimple')) {
+		dependsOn collectExternalResources
+	}
+}
+
+artifacts {
+	android androidJar
+}
+
+version = System.getenv("OSMAND_BINARIES_IVY_REVISION") ?: "master-snapshot"
+publishing {
+	repositories {
+		ivy {
+			url = System.getenv("OSMAND_BINARIES_IVY_ROOT") ?: "./"
+		}
+	}
+    publications {
+        maven(MavenPublication) {
+			artifactId "osmand-base"
+            from components.java
+        }
+		ivyJava(IvyPublication) {
+			artifact androidJar {
+				archiveClassifier = 'android'
+			}
+		}
+	}
+}
+
+dependencies {
+	implementation project(path:':OsmAnd-shared', configuration : gradle.ext.java_shared_conf)
+
+	testImplementation libs.junit
+	testImplementation libs.hamcrest.core
+	implementation libs.commons.logging
+	implementation libs.gson
+	implementation libs.json
+	implementation libs.commons.compress
+	implementation libs.junidecode
+	implementation libs.jts.core
+	implementation libs.openlocationcode
+	implementation (libs.scribejava) {
+		exclude group: "com.fasterxml.jackson.core"
+	}
+	// turn off for now
+	//implementation 'com.atilika.kuromoji:kuromoji-ipadic:0.9.0'
+	implementation libs.kxml2
+	implementation fileTree(include: ['*.jar'], dir: 'libs')
+}
+
