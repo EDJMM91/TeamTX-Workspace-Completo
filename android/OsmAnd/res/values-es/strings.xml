@@ -2775,7 +2775,8 @@
     <string name="plan_route_split_before">Dividir antes</string>
     <string name="plan_route_split_after">Dividir después</string>
     <string name="plan_route_add_new_segment">Añadir nuevo segmento</string>
-    <string name="profile_type_osmand_string">Perfil de OsmAnd</string>
+    <string name="profile_type_osmand_string">Perfil</string>
+<string name="map_style_standard_name">Estándar</string>
     <string name="profile_type_user_string">Perfil de usuario</string>
     <string name="reverse_all_points">Invertir todos los puntos</string>
     <string name="profile_by_default_description">Elige el perfil que será usado al iniciar la aplicación.</string>

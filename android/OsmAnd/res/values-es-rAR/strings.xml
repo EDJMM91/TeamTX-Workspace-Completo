@@ -2751,7 +2751,8 @@
     <string name="plan_route_split_after">Dividir después</string>
     <string name="plan_route_add_new_segment">Agregar nuevo segmento</string>
     <string name="release_3_9">• Se agregó la opción de exportar e importar todos los datos, incluyendo los ajustes, los recursos y «Mis sitios»\n\n • Planificar ruta: se agregaron gráficos para los segmentos de trazas con la ruta y capacidad de crear o editar trazas de segmentos múltiples\n\n • Se agregó el método de autenticación OAuth para OpenStreetMap y se mejoró la interfaz de usuario de los diálogos de OSM\n\n • Se agregaron colores personalizados para los favoritos y los puntos de referencia de la traza</string>
-    <string name="profile_type_osmand_string">Perfil de OsmAnd</string>
+    <string name="profile_type_osmand_string">Perfil</string>
+<string name="map_style_standard_name">Estándar</string>
     <string name="profile_type_user_string">Perfil de usuario</string>
     <string name="reverse_all_points">Invertir todos los puntos</string>
     <string name="profile_by_default_description">Elegí el perfil que será usado al iniciar la aplicación.</string>

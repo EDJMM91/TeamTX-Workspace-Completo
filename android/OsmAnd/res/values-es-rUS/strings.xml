@@ -2810,7 +2810,8 @@
     <string name="routing_attr_allow_intermittent_description">Permite cursos de agua intermitentes</string>
     <string name="reverse_all_points">Invertir todos los puntos</string>
     <string name="profile_type_user_string">Perfil de usuario</string>
-    <string name="profile_type_osmand_string">Perfil de OsmAnd</string>
+    <string name="profile_type_osmand_string">Perfil</string>
+<string name="map_style_standard_name">Estándar</string>
     <string name="profile_by_default_description">Elige el perfil que será usado al iniciar la aplicación.</string>
     <string name="select_folder">Elegir carpeta</string>
     <string name="shared_string_folders">Carpetas</string>

@@ -1,0 +1,1 @@
+git clone --recursive https://github.com/EDJMM91/WR-MapaBase.git "C:\Users\PC\Desktop\WrMaps"

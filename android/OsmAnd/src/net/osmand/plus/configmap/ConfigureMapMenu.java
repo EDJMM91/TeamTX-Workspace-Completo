@@ -3,7 +3,9 @@ package net.osmand.plus.configmap;
 import static net.osmand.aidlapi.OsmAndCustomizationConstants.*;
 import static net.osmand.osm.OsmRouteType.ALPINE;
 import static net.osmand.osm.OsmRouteType.HIKING;
+import static net.osmand.osm.OsmRouteType.HORSE;
 import static net.osmand.osm.OsmRouteType.SKI_ROUTES;
+import static net.osmand.osm.OsmRouteType.WATER;
 import static net.osmand.plus.configmap.ConfigureMapUtils.getPropertyForAttr;
 import static net.osmand.plus.configmap.routes.RouteUtils.CYCLE_NODE_NETWORK_ROUTES_ATTR;
 import static net.osmand.plus.configmap.routes.RouteUtils.SHOW_MTB_SCALE;
@@ -541,6 +543,13 @@ public class ConfigureMapMenu {
 				|| DEPTH_CONTOUR_COLOR_SCHEME.equals(attrName)
 				|| ALPINE.getRenderingPropertyAttr().equals(attrName)
 				|| ALPINE_HIKING_SCALE_SCHEME_ATTR.equals(attrName)
+				|| SKI_ROUTES.getRenderingPropertyAttr().equals(attrName)
+				|| HORSE.getRenderingPropertyAttr().equals(attrName)
+				|| WATER.getRenderingPropertyAttr().equals(attrName)
+				|| "showSkiSlopes".equals(attrName)
+				|| "showClimbingRoutes".equals(attrName)
+				|| "showFitnessTrails".equals(attrName)
+				|| "showRunningRoutes".equals(attrName)
 		);
 	}
 

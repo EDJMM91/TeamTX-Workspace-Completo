@@ -42,8 +42,15 @@ public class ConfigureAppModesBottomSheetDialogFragment
 
 	@Override
 	protected void getData() {
-		allModes.addAll(ApplicationMode.allPossibleValues());
-		allModes.remove(ApplicationMode.DEFAULT);
+		for (ApplicationMode mode : ApplicationMode.allPossibleValues()) {
+			String key = mode.getStringKey();
+			if (key.equals("default") || key.equals("hiking") || key.equals("truck")
+					|| key.equals("public_transport") || key.equals("train") || key.equals("boat")
+					|| key.equals("aircraft") || key.equals("ski") || key.equals("horse")) {
+				continue;
+			}
+			allModes.add(mode);
+		}
 		selectedModes.addAll(ApplicationMode.values(app));
 		selectedModes.remove(ApplicationMode.DEFAULT);
 	}

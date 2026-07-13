@@ -8,6 +8,7 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.os.ConfigurationCompat;
 
 import net.osmand.PlatformUtil;
 import net.osmand.plus.OsmandApplication;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -416,7 +418,12 @@ public class RendererRegistry {
 
 	@Nullable
 	public static String getTranslatedRendererName(@NonNull Context ctx, @NonNull String key) {
+		Locale locale = ConfigurationCompat.getLocales(ctx.getResources().getConfiguration()).get(0);
+		String lang = locale != null ? locale.getLanguage() : "en";
+		boolean isEnOrEs = lang.equals("en") || lang.equals("es");
 		switch (key) {
+			case DEFAULT_RENDER:
+				return isEnOrEs ? ctx.getString(R.string.map_style_standard_name) : DEFAULT_RENDER;
 			case TOURING_VIEW:
 				return ctx.getString(R.string.touring_view_renderer);
 			case WINTER_SKI_RENDER:

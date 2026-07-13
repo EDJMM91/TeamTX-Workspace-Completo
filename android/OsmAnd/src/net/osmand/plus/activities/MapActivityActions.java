@@ -381,6 +381,12 @@ public class MapActivityActions extends MapActions {
 
 		RoutingProfilesHolder profiles = routingDataUtils.getRoutingProfiles();
 		for (ApplicationMode appMode : activeModes) {
+			String key = appMode.getStringKey();
+			if (key.equals("hiking") || key.equals("truck") || key.equals("public_transport")
+					|| key.equals("train") || key.equals("boat") || key.equals("aircraft")
+					|| key.equals("ski") || key.equals("horse")) {
+				continue;
+			}
 			adapter.addItem(new ContextMenuItem(null)
 					.setLayout(R.layout.profile_list_item)
 					.setIcon(appMode.getIconRes())

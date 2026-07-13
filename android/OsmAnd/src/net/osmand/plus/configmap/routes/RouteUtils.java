@@ -1,6 +1,7 @@
 package net.osmand.plus.configmap.routes;
 
 import static net.osmand.osm.OsmRouteType.*;
+import static net.osmand.osm.RenderingPropertyAttr.*;
 import static net.osmand.plus.widgets.ctxmenu.data.ContextMenuItem.INVALID_ID;
 import static net.osmand.render.RenderingRuleStorageProperties.UI_CATEGORY_ROUTES;
 
@@ -64,13 +65,23 @@ public class RouteUtils {
 
 	public static Set<String> getRoutesAttrsNames(@NonNull List<RenderingRuleProperty> customRules) {
 		Set<String> routeAttrNames = new LinkedHashSet<>(getRoutesDefaultAttrs().keySet());
+		routeAttrNames.remove(HIKING.getRenderingPropertyAttr());
+		routeAttrNames.remove(ALPINE.getRenderingPropertyAttr());
+		routeAttrNames.remove(SKI_ROUTES.getRenderingPropertyAttr());
+		routeAttrNames.remove(HORSE.getRenderingPropertyAttr());
+		routeAttrNames.remove(WATER.getRenderingPropertyAttr());
+
 		for (RenderingRuleProperty property : customRules) {
 			String attrName = property.getAttrName();
 			if (Algorithms.stringsEqual(property.getCategory(), UI_CATEGORY_ROUTES)
 					&& !Algorithms.stringsEqual(attrName, CYCLE_NODE_NETWORK_ROUTES_ATTR)
 					&& !Algorithms.stringsEqual(attrName, SHOW_MTB_SCALE)
 					&& !Algorithms.stringsEqual(attrName, SHOW_MTB_SCALE_UPHILL)
-					&& !Algorithms.stringsEqual(attrName, SHOW_MTB_SCALE_IMBA_TRAILS)) {
+					&& !Algorithms.stringsEqual(attrName, SHOW_MTB_SCALE_IMBA_TRAILS)
+					&& !Algorithms.stringsEqual(attrName, SKI_SLOPES.getAttrName())
+					&& !Algorithms.stringsEqual(attrName, CLIMBING.getRenderingPropertyAttr())
+					&& !Algorithms.stringsEqual(attrName, FITNESS.getRenderingPropertyAttr())
+					&& !Algorithms.stringsEqual(attrName, RUNNING.getRenderingPropertyAttr())) {
 				routeAttrNames.add(attrName);
 			}
 		}

@@ -151,6 +151,7 @@ public class SendAnalyticsBottomSheetDialogFragment extends MenuBottomSheetDialo
 	}
 
 	public static boolean shouldShowDialog(@NonNull OsmandApplication app) {
+		/*
 		OsmandSettings settings = app.getSettings();
 		if (app.getAppCustomization().isFeatureEnabled(FRAGMENT_SEND_ANALYTICS_ID)) {
 			int requestsCount = settings.SEND_ANONYMOUS_DATA_REQUESTS_COUNT.get();
@@ -166,6 +167,7 @@ public class SendAnalyticsBottomSheetDialogFragment extends MenuBottomSheetDialo
 				}
 			}
 		}
+		*/
 		return false;
 	}
 

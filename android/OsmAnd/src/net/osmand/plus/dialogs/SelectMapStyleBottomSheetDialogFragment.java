@@ -177,6 +177,11 @@ public class SelectMapStyleBottomSheetDialogFragment extends MenuBottomSheetDial
 			return collator.compare(string1, string2);
 		});
 		Map<String, String> renderers = app.getRendererRegistry().getRenderers(false);
+		renderers.remove(RendererRegistry.WINTER_SKI_RENDER);
+		renderers.remove(RendererRegistry.NAUTICAL_RENDER);
+		renderers.remove(RendererRegistry.MARINE_RENDER);
+		renderers.remove(RendererRegistry.SNOWMOBILE_RENDER);
+
 		List<String> disabledRendererNames = PluginsHelper.getDisabledRendererNames();
 
 		if (!Algorithms.isEmpty(disabledRendererNames)) {

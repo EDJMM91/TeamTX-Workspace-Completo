@@ -2,6 +2,8 @@ package net.osmand.plus.profiles.data;
 
 import android.content.Context;
 
+import androidx.core.os.ConfigurationCompat;
+
 import net.osmand.plus.OsmandApplication;
 import net.osmand.plus.R;
 import net.osmand.plus.settings.backend.ApplicationMode;
@@ -9,6 +11,7 @@ import net.osmand.util.Algorithms;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ProfileDataUtils {
 
@@ -27,9 +30,13 @@ public class ProfileDataUtils {
 	}
 
 	public static String getAppModeDescription(Context ctx, ApplicationMode mode) {
-		return mode.isCustomProfile() ?
-				ctx.getString(R.string.profile_type_user_string) :
-				ctx.getString(R.string.profile_type_osmand_string);
+		if (mode.isCustomProfile()) {
+			return ctx.getString(R.string.profile_type_user_string);
+		}
+		Locale locale = ConfigurationCompat.getLocales(ctx.getResources().getConfiguration()).get(0);
+		String lang = locale != null ? locale.getLanguage() : "en";
+		boolean isEnOrEs = lang.equals("en") || lang.equals("es");
+		return isEnOrEs ? ctx.getString(R.string.profile_type_osmand_string) : "OsmAnd profile";
 	}
 
 
