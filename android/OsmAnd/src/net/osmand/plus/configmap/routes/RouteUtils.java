@@ -81,7 +81,11 @@ public class RouteUtils {
 					&& !Algorithms.stringsEqual(attrName, SKI_SLOPES.getAttrName())
 					&& !Algorithms.stringsEqual(attrName, CLIMBING.getRenderingPropertyAttr())
 					&& !Algorithms.stringsEqual(attrName, FITNESS.getRenderingPropertyAttr())
-					&& !Algorithms.stringsEqual(attrName, RUNNING.getRenderingPropertyAttr())) {
+					&& !Algorithms.stringsEqual(attrName, RUNNING.getRenderingPropertyAttr())
+					&& !Algorithms.stringsEqual(attrName, HIKING.getRenderingPropertyAttr())
+					&& !Algorithms.stringsEqual(attrName, HORSE.getRenderingPropertyAttr())
+					&& !Algorithms.stringsEqual(attrName, WATER.getRenderingPropertyAttr())
+					&& !Algorithms.stringsEqual(attrName, ALPINE.getRenderingPropertyAttr())) {
 				routeAttrNames.add(attrName);
 			}
 		}

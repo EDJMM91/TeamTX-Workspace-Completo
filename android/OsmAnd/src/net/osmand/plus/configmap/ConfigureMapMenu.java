@@ -164,15 +164,7 @@ public class ConfigureMapMenu {
 				.setItemDeleteAction(settings.SHOW_POI_LABEL)
 				.setListener(listener));
 
-		TransportLinesMenu transportLinesMenu = new TransportLinesMenu(app);
-		selected = transportLinesMenu.isShowAnyTransport();
-		adapter.addItem(new ContextMenuItem(TRANSPORT_ID)
-				.setTitleId(R.string.rendering_category_transport, activity)
-				.setIcon(R.drawable.ic_action_transport_bus)
-				.setSecondaryIcon(R.drawable.ic_action_additional_option)
-				.setSelected(selected)
-				.setColor(selected ? selectedProfileColor : null)
-				.setListener(listener));
+
 
 		adapter.addItem(new ContextMenuItem(GPX_FILES_ID)
 				.setTitleId(R.string.layer_gpx_layer, activity)
