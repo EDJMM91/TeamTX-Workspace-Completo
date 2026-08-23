@@ -1,8 +1,8 @@
 package net.osmand.binary;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.WireFormat;
+import net.osmand.protobuf.CodedInputStream;
+import net.osmand.protobuf.InvalidProtocolBufferException;
+import net.osmand.protobuf.WireFormat;
 
 import net.osmand.PlatformUtil;
 import net.osmand.ResultMatcher;

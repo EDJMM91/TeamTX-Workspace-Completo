@@ -27,8 +27,6 @@ import net.osmand.shared.obd.OBDDataComputer.OBDComputerWidget
 import net.osmand.shared.obd.OBDDataComputer.OBDTypeWidget
 import net.osmand.util.Algorithms
 import net.osmand.util.CollectionUtils
-import okhttp3.internal.immutableListOf
-import okhttp3.internal.toImmutableList
 
 class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.ConnectionStateListener,
 	RenameOBDDialog.OnDeviceNameChangedCallback, ForgetOBDDeviceDialog.ForgetDeviceListener {
@@ -63,7 +61,7 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 
 	private val uiHandler = Handler(Looper.getMainLooper())
 	private var updateWidgetsHandler: Handler? = null
-	private var items = immutableListOf<Any>()
+	private var items: List<Any> = emptyList()
 
 	private lateinit var adapter: OBDMainFragmentAdapter
 	private var progress: View? = null
@@ -119,7 +117,7 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 
 	override fun setupUI(view: View) {
 		progress = view.findViewById(R.id.progress_bar)
-		items = immutableListOf()
+		items = emptyList()
 		setupConnectionState(view)
 		updateButtonState(view)
 		setupVehicleInfo()
@@ -300,17 +298,15 @@ class OBDMainFragment : OBDDevicesBaseFragment(), VehicleMetricsPlugin.Connectio
 	}
 
 	private fun updateWidgets() {
-		items.forEach {
-			if (it is OBDDataItem) {
-				val widget = it.widget
+		items.forEach { item ->
+			if (item is OBDDataItem) {
+				val widget = item.widget
 				val value = vehicleMetricsPlugin.getWidgetValue(widget)
 				val unit = vehicleMetricsPlugin.getWidgetUnit(widget)
-				adapter.let { obdAdapter ->
-					val savedValue = obdAdapter.lastSavedValueMap[widget]
-					if (!savedValue?.first.equals(value) or !savedValue?.second.equals(unit)) {
-						uiHandler.post {
-							adapter.notifyItemChanged(items.indexOf(it))
-						}
+				val savedValue = adapter.lastSavedValueMap[widget]
+				if (savedValue?.first != value || savedValue?.second != unit) {
+					uiHandler.post {
+						adapter.notifyItemChanged(items.indexOf(item))
 					}
 				}
 			}

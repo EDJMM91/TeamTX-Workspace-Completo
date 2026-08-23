@@ -2,8 +2,8 @@ package net.osmand.binary;
 
 import java.util.*;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
+import net.osmand.protobuf.CodedInputStream;
+import net.osmand.protobuf.CodedOutputStream;
 
 import net.osmand.binary.BinaryMapIndexReader.SearchRequest;
 import net.osmand.util.Algorithms;

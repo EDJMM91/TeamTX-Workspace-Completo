@@ -6,8 +6,8 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.WireFormat;
+import net.osmand.protobuf.CodedInputStream;
+import net.osmand.protobuf.WireFormat;
 
 import gnu.trove.map.hash.TLongObjectHashMap;
 import net.osmand.PlatformUtil;

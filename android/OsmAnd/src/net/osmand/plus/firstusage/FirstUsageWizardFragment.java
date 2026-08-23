@@ -289,19 +289,31 @@ public class FirstUsageWizardFragment extends BaseFullScreenFragment implements 
 
 	private void setupSkipButton() {
 		AppCompatButton skipButton = view.findViewById(R.id.skip_button);
-		skipButton.setOnClickListener(v -> {
-			if (location != null) {
-				showOnMap(new LatLon(location.getLatitude(), location.getLongitude()));
-			} else {
-				closeWizard();
-			}
-		});
-		updateSkipButton();
+		if (skipButton != null) {
+			skipButton.setOnClickListener(v -> {
+				if (location != null) {
+					showOnMap(new LatLon(location.getLatitude(), location.getLongitude()));
+				} else {
+					closeWizard();
+				}
+			});
+			updateSkipButton();
+		}
+		View backToDashboard = view.findViewById(R.id.btn_back_to_dashboard);
+		if (backToDashboard != null) {
+			backToDashboard.setOnClickListener(v -> {
+				if (getActivity() != null) {
+					getActivity().finish();
+				}
+			});
+		}
 	}
 
 	private void setupActionButton() {
 		ImageButton otherButton = view.findViewById(R.id.actions_button);
-		otherButton.setOnClickListener(v -> FirstUsageActionsBottomSheet.showInstance(activity, this));
+		if (otherButton != null) {
+			otherButton.setVisibility(View.GONE);
+		}
 	}
 
 	private void setupLocationButton() {
@@ -663,14 +675,7 @@ public class FirstUsageWizardFragment extends BaseFullScreenFragment implements 
 	public void updateTermsOfServiceView() {
 		TextView textView = view.findViewById(R.id.terms_of_service_description);
 		if (textView != null) {
-			String termsOfUse = getString(R.string.shared_string_terms_of_use);
-			String privacyPolicy = getString(R.string.shared_string_privacy_policy);
-			String text = getString(R.string.terms_of_service_desc, termsOfUse, privacyPolicy);
-			SpannableString spannable = new SpannableString(text);
-			setupClickableToSText(spannable, termsOfUse, R.string.docs_legal_terms_of_use);
-			setupClickableToSText(spannable, privacyPolicy, R.string.docs_legal_privacy_policy);
-			textView.setMovementMethod(LinkMovementMethod.getInstance());
-			textView.setText(spannable);
+			textView.setVisibility(View.GONE);
 		}
 	}
 

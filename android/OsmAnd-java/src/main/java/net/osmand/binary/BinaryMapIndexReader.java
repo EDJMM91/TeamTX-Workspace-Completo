@@ -38,10 +38,10 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.WireFormat;
+import net.osmand.protobuf.CodedInputStream;
+import net.osmand.protobuf.CodedOutputStream;
+import net.osmand.protobuf.InvalidProtocolBufferException;
+import net.osmand.protobuf.WireFormat;
 
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.list.array.TLongArrayList;

@@ -101,7 +101,7 @@ class LandingScreen(
             .build()
         return PlaceListNavigationTemplate.Builder()
             .setItemList(listBuilder.build())
-            .setTitle(app.getString(R.string.app_name))
+            .setTitle(app.getString(R.string.app_name_osmand))
             .setHeaderAction(Action.APP_ICON)
             .setMapActionStrip(mapActionStripBuilder)
             .setActionStrip(actionStripBuilder.build())

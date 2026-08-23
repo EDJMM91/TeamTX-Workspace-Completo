@@ -36,8 +36,28 @@
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_gravity="top|end"
-		android:layout_marginTop="@dimen/content_padding_small_half"
+		android:layout_marginTop="68dp"
 		app:rightSide="true"
 		tools:ignore="UselessParent" />
+
+	<FrameLayout
+		android:id="@+id/btn_team_tx_logo_map"
+		android:layout_width="@dimen/map_button_size"
+		android:layout_height="@dimen/map_button_size"
+		android:layout_gravity="top|end"
+		android:layout_marginTop="8dp"
+		android:layout_marginEnd="@dimen/map_button_margin"
+		android:clickable="true"
+		android:focusable="true"
+		android:elevation="8dp"
+		android:background="@drawable/btn_circle">
+
+		<androidx.appcompat.widget.AppCompatImageView
+			android:layout_width="40dp"
+			android:layout_height="40dp"
+			android:layout_gravity="center"
+			android:src="@drawable/logoteam"
+			android:contentDescription="Volver al Dashboard Team TX" />
+	</FrameLayout>
 
 </FrameLayout>

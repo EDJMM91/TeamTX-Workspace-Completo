@@ -4037,7 +4037,7 @@ You need to activate the sensor so OsmAnd can find it.</string>
     <string name="si_mi_meters">Miles/meters</string>
     <string name="search_another_country">Select another region</string>
     <string name="search_map">Searching maps…</string>
-    <string name="first_usage_wizard_desc">Let OsmAnd determine your location and suggest maps to download for that region.</string>
+    <string name="first_usage_wizard_desc">Deja que la app TX determine tu ubicación y sugiera mapas a descargar para esa región.</string>
     <string name="location_not_found">Location not found</string>
     <string name="no_inet_connection">No Internet connection</string>
     <string name="search_location">Searching for location…</string>

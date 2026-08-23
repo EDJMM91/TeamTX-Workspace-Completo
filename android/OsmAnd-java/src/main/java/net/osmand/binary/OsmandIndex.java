@@ -6,10 +6,10 @@ package net.osmand.binary;
 public final class OsmandIndex {
   private OsmandIndex() {}
   public static void registerAllExtensions(
-      com.google.protobuf.ExtensionRegistryLite registry) {
+      net.osmand.protobuf.ExtensionRegistryLite registry) {
   }
   public interface OsmAndStoredIndexOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required uint32 version = 1;
     /**
@@ -58,10 +58,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.OsmAndStoredIndex}
    */
   public static final class OsmAndStoredIndex extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements OsmAndStoredIndexOrBuilder {
     // Use OsmAndStoredIndex.newBuilder() to construct.
-    private OsmAndStoredIndex(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private OsmAndStoredIndex(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -77,9 +77,9 @@ public final class OsmandIndex {
     }
 
     private OsmAndStoredIndex(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -117,10 +117,10 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
@@ -129,18 +129,18 @@ public final class OsmandIndex {
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<OsmAndStoredIndex> PARSER =
-        new com.google.protobuf.AbstractParser<OsmAndStoredIndex>() {
+    public static net.osmand.protobuf.Parser<OsmAndStoredIndex> PARSER =
+        new net.osmand.protobuf.AbstractParser<OsmAndStoredIndex>() {
       public OsmAndStoredIndex parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new OsmAndStoredIndex(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<OsmAndStoredIndex> getParserForType() {
+    public net.osmand.protobuf.Parser<OsmAndStoredIndex> getParserForType() {
       return PARSER;
     }
 
@@ -249,7 +249,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -270,15 +270,15 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeUInt32Size(1, version_);
       }
       for (int i = 0; i < fileIndex_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(7, fileIndex_.get(i));
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(18, dateCreated_);
       }
       memoizedSerializedSize = size;
@@ -293,24 +293,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.OsmAndStoredIndex parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.OsmAndStoredIndex parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.OsmAndStoredIndex parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.OsmAndStoredIndex parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.OsmAndStoredIndex parseFrom(java.io.InputStream input)
@@ -319,7 +319,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.OsmAndStoredIndex parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -329,18 +329,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.OsmAndStoredIndex parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.OsmAndStoredIndex parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.OsmAndStoredIndex parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -356,7 +356,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.OsmAndStoredIndex}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.OsmAndStoredIndex, Builder>
         implements net.osmand.binary.OsmandIndex.OsmAndStoredIndexOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.OsmAndStoredIndex.newBuilder()
@@ -458,13 +458,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.OsmAndStoredIndex parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.OsmAndStoredIndex) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -695,7 +695,7 @@ public final class OsmandIndex {
   }
 
   public interface FileIndexOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -729,7 +729,7 @@ public final class OsmandIndex {
     /**
      * <code>required string fileName = 3;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getFileNameBytes();
 
     // required int32 version = 4;
@@ -836,10 +836,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.FileIndex}
    */
   public static final class FileIndex extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements FileIndexOrBuilder {
     // Use FileIndex.newBuilder() to construct.
-    private FileIndex(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private FileIndex(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -855,9 +855,9 @@ public final class OsmandIndex {
     }
 
     private FileIndex(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -945,10 +945,10 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
@@ -972,18 +972,18 @@ public final class OsmandIndex {
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<FileIndex> PARSER =
-        new com.google.protobuf.AbstractParser<FileIndex>() {
+    public static net.osmand.protobuf.Parser<FileIndex> PARSER =
+        new net.osmand.protobuf.AbstractParser<FileIndex>() {
       public FileIndex parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new FileIndex(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<FileIndex> getParserForType() {
+    public net.osmand.protobuf.Parser<FileIndex> getParserForType() {
       return PARSER;
     }
 
@@ -1037,8 +1037,8 @@ public final class OsmandIndex {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
+        net.osmand.protobuf.ByteString bs = 
+            (net.osmand.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           fileName_ = s;
@@ -1049,17 +1049,17 @@ public final class OsmandIndex {
     /**
      * <code>required string fileName = 3;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getFileNameBytes() {
       java.lang.Object ref = fileName_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
+        net.osmand.protobuf.ByteString b = 
+            net.osmand.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         fileName_ = b;
         return b;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        return (net.osmand.protobuf.ByteString) ref;
       }
     }
 
@@ -1368,7 +1368,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -1410,43 +1410,43 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, dateModified_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeBytesSize(3, getFileNameBytes());
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(4, version_);
       }
       for (int i = 0; i < addressIndex_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(8, addressIndex_.get(i));
       }
       for (int i = 0; i < transportIndex_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(9, transportIndex_.get(i));
       }
       for (int i = 0; i < poiIndex_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(10, poiIndex_.get(i));
       }
       for (int i = 0; i < mapIndex_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(11, mapIndex_.get(i));
       }
       for (int i = 0; i < routingIndex_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(12, routingIndex_.get(i));
       }
       for (int i = 0; i < hhRoutingIndex_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(13, hhRoutingIndex_.get(i));
       }
       memoizedSerializedSize = size;
@@ -1461,24 +1461,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.FileIndex parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.FileIndex parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.FileIndex parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.FileIndex parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.FileIndex parseFrom(java.io.InputStream input)
@@ -1487,7 +1487,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.FileIndex parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -1497,18 +1497,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.FileIndex parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.FileIndex parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.FileIndex parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -1524,7 +1524,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.FileIndex}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.FileIndex, Builder>
         implements net.osmand.binary.OsmandIndex.FileIndexOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.FileIndex.newBuilder()
@@ -1769,13 +1769,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.FileIndex parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.FileIndex) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -1867,7 +1867,7 @@ public final class OsmandIndex {
       public java.lang.String getFileName() {
         java.lang.Object ref = fileName_;
         if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+          java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
               .toStringUtf8();
           fileName_ = s;
           return s;
@@ -1878,17 +1878,17 @@ public final class OsmandIndex {
       /**
        * <code>required string fileName = 3;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getFileNameBytes() {
         java.lang.Object ref = fileName_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           fileName_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
       /**
@@ -1917,7 +1917,7 @@ public final class OsmandIndex {
        * <code>required string fileName = 3;</code>
        */
       public Builder setFileNameBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -2722,7 +2722,7 @@ public final class OsmandIndex {
   }
 
   public interface AddressPartOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -2756,7 +2756,7 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getNameBytes();
 
     // optional string nameEn = 4;
@@ -2771,7 +2771,7 @@ public final class OsmandIndex {
     /**
      * <code>optional string nameEn = 4;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getNameEnBytes();
 
     // optional int64 indexNameOffset = 5;
@@ -2816,17 +2816,17 @@ public final class OsmandIndex {
     /**
      * <code>repeated string additionalTags = 9;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getAdditionalTagsBytes(int index);
   }
   /**
    * Protobuf type {@code OsmAnd.OBF.AddressPart}
    */
   public static final class AddressPart extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements AddressPartOrBuilder {
     // Use AddressPart.newBuilder() to construct.
-    private AddressPart(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private AddressPart(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -2842,9 +2842,9 @@ public final class OsmandIndex {
     }
 
     private AddressPart(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -2897,7 +2897,7 @@ public final class OsmandIndex {
             }
             case 74: {
               if (!((mutable_bitField0_ & 0x00000040) == 0x00000040)) {
-                additionalTags_ = new com.google.protobuf.LazyStringArrayList();
+                additionalTags_ = new net.osmand.protobuf.LazyStringArrayList();
                 mutable_bitField0_ |= 0x00000040;
               }
               additionalTags_.add(input.readBytes());
@@ -2905,33 +2905,33 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000020) == 0x00000020)) {
           cities_ = java.util.Collections.unmodifiableList(cities_);
         }
         if (((mutable_bitField0_ & 0x00000040) == 0x00000040)) {
-          additionalTags_ = new com.google.protobuf.UnmodifiableLazyStringList(additionalTags_);
+          additionalTags_ = new net.osmand.protobuf.UnmodifiableLazyStringList(additionalTags_);
         }
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<AddressPart> PARSER =
-        new com.google.protobuf.AbstractParser<AddressPart>() {
+    public static net.osmand.protobuf.Parser<AddressPart> PARSER =
+        new net.osmand.protobuf.AbstractParser<AddressPart>() {
       public AddressPart parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new AddressPart(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<AddressPart> getParserForType() {
+    public net.osmand.protobuf.Parser<AddressPart> getParserForType() {
       return PARSER;
     }
 
@@ -2985,8 +2985,8 @@ public final class OsmandIndex {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
+        net.osmand.protobuf.ByteString bs = 
+            (net.osmand.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           name_ = s;
@@ -2997,17 +2997,17 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
+        net.osmand.protobuf.ByteString b = 
+            net.osmand.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
         return b;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        return (net.osmand.protobuf.ByteString) ref;
       }
     }
 
@@ -3028,8 +3028,8 @@ public final class OsmandIndex {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
+        net.osmand.protobuf.ByteString bs = 
+            (net.osmand.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           nameEn_ = s;
@@ -3040,17 +3040,17 @@ public final class OsmandIndex {
     /**
      * <code>optional string nameEn = 4;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getNameEnBytes() {
       java.lang.Object ref = nameEn_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
+        net.osmand.protobuf.ByteString b = 
+            net.osmand.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         nameEn_ = b;
         return b;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        return (net.osmand.protobuf.ByteString) ref;
       }
     }
 
@@ -3108,7 +3108,7 @@ public final class OsmandIndex {
 
     // repeated string additionalTags = 9;
     public static final int ADDITIONALTAGS_FIELD_NUMBER = 9;
-    private com.google.protobuf.LazyStringList additionalTags_;
+    private net.osmand.protobuf.LazyStringList additionalTags_;
     /**
      * <code>repeated string additionalTags = 9;</code>
      */
@@ -3131,7 +3131,7 @@ public final class OsmandIndex {
     /**
      * <code>repeated string additionalTags = 9;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getAdditionalTagsBytes(int index) {
       return additionalTags_.getByteString(index);
     }
@@ -3143,7 +3143,7 @@ public final class OsmandIndex {
       nameEn_ = "";
       indexNameOffset_ = 0L;
       cities_ = java.util.Collections.emptyList();
-      additionalTags_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      additionalTags_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -3168,7 +3168,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -3201,33 +3201,33 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, offset_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeBytesSize(3, getNameBytes());
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeBytesSize(4, getNameEnBytes());
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(5, indexNameOffset_);
       }
       for (int i = 0; i < cities_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(8, cities_.get(i));
       }
       {
         int dataSize = 0;
         for (int i = 0; i < additionalTags_.size(); i++) {
-          dataSize += com.google.protobuf.CodedOutputStream
+          dataSize += net.osmand.protobuf.CodedOutputStream
             .computeBytesSizeNoTag(additionalTags_.getByteString(i));
         }
         size += dataSize;
@@ -3245,24 +3245,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.AddressPart parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.AddressPart parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.AddressPart parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.AddressPart parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.AddressPart parseFrom(java.io.InputStream input)
@@ -3271,7 +3271,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.AddressPart parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -3281,18 +3281,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.AddressPart parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.AddressPart parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.AddressPart parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -3308,7 +3308,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.AddressPart}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.AddressPart, Builder>
         implements net.osmand.binary.OsmandIndex.AddressPartOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.AddressPart.newBuilder()
@@ -3336,7 +3336,7 @@ public final class OsmandIndex {
         bitField0_ = (bitField0_ & ~0x00000010);
         cities_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000020);
-        additionalTags_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        additionalTags_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000040);
         return this;
       }
@@ -3387,7 +3387,7 @@ public final class OsmandIndex {
         }
         result.cities_ = cities_;
         if (((bitField0_ & 0x00000040) == 0x00000040)) {
-          additionalTags_ = new com.google.protobuf.UnmodifiableLazyStringList(
+          additionalTags_ = new net.osmand.protobuf.UnmodifiableLazyStringList(
               additionalTags_);
           bitField0_ = (bitField0_ & ~0x00000040);
         }
@@ -3459,13 +3459,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.AddressPart parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.AddressPart) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -3557,7 +3557,7 @@ public final class OsmandIndex {
       public java.lang.String getName() {
         java.lang.Object ref = name_;
         if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+          java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
               .toStringUtf8();
           name_ = s;
           return s;
@@ -3568,17 +3568,17 @@ public final class OsmandIndex {
       /**
        * <code>optional string name = 3;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
       /**
@@ -3607,7 +3607,7 @@ public final class OsmandIndex {
        * <code>optional string name = 3;</code>
        */
       public Builder setNameBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -3631,7 +3631,7 @@ public final class OsmandIndex {
       public java.lang.String getNameEn() {
         java.lang.Object ref = nameEn_;
         if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+          java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
               .toStringUtf8();
           nameEn_ = s;
           return s;
@@ -3642,17 +3642,17 @@ public final class OsmandIndex {
       /**
        * <code>optional string nameEn = 4;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getNameEnBytes() {
         java.lang.Object ref = nameEn_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           nameEn_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
       /**
@@ -3681,7 +3681,7 @@ public final class OsmandIndex {
        * <code>optional string nameEn = 4;</code>
        */
       public Builder setNameEnBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -3850,10 +3850,10 @@ public final class OsmandIndex {
       }
 
       // repeated string additionalTags = 9;
-      private com.google.protobuf.LazyStringList additionalTags_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private net.osmand.protobuf.LazyStringList additionalTags_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
       private void ensureAdditionalTagsIsMutable() {
         if (!((bitField0_ & 0x00000040) == 0x00000040)) {
-          additionalTags_ = new com.google.protobuf.LazyStringArrayList(additionalTags_);
+          additionalTags_ = new net.osmand.protobuf.LazyStringArrayList(additionalTags_);
           bitField0_ |= 0x00000040;
          }
       }
@@ -3879,7 +3879,7 @@ public final class OsmandIndex {
       /**
        * <code>repeated string additionalTags = 9;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getAdditionalTagsBytes(int index) {
         return additionalTags_.getByteString(index);
       }
@@ -3923,7 +3923,7 @@ public final class OsmandIndex {
        * <code>repeated string additionalTags = 9;</code>
        */
       public Builder clearAdditionalTags() {
-        additionalTags_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        additionalTags_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000040);
         
         return this;
@@ -3932,7 +3932,7 @@ public final class OsmandIndex {
        * <code>repeated string additionalTags = 9;</code>
        */
       public Builder addAdditionalTagsBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -3954,7 +3954,7 @@ public final class OsmandIndex {
   }
 
   public interface CityBlockOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -3990,10 +3990,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.CityBlock}
    */
   public static final class CityBlock extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements CityBlockOrBuilder {
     // Use CityBlock.newBuilder() to construct.
-    private CityBlock(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private CityBlock(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -4009,9 +4009,9 @@ public final class OsmandIndex {
     }
 
     private CityBlock(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -4046,27 +4046,27 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<CityBlock> PARSER =
-        new com.google.protobuf.AbstractParser<CityBlock>() {
+    public static net.osmand.protobuf.Parser<CityBlock> PARSER =
+        new net.osmand.protobuf.AbstractParser<CityBlock>() {
       public CityBlock parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new CityBlock(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<CityBlock> getParserForType() {
+    public net.osmand.protobuf.Parser<CityBlock> getParserForType() {
       return PARSER;
     }
 
@@ -4145,7 +4145,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -4166,15 +4166,15 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, offset_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(3, type_);
       }
       memoizedSerializedSize = size;
@@ -4189,24 +4189,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.CityBlock parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.CityBlock parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.CityBlock parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.CityBlock parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.CityBlock parseFrom(java.io.InputStream input)
@@ -4215,7 +4215,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.CityBlock parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -4225,18 +4225,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.CityBlock parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.CityBlock parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.CityBlock parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -4252,7 +4252,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.CityBlock}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.CityBlock, Builder>
         implements net.osmand.binary.OsmandIndex.CityBlockOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.CityBlock.newBuilder()
@@ -4344,13 +4344,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.CityBlock parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.CityBlock) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -4473,7 +4473,7 @@ public final class OsmandIndex {
   }
 
   public interface PoiPartOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -4507,7 +4507,7 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getNameBytes();
 
     // required int32 left = 4;
@@ -4554,10 +4554,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.PoiPart}
    */
   public static final class PoiPart extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements PoiPartOrBuilder {
     // Use PoiPart.newBuilder() to construct.
-    private PoiPart(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private PoiPart(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -4573,9 +4573,9 @@ public final class OsmandIndex {
     }
 
     private PoiPart(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -4630,27 +4630,27 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<PoiPart> PARSER =
-        new com.google.protobuf.AbstractParser<PoiPart>() {
+    public static net.osmand.protobuf.Parser<PoiPart> PARSER =
+        new net.osmand.protobuf.AbstractParser<PoiPart>() {
       public PoiPart parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new PoiPart(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<PoiPart> getParserForType() {
+    public net.osmand.protobuf.Parser<PoiPart> getParserForType() {
       return PARSER;
     }
 
@@ -4704,8 +4704,8 @@ public final class OsmandIndex {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
+        net.osmand.protobuf.ByteString bs = 
+            (net.osmand.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           name_ = s;
@@ -4716,17 +4716,17 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
+        net.osmand.protobuf.ByteString b = 
+            net.osmand.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
         return b;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        return (net.osmand.protobuf.ByteString) ref;
       }
     }
 
@@ -4836,7 +4836,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -4869,31 +4869,31 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, offset_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeBytesSize(3, getNameBytes());
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(4, left_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(5, right_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(6, top_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(7, bottom_);
       }
       memoizedSerializedSize = size;
@@ -4908,24 +4908,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.PoiPart parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.PoiPart parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.PoiPart parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.PoiPart parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.PoiPart parseFrom(java.io.InputStream input)
@@ -4934,7 +4934,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.PoiPart parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -4944,18 +4944,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.PoiPart parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.PoiPart parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.PoiPart parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -4971,7 +4971,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.PoiPart}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.PoiPart, Builder>
         implements net.osmand.binary.OsmandIndex.PoiPartOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.PoiPart.newBuilder()
@@ -5113,13 +5113,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.PoiPart parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.PoiPart) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -5211,7 +5211,7 @@ public final class OsmandIndex {
       public java.lang.String getName() {
         java.lang.Object ref = name_;
         if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+          java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
               .toStringUtf8();
           name_ = s;
           return s;
@@ -5222,17 +5222,17 @@ public final class OsmandIndex {
       /**
        * <code>optional string name = 3;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
       /**
@@ -5261,7 +5261,7 @@ public final class OsmandIndex {
        * <code>optional string name = 3;</code>
        */
       public Builder setNameBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -5415,7 +5415,7 @@ public final class OsmandIndex {
   }
 
   public interface MapLevelOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -5501,10 +5501,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.MapLevel}
    */
   public static final class MapLevel extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements MapLevelOrBuilder {
     // Use MapLevel.newBuilder() to construct.
-    private MapLevel(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private MapLevel(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -5520,9 +5520,9 @@ public final class OsmandIndex {
     }
 
     private MapLevel(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -5582,27 +5582,27 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<MapLevel> PARSER =
-        new com.google.protobuf.AbstractParser<MapLevel>() {
+    public static net.osmand.protobuf.Parser<MapLevel> PARSER =
+        new net.osmand.protobuf.AbstractParser<MapLevel>() {
       public MapLevel parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new MapLevel(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<MapLevel> getParserForType() {
+    public net.osmand.protobuf.Parser<MapLevel> getParserForType() {
       return PARSER;
     }
 
@@ -5778,7 +5778,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -5814,35 +5814,35 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, offset_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(4, left_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(5, right_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(6, top_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(7, bottom_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(8, minzoom_);
       }
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(9, maxzoom_);
       }
       memoizedSerializedSize = size;
@@ -5857,24 +5857,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.MapLevel parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.MapLevel parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.MapLevel parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.MapLevel parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.MapLevel parseFrom(java.io.InputStream input)
@@ -5883,7 +5883,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.MapLevel parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -5893,18 +5893,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.MapLevel parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.MapLevel parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.MapLevel parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -5920,7 +5920,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.MapLevel}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.MapLevel, Builder>
         implements net.osmand.binary.OsmandIndex.MapLevelOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.MapLevel.newBuilder()
@@ -6069,13 +6069,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.MapLevel parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.MapLevel) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -6363,7 +6363,7 @@ public final class OsmandIndex {
   }
 
   public interface MapPartOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -6397,7 +6397,7 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getNameBytes();
 
     // repeated .OsmAnd.OBF.MapLevel levels = 5;
@@ -6419,10 +6419,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.MapPart}
    */
   public static final class MapPart extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements MapPartOrBuilder {
     // Use MapPart.newBuilder() to construct.
-    private MapPart(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private MapPart(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -6438,9 +6438,9 @@ public final class OsmandIndex {
     }
 
     private MapPart(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -6483,10 +6483,10 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
@@ -6495,18 +6495,18 @@ public final class OsmandIndex {
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<MapPart> PARSER =
-        new com.google.protobuf.AbstractParser<MapPart>() {
+    public static net.osmand.protobuf.Parser<MapPart> PARSER =
+        new net.osmand.protobuf.AbstractParser<MapPart>() {
       public MapPart parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new MapPart(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<MapPart> getParserForType() {
+    public net.osmand.protobuf.Parser<MapPart> getParserForType() {
       return PARSER;
     }
 
@@ -6560,8 +6560,8 @@ public final class OsmandIndex {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
+        net.osmand.protobuf.ByteString bs = 
+            (net.osmand.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           name_ = s;
@@ -6572,17 +6572,17 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
+        net.osmand.protobuf.ByteString b = 
+            net.osmand.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
         return b;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        return (net.osmand.protobuf.ByteString) ref;
       }
     }
 
@@ -6651,7 +6651,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -6675,19 +6675,19 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, offset_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeBytesSize(3, getNameBytes());
       }
       for (int i = 0; i < levels_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(5, levels_.get(i));
       }
       memoizedSerializedSize = size;
@@ -6702,24 +6702,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.MapPart parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.MapPart parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.MapPart parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.MapPart parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.MapPart parseFrom(java.io.InputStream input)
@@ -6728,7 +6728,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.MapPart parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -6738,18 +6738,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.MapPart parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.MapPart parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.MapPart parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -6765,7 +6765,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.MapPart}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.MapPart, Builder>
         implements net.osmand.binary.OsmandIndex.MapPartOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.MapPart.newBuilder()
@@ -6878,13 +6878,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.MapPart parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.MapPart) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -6976,7 +6976,7 @@ public final class OsmandIndex {
       public java.lang.String getName() {
         java.lang.Object ref = name_;
         if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+          java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
               .toStringUtf8();
           name_ = s;
           return s;
@@ -6987,17 +6987,17 @@ public final class OsmandIndex {
       /**
        * <code>optional string name = 3;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
       /**
@@ -7026,7 +7026,7 @@ public final class OsmandIndex {
        * <code>optional string name = 3;</code>
        */
       public Builder setNameBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -7173,7 +7173,7 @@ public final class OsmandIndex {
   }
 
   public interface RoutingSubregionOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -7259,10 +7259,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.RoutingSubregion}
    */
   public static final class RoutingSubregion extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements RoutingSubregionOrBuilder {
     // Use RoutingSubregion.newBuilder() to construct.
-    private RoutingSubregion(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private RoutingSubregion(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -7278,9 +7278,9 @@ public final class OsmandIndex {
     }
 
     private RoutingSubregion(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -7340,27 +7340,27 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<RoutingSubregion> PARSER =
-        new com.google.protobuf.AbstractParser<RoutingSubregion>() {
+    public static net.osmand.protobuf.Parser<RoutingSubregion> PARSER =
+        new net.osmand.protobuf.AbstractParser<RoutingSubregion>() {
       public RoutingSubregion parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new RoutingSubregion(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<RoutingSubregion> getParserForType() {
+    public net.osmand.protobuf.Parser<RoutingSubregion> getParserForType() {
       return PARSER;
     }
 
@@ -7540,7 +7540,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -7576,35 +7576,35 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, offset_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeBoolSize(3, basemap_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(4, left_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(5, right_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(6, top_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(7, bottom_);
       }
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(8, shifToData_);
       }
       memoizedSerializedSize = size;
@@ -7619,24 +7619,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.RoutingSubregion parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.RoutingSubregion parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.RoutingSubregion parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.RoutingSubregion parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.RoutingSubregion parseFrom(java.io.InputStream input)
@@ -7645,7 +7645,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.RoutingSubregion parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -7655,18 +7655,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.RoutingSubregion parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.RoutingSubregion parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.RoutingSubregion parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -7682,7 +7682,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.RoutingSubregion}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.RoutingSubregion, Builder>
         implements net.osmand.binary.OsmandIndex.RoutingSubregionOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.RoutingSubregion.newBuilder()
@@ -7835,13 +7835,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.RoutingSubregion parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.RoutingSubregion) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -8129,7 +8129,7 @@ public final class OsmandIndex {
   }
 
   public interface RoutingPartOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -8163,7 +8163,7 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getNameBytes();
 
     // repeated .OsmAnd.OBF.RoutingSubregion subregions = 5;
@@ -8185,10 +8185,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.RoutingPart}
    */
   public static final class RoutingPart extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements RoutingPartOrBuilder {
     // Use RoutingPart.newBuilder() to construct.
-    private RoutingPart(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private RoutingPart(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -8204,9 +8204,9 @@ public final class OsmandIndex {
     }
 
     private RoutingPart(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -8249,10 +8249,10 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
@@ -8261,18 +8261,18 @@ public final class OsmandIndex {
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<RoutingPart> PARSER =
-        new com.google.protobuf.AbstractParser<RoutingPart>() {
+    public static net.osmand.protobuf.Parser<RoutingPart> PARSER =
+        new net.osmand.protobuf.AbstractParser<RoutingPart>() {
       public RoutingPart parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new RoutingPart(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<RoutingPart> getParserForType() {
+    public net.osmand.protobuf.Parser<RoutingPart> getParserForType() {
       return PARSER;
     }
 
@@ -8326,8 +8326,8 @@ public final class OsmandIndex {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
+        net.osmand.protobuf.ByteString bs = 
+            (net.osmand.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           name_ = s;
@@ -8338,17 +8338,17 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
+        net.osmand.protobuf.ByteString b = 
+            net.osmand.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
         return b;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        return (net.osmand.protobuf.ByteString) ref;
       }
     }
 
@@ -8417,7 +8417,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -8441,19 +8441,19 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, offset_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeBytesSize(3, getNameBytes());
       }
       for (int i = 0; i < subregions_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(5, subregions_.get(i));
       }
       memoizedSerializedSize = size;
@@ -8468,24 +8468,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.RoutingPart parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.RoutingPart parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.RoutingPart parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.RoutingPart parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.RoutingPart parseFrom(java.io.InputStream input)
@@ -8494,7 +8494,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.RoutingPart parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -8504,18 +8504,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.RoutingPart parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.RoutingPart parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.RoutingPart parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -8531,7 +8531,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.RoutingPart}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.RoutingPart, Builder>
         implements net.osmand.binary.OsmandIndex.RoutingPartOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.RoutingPart.newBuilder()
@@ -8644,13 +8644,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.RoutingPart parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.RoutingPart) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -8742,7 +8742,7 @@ public final class OsmandIndex {
       public java.lang.String getName() {
         java.lang.Object ref = name_;
         if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+          java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
               .toStringUtf8();
           name_ = s;
           return s;
@@ -8753,17 +8753,17 @@ public final class OsmandIndex {
       /**
        * <code>optional string name = 3;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
       /**
@@ -8792,7 +8792,7 @@ public final class OsmandIndex {
        * <code>optional string name = 3;</code>
        */
       public Builder setNameBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -8939,7 +8939,7 @@ public final class OsmandIndex {
   }
 
   public interface HHRoutingPartOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -8983,7 +8983,7 @@ public final class OsmandIndex {
     /**
      * <code>required string profile = 4;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getProfileBytes();
 
     // repeated string profileParams = 5;
@@ -9003,7 +9003,7 @@ public final class OsmandIndex {
     /**
      * <code>repeated string profileParams = 5;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getProfileParamsBytes(int index);
 
     // required int64 pointsOffset = 7;
@@ -9070,10 +9070,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.HHRoutingPart}
    */
   public static final class HHRoutingPart extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements HHRoutingPartOrBuilder {
     // Use HHRoutingPart.newBuilder() to construct.
-    private HHRoutingPart(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private HHRoutingPart(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -9089,9 +9089,9 @@ public final class OsmandIndex {
     }
 
     private HHRoutingPart(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -9131,7 +9131,7 @@ public final class OsmandIndex {
             }
             case 42: {
               if (!((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
-                profileParams_ = new com.google.protobuf.LazyStringArrayList();
+                profileParams_ = new net.osmand.protobuf.LazyStringArrayList();
                 mutable_bitField0_ |= 0x00000010;
               }
               profileParams_.add(input.readBytes());
@@ -9169,30 +9169,30 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
-          profileParams_ = new com.google.protobuf.UnmodifiableLazyStringList(profileParams_);
+          profileParams_ = new net.osmand.protobuf.UnmodifiableLazyStringList(profileParams_);
         }
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<HHRoutingPart> PARSER =
-        new com.google.protobuf.AbstractParser<HHRoutingPart>() {
+    public static net.osmand.protobuf.Parser<HHRoutingPart> PARSER =
+        new net.osmand.protobuf.AbstractParser<HHRoutingPart>() {
       public HHRoutingPart parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new HHRoutingPart(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<HHRoutingPart> getParserForType() {
+    public net.osmand.protobuf.Parser<HHRoutingPart> getParserForType() {
       return PARSER;
     }
 
@@ -9262,8 +9262,8 @@ public final class OsmandIndex {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
+        net.osmand.protobuf.ByteString bs = 
+            (net.osmand.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           profile_ = s;
@@ -9274,23 +9274,23 @@ public final class OsmandIndex {
     /**
      * <code>required string profile = 4;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getProfileBytes() {
       java.lang.Object ref = profile_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
+        net.osmand.protobuf.ByteString b = 
+            net.osmand.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         profile_ = b;
         return b;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        return (net.osmand.protobuf.ByteString) ref;
       }
     }
 
     // repeated string profileParams = 5;
     public static final int PROFILEPARAMS_FIELD_NUMBER = 5;
-    private com.google.protobuf.LazyStringList profileParams_;
+    private net.osmand.protobuf.LazyStringList profileParams_;
     /**
      * <code>repeated string profileParams = 5;</code>
      */
@@ -9313,7 +9313,7 @@ public final class OsmandIndex {
     /**
      * <code>repeated string profileParams = 5;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getProfileParamsBytes(int index) {
       return profileParams_.getByteString(index);
     }
@@ -9419,7 +9419,7 @@ public final class OsmandIndex {
       offset_ = 0L;
       edition_ = 0L;
       profile_ = "";
-      profileParams_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      profileParams_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
       pointsOffset_ = 0L;
       pointsLength_ = 0L;
       left_ = 0;
@@ -9476,7 +9476,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -9521,52 +9521,52 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, offset_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(3, edition_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeBytesSize(4, getProfileBytes());
       }
       {
         int dataSize = 0;
         for (int i = 0; i < profileParams_.size(); i++) {
-          dataSize += com.google.protobuf.CodedOutputStream
+          dataSize += net.osmand.protobuf.CodedOutputStream
             .computeBytesSizeNoTag(profileParams_.getByteString(i));
         }
         size += dataSize;
         size += 1 * getProfileParamsList().size();
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(7, pointsOffset_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(8, pointsLength_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(9, left_);
       }
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(10, right_);
       }
       if (((bitField0_ & 0x00000100) == 0x00000100)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(11, top_);
       }
       if (((bitField0_ & 0x00000200) == 0x00000200)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(12, bottom_);
       }
       memoizedSerializedSize = size;
@@ -9581,24 +9581,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.HHRoutingPart parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.HHRoutingPart parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.HHRoutingPart parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.HHRoutingPart parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.HHRoutingPart parseFrom(java.io.InputStream input)
@@ -9607,7 +9607,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.HHRoutingPart parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -9617,18 +9617,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.HHRoutingPart parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.HHRoutingPart parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.HHRoutingPart parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -9644,7 +9644,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.HHRoutingPart}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.HHRoutingPart, Builder>
         implements net.osmand.binary.OsmandIndex.HHRoutingPartOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.HHRoutingPart.newBuilder()
@@ -9668,7 +9668,7 @@ public final class OsmandIndex {
         bitField0_ = (bitField0_ & ~0x00000004);
         profile_ = "";
         bitField0_ = (bitField0_ & ~0x00000008);
-        profileParams_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        profileParams_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000010);
         pointsOffset_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000020);
@@ -9722,7 +9722,7 @@ public final class OsmandIndex {
         }
         result.profile_ = profile_;
         if (((bitField0_ & 0x00000010) == 0x00000010)) {
-          profileParams_ = new com.google.protobuf.UnmodifiableLazyStringList(
+          profileParams_ = new net.osmand.protobuf.UnmodifiableLazyStringList(
               profileParams_);
           bitField0_ = (bitField0_ & ~0x00000010);
         }
@@ -9847,13 +9847,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.HHRoutingPart parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.HHRoutingPart) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -9978,7 +9978,7 @@ public final class OsmandIndex {
       public java.lang.String getProfile() {
         java.lang.Object ref = profile_;
         if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+          java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
               .toStringUtf8();
           profile_ = s;
           return s;
@@ -9989,17 +9989,17 @@ public final class OsmandIndex {
       /**
        * <code>required string profile = 4;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getProfileBytes() {
         java.lang.Object ref = profile_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           profile_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
       /**
@@ -10028,7 +10028,7 @@ public final class OsmandIndex {
        * <code>required string profile = 4;</code>
        */
       public Builder setProfileBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -10039,10 +10039,10 @@ public final class OsmandIndex {
       }
 
       // repeated string profileParams = 5;
-      private com.google.protobuf.LazyStringList profileParams_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private net.osmand.protobuf.LazyStringList profileParams_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
       private void ensureProfileParamsIsMutable() {
         if (!((bitField0_ & 0x00000010) == 0x00000010)) {
-          profileParams_ = new com.google.protobuf.LazyStringArrayList(profileParams_);
+          profileParams_ = new net.osmand.protobuf.LazyStringArrayList(profileParams_);
           bitField0_ |= 0x00000010;
          }
       }
@@ -10068,7 +10068,7 @@ public final class OsmandIndex {
       /**
        * <code>repeated string profileParams = 5;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getProfileParamsBytes(int index) {
         return profileParams_.getByteString(index);
       }
@@ -10112,7 +10112,7 @@ public final class OsmandIndex {
        * <code>repeated string profileParams = 5;</code>
        */
       public Builder clearProfileParams() {
-        profileParams_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        profileParams_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000010);
         
         return this;
@@ -10121,7 +10121,7 @@ public final class OsmandIndex {
        * <code>repeated string profileParams = 5;</code>
        */
       public Builder addProfileParamsBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -10341,7 +10341,7 @@ public final class OsmandIndex {
   }
 
   public interface TransportPartOrBuilder
-      extends com.google.protobuf.MessageLiteOrBuilder {
+      extends net.osmand.protobuf.MessageLiteOrBuilder {
 
     // required int64 size = 1;
     /**
@@ -10375,7 +10375,7 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    com.google.protobuf.ByteString
+    net.osmand.protobuf.ByteString
         getNameBytes();
 
     // optional int32 left = 4;
@@ -10482,10 +10482,10 @@ public final class OsmandIndex {
    * Protobuf type {@code OsmAnd.OBF.TransportPart}
    */
   public static final class TransportPart extends
-      com.google.protobuf.GeneratedMessageLite
+      net.osmand.protobuf.GeneratedMessageLite
       implements TransportPartOrBuilder {
     // Use TransportPart.newBuilder() to construct.
-    private TransportPart(com.google.protobuf.GeneratedMessageLite.Builder builder) {
+    private TransportPart(net.osmand.protobuf.GeneratedMessageLite.Builder builder) {
       super(builder);
 
     }
@@ -10501,9 +10501,9 @@ public final class OsmandIndex {
     }
 
     private TransportPart(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
       try {
@@ -10588,27 +10588,27 @@ public final class OsmandIndex {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         makeExtensionsImmutable();
       }
     }
-    public static com.google.protobuf.Parser<TransportPart> PARSER =
-        new com.google.protobuf.AbstractParser<TransportPart>() {
+    public static net.osmand.protobuf.Parser<TransportPart> PARSER =
+        new net.osmand.protobuf.AbstractParser<TransportPart>() {
       public TransportPart parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new TransportPart(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<TransportPart> getParserForType() {
+    public net.osmand.protobuf.Parser<TransportPart> getParserForType() {
       return PARSER;
     }
 
@@ -10662,8 +10662,8 @@ public final class OsmandIndex {
       if (ref instanceof java.lang.String) {
         return (java.lang.String) ref;
       } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
+        net.osmand.protobuf.ByteString bs = 
+            (net.osmand.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
         if (bs.isValidUtf8()) {
           name_ = s;
@@ -10674,17 +10674,17 @@ public final class OsmandIndex {
     /**
      * <code>optional string name = 3;</code>
      */
-    public com.google.protobuf.ByteString
+    public net.osmand.protobuf.ByteString
         getNameBytes() {
       java.lang.Object ref = name_;
       if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
+        net.osmand.protobuf.ByteString b = 
+            net.osmand.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
         name_ = b;
         return b;
       } else {
-        return (com.google.protobuf.ByteString) ref;
+        return (net.osmand.protobuf.ByteString) ref;
       }
     }
 
@@ -10880,7 +10880,7 @@ public final class OsmandIndex {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -10931,55 +10931,55 @@ public final class OsmandIndex {
 
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(1, size_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(2, offset_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeBytesSize(3, getNameBytes());
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(4, left_);
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(5, right_);
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(6, top_);
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(7, bottom_);
       }
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(8, stringTableOffset_);
       }
       if (((bitField0_ & 0x00000100) == 0x00000100)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt32Size(9, stringTableLength_);
       }
       if (((bitField0_ & 0x00000200) == 0x00000200)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(10, stopsTableOffset_);
       }
       if (((bitField0_ & 0x00000400) == 0x00000400)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(11, stopsTableLength_);
       }
       if (((bitField0_ & 0x00000800) == 0x00000800)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(12, incompleteRoutesOffset_);
       }
       if (((bitField0_ & 0x00001000) == 0x00001000)) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeInt64Size(13, incompleteRoutesLength_);
       }
       memoizedSerializedSize = size;
@@ -10994,24 +10994,24 @@ public final class OsmandIndex {
     }
 
     public static net.osmand.binary.OsmandIndex.TransportPart parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.TransportPart parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.TransportPart parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.OsmandIndex.TransportPart parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.TransportPart parseFrom(java.io.InputStream input)
@@ -11020,7 +11020,7 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.TransportPart parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -11030,18 +11030,18 @@ public final class OsmandIndex {
     }
     public static net.osmand.binary.OsmandIndex.TransportPart parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.OsmandIndex.TransportPart parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.OsmandIndex.TransportPart parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -11057,7 +11057,7 @@ public final class OsmandIndex {
      * Protobuf type {@code OsmAnd.OBF.TransportPart}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
+        net.osmand.protobuf.GeneratedMessageLite.Builder<
           net.osmand.binary.OsmandIndex.TransportPart, Builder>
         implements net.osmand.binary.OsmandIndex.TransportPartOrBuilder {
       // Construct using net.osmand.binary.OsmandIndex.TransportPart.newBuilder()
@@ -11237,13 +11237,13 @@ public final class OsmandIndex {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.OsmandIndex.TransportPart parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.OsmandIndex.TransportPart) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -11335,7 +11335,7 @@ public final class OsmandIndex {
       public java.lang.String getName() {
         java.lang.Object ref = name_;
         if (!(ref instanceof java.lang.String)) {
-          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+          java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
               .toStringUtf8();
           name_ = s;
           return s;
@@ -11346,17 +11346,17 @@ public final class OsmandIndex {
       /**
        * <code>optional string name = 3;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
       /**
@@ -11385,7 +11385,7 @@ public final class OsmandIndex {
        * <code>optional string name = 3;</code>
        */
       public Builder setNameBytes(
-          com.google.protobuf.ByteString value) {
+          net.osmand.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }

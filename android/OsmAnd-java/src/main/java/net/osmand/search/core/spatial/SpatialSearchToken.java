@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.protobuf.ByteString;
+import net.osmand.protobuf.ByteString;
 
 import gnu.trove.map.hash.TLongObjectHashMap;
 import net.osmand.CollatorStringMatcher;

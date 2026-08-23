@@ -6,8 +6,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.WireFormat;
+import net.osmand.protobuf.CodedInputStream;
+import net.osmand.protobuf.WireFormat;
 
 import gnu.trove.list.array.TByteArrayList;
 import gnu.trove.map.hash.TIntObjectHashMap;

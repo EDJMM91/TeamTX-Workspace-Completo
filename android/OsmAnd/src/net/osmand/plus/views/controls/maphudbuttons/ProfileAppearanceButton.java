@@ -6,7 +6,6 @@ import android.util.AttributeSet;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import net.osmand.plus.activities.MapActivity;
 import net.osmand.plus.settings.fragments.profileappearance.ProfileAppearanceFragment;
 import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.ColorUtilities;
@@ -31,7 +30,7 @@ public class ProfileAppearanceButton extends MapButton {
 
 		setOnClickListener(v -> {
 			if (AndroidUtils.isActivityNotDestroyed(mapActivity)) {
-				ProfileAppearanceFragment.showInstance(mapActivity, mapActivity.getMyApplication().getSettings().getApplicationMode().getStringKey(), false);
+				ProfileAppearanceFragment.showInstance(mapActivity, settings.getApplicationMode().getStringKey(), false);
 			}
 		});
 	}

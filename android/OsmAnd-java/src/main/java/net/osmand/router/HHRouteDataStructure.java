@@ -11,7 +11,7 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.TreeMap;
 
-import com.google.protobuf.CodedInputStream;
+import net.osmand.protobuf.CodedInputStream;
 
 import gnu.trove.iterator.TLongObjectIterator;
 import gnu.trove.map.hash.TIntObjectHashMap;

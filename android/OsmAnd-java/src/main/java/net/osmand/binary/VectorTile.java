@@ -6,10 +6,10 @@ package net.osmand.binary;
 public final class VectorTile {
   private VectorTile() {}
   public static void registerAllExtensions(
-      com.google.protobuf.ExtensionRegistry registry) {
+      net.osmand.protobuf.ExtensionRegistry registry) {
   }
   public interface TileOrBuilder extends
-      com.google.protobuf.GeneratedMessage.
+      net.osmand.protobuf.GeneratedMessage.
           ExtendableMessageOrBuilder<Tile> {
 
     // repeated .OsmAnd.VectorTile.Tile.Layer layers = 3;
@@ -41,14 +41,14 @@ public final class VectorTile {
    * Protobuf type {@code OsmAnd.VectorTile.Tile}
    */
   public static final class Tile extends
-      com.google.protobuf.GeneratedMessage.ExtendableMessage<
+      net.osmand.protobuf.GeneratedMessage.ExtendableMessage<
         Tile> implements TileOrBuilder {
     // Use Tile.newBuilder() to construct.
-    private Tile(com.google.protobuf.GeneratedMessage.ExtendableBuilder<net.osmand.binary.VectorTile.Tile, ?> builder) {
+    private Tile(net.osmand.protobuf.GeneratedMessage.ExtendableBuilder<net.osmand.binary.VectorTile.Tile, ?> builder) {
       super(builder);
       this.unknownFields = builder.getUnknownFields();
     }
-    private Tile(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+    private Tile(boolean noInit) { this.unknownFields = net.osmand.protobuf.UnknownFieldSet.getDefaultInstance(); }
 
     private static final Tile defaultInstance;
     public static Tile getDefaultInstance() {
@@ -59,20 +59,20 @@ public final class VectorTile {
       return defaultInstance;
     }
 
-    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    private final net.osmand.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
-    public final com.google.protobuf.UnknownFieldSet
+    public final net.osmand.protobuf.UnknownFieldSet
         getUnknownFields() {
       return this.unknownFields;
     }
     private Tile(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       initFields();
       int mutable_bitField0_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
+      net.osmand.protobuf.UnknownFieldSet.Builder unknownFields =
+          net.osmand.protobuf.UnknownFieldSet.newBuilder();
       try {
         boolean done = false;
         while (!done) {
@@ -98,10 +98,10 @@ public final class VectorTile {
             }
           }
         }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+      } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
+        throw new net.osmand.protobuf.InvalidProtocolBufferException(
             e.getMessage()).setUnfinishedMessage(this);
       } finally {
         if (((mutable_bitField0_ & 0x00000001) == 0x00000001)) {
@@ -111,30 +111,30 @@ public final class VectorTile {
         makeExtensionsImmutable();
       }
     }
-    public static final com.google.protobuf.Descriptors.Descriptor
+    public static final net.osmand.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    protected net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
               net.osmand.binary.VectorTile.Tile.class, net.osmand.binary.VectorTile.Tile.Builder.class);
     }
 
-    public static com.google.protobuf.Parser<Tile> PARSER =
-        new com.google.protobuf.AbstractParser<Tile>() {
+    public static net.osmand.protobuf.Parser<Tile> PARSER =
+        new net.osmand.protobuf.AbstractParser<Tile>() {
       public Tile parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return new Tile(input, extensionRegistry);
       }
     };
 
     @java.lang.Override
-    public com.google.protobuf.Parser<Tile> getParserForType() {
+    public net.osmand.protobuf.Parser<Tile> getParserForType() {
       return PARSER;
     }
 
@@ -146,7 +146,7 @@ public final class VectorTile {
      * </pre>
      */
     public enum GeomType
-        implements com.google.protobuf.ProtocolMessageEnum {
+        implements net.osmand.protobuf.ProtocolMessageEnum {
       /**
        * <code>UNKNOWN = 0;</code>
        */
@@ -195,27 +195,27 @@ public final class VectorTile {
         }
       }
 
-      public static com.google.protobuf.Internal.EnumLiteMap<GeomType>
+      public static net.osmand.protobuf.Internal.EnumLiteMap<GeomType>
           internalGetValueMap() {
         return internalValueMap;
       }
-      private static com.google.protobuf.Internal.EnumLiteMap<GeomType>
+      private static net.osmand.protobuf.Internal.EnumLiteMap<GeomType>
           internalValueMap =
-            new com.google.protobuf.Internal.EnumLiteMap<GeomType>() {
+            new net.osmand.protobuf.Internal.EnumLiteMap<GeomType>() {
               public GeomType findValueByNumber(int number) {
                 return GeomType.valueOf(number);
               }
             };
 
-      public final com.google.protobuf.Descriptors.EnumValueDescriptor
+      public final net.osmand.protobuf.Descriptors.EnumValueDescriptor
           getValueDescriptor() {
         return getDescriptor().getValues().get(index);
       }
-      public final com.google.protobuf.Descriptors.EnumDescriptor
+      public final net.osmand.protobuf.Descriptors.EnumDescriptor
           getDescriptorForType() {
         return getDescriptor();
       }
-      public static final com.google.protobuf.Descriptors.EnumDescriptor
+      public static final net.osmand.protobuf.Descriptors.EnumDescriptor
           getDescriptor() {
         return net.osmand.binary.VectorTile.Tile.getDescriptor().getEnumTypes().get(0);
       }
@@ -223,7 +223,7 @@ public final class VectorTile {
       private static final GeomType[] VALUES = values();
 
       public static GeomType valueOf(
-          com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+          net.osmand.protobuf.Descriptors.EnumValueDescriptor desc) {
         if (desc.getType() != getDescriptor()) {
           throw new java.lang.IllegalArgumentException(
             "EnumValueDescriptor is not for this type.");
@@ -243,7 +243,7 @@ public final class VectorTile {
     }
 
     public interface ValueOrBuilder extends
-        com.google.protobuf.GeneratedMessage.
+        net.osmand.protobuf.GeneratedMessage.
             ExtendableMessageOrBuilder<Value> {
 
       // optional string string_value = 1;
@@ -270,7 +270,7 @@ public final class VectorTile {
        * Exactly one of these values must be present in a valid message
        * </pre>
        */
-      com.google.protobuf.ByteString
+      net.osmand.protobuf.ByteString
           getStringValueBytes();
 
       // optional float float_value = 2;
@@ -342,14 +342,14 @@ public final class VectorTile {
      * </pre>
      */
     public static final class Value extends
-        com.google.protobuf.GeneratedMessage.ExtendableMessage<
+        net.osmand.protobuf.GeneratedMessage.ExtendableMessage<
           Value> implements ValueOrBuilder {
       // Use Value.newBuilder() to construct.
-      private Value(com.google.protobuf.GeneratedMessage.ExtendableBuilder<net.osmand.binary.VectorTile.Tile.Value, ?> builder) {
+      private Value(net.osmand.protobuf.GeneratedMessage.ExtendableBuilder<net.osmand.binary.VectorTile.Tile.Value, ?> builder) {
         super(builder);
         this.unknownFields = builder.getUnknownFields();
       }
-      private Value(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+      private Value(boolean noInit) { this.unknownFields = net.osmand.protobuf.UnknownFieldSet.getDefaultInstance(); }
 
       private static final Value defaultInstance;
       public static Value getDefaultInstance() {
@@ -360,20 +360,20 @@ public final class VectorTile {
         return defaultInstance;
       }
 
-      private final com.google.protobuf.UnknownFieldSet unknownFields;
+      private final net.osmand.protobuf.UnknownFieldSet unknownFields;
       @java.lang.Override
-      public final com.google.protobuf.UnknownFieldSet
+      public final net.osmand.protobuf.UnknownFieldSet
           getUnknownFields() {
         return this.unknownFields;
       }
       private Value(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         initFields();
         int mutable_bitField0_ = 0;
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-            com.google.protobuf.UnknownFieldSet.newBuilder();
+        net.osmand.protobuf.UnknownFieldSet.Builder unknownFields =
+            net.osmand.protobuf.UnknownFieldSet.newBuilder();
         try {
           boolean done = false;
           while (!done) {
@@ -426,40 +426,40 @@ public final class VectorTile {
               }
             }
           }
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           throw e.setUnfinishedMessage(this);
         } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(
+          throw new net.osmand.protobuf.InvalidProtocolBufferException(
               e.getMessage()).setUnfinishedMessage(this);
         } finally {
           this.unknownFields = unknownFields.build();
           makeExtensionsImmutable();
         }
       }
-      public static final com.google.protobuf.Descriptors.Descriptor
+      public static final net.osmand.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Value_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Value_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
                 net.osmand.binary.VectorTile.Tile.Value.class, net.osmand.binary.VectorTile.Tile.Value.Builder.class);
       }
 
-      public static com.google.protobuf.Parser<Value> PARSER =
-          new com.google.protobuf.AbstractParser<Value>() {
+      public static net.osmand.protobuf.Parser<Value> PARSER =
+          new net.osmand.protobuf.AbstractParser<Value>() {
         public Value parsePartialFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+            net.osmand.protobuf.CodedInputStream input,
+            net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws net.osmand.protobuf.InvalidProtocolBufferException {
           return new Value(input, extensionRegistry);
         }
       };
 
       @java.lang.Override
-      public com.google.protobuf.Parser<Value> getParserForType() {
+      public net.osmand.protobuf.Parser<Value> getParserForType() {
         return PARSER;
       }
 
@@ -489,8 +489,8 @@ public final class VectorTile {
         if (ref instanceof java.lang.String) {
           return (java.lang.String) ref;
         } else {
-          com.google.protobuf.ByteString bs = 
-              (com.google.protobuf.ByteString) ref;
+          net.osmand.protobuf.ByteString bs = 
+              (net.osmand.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
             stringValue_ = s;
@@ -505,17 +505,17 @@ public final class VectorTile {
        * Exactly one of these values must be present in a valid message
        * </pre>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getStringValueBytes() {
         java.lang.Object ref = stringValue_;
         if (ref instanceof java.lang.String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           stringValue_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
 
@@ -637,10 +637,10 @@ public final class VectorTile {
         return true;
       }
 
-      public void writeTo(com.google.protobuf.CodedOutputStream output)
+      public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                           throws java.io.IOException {
         getSerializedSize();
-        com.google.protobuf.GeneratedMessage
+        net.osmand.protobuf.GeneratedMessage
           .ExtendableMessage<net.osmand.binary.VectorTile.Tile.Value>.ExtensionWriter extensionWriter =
             newExtensionWriter();
         if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -675,31 +675,31 @@ public final class VectorTile {
 
         size = 0;
         if (((bitField0_ & 0x00000001) == 0x00000001)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeBytesSize(1, getStringValueBytes());
         }
         if (((bitField0_ & 0x00000002) == 0x00000002)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeFloatSize(2, floatValue_);
         }
         if (((bitField0_ & 0x00000004) == 0x00000004)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeDoubleSize(3, doubleValue_);
         }
         if (((bitField0_ & 0x00000008) == 0x00000008)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeInt64Size(4, intValue_);
         }
         if (((bitField0_ & 0x00000010) == 0x00000010)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeUInt64Size(5, uintValue_);
         }
         if (((bitField0_ & 0x00000020) == 0x00000020)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeSInt64Size(6, sintValue_);
         }
         if (((bitField0_ & 0x00000040) == 0x00000040)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeBoolSize(7, boolValue_);
         }
         size += extensionsSerializedSize();
@@ -716,24 +716,24 @@ public final class VectorTile {
       }
 
       public static net.osmand.binary.VectorTile.Tile.Value parseFrom(
-          com.google.protobuf.ByteString data)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.ByteString data)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data);
       }
       public static net.osmand.binary.VectorTile.Tile.Value parseFrom(
-          com.google.protobuf.ByteString data,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.ByteString data,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data, extensionRegistry);
       }
       public static net.osmand.binary.VectorTile.Tile.Value parseFrom(byte[] data)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data);
       }
       public static net.osmand.binary.VectorTile.Tile.Value parseFrom(
           byte[] data,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data, extensionRegistry);
       }
       public static net.osmand.binary.VectorTile.Tile.Value parseFrom(java.io.InputStream input)
@@ -742,7 +742,7 @@ public final class VectorTile {
       }
       public static net.osmand.binary.VectorTile.Tile.Value parseFrom(
           java.io.InputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         return PARSER.parseFrom(input, extensionRegistry);
       }
@@ -752,18 +752,18 @@ public final class VectorTile {
       }
       public static net.osmand.binary.VectorTile.Tile.Value parseDelimitedFrom(
           java.io.InputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         return PARSER.parseDelimitedFrom(input, extensionRegistry);
       }
       public static net.osmand.binary.VectorTile.Tile.Value parseFrom(
-          com.google.protobuf.CodedInputStream input)
+          net.osmand.protobuf.CodedInputStream input)
           throws java.io.IOException {
         return PARSER.parseFrom(input);
       }
       public static net.osmand.binary.VectorTile.Tile.Value parseFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         return PARSER.parseFrom(input, extensionRegistry);
       }
@@ -777,7 +777,7 @@ public final class VectorTile {
 
       @java.lang.Override
       protected Builder newBuilderForType(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          net.osmand.protobuf.GeneratedMessage.BuilderParent parent) {
         Builder builder = new Builder(parent);
         return builder;
       }
@@ -790,14 +790,14 @@ public final class VectorTile {
        * </pre>
        */
       public static final class Builder extends
-          com.google.protobuf.GeneratedMessage.ExtendableBuilder<
+          net.osmand.protobuf.GeneratedMessage.ExtendableBuilder<
             net.osmand.binary.VectorTile.Tile.Value, Builder> implements net.osmand.binary.VectorTile.Tile.ValueOrBuilder {
-        public static final com.google.protobuf.Descriptors.Descriptor
+        public static final net.osmand.protobuf.Descriptors.Descriptor
             getDescriptor() {
           return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Value_descriptor;
         }
 
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        protected net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
             internalGetFieldAccessorTable() {
           return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Value_fieldAccessorTable
               .ensureFieldAccessorsInitialized(
@@ -810,12 +810,12 @@ public final class VectorTile {
         }
 
         private Builder(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+            net.osmand.protobuf.GeneratedMessage.BuilderParent parent) {
           super(parent);
           maybeForceBuilderInitialization();
         }
         private void maybeForceBuilderInitialization() {
-          if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          if (net.osmand.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
           }
         }
         private static Builder create() {
@@ -845,7 +845,7 @@ public final class VectorTile {
           return create().mergeFrom(buildPartial());
         }
 
-        public com.google.protobuf.Descriptors.Descriptor
+        public net.osmand.protobuf.Descriptors.Descriptor
             getDescriptorForType() {
           return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Value_descriptor;
         }
@@ -899,7 +899,7 @@ public final class VectorTile {
           return result;
         }
 
-        public Builder mergeFrom(com.google.protobuf.Message other) {
+        public Builder mergeFrom(net.osmand.protobuf.Message other) {
           if (other instanceof net.osmand.binary.VectorTile.Tile.Value) {
             return mergeFrom((net.osmand.binary.VectorTile.Tile.Value)other);
           } else {
@@ -947,13 +947,13 @@ public final class VectorTile {
         }
 
         public Builder mergeFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            net.osmand.protobuf.CodedInputStream input,
+            net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
             throws java.io.IOException {
           net.osmand.binary.VectorTile.Tile.Value parsedMessage = null;
           try {
             parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
             parsedMessage = (net.osmand.binary.VectorTile.Tile.Value) e.getUnfinishedMessage();
             throw e;
           } finally {
@@ -987,7 +987,7 @@ public final class VectorTile {
         public java.lang.String getStringValue() {
           java.lang.Object ref = stringValue_;
           if (!(ref instanceof java.lang.String)) {
-            java.lang.String s = ((com.google.protobuf.ByteString) ref)
+            java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
                 .toStringUtf8();
             stringValue_ = s;
             return s;
@@ -1002,17 +1002,17 @@ public final class VectorTile {
          * Exactly one of these values must be present in a valid message
          * </pre>
          */
-        public com.google.protobuf.ByteString
+        public net.osmand.protobuf.ByteString
             getStringValueBytes() {
           java.lang.Object ref = stringValue_;
           if (ref instanceof String) {
-            com.google.protobuf.ByteString b = 
-                com.google.protobuf.ByteString.copyFromUtf8(
+            net.osmand.protobuf.ByteString b = 
+                net.osmand.protobuf.ByteString.copyFromUtf8(
                     (java.lang.String) ref);
             stringValue_ = b;
             return b;
           } else {
-            return (com.google.protobuf.ByteString) ref;
+            return (net.osmand.protobuf.ByteString) ref;
           }
         }
         /**
@@ -1053,7 +1053,7 @@ public final class VectorTile {
          * </pre>
          */
         public Builder setStringValueBytes(
-            com.google.protobuf.ByteString value) {
+            net.osmand.protobuf.ByteString value) {
           if (value == null) {
     throw new NullPointerException();
   }
@@ -1273,7 +1273,7 @@ public final class VectorTile {
     }
 
     public interface FeatureOrBuilder
-        extends com.google.protobuf.MessageOrBuilder {
+        extends net.osmand.protobuf.MessageOrBuilder {
 
       // optional uint64 id = 1 [default = 0];
       /**
@@ -1378,14 +1378,14 @@ public final class VectorTile {
      * </pre>
      */
     public static final class Feature extends
-        com.google.protobuf.GeneratedMessage
+        net.osmand.protobuf.GeneratedMessage
         implements FeatureOrBuilder {
       // Use Feature.newBuilder() to construct.
-      private Feature(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      private Feature(net.osmand.protobuf.GeneratedMessage.Builder<?> builder) {
         super(builder);
         this.unknownFields = builder.getUnknownFields();
       }
-      private Feature(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+      private Feature(boolean noInit) { this.unknownFields = net.osmand.protobuf.UnknownFieldSet.getDefaultInstance(); }
 
       private static final Feature defaultInstance;
       public static Feature getDefaultInstance() {
@@ -1396,20 +1396,20 @@ public final class VectorTile {
         return defaultInstance;
       }
 
-      private final com.google.protobuf.UnknownFieldSet unknownFields;
+      private final net.osmand.protobuf.UnknownFieldSet unknownFields;
       @java.lang.Override
-      public final com.google.protobuf.UnknownFieldSet
+      public final net.osmand.protobuf.UnknownFieldSet
           getUnknownFields() {
         return this.unknownFields;
       }
       private Feature(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         initFields();
         int mutable_bitField0_ = 0;
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-            com.google.protobuf.UnknownFieldSet.newBuilder();
+        net.osmand.protobuf.UnknownFieldSet.Builder unknownFields =
+            net.osmand.protobuf.UnknownFieldSet.newBuilder();
         try {
           boolean done = false;
           while (!done) {
@@ -1485,10 +1485,10 @@ public final class VectorTile {
               }
             }
           }
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           throw e.setUnfinishedMessage(this);
         } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(
+          throw new net.osmand.protobuf.InvalidProtocolBufferException(
               e.getMessage()).setUnfinishedMessage(this);
         } finally {
           if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
@@ -1501,30 +1501,30 @@ public final class VectorTile {
           makeExtensionsImmutable();
         }
       }
-      public static final com.google.protobuf.Descriptors.Descriptor
+      public static final net.osmand.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Feature_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Feature_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
                 net.osmand.binary.VectorTile.Tile.Feature.class, net.osmand.binary.VectorTile.Tile.Feature.Builder.class);
       }
 
-      public static com.google.protobuf.Parser<Feature> PARSER =
-          new com.google.protobuf.AbstractParser<Feature>() {
+      public static net.osmand.protobuf.Parser<Feature> PARSER =
+          new net.osmand.protobuf.AbstractParser<Feature>() {
         public Feature parsePartialFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+            net.osmand.protobuf.CodedInputStream input,
+            net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws net.osmand.protobuf.InvalidProtocolBufferException {
           return new Feature(input, extensionRegistry);
         }
       };
 
       @java.lang.Override
-      public com.google.protobuf.Parser<Feature> getParserForType() {
+      public net.osmand.protobuf.Parser<Feature> getParserForType() {
         return PARSER;
       }
 
@@ -1671,7 +1671,7 @@ public final class VectorTile {
         return true;
       }
 
-      public void writeTo(com.google.protobuf.CodedOutputStream output)
+      public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                           throws java.io.IOException {
         getSerializedSize();
         if (((bitField0_ & 0x00000001) == 0x00000001)) {
@@ -1704,37 +1704,37 @@ public final class VectorTile {
 
         size = 0;
         if (((bitField0_ & 0x00000001) == 0x00000001)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeUInt64Size(1, id_);
         }
         {
           int dataSize = 0;
           for (int i = 0; i < tags_.size(); i++) {
-            dataSize += com.google.protobuf.CodedOutputStream
+            dataSize += net.osmand.protobuf.CodedOutputStream
               .computeUInt32SizeNoTag(tags_.get(i));
           }
           size += dataSize;
           if (!getTagsList().isEmpty()) {
             size += 1;
-            size += com.google.protobuf.CodedOutputStream
+            size += net.osmand.protobuf.CodedOutputStream
                 .computeInt32SizeNoTag(dataSize);
           }
           tagsMemoizedSerializedSize = dataSize;
         }
         if (((bitField0_ & 0x00000002) == 0x00000002)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeEnumSize(3, type_.getNumber());
         }
         {
           int dataSize = 0;
           for (int i = 0; i < geometry_.size(); i++) {
-            dataSize += com.google.protobuf.CodedOutputStream
+            dataSize += net.osmand.protobuf.CodedOutputStream
               .computeUInt32SizeNoTag(geometry_.get(i));
           }
           size += dataSize;
           if (!getGeometryList().isEmpty()) {
             size += 1;
-            size += com.google.protobuf.CodedOutputStream
+            size += net.osmand.protobuf.CodedOutputStream
                 .computeInt32SizeNoTag(dataSize);
           }
           geometryMemoizedSerializedSize = dataSize;
@@ -1752,24 +1752,24 @@ public final class VectorTile {
       }
 
       public static net.osmand.binary.VectorTile.Tile.Feature parseFrom(
-          com.google.protobuf.ByteString data)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.ByteString data)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data);
       }
       public static net.osmand.binary.VectorTile.Tile.Feature parseFrom(
-          com.google.protobuf.ByteString data,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.ByteString data,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data, extensionRegistry);
       }
       public static net.osmand.binary.VectorTile.Tile.Feature parseFrom(byte[] data)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data);
       }
       public static net.osmand.binary.VectorTile.Tile.Feature parseFrom(
           byte[] data,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data, extensionRegistry);
       }
       public static net.osmand.binary.VectorTile.Tile.Feature parseFrom(java.io.InputStream input)
@@ -1778,7 +1778,7 @@ public final class VectorTile {
       }
       public static net.osmand.binary.VectorTile.Tile.Feature parseFrom(
           java.io.InputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         return PARSER.parseFrom(input, extensionRegistry);
       }
@@ -1788,18 +1788,18 @@ public final class VectorTile {
       }
       public static net.osmand.binary.VectorTile.Tile.Feature parseDelimitedFrom(
           java.io.InputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         return PARSER.parseDelimitedFrom(input, extensionRegistry);
       }
       public static net.osmand.binary.VectorTile.Tile.Feature parseFrom(
-          com.google.protobuf.CodedInputStream input)
+          net.osmand.protobuf.CodedInputStream input)
           throws java.io.IOException {
         return PARSER.parseFrom(input);
       }
       public static net.osmand.binary.VectorTile.Tile.Feature parseFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         return PARSER.parseFrom(input, extensionRegistry);
       }
@@ -1813,7 +1813,7 @@ public final class VectorTile {
 
       @java.lang.Override
       protected Builder newBuilderForType(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          net.osmand.protobuf.GeneratedMessage.BuilderParent parent) {
         Builder builder = new Builder(parent);
         return builder;
       }
@@ -1825,14 +1825,14 @@ public final class VectorTile {
        * </pre>
        */
       public static final class Builder extends
-          com.google.protobuf.GeneratedMessage.Builder<Builder>
+          net.osmand.protobuf.GeneratedMessage.Builder<Builder>
          implements net.osmand.binary.VectorTile.Tile.FeatureOrBuilder {
-        public static final com.google.protobuf.Descriptors.Descriptor
+        public static final net.osmand.protobuf.Descriptors.Descriptor
             getDescriptor() {
           return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Feature_descriptor;
         }
 
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        protected net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
             internalGetFieldAccessorTable() {
           return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Feature_fieldAccessorTable
               .ensureFieldAccessorsInitialized(
@@ -1845,12 +1845,12 @@ public final class VectorTile {
         }
 
         private Builder(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+            net.osmand.protobuf.GeneratedMessage.BuilderParent parent) {
           super(parent);
           maybeForceBuilderInitialization();
         }
         private void maybeForceBuilderInitialization() {
-          if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          if (net.osmand.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
           }
         }
         private static Builder create() {
@@ -1874,7 +1874,7 @@ public final class VectorTile {
           return create().mergeFrom(buildPartial());
         }
 
-        public com.google.protobuf.Descriptors.Descriptor
+        public net.osmand.protobuf.Descriptors.Descriptor
             getDescriptorForType() {
           return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Feature_descriptor;
         }
@@ -1918,7 +1918,7 @@ public final class VectorTile {
           return result;
         }
 
-        public Builder mergeFrom(com.google.protobuf.Message other) {
+        public Builder mergeFrom(net.osmand.protobuf.Message other) {
           if (other instanceof net.osmand.binary.VectorTile.Tile.Feature) {
             return mergeFrom((net.osmand.binary.VectorTile.Tile.Feature)other);
           } else {
@@ -1964,13 +1964,13 @@ public final class VectorTile {
         }
 
         public Builder mergeFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            net.osmand.protobuf.CodedInputStream input,
+            net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
             throws java.io.IOException {
           net.osmand.binary.VectorTile.Tile.Feature parsedMessage = null;
           try {
             parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
             parsedMessage = (net.osmand.binary.VectorTile.Tile.Feature) e.getUnfinishedMessage();
             throw e;
           } finally {
@@ -2302,7 +2302,7 @@ public final class VectorTile {
     }
 
     public interface LayerOrBuilder extends
-        com.google.protobuf.GeneratedMessage.
+        net.osmand.protobuf.GeneratedMessage.
             ExtendableMessageOrBuilder<Layer> {
 
       // required uint32 version = 15 [default = 1];
@@ -2341,7 +2341,7 @@ public final class VectorTile {
       /**
        * <code>required string name = 1;</code>
        */
-      com.google.protobuf.ByteString
+      net.osmand.protobuf.ByteString
           getNameBytes();
 
       // repeated .OsmAnd.VectorTile.Tile.Feature features = 2;
@@ -2422,7 +2422,7 @@ public final class VectorTile {
        * Dictionary encoding for keys
        * </pre>
        */
-      com.google.protobuf.ByteString
+      net.osmand.protobuf.ByteString
           getKeysBytes(int index);
 
       // repeated .OsmAnd.VectorTile.Tile.Value values = 4;
@@ -2498,14 +2498,14 @@ public final class VectorTile {
      * </pre>
      */
     public static final class Layer extends
-        com.google.protobuf.GeneratedMessage.ExtendableMessage<
+        net.osmand.protobuf.GeneratedMessage.ExtendableMessage<
           Layer> implements LayerOrBuilder {
       // Use Layer.newBuilder() to construct.
-      private Layer(com.google.protobuf.GeneratedMessage.ExtendableBuilder<net.osmand.binary.VectorTile.Tile.Layer, ?> builder) {
+      private Layer(net.osmand.protobuf.GeneratedMessage.ExtendableBuilder<net.osmand.binary.VectorTile.Tile.Layer, ?> builder) {
         super(builder);
         this.unknownFields = builder.getUnknownFields();
       }
-      private Layer(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+      private Layer(boolean noInit) { this.unknownFields = net.osmand.protobuf.UnknownFieldSet.getDefaultInstance(); }
 
       private static final Layer defaultInstance;
       public static Layer getDefaultInstance() {
@@ -2516,20 +2516,20 @@ public final class VectorTile {
         return defaultInstance;
       }
 
-      private final com.google.protobuf.UnknownFieldSet unknownFields;
+      private final net.osmand.protobuf.UnknownFieldSet unknownFields;
       @java.lang.Override
-      public final com.google.protobuf.UnknownFieldSet
+      public final net.osmand.protobuf.UnknownFieldSet
           getUnknownFields() {
         return this.unknownFields;
       }
       private Layer(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         initFields();
         int mutable_bitField0_ = 0;
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-            com.google.protobuf.UnknownFieldSet.newBuilder();
+        net.osmand.protobuf.UnknownFieldSet.Builder unknownFields =
+            net.osmand.protobuf.UnknownFieldSet.newBuilder();
         try {
           boolean done = false;
           while (!done) {
@@ -2560,7 +2560,7 @@ public final class VectorTile {
               }
               case 26: {
                 if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
-                  keys_ = new com.google.protobuf.LazyStringArrayList();
+                  keys_ = new net.osmand.protobuf.LazyStringArrayList();
                   mutable_bitField0_ |= 0x00000008;
                 }
                 keys_.add(input.readBytes());
@@ -2586,17 +2586,17 @@ public final class VectorTile {
               }
             }
           }
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           throw e.setUnfinishedMessage(this);
         } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(
+          throw new net.osmand.protobuf.InvalidProtocolBufferException(
               e.getMessage()).setUnfinishedMessage(this);
         } finally {
           if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
             features_ = java.util.Collections.unmodifiableList(features_);
           }
           if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
-            keys_ = new com.google.protobuf.UnmodifiableLazyStringList(keys_);
+            keys_ = new net.osmand.protobuf.UnmodifiableLazyStringList(keys_);
           }
           if (((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
             values_ = java.util.Collections.unmodifiableList(values_);
@@ -2605,30 +2605,30 @@ public final class VectorTile {
           makeExtensionsImmutable();
         }
       }
-      public static final com.google.protobuf.Descriptors.Descriptor
+      public static final net.osmand.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Layer_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Layer_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
                 net.osmand.binary.VectorTile.Tile.Layer.class, net.osmand.binary.VectorTile.Tile.Layer.Builder.class);
       }
 
-      public static com.google.protobuf.Parser<Layer> PARSER =
-          new com.google.protobuf.AbstractParser<Layer>() {
+      public static net.osmand.protobuf.Parser<Layer> PARSER =
+          new net.osmand.protobuf.AbstractParser<Layer>() {
         public Layer parsePartialFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
+            net.osmand.protobuf.CodedInputStream input,
+            net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws net.osmand.protobuf.InvalidProtocolBufferException {
           return new Layer(input, extensionRegistry);
         }
       };
 
       @java.lang.Override
-      public com.google.protobuf.Parser<Layer> getParserForType() {
+      public net.osmand.protobuf.Parser<Layer> getParserForType() {
         return PARSER;
       }
 
@@ -2680,8 +2680,8 @@ public final class VectorTile {
         if (ref instanceof java.lang.String) {
           return (java.lang.String) ref;
         } else {
-          com.google.protobuf.ByteString bs = 
-              (com.google.protobuf.ByteString) ref;
+          net.osmand.protobuf.ByteString bs = 
+              (net.osmand.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
           if (bs.isValidUtf8()) {
             name_ = s;
@@ -2692,17 +2692,17 @@ public final class VectorTile {
       /**
        * <code>required string name = 1;</code>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getNameBytes() {
         java.lang.Object ref = name_;
         if (ref instanceof java.lang.String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
+          net.osmand.protobuf.ByteString b = 
+              net.osmand.protobuf.ByteString.copyFromUtf8(
                   (java.lang.String) ref);
           name_ = b;
           return b;
         } else {
-          return (com.google.protobuf.ByteString) ref;
+          return (net.osmand.protobuf.ByteString) ref;
         }
       }
 
@@ -2764,7 +2764,7 @@ public final class VectorTile {
 
       // repeated string keys = 3;
       public static final int KEYS_FIELD_NUMBER = 3;
-      private com.google.protobuf.LazyStringList keys_;
+      private net.osmand.protobuf.LazyStringList keys_;
       /**
        * <code>repeated string keys = 3;</code>
        *
@@ -2803,7 +2803,7 @@ public final class VectorTile {
        * Dictionary encoding for keys
        * </pre>
        */
-      public com.google.protobuf.ByteString
+      public net.osmand.protobuf.ByteString
           getKeysBytes(int index) {
         return keys_.getByteString(index);
       }
@@ -2894,7 +2894,7 @@ public final class VectorTile {
         version_ = 1;
         name_ = "";
         features_ = java.util.Collections.emptyList();
-        keys_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        keys_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
         values_ = java.util.Collections.emptyList();
         extent_ = 4096;
       }
@@ -2925,10 +2925,10 @@ public final class VectorTile {
         return true;
       }
 
-      public void writeTo(com.google.protobuf.CodedOutputStream output)
+      public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                           throws java.io.IOException {
         getSerializedSize();
-        com.google.protobuf.GeneratedMessage
+        net.osmand.protobuf.GeneratedMessage
           .ExtendableMessage<net.osmand.binary.VectorTile.Tile.Layer>.ExtensionWriter extensionWriter =
             newExtensionWriter();
         if (((bitField0_ & 0x00000002) == 0x00000002)) {
@@ -2960,32 +2960,32 @@ public final class VectorTile {
 
         size = 0;
         if (((bitField0_ & 0x00000002) == 0x00000002)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeBytesSize(1, getNameBytes());
         }
         for (int i = 0; i < features_.size(); i++) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeMessageSize(2, features_.get(i));
         }
         {
           int dataSize = 0;
           for (int i = 0; i < keys_.size(); i++) {
-            dataSize += com.google.protobuf.CodedOutputStream
+            dataSize += net.osmand.protobuf.CodedOutputStream
               .computeBytesSizeNoTag(keys_.getByteString(i));
           }
           size += dataSize;
           size += 1 * getKeysList().size();
         }
         for (int i = 0; i < values_.size(); i++) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeMessageSize(4, values_.get(i));
         }
         if (((bitField0_ & 0x00000004) == 0x00000004)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeUInt32Size(5, extent_);
         }
         if (((bitField0_ & 0x00000001) == 0x00000001)) {
-          size += com.google.protobuf.CodedOutputStream
+          size += net.osmand.protobuf.CodedOutputStream
             .computeUInt32Size(15, version_);
         }
         size += extensionsSerializedSize();
@@ -3002,24 +3002,24 @@ public final class VectorTile {
       }
 
       public static net.osmand.binary.VectorTile.Tile.Layer parseFrom(
-          com.google.protobuf.ByteString data)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.ByteString data)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data);
       }
       public static net.osmand.binary.VectorTile.Tile.Layer parseFrom(
-          com.google.protobuf.ByteString data,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.ByteString data,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data, extensionRegistry);
       }
       public static net.osmand.binary.VectorTile.Tile.Layer parseFrom(byte[] data)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data);
       }
       public static net.osmand.binary.VectorTile.Tile.Layer parseFrom(
           byte[] data,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws net.osmand.protobuf.InvalidProtocolBufferException {
         return PARSER.parseFrom(data, extensionRegistry);
       }
       public static net.osmand.binary.VectorTile.Tile.Layer parseFrom(java.io.InputStream input)
@@ -3028,7 +3028,7 @@ public final class VectorTile {
       }
       public static net.osmand.binary.VectorTile.Tile.Layer parseFrom(
           java.io.InputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         return PARSER.parseFrom(input, extensionRegistry);
       }
@@ -3038,18 +3038,18 @@ public final class VectorTile {
       }
       public static net.osmand.binary.VectorTile.Tile.Layer parseDelimitedFrom(
           java.io.InputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         return PARSER.parseDelimitedFrom(input, extensionRegistry);
       }
       public static net.osmand.binary.VectorTile.Tile.Layer parseFrom(
-          com.google.protobuf.CodedInputStream input)
+          net.osmand.protobuf.CodedInputStream input)
           throws java.io.IOException {
         return PARSER.parseFrom(input);
       }
       public static net.osmand.binary.VectorTile.Tile.Layer parseFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         return PARSER.parseFrom(input, extensionRegistry);
       }
@@ -3063,7 +3063,7 @@ public final class VectorTile {
 
       @java.lang.Override
       protected Builder newBuilderForType(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          net.osmand.protobuf.GeneratedMessage.BuilderParent parent) {
         Builder builder = new Builder(parent);
         return builder;
       }
@@ -3075,14 +3075,14 @@ public final class VectorTile {
        * </pre>
        */
       public static final class Builder extends
-          com.google.protobuf.GeneratedMessage.ExtendableBuilder<
+          net.osmand.protobuf.GeneratedMessage.ExtendableBuilder<
             net.osmand.binary.VectorTile.Tile.Layer, Builder> implements net.osmand.binary.VectorTile.Tile.LayerOrBuilder {
-        public static final com.google.protobuf.Descriptors.Descriptor
+        public static final net.osmand.protobuf.Descriptors.Descriptor
             getDescriptor() {
           return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Layer_descriptor;
         }
 
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        protected net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
             internalGetFieldAccessorTable() {
           return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Layer_fieldAccessorTable
               .ensureFieldAccessorsInitialized(
@@ -3095,12 +3095,12 @@ public final class VectorTile {
         }
 
         private Builder(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+            net.osmand.protobuf.GeneratedMessage.BuilderParent parent) {
           super(parent);
           maybeForceBuilderInitialization();
         }
         private void maybeForceBuilderInitialization() {
-          if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+          if (net.osmand.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
             getFeaturesFieldBuilder();
             getValuesFieldBuilder();
           }
@@ -3121,7 +3121,7 @@ public final class VectorTile {
           } else {
             featuresBuilder_.clear();
           }
-          keys_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+          keys_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
           bitField0_ = (bitField0_ & ~0x00000008);
           if (valuesBuilder_ == null) {
             values_ = java.util.Collections.emptyList();
@@ -3138,7 +3138,7 @@ public final class VectorTile {
           return create().mergeFrom(buildPartial());
         }
 
-        public com.google.protobuf.Descriptors.Descriptor
+        public net.osmand.protobuf.Descriptors.Descriptor
             getDescriptorForType() {
           return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_Layer_descriptor;
         }
@@ -3177,7 +3177,7 @@ public final class VectorTile {
             result.features_ = featuresBuilder_.build();
           }
           if (((bitField0_ & 0x00000008) == 0x00000008)) {
-            keys_ = new com.google.protobuf.UnmodifiableLazyStringList(
+            keys_ = new net.osmand.protobuf.UnmodifiableLazyStringList(
                 keys_);
             bitField0_ = (bitField0_ & ~0x00000008);
           }
@@ -3200,7 +3200,7 @@ public final class VectorTile {
           return result;
         }
 
-        public Builder mergeFrom(com.google.protobuf.Message other) {
+        public Builder mergeFrom(net.osmand.protobuf.Message other) {
           if (other instanceof net.osmand.binary.VectorTile.Tile.Layer) {
             return mergeFrom((net.osmand.binary.VectorTile.Tile.Layer)other);
           } else {
@@ -3238,7 +3238,7 @@ public final class VectorTile {
                 features_ = other.features_;
                 bitField0_ = (bitField0_ & ~0x00000004);
                 featuresBuilder_ = 
-                  com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                  net.osmand.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                      getFeaturesFieldBuilder() : null;
               } else {
                 featuresBuilder_.addAllMessages(other.features_);
@@ -3274,7 +3274,7 @@ public final class VectorTile {
                 values_ = other.values_;
                 bitField0_ = (bitField0_ & ~0x00000010);
                 valuesBuilder_ = 
-                  com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                  net.osmand.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                      getValuesFieldBuilder() : null;
               } else {
                 valuesBuilder_.addAllMessages(other.values_);
@@ -3312,13 +3312,13 @@ public final class VectorTile {
         }
 
         public Builder mergeFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            net.osmand.protobuf.CodedInputStream input,
+            net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
             throws java.io.IOException {
           net.osmand.binary.VectorTile.Tile.Layer parsedMessage = null;
           try {
             parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
             parsedMessage = (net.osmand.binary.VectorTile.Tile.Layer) e.getUnfinishedMessage();
             throw e;
           } finally {
@@ -3405,7 +3405,7 @@ public final class VectorTile {
         public java.lang.String getName() {
           java.lang.Object ref = name_;
           if (!(ref instanceof java.lang.String)) {
-            java.lang.String s = ((com.google.protobuf.ByteString) ref)
+            java.lang.String s = ((net.osmand.protobuf.ByteString) ref)
                 .toStringUtf8();
             name_ = s;
             return s;
@@ -3416,17 +3416,17 @@ public final class VectorTile {
         /**
          * <code>required string name = 1;</code>
          */
-        public com.google.protobuf.ByteString
+        public net.osmand.protobuf.ByteString
             getNameBytes() {
           java.lang.Object ref = name_;
           if (ref instanceof String) {
-            com.google.protobuf.ByteString b = 
-                com.google.protobuf.ByteString.copyFromUtf8(
+            net.osmand.protobuf.ByteString b = 
+                net.osmand.protobuf.ByteString.copyFromUtf8(
                     (java.lang.String) ref);
             name_ = b;
             return b;
           } else {
-            return (com.google.protobuf.ByteString) ref;
+            return (net.osmand.protobuf.ByteString) ref;
           }
         }
         /**
@@ -3455,7 +3455,7 @@ public final class VectorTile {
          * <code>required string name = 1;</code>
          */
         public Builder setNameBytes(
-            com.google.protobuf.ByteString value) {
+            net.osmand.protobuf.ByteString value) {
           if (value == null) {
     throw new NullPointerException();
   }
@@ -3475,7 +3475,7 @@ public final class VectorTile {
            }
         }
 
-        private com.google.protobuf.RepeatedFieldBuilder<
+        private net.osmand.protobuf.RepeatedFieldBuilder<
             net.osmand.binary.VectorTile.Tile.Feature, net.osmand.binary.VectorTile.Tile.Feature.Builder, net.osmand.binary.VectorTile.Tile.FeatureOrBuilder> featuresBuilder_;
 
         /**
@@ -3762,11 +3762,11 @@ public final class VectorTile {
              getFeaturesBuilderList() {
           return getFeaturesFieldBuilder().getBuilderList();
         }
-        private com.google.protobuf.RepeatedFieldBuilder<
+        private net.osmand.protobuf.RepeatedFieldBuilder<
             net.osmand.binary.VectorTile.Tile.Feature, net.osmand.binary.VectorTile.Tile.Feature.Builder, net.osmand.binary.VectorTile.Tile.FeatureOrBuilder> 
             getFeaturesFieldBuilder() {
           if (featuresBuilder_ == null) {
-            featuresBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            featuresBuilder_ = new net.osmand.protobuf.RepeatedFieldBuilder<
                 net.osmand.binary.VectorTile.Tile.Feature, net.osmand.binary.VectorTile.Tile.Feature.Builder, net.osmand.binary.VectorTile.Tile.FeatureOrBuilder>(
                     features_,
                     ((bitField0_ & 0x00000004) == 0x00000004),
@@ -3778,10 +3778,10 @@ public final class VectorTile {
         }
 
         // repeated string keys = 3;
-        private com.google.protobuf.LazyStringList keys_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        private net.osmand.protobuf.LazyStringList keys_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
         private void ensureKeysIsMutable() {
           if (!((bitField0_ & 0x00000008) == 0x00000008)) {
-            keys_ = new com.google.protobuf.LazyStringArrayList(keys_);
+            keys_ = new net.osmand.protobuf.LazyStringArrayList(keys_);
             bitField0_ |= 0x00000008;
            }
         }
@@ -3823,7 +3823,7 @@ public final class VectorTile {
          * Dictionary encoding for keys
          * </pre>
          */
-        public com.google.protobuf.ByteString
+        public net.osmand.protobuf.ByteString
             getKeysBytes(int index) {
           return keys_.getByteString(index);
         }
@@ -3883,7 +3883,7 @@ public final class VectorTile {
          * </pre>
          */
         public Builder clearKeys() {
-          keys_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+          keys_ = net.osmand.protobuf.LazyStringArrayList.EMPTY;
           bitField0_ = (bitField0_ & ~0x00000008);
           onChanged();
           return this;
@@ -3896,7 +3896,7 @@ public final class VectorTile {
          * </pre>
          */
         public Builder addKeysBytes(
-            com.google.protobuf.ByteString value) {
+            net.osmand.protobuf.ByteString value) {
           if (value == null) {
     throw new NullPointerException();
   }
@@ -3916,7 +3916,7 @@ public final class VectorTile {
            }
         }
 
-        private com.google.protobuf.RepeatedFieldBuilder<
+        private net.osmand.protobuf.RepeatedFieldBuilder<
             net.osmand.binary.VectorTile.Tile.Value, net.osmand.binary.VectorTile.Tile.Value.Builder, net.osmand.binary.VectorTile.Tile.ValueOrBuilder> valuesBuilder_;
 
         /**
@@ -4203,11 +4203,11 @@ public final class VectorTile {
              getValuesBuilderList() {
           return getValuesFieldBuilder().getBuilderList();
         }
-        private com.google.protobuf.RepeatedFieldBuilder<
+        private net.osmand.protobuf.RepeatedFieldBuilder<
             net.osmand.binary.VectorTile.Tile.Value, net.osmand.binary.VectorTile.Tile.Value.Builder, net.osmand.binary.VectorTile.Tile.ValueOrBuilder> 
             getValuesFieldBuilder() {
           if (valuesBuilder_ == null) {
-            valuesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            valuesBuilder_ = new net.osmand.protobuf.RepeatedFieldBuilder<
                 net.osmand.binary.VectorTile.Tile.Value, net.osmand.binary.VectorTile.Tile.Value.Builder, net.osmand.binary.VectorTile.Tile.ValueOrBuilder>(
                     values_,
                     ((bitField0_ & 0x00000010) == 0x00000010),
@@ -4340,10 +4340,10 @@ public final class VectorTile {
       return true;
     }
 
-    public void writeTo(com.google.protobuf.CodedOutputStream output)
+    public void writeTo(net.osmand.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       getSerializedSize();
-      com.google.protobuf.GeneratedMessage
+      net.osmand.protobuf.GeneratedMessage
         .ExtendableMessage<net.osmand.binary.VectorTile.Tile>.ExtensionWriter extensionWriter =
           newExtensionWriter();
       for (int i = 0; i < layers_.size(); i++) {
@@ -4360,7 +4360,7 @@ public final class VectorTile {
 
       size = 0;
       for (int i = 0; i < layers_.size(); i++) {
-        size += com.google.protobuf.CodedOutputStream
+        size += net.osmand.protobuf.CodedOutputStream
           .computeMessageSize(3, layers_.get(i));
       }
       size += extensionsSerializedSize();
@@ -4377,24 +4377,24 @@ public final class VectorTile {
     }
 
     public static net.osmand.binary.VectorTile.Tile parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.VectorTile.Tile parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ByteString data,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.VectorTile.Tile parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
     public static net.osmand.binary.VectorTile.Tile parseFrom(
         byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws net.osmand.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
     public static net.osmand.binary.VectorTile.Tile parseFrom(java.io.InputStream input)
@@ -4403,7 +4403,7 @@ public final class VectorTile {
     }
     public static net.osmand.binary.VectorTile.Tile parseFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -4413,18 +4413,18 @@ public final class VectorTile {
     }
     public static net.osmand.binary.VectorTile.Tile parseDelimitedFrom(
         java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static net.osmand.binary.VectorTile.Tile parseFrom(
-        com.google.protobuf.CodedInputStream input)
+        net.osmand.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return PARSER.parseFrom(input);
     }
     public static net.osmand.binary.VectorTile.Tile parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        net.osmand.protobuf.CodedInputStream input,
+        net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return PARSER.parseFrom(input, extensionRegistry);
     }
@@ -4438,7 +4438,7 @@ public final class VectorTile {
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        net.osmand.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -4446,14 +4446,14 @@ public final class VectorTile {
      * Protobuf type {@code OsmAnd.VectorTile.Tile}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.ExtendableBuilder<
+        net.osmand.protobuf.GeneratedMessage.ExtendableBuilder<
           net.osmand.binary.VectorTile.Tile, Builder> implements net.osmand.binary.VectorTile.TileOrBuilder {
-      public static final com.google.protobuf.Descriptors.Descriptor
+      public static final net.osmand.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      protected net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -4466,12 +4466,12 @@ public final class VectorTile {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          net.osmand.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        if (net.osmand.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
           getLayersFieldBuilder();
         }
       }
@@ -4494,7 +4494,7 @@ public final class VectorTile {
         return create().mergeFrom(buildPartial());
       }
 
-      public com.google.protobuf.Descriptors.Descriptor
+      public net.osmand.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return net.osmand.binary.VectorTile.internal_static_OsmAnd_VectorTile_Tile_descriptor;
       }
@@ -4527,7 +4527,7 @@ public final class VectorTile {
         return result;
       }
 
-      public Builder mergeFrom(com.google.protobuf.Message other) {
+      public Builder mergeFrom(net.osmand.protobuf.Message other) {
         if (other instanceof net.osmand.binary.VectorTile.Tile) {
           return mergeFrom((net.osmand.binary.VectorTile.Tile)other);
         } else {
@@ -4557,7 +4557,7 @@ public final class VectorTile {
               layers_ = other.layers_;
               bitField0_ = (bitField0_ & ~0x00000001);
               layersBuilder_ = 
-                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                net.osmand.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getLayersFieldBuilder() : null;
             } else {
               layersBuilder_.addAllMessages(other.layers_);
@@ -4584,13 +4584,13 @@ public final class VectorTile {
       }
 
       public Builder mergeFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          net.osmand.protobuf.CodedInputStream input,
+          net.osmand.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
         net.osmand.binary.VectorTile.Tile parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        } catch (net.osmand.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (net.osmand.binary.VectorTile.Tile) e.getUnfinishedMessage();
           throw e;
         } finally {
@@ -4612,7 +4612,7 @@ public final class VectorTile {
          }
       }
 
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private net.osmand.protobuf.RepeatedFieldBuilder<
           net.osmand.binary.VectorTile.Tile.Layer, net.osmand.binary.VectorTile.Tile.Layer.Builder, net.osmand.binary.VectorTile.Tile.LayerOrBuilder> layersBuilder_;
 
       /**
@@ -4827,11 +4827,11 @@ public final class VectorTile {
            getLayersBuilderList() {
         return getLayersFieldBuilder().getBuilderList();
       }
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private net.osmand.protobuf.RepeatedFieldBuilder<
           net.osmand.binary.VectorTile.Tile.Layer, net.osmand.binary.VectorTile.Tile.Layer.Builder, net.osmand.binary.VectorTile.Tile.LayerOrBuilder> 
           getLayersFieldBuilder() {
         if (layersBuilder_ == null) {
-          layersBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+          layersBuilder_ = new net.osmand.protobuf.RepeatedFieldBuilder<
               net.osmand.binary.VectorTile.Tile.Layer, net.osmand.binary.VectorTile.Tile.Layer.Builder, net.osmand.binary.VectorTile.Tile.LayerOrBuilder>(
                   layers_,
                   ((bitField0_ & 0x00000001) == 0x00000001),
@@ -4853,32 +4853,32 @@ public final class VectorTile {
     // @@protoc_insertion_point(class_scope:OsmAnd.VectorTile.Tile)
   }
 
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static net.osmand.protobuf.Descriptors.Descriptor
     internal_static_OsmAnd_VectorTile_Tile_descriptor;
   private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_OsmAnd_VectorTile_Tile_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static net.osmand.protobuf.Descriptors.Descriptor
     internal_static_OsmAnd_VectorTile_Tile_Value_descriptor;
   private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_OsmAnd_VectorTile_Tile_Value_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static net.osmand.protobuf.Descriptors.Descriptor
     internal_static_OsmAnd_VectorTile_Tile_Feature_descriptor;
   private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_OsmAnd_VectorTile_Tile_Feature_fieldAccessorTable;
-  private static com.google.protobuf.Descriptors.Descriptor
+  private static net.osmand.protobuf.Descriptors.Descriptor
     internal_static_OsmAnd_VectorTile_Tile_Layer_descriptor;
   private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    net.osmand.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_OsmAnd_VectorTile_Tile_Layer_fieldAccessorTable;
 
-  public static com.google.protobuf.Descriptors.FileDescriptor
+  public static net.osmand.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
   }
-  private static com.google.protobuf.Descriptors.FileDescriptor
+  private static net.osmand.protobuf.Descriptors.FileDescriptor
       descriptor;
   static {
     java.lang.String[] descriptorData = {
@@ -4900,41 +4900,41 @@ public final class VectorTile {
       "INT\020\001\022\016\n\nLINESTRING\020\002\022\013\n\007POLYGON\020\003*\005\010\020\020\200" +
       "@B\037\n\021net.osmand.binaryB\nVectorTile"
     };
-    com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-      new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
-        public com.google.protobuf.ExtensionRegistry assignDescriptors(
-            com.google.protobuf.Descriptors.FileDescriptor root) {
+    net.osmand.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
+      new net.osmand.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
+        public net.osmand.protobuf.ExtensionRegistry assignDescriptors(
+            net.osmand.protobuf.Descriptors.FileDescriptor root) {
           descriptor = root;
           internal_static_OsmAnd_VectorTile_Tile_descriptor =
             getDescriptor().getMessageTypes().get(0);
           internal_static_OsmAnd_VectorTile_Tile_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+            net.osmand.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_OsmAnd_VectorTile_Tile_descriptor,
               new java.lang.String[] { "Layers", });
           internal_static_OsmAnd_VectorTile_Tile_Value_descriptor =
             internal_static_OsmAnd_VectorTile_Tile_descriptor.getNestedTypes().get(0);
           internal_static_OsmAnd_VectorTile_Tile_Value_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+            net.osmand.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_OsmAnd_VectorTile_Tile_Value_descriptor,
               new java.lang.String[] { "StringValue", "FloatValue", "DoubleValue", "IntValue", "UintValue", "SintValue", "BoolValue", });
           internal_static_OsmAnd_VectorTile_Tile_Feature_descriptor =
             internal_static_OsmAnd_VectorTile_Tile_descriptor.getNestedTypes().get(1);
           internal_static_OsmAnd_VectorTile_Tile_Feature_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+            net.osmand.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_OsmAnd_VectorTile_Tile_Feature_descriptor,
               new java.lang.String[] { "Id", "Tags", "Type", "Geometry", });
           internal_static_OsmAnd_VectorTile_Tile_Layer_descriptor =
             internal_static_OsmAnd_VectorTile_Tile_descriptor.getNestedTypes().get(2);
           internal_static_OsmAnd_VectorTile_Tile_Layer_fieldAccessorTable = new
-            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+            net.osmand.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_OsmAnd_VectorTile_Tile_Layer_descriptor,
               new java.lang.String[] { "Version", "Name", "Features", "Keys", "Values", "Extent", });
           return null;
         }
       };
-    com.google.protobuf.Descriptors.FileDescriptor
+    net.osmand.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
-        new com.google.protobuf.Descriptors.FileDescriptor[] {
+        new net.osmand.protobuf.Descriptors.FileDescriptor[] {
         }, assigner);
   }
 

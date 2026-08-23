@@ -8,8 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.WireFormat;
+import net.osmand.protobuf.CodedInputStream;
+import net.osmand.protobuf.WireFormat;
 
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.list.array.TLongArrayList;

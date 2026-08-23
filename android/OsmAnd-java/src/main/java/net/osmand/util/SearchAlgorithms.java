@@ -5,8 +5,8 @@ import java.io.IOException;
 import java.text.Normalizer;
 import java.util.*;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.CodedInputStream;
+import net.osmand.protobuf.ByteString;
+import net.osmand.protobuf.CodedInputStream;
 
 import gnu.trove.list.array.TIntArrayList;
 import net.osmand.binary.Abbreviations;

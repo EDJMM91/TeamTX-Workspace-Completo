@@ -19,8 +19,8 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.WireFormat;
+import net.osmand.protobuf.CodedInputStream;
+import net.osmand.protobuf.WireFormat;
 
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.list.array.TLongArrayList;

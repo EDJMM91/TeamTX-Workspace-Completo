@@ -1,4 +1,4 @@
-﻿.gradle/
+.gradle/
 .idea/
 local.properties
 .cxx/
@@ -9,3 +9,13 @@ build/
 *.apk
 *.aar
 *.so
+*.hprof
+*.log
+startup_logcat.txt
+BACKUP_*/
+GRAPHIFY/
+graphify-out/
+.graphify/
+.graphifyignore
+txmaps/
+.env

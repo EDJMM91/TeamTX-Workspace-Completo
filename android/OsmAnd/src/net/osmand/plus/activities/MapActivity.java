@@ -246,6 +246,12 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 
 		setContentView(R.layout.main);
 		enterToFullScreen();
+
+		View btnTeamTx = findViewById(R.id.btn_team_tx_logo_map);
+		if (btnTeamTx != null) {
+			btnTeamTx.setOnClickListener(v -> finish());
+		}
+
 		// Navigation Drawer
 		AndroidUtils.addStatusBarPadding21v(this, findViewById(R.id.menuItems));
 

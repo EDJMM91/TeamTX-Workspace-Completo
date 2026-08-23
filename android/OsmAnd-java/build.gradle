@@ -1,6 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'maven-publish'
 apply plugin: 'ivy-publish'
+apply plugin: 'de.undercouch.download'
 
 configurations {
 	android
@@ -142,9 +143,6 @@ dependencies {
 	implementation (libs.scribejava) {
 		exclude group: "com.fasterxml.jackson.core"
 	}
-	// turn off for now
-	//implementation 'com.atilika.kuromoji:kuromoji-ipadic:0.9.0'
 	implementation libs.kxml2
 	implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
-

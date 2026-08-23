@@ -1345,7 +1345,7 @@
     <string name="shared_string_change">Cambio</string>
     <string name="search_another_country">Elegir otra región</string>
     <string name="search_map">Buscando mapas…</string>
-    <string name="first_usage_wizard_desc">Deja que OsmAnd determine tu ubicación y sugiera mapas a descargar para esa región.</string>
+    <string name="first_usage_wizard_desc">Deja que la app TX determine tu ubicación y sugiera mapas a descargar para esa región.</string>
     <string name="location_not_found">Ubicación no encontrada</string>
     <string name="no_inet_connection">Sin conexión a Internet</string>
     <string name="search_location">Buscando la ubicación…</string>
