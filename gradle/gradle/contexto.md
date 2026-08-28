@@ -1,1 +1,0 @@
-corr graphify la salida la paas a su carpeta ya hecha en la raiz del proyecto estudiala para que tengas contexto de la app 

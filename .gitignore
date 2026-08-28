@@ -1,4 +1,5 @@
 .gradle/
+.gradle_home/
 .idea/
 local.properties
 .cxx/

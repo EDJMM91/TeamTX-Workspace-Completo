@@ -1,6 +1,0 @@
-*/.stamp
-
-expat/expat_config.h
-gdal/cpl_config.h
-giflib/config.h
-protobuf/config.h
