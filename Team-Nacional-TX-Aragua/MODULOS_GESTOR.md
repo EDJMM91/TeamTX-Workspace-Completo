@@ -1,5 +1,13 @@
 # Gestor de Módulos - Team Nacional TX Aragua
 
+> ## 🔒 REPOSITORIO OFICIAL DEL PROYECTO (REGLA INMUTABLE PARA TODOS LOS AGENTES)
+> **A partir de ahora TODO se sube a:**  
+> ### 👉 `https://github.com/EDJMM91/TeamTX-Workspace-Completo`
+>
+> - Los commits siempre deben hacerse desde la raíz `D:\MAPA` (nunca desde `D:\MAPA\Team-Nacional-TX-Aragua`).
+> - El repositorio `Team-Nacional-TX-Aragua` en GitHub es solo referencia histórica, ya no es el primario.
+> - APK oficial OTA: `https://github.com/EDJMM91/Team-Nacional-TX-Aragua/raw/main/apk/TeamTX-v1.2.9-beta.apk`
+
 Respetando @AGENTS.md. y @ESTRATEGIA_COMPILACION.md(confirmame que los leiste) Este plan es para buscar errores en módulos y cosas de la app, actualizar funciones , mejorar cosas pero se trabajará uno a uno. Yo llamo "módulos" a cada interfaz que muestra cada botón inferior. Vamos a gestionar uno por uno, al terminar y dejar estable desde el módulo uno se procede a mejorar el siguiente.
 inicia en cmd graphify sus comandos para estudiar toda la rama y conexiones de todo este proyecto y la salida la pegas en su carpeta que ya esta creada en la raiz del proyecto. una vez hecho estudia la salida para que tebngas contexto y sepas donde esta todo 
 ((((()))))

@@ -1,7 +1,12 @@
 # 🏍️ Team TX Venezuela — Workspace Maestro Completo (`MAPA`)
 
-> **Repositorio Oficial de Respaldo Maestro del Entorno Completo**  
-> Este repositorio contiene el ecosistema integral de desarrollo para la aplicación **Team Nacional TX Venezuela**, incluyendo el motor nativo de mapas OsmAnd, los recursos geográficos y la aplicación móvil.
+> ## ⚠️ REPOSITORIO OFICIAL Y PRIMARIO — A PARTIR DE AHORA TODO SE SUBE AQUÍ
+> **Este es el repositorio oficial, completo y definitivo del proyecto Team Nacional TX Venezuela.**  
+> Todos los commits, cambios de código, actualizaciones y nuevas funcionalidades deben subirse a:  
+> ### 👉 **[https://github.com/EDJMM91/TeamTX-Workspace-Completo](https://github.com/EDJMM91/TeamTX-Workspace-Completo)**
+>
+> **REGLA PARA AGENTES**: Siempre hacer `git push` desde la raíz `D:\MAPA`, **nunca** desde `D:\MAPA\Team-Nacional-TX-Aragua`.  
+> El repositorio `Team-Nacional-TX-Aragua` en GitHub existe como referencia histórica pero ya no es el primario.
 
 ---
 
