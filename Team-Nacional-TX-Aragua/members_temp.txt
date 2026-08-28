@@ -1,0 +1,2 @@
+                    suspensionEndTimestamp = ""
+                        suspensionEndTimestamp = if (days > 0) "+$days días" else "Indefinida"

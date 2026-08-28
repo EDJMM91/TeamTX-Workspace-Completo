@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Usuario - Team Nacional TX Aragua</title>
+    <style>
+        :root {
+            --primary-orange: #FF5722;
+            --dark-bg: #121212;
+            --surface: #1E1E1E;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B0B0B0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: var(--primary-orange);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        h1 { margin: 0; font-size: 2.5rem; }
+        h2 { color: var(--primary-orange); border-bottom: 2px solid var(--primary-orange); padding-bottom: 0.5rem; margin-top: 2rem; }
+        h3 { color: #FF8A65; }
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+        .card {
+            background-color: var(--surface);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .step-number {
+            background-color: var(--primary-orange);
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        ul { list-style-type: none; padding-left: 1rem; }
+        ul li::before { content: "🏍️"; margin-right: 0.5rem; }
+        .highlight { color: var(--primary-orange); font-weight: bold; }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            background-color: var(--surface);
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Guía Oficial de la App</h1>
+    <p>Team Nacional TX Venezuela - Capítulo Aragua</p>
+</header>
+
+<div class="container">
+    
+    <div class="card">
+        <h2>1. Primeros Pasos: Acceso a la App</h2>
+        <p>Al abrir la aplicación por primera vez, pasarás por un proceso de configuración inicial y seguridad.</p>
+        
+        <div class="step">
+            <div class="step-number">1</div>
+            <div>
+                <h3>Pantalla de Inicio (Splash Screen)</h3>
+                <p>El logotipo del Team Nacional TX te dará la bienvenida mientras se cargan los componentes internos.</p>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">2</div>
+            <div>
+                <h3>Permisos Requeridos</h3>
+                <p>La aplicación te solicitará permisos esenciales para funcionar correctamente (Ubicación, Notificaciones, etc.). Es necesario otorgarlos para el funcionamiento del botón SOS y alertas en ruta.</p>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">3</div>
+            <div>
+                <h3>Autenticación (Gatekeeper)</h3>
+                <p>Nadie entra sin estar autorizado. Tienes tres opciones en esta pantalla:</p>
+                <ul>
+                    <li><strong>Inicio por Teléfono:</strong> Si ya eres miembro registrado, ingresa tu número y el sistema sincronizará tus datos desde el servidor.</li>
+                    <li><strong>Código de Invitación / Maestro:</strong> Para nuevos ingresos o miembros de directiva con un código especial.</li>
+                    <li><strong>Solicitar Acceso:</strong> Si eres prospecto, puedes llenar el formulario con tus datos y los de tu moto. La Directiva revisará tu solicitud para aprobarte.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>2. Navegación Principal (Menú Inferior)</h2>
+        <p>Una vez dentro, encontrarás un menú en la parte inferior con 9 módulos principales diseñados para la gestión integral del club.</p>
+
+        <h3>📰 Muro (Feed)</h3>
+        <p>El tablero principal de anuncios del club.</p>
+        <ul>
+            <li>Ver Avisos Oficiales, Retos Moteros y Comunicados.</li>
+            <li>La directiva puede fijar mensajes importantes.</li>
+            <li>Puedes dar "Like" y dejar comentarios en las publicaciones.</li>
+        </ul>
+
+        <h3>💬 Chat</h3>
+        <p>Comunicación en tiempo real dividida por canales.</p>
+        <ul>
+            <li><strong>General:</strong> Para hablar con todos los miembros.</li>
+            <li><strong>Rodadas:</strong> Exclusivo para coordinar logística de viajes.</li>
+            <li><strong>Mecánica/Auxilio:</strong> Para consultas técnicas rápidas.</li>
+            <li><strong>Directiva:</strong> Canal privado (solo si tienes el rango adecuado).</li>
+            <li>Incluye envío de <em>stickers</em>, alertas de radio y sincronización en la nube.</li>
+        </ul>
+
+        <h3>🛣️ Rodadas (Rides)</h3>
+        <p>Gestión de eventos, viajes y caravanas.</p>
+        <ul>
+            <li>Visualiza próximas rodadas con detalles (fecha, punto de encuentro, distancia, clima, paradas de gasolina y costo).</li>
+            <li><strong>Inscribirse:</strong> Confirma tu asistencia, indica si llevas copiloto y asume un rol en la caravana (Puntero, Barredor, Seguridad Vial, etc.).</li>
+            <li>La directiva puede crear nuevas rodadas y actualizar su estado (En Ruta, Finalizada).</li>
+        </ul>
+
+        <h3>👥 Miembros</h3>
+        <p>El directorio completo del Capítulo Aragua.</p>
+        <ul>
+            <li>Busca a cualquier hermano del club.</li>
+            <li>La directiva puede gestionar roles, registrar nuevos miembros, cambiar estatus de solvencia, y emitir amonestaciones o suspensiones.</li>
+            <li>Puedes ver el progreso de los "Aspirantes".</li>
+        </ul>
+
+        <h3>💰 Tesorería (Finances)</h3>
+        <p>Transparencia financiera del club en la palma de tu mano.</p>
+        <ul>
+            <li>Consulta el saldo total en caja (USD y VES) según la tasa BCV actualizada.</li>
+            <li>Visualiza el historial de aportes voluntarios, pago de potes para rodadas y fondos de emergencia.</li>
+            <li>La Directiva de Finanzas registra ingresos y gastos.</li>
+        </ul>
+
+        <h3>🔧 Inventario</h3>
+        <p>Control de herramientas y repuestos comunitarios.</p>
+        <ul>
+            <li>Revisa qué herramientas, botiquines o equipos de campamento tiene el club.</li>
+            <li><strong>Préstamos:</strong> Solicita un equipo prestado, indicando para qué lo necesitas y la fecha de devolución.</li>
+            <li>Lleva control de quién tiene cada cosa.</li>
+        </ul>
+
+        <h3>🚨 SOS Vial (Emergencias)</h3>
+        <p>El corazón de la seguridad del piloto TX.</p>
+        <ul>
+            <li>Activa alertas categorizadas: Falta de Gasolina, Falla Mecánica, Caída, o Choque Crítico.</li>
+            <li>Al emitir un SOS, se envía tu ubicación GPS exacta, detalles de tu moto, tu tipo de sangre y contactos de emergencia a todo el club.</li>
+            <li>Los miembros pueden responder e indicar que van en camino a auxiliarte.</li>
+        </ul>
+
+        <h3>📜 Normativas</h3>
+        <p>Las reglas de la casa y del asfalto.</p>
+        <ul>
+            <li>Acceso directo al <strong>Reglamento Nacional</strong> y a la <strong>Normativa Interna de Aragua</strong>.</li>
+            <li>Navegación nativa adaptada al celular para consultar deberes, derechos, reglas de caravana, y el código de honor (sanciones, membresía 100% voluntaria, etc.).</li>
+        </ul>
+
+        <h3>🪪 Carnet TX (Profile & Admin)</h3>
+        <p>Tu identidad motera digital y panel de administración.</p>
+        <ul>
+            <li><strong>Ficha Médica y Moto:</strong> Tus datos vitales y especificaciones técnicas de tu Keeway TX.</li>
+            <li><strong>Guantera Digital:</strong> Espacio para tus licencias, seguro y certificado médico.</li>
+            <li><strong>Panel Directiva:</strong> Si eres directivo, desde aquí gestionas aprobaciones de acceso, generas códigos de invitación y configuras los poderes de cada rango en la App.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>3. Funciones Especiales (Siempre Visibles)</h2>
+        
+        <div class="step">
+            <div class="step-number">!</div>
+            <div>
+                <h3>Botón SOS Rápido (Menú Superior)</h3>
+                <p>No importa en qué pantalla de la app te encuentres, en la barra superior derecha siempre verás un icono de emergencia (🚨). Pulsarlo abrirá instantáneamente la ventana para despachar una alerta SOS a todos los hermanos del club, sin tener que navegar hasta la pestaña de SOS.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">★</div>
+            <div>
+                <h3>Modo Directiva (Ojo de Águila)</h3>
+                <p>Si eres Presidente o miembro del consejo, verás un "Ojo" en la barra superior. Al activarlo, la interfaz cambia para mostrarte botones de edición, borrado, creación de eventos y configuración oculta al resto de los miembros.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Resumen del Flujo</h2>
+        <p>
+            <span class="highlight">Apertura</span> ➔ Splash Screen ➔ Solicitar Permisos ➔ <span class="highlight">Login / Registro</span> ➔ Sincronización en la nube ➔ <span class="highlight">Pantalla Principal (Muro)</span> ➔ Navegación a través de las 9 pestañas inferiores ➔ <span class="highlight">Acción / Interacción.</span>
+        </p>
+    </div>
+
+</div>
+
+<footer>
+    <p>Desarrollado para la comunidad motera de Team Nacional TX Venezuela</p>
+    <p>Capítulo Aragua - 2026</p>
+</footer>
+
+</body>
+</html>

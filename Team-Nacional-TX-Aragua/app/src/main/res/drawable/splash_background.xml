@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_background_color" />
+    <item
+        android:width="200dp"
+        android:height="200dp"
+        android:gravity="center"
+        android:drawable="@drawable/logoteam" />
+    <item
+        android:gravity="bottom|center_horizontal"
+        android:bottom="80dp"
+        android:drawable="@drawable/splash_line" />
+</layer-list>

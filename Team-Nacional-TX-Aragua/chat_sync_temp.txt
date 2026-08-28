@@ -1,0 +1,125 @@
+package com.example.data.remote
+
+import com.example.data.local.AppDatabase
+import com.example.data.model.ChatMessage
+import com.example.data.model.MemberRole
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.WriteBatch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.channels.receive
+import kotlinx.coroutines.channels.send
+import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
+
+class FirebaseChatSync(
+    private val database: AppDatabase,
+    private val scope: CoroutineScope
+) {
+    private val db = FirebaseFirestore.getInstance()
+    private val CHANNELS = listOf("GENERAL", "RODADAS", "MECANICA_AUXILIO", "DIRECTIVA")
+    private val listeners = mutableMapOf<String, com.google.firebase.firestore.ListenerRegistration>()
+    private val isInitialized = AtomicBoolean(false)
+    private val pendingWrites = channelFlow<ChatMessage> { }
+    
+    init {
+        scope.launch { initializeSync() }
+    }
+
+    private suspend fun initializeSync() {
+        if (isInitialized.getAndSet(true)) return
+        
+        scope.launch {
+            for (channelId in CHANNELS) {
+                setupChannelListener(channelId)
+            }
+            processPendingWrites()
+        }
+    }
+
+    private fun setupChannelListener(channelId: String) {
+        val registration = db.collection("chat_channels")
+            .document(channelId)
+            .collection("messages")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .limit(200)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && !snapshot.metadata.hasPendingWrites) {
+                    scope.launch(Dispatchers.IO) {
+                        val messages = snapshot.documents.mapNotNull { doc ->
+                            doc.toObject(ChatMessage::class.java)?.let { msg ->
+                                msg.copy(id = doc.id.toLongOrNull() ?: msg.id)
+                            }
+                        }
+                        if (messages.isNotEmpty()) {
+                            database.chatDao().upsertMessages(messages)
+                        }
+                    }
+                }
+            }
+        listeners[channelId] = registration
+    }
+
+    private fun processPendingWrites() = scope.launch(Dispatchers.IO) {
+        while (true) {
+            val message = pendingWrites.receive()
+            writeToFirestore(message)
+        }
+    }
+
+    private suspend fun writeToFirestore(message: ChatMessage) = withContext(Dispatchers.IO) {
+        val channelRef = db.collection("chat_channels")
+            .document(message.channelId)
+            .collection("messages")
+        
+        val docRef = if (message.id > 0) {
+            channelRef.document(message.id.toString())
+        } else {
+            channelRef.document()
+        }
+        
+        val firestoreMessage = message.copy(id = docRef.id.toLongOrNull() ?: message.id)
+        docRef.set(firestoreMessage)
+    }
+
+    suspend fun sendMessage(message: ChatMessage) {
+        database.chatDao().insertMessage(message)
+        pendingWrites.trySend(message)
+    }
+
+    suspend fun deleteMessage(messageId: Long) {
+        database.chatDao().deleteMessage(messageId)
+        scope.launch(Dispatchers.IO) {
+            for (channelId in CHANNELS) {
+                db.collection("chat_channels")
+                    .document(channelId)
+                    .collection("messages")
+                    .document(messageId.toString())
+                    .delete()
+            }
+        }
+    }
+
+    fun getMessagesForChannel(channelId: String): Flow<List<ChatMessage>> {
+        return database.chatDao().getMessagesForChannel(channelId)
+    }
+
+    fun getAllMessages(): Flow<List<ChatMessage>> {
+        return database.chatDao().getAllMessages()
+    }
+
+    suspend fun shutdown() {
+        listeners.values.forEach { it.remove() }
+        listeners.clear()
+    }
+}

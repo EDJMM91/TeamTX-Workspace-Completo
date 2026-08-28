@@ -1,0 +1,56 @@
+{
+  "project_info": {
+    "project_number": "554561749183",
+    "firebase_url": "https://teamnacionaltx-default-rtdb.firebaseio.com",
+    "project_id": "teamnacionaltx",
+    "storage_bucket": "teamnacionaltx.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:554561749183:android:2267a6390dc8419654460a",
+        "android_client_info": {
+          "package_name": "com.aistudio.teamtxvzla.rkqp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "554561749183-dhksqul7v8vsbetgq4babgqtp8l9ciei.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.teamtxvzla.rkqp",
+            "certificate_hash": "108447f9e6d1ddf20405e19f3c5ae50213cb0550"
+          }
+        },
+        {
+          "client_id": "554561749183-rik7ck8ihlvub896nqc0ntnmuedpnfql.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.teamtxvzla.rkqp",
+            "certificate_hash": "edab5f1bc2591933f19fef4b2cb741ef6500fa83"
+          }
+        },
+        {
+          "client_id": "554561749183-q637440n43im5mjfg5pp9lsb4uu0a441.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFVLw0oKz0ASIV-_1CsS9UUak7oUDx-yw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "554561749183-q637440n43im5mjfg5pp9lsb4uu0a441.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // AVISOS DEL MURO - Lectura pública, escritura solo autenticados
+    match /avisos/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // STICKERS CHAT - Lectura pública, escritura solo autenticados
+    match /stickers_chat/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // IMÁGENES CHAT - Lectura pública, escritura solo autenticados
+    match /imagenes_chat/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // AUDIOS CHAT - Solo autenticados (privados)
+    match /audios_chat/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Cualquier otra carpeta - Solo autenticados
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

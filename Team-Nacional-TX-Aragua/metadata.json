@@ -1,0 +1,6 @@
+{
+  "name": "Team TX Venezuela",
+  "description": "App oficial de Team Nacional TX Venezuela para gestión de publicaciones, rodadas, retos, registro de salidas, tesorería transparente, inventario y alertas SOS de emergencia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

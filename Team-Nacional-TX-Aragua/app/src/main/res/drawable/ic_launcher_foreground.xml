@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.65"
+        android:scaleY="0.65"
+        android:translateX="18.9"
+        android:translateY="18.9">
+        <!-- Circular Outer Ring / Shield -->
+        <path
+            android:fillColor="#FF6D00"
+            android:pathData="M54,6 C27.5,6 6,27.5 6,54 C6,80.5 27.5,102 54,102 C80.5,102 102,80.5 102,54 C102,27.5 80.5,6 54,6 Z M54,96 C30.8,96 12,77.2 12,54 C12,30.8 30.8,12 54,12 C77.2,12 96,30.8 96,54 C96,77.2 77.2,96 54,96 Z" />
+        
+        <!-- Inner Motorcycle Silhouette and TX Emblem -->
+        <!-- Motorcycle Front Wheel -->
+        <path
+            android:fillColor="#FFB300"
+            android:pathData="M32,68 m-10,0 a10,10 0 1,1 20,0 a10,10 0 1,1 -20,0" />
+        <path
+            android:fillColor="#12151B"
+            android:pathData="M32,68 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0" />
+
+        <!-- Motorcycle Rear Wheel -->
+        <path
+            android:fillColor="#FFB300"
+            android:pathData="M76,68 m-10,0 a10,10 0 1,1 20,0 a10,10 0 1,1 -20,0" />
+        <path
+            android:fillColor="#12151B"
+            android:pathData="M76,68 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0" />
+
+        <!-- Chassis & Handlebars & Tank (TX Motard / Enduro Line) -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M32,68 L48,46 L60,46 L76,68 L58,68 L50,56 L42,68 Z" />
+        <path
+            android:fillColor="#FF6D00"
+            android:pathData="M44,42 L64,42 L68,48 L46,48 Z" />
+        <path
+            android:fillColor="#FFD54F"
+            android:pathData="M48,34 L56,34 L53,42 L45,42 Z" />
+
+        <!-- TX Letters Banner Accent -->
+        <path
+            android:fillColor="#FF3D00"
+            android:pathData="M30,22 L78,22 L74,28 L34,28 Z" />
+    </group>
+</vector>

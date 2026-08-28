@@ -1,0 +1,5 @@
+## 4. 🔒 BLINDAJE DEL MOTOR OSMAND (CANDADO DE COMPILACIÓN)
+- **Estado Inmutable:** La lógica de unificación, carga y compilación entre la app principal y el motor base de mapas (OsmAnd) ya está ESTABLE y FUNCIONAL en un solo APK.
+- **Prohibición de Modificación:** Queda ESTRICTAMENTE PROHIBIDO alterar, optimizar o refactorizar los scripts de compilación (`build.gradle`, `settings.gradle`), las dependencias C++/NDK, o la estructura de integración del mapa.
+- **Límites de Intervención:** El alcance de trabajo se limita exclusivamente a la capa operativa: agregar nuevas funcionalidades, modificar la interfaz gráfica (UI/UX) o consumir las funciones públicas del mapa.
+- **Regla de Oro:** Bajo ninguna circunstancia intentarás cambiar la forma en la que el mapa se inicializa o compila con el proyecto raíz. Si consideras que un cambio visual requiere alterar el núcleo de unificación, debes detenerte y pedir autorización explícita.
