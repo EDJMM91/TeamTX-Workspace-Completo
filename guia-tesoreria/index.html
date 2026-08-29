@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tesorería - Guía TeamTX</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}a:hover{text-decoration:underline}
+.header{background:#161b22;border-bottom:1px solid #30363d;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.header .icon{font-size:32px}
+.header h1{font-size:22px;color:#fff}
+.header .back{margin-left:auto;color:#8b949e;font-size:14px}
+.container{max-width:900px;margin:0 auto;padding:24px}
+.section{margin-bottom:32px}
+.section h2{font-size:18px;color:#3fb950;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #21262d}
+.section h3{font-size:15px;color:#c9d1d9;margin:16px 0 8px}
+.desc{font-size:15px;color:#8b949e;margin-bottom:20px;padding:12px 16px;background:#161b22;border-radius:8px;border-left:3px solid #3fb950}
+.file-list{list-style:none}.file-list li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.file-list li::before{content:"📄 "}
+.func-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.func-card h4{color:#58a6ff;font-size:14px;margin-bottom:4px}
+.func-card p{font-size:13px;color:#8b949e}
+.model-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.model-card h4{color:#d2a8ff;font-size:14px;margin-bottom:4px}
+.model-card .fields{font-size:12px;color:#8b949e;font-family:monospace;word-break:break-all}
+.tips{list-style:none}.tips li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.tips li::before{content:"💡 "}
+.muted{color:#484f58;font-style:italic}
+.nav-bottom{display:flex;gap:12px;margin-top:32px;padding-top:16px;border-top:1px solid #21262d}
+.nav-bottom a{padding:8px 16px;background:#21262d;border-radius:6px;font-size:13px;color:#c9d1d9}
+.nav-bottom a:hover{background:#30363d;text-decoration:none}
+.tab-nav{display:flex;gap:0;margin-bottom:20px}
+.tab-btn{padding:8px 16px;background:#161b22;border:1px solid #30363d;color:#8b949e;cursor:pointer;font-size:13px}
+.tab-btn:first-child{border-radius:6px 0 0 6px}
+.tab-btn:last-child{border-radius:0 6px 6px 0}
+.tab-btn.active{background:#3fb950;color:#fff;border-color:#3fb950}
+.tab-content{display:none}.tab-content.active{display:block}
+</style>
+</head>
+<body>
+<div class="header">
+<span class="icon">💰</span>
+<h1>Tesorería</h1>
+<a class="back" href="../docs-app/index.html">← Volver al Índice</a>
+</div>
+<div class="container">
+<div class="desc">Módulo financiero transparente. Registro de ingresos/egresos, aportes mensuales, fondos de emergencia, y verificación de pagos.</div>
+
+<div class="section">
+<h2>Archivos del Módulo</h2>
+<ul class="file-list"><li><code>ui/screens/FinancesScreen.kt</code></li><li><code>data/remote/FinancialTransactionSync.kt</code></li></ul>
+</div>
+
+<div class="tab-nav">
+<button class="tab-btn active" onclick="showTab('composables')">Composables</button>
+<button class="tab-btn" onclick="showTab('viewmodel')">ViewModel</button>
+<button class="tab-btn" onclick="showTab('models')">Modelos</button>
+<button class="tab-btn" onclick="showTab('sync')">Sync Nube</button>
+</div>
+
+<div id="tab-composables" class="tab-content active">
+<div class="section"><h2>Composables (UI)</h2><div class="func-card"><h4>FinancesScreen</h4><p>Pantalla principal con header de balance (total en USD y Bs), filtros por categoría, y lista de transacciones.</p></div><div class="func-card"><h4>TransactionItemCard</h4><p>Tarjeta de transacción con badge de método de pago, categoría, monto (+/-), concepto, nombre del miembro, código de referencia, y controles de aprobación.</p></div><div class="func-card"><h4>CreatePaymentDialog</h4><p>Formulario de pago del miembro con categoría, monto USD con conversión a Bs, método de pago y código de referencia.</p></div><div class="func-card"><h4>CreateExpenseDialog</h4><p>Formulario de gasto registrado por directiva.</p></div></div>
+</div>
+
+<div id="tab-viewmodel" class="tab-content">
+<div class="section"><h2>ViewModel Methods</h2><div class="func-card"><h4>onSubmitPayment</h4><p>Registrar pago/aporte del miembro.</p></div><div class="func-card"><h4>onSubmitExpense</h4><p>Registrar gasto (solo directiva).</p></div><div class="func-card"><h4>onUpdateTxStatus</h4><p>Aprobar/rechazar transacción pendiente.</p></div><div class="func-card"><h4>setBcvRate</h4><p>Actualizar tasa de cambio BCV.</p></div></div>
+</div>
+
+<div id="tab-models" class="tab-content">
+<div class="section"><h2>Modelos de Datos</h2><div class="model-card"><h4>FinancialTransaction</h4><p class="fields">id, concept, description, category, type, amountUsdCents, amountVesCents, paymentMethod, referenceCode, memberName, status, approvedBy</p></div><div class="model-card"><h4>FinancialSummary</h4><p class="fields">totalIncomeUsd, totalExpenseUsd, netBalanceUsd, emergencyFundUsd</p></div><div class="model-card"><h4>PaymentCategory</h4><p class="fields">MEMBRESIA_MENSUAL, POTE_EVENTO, FONDO_EMERGENCIA, DONACION_BENEFICA, COMPRA_REPUESTOS, GASTO_LOGISTICA</p></div><div class="model-card"><h4>PaymentMethod</h4><p class="fields">PAGO_MOVIL, BINANCE_PAY, ZELLE, EFECTIVO, PAYPAL, OTRO</p></div><div class="model-card"><h4>PaymentStatus</h4><p class="fields">VERIFICADO, PENDIENTE, RECHAZADO</p></div></div>
+</div>
+
+<div id="tab-sync" class="tab-content">
+<div class="section"><h2>Sincronización en la Nube</h2><ul class="file-list"><li><code>FinancialTransactionSync.kt</code></li></ul></div>
+</div>
+
+<div class="section">
+<h2>Consejos</h2>
+<ul class="tips"><li>El balance se muestra en USD y Bolívares</li><li>Solo directiva puede registrar gastos y aprobar pagos</li><li>Los pagos pendientes requieren verificación</li><li>Se puede configurar la tasa BCV automáticamente</li></ul>
+</div>
+
+<div class="nav-bottom">
+<a href="funciones.html">Ver Funciones Detalladas →</a>
+<a href="../docs-app/index.html">← Índice Principal</a>
+</div>
+</div>
+
+<script>
+function showTab(name){
+document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+document.getElementById('tab-'+name).classList.add('active');
+event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

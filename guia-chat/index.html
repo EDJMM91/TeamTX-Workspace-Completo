@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat - Guía TeamTX</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}a:hover{text-decoration:underline}
+.header{background:#161b22;border-bottom:1px solid #30363d;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.header .icon{font-size:32px}
+.header h1{font-size:22px;color:#fff}
+.header .back{margin-left:auto;color:#8b949e;font-size:14px}
+.container{max-width:900px;margin:0 auto;padding:24px}
+.section{margin-bottom:32px}
+.section h2{font-size:18px;color:#3fb950;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #21262d}
+.section h3{font-size:15px;color:#c9d1d9;margin:16px 0 8px}
+.desc{font-size:15px;color:#8b949e;margin-bottom:20px;padding:12px 16px;background:#161b22;border-radius:8px;border-left:3px solid #3fb950}
+.file-list{list-style:none}.file-list li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.file-list li::before{content:"📄 "}
+.func-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.func-card h4{color:#58a6ff;font-size:14px;margin-bottom:4px}
+.func-card p{font-size:13px;color:#8b949e}
+.model-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.model-card h4{color:#d2a8ff;font-size:14px;margin-bottom:4px}
+.model-card .fields{font-size:12px;color:#8b949e;font-family:monospace;word-break:break-all}
+.tips{list-style:none}.tips li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.tips li::before{content:"💡 "}
+.muted{color:#484f58;font-style:italic}
+.nav-bottom{display:flex;gap:12px;margin-top:32px;padding-top:16px;border-top:1px solid #21262d}
+.nav-bottom a{padding:8px 16px;background:#21262d;border-radius:6px;font-size:13px;color:#c9d1d9}
+.nav-bottom a:hover{background:#30363d;text-decoration:none}
+.tab-nav{display:flex;gap:0;margin-bottom:20px}
+.tab-btn{padding:8px 16px;background:#161b22;border:1px solid #30363d;color:#8b949e;cursor:pointer;font-size:13px}
+.tab-btn:first-child{border-radius:6px 0 0 6px}
+.tab-btn:last-child{border-radius:0 6px 6px 0}
+.tab-btn.active{background:#3fb950;color:#fff;border-color:#3fb950}
+.tab-content{display:none}.tab-content.active{display:block}
+</style>
+</head>
+<body>
+<div class="header">
+<span class="icon">💬</span>
+<h1>Chat</h1>
+<a class="back" href="../docs-app/index.html">← Volver al Índice</a>
+</div>
+<div class="container">
+<div class="desc">Sistema de mensajería en tiempo real estilo WhatsApp. Canales públicos (General, Rodadas, Mecánica, Directiva) y grupos privados con stickers, notas de voz, dictado por voz y reacciones.</div>
+
+<div class="section">
+<h2>Archivos del Módulo</h2>
+<ul class="file-list"><li><code>ui/screens/ClubChatScreen.kt</code></li><li><code>chat/VISTA_CHAT.kt</code></li><li><code>chat/MODELO_MENSAJE.kt</code></li><li><code>chat/NUBE_MENSAJES.kt</code></li><li><code>chat/NUBE_ARCHIVOS.kt</code></li><li><code>chat/GESTOR_STICKERS.kt</code></li><li><code>chat/GestorAudio.kt</code></li><li><code>chat/CompresorChat.kt</code></li><li><code>chat/TRANSCRIPTOR_VOZ.kt</code></li><li><code>chat/PreferenciasChat.kt</code></li><li><code>data/remote/FirebaseChatSync.kt</code></li><li><code>data/remote/FirebasePrivateGroupSync.kt</code></li></ul>
+</div>
+
+<div class="tab-nav">
+<button class="tab-btn active" onclick="showTab('composables')">Composables</button>
+<button class="tab-btn" onclick="showTab('viewmodel')">ViewModel</button>
+<button class="tab-btn" onclick="showTab('models')">Modelos</button>
+<button class="tab-btn" onclick="showTab('sync')">Sync Nube</button>
+</div>
+
+<div id="tab-composables" class="tab-content active">
+<div class="section"><h2>Composables (UI)</h2><div class="func-card"><h4>ClubChatScreen</h4><p>Pantalla principal del chat. Selector de canales (4 built-in + grupos privados), lista de mensajes con auto-scroll, UI de grabación de audio, picker de stickers, reply/citar, eliminación de mensajes, reacciones, y gestión de grupos.</p></div><div class="func-card"><h4>ChatMessageBubble</h4><p>Burbuja de mensaje con reacciones, contexto de reply, reproducción de audio, y visualización de stickers.</p></div></div>
+</div>
+
+<div id="tab-viewmodel" class="tab-content">
+<div class="section"><h2>ViewModel Methods</h2><div class="func-card"><h4>onSendMessage</h4><p>Enviar mensaje de texto a un canal con soporte para reply.</p></div><div class="func-card"><h4>onDeleteMessage</h4><p>Eliminar mensaje (para todos).</p></div><div class="func-card"><h4>onDeleteMessageForMe</h4><p>Eliminar mensaje (solo para mí).</p></div><div class="func-card"><h4>onMarkMessageAsRead</h4><p>Marcar mensaje como leído.</p></div><div class="func-card"><h4>onSendSticker</h4><p>Enviar sticker a un canal.</p></div><div class="func-card"><h4>onSendAudio</h4><p>Enviar nota de voz con duración y transcripción.</p></div><div class="func-card"><h4>onToggleReaction</h4><p>Agregar/quitar reacción emoji a un mensaje.</p></div><div class="func-card"><h4>onCreatePrivateGroup</h4><p>Crear grupo privado con miembros seleccionados.</p></div><div class="func-card"><h4>onAddMembersToGroup</h4><p>Agregar miembros a un grupo privado.</p></div><div class="func-card"><h4>onLeaveGroup</h4><p>Salir de un grupo privado.</p></div><div class="func-card"><h4>onDeleteGroup</h4><p>Eliminar grupo privado (solo admin/creador).</p></div></div>
+</div>
+
+<div id="tab-models" class="tab-content">
+<div class="section"><h2>Modelos de Datos</h2><div class="model-card"><h4>ChatMessage</h4><p class="fields">id, channelId, senderMemberId, senderName, messageText, timestamp, messageType, readBy, replyToMessageId, reactions, audioDurationSeconds, deletedForMemberIds</p></div><div class="model-card"><h4>MessageType</h4><p class="fields">TEXT, STICKER, IMAGE, AUDIO, LOCATION</p></div><div class="model-card"><h4>ChatChannel</h4><p class="fields">GENERAL, RODADAS, MECANICA_AUXILIO, DIRECTIVA</p></div><div class="model-card"><h4>PrivateGroup</h4><p class="fields">id, name, description, creatorMemberId, memberIds, adminIds, isBlockedByDirectiva</p></div></div>
+</div>
+
+<div id="tab-sync" class="tab-content">
+<div class="section"><h2>Sincronización en la Nube</h2><ul class="file-list"><li><code>FirebaseChatSync.kt</code></li><li><code>FirebasePrivateGroupSync.kt</code></li><li><code>NUBE_MENSAJES.kt</code></li><li><code>NUBE_ARCHIVOS.kt</code></li></ul></div>
+</div>
+
+<div class="section">
+<h2>Consejos</h2>
+<ul class="tips"><li>El canal DIRECTIVA es solo para miembros de directiva</li><li>Se pueden enviar notas de voz con grabación integrada</li><li>El dictado por voz transcribe audio a texto automáticamente</li><li>Los stickers se gestionan desde GESTOR_STICKERS.kt</li><li>Los mensajes eliminados se marcan comoDeletedForMemberIds</li><li>El chat funciona offline con cola de mensajes pendientes</li></ul>
+</div>
+
+<div class="nav-bottom">
+<a href="funciones.html">Ver Funciones Detalladas →</a>
+<a href="../docs-app/index.html">← Índice Principal</a>
+</div>
+</div>
+
+<script>
+function showTab(name){
+document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+document.getElementById('tab-'+name).classList.add('active');
+event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

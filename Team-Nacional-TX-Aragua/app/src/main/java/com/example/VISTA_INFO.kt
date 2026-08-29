@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.*
+import com.example.ui.screens.GuiaUsoAppDialog
 import kotlinx.coroutines.launch
 
 @Composable
@@ -42,6 +43,7 @@ fun VistaInfoScreen() {
     var mostrarDialogo by remember { mutableStateOf(false) }
     var mostrarDialogoDescarga by remember { mutableStateOf(false) }
     var showDonationDialog by remember { mutableStateOf(false) }
+    var showUserGuideDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -176,7 +178,61 @@ fun VistaInfoScreen() {
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Sección de Guía de Uso de la App (Para todo público)
+        Card(
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF162032)),
+            border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.MenuBook, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(20.dp))
+                    Text(
+                        text = "MANUAL Y GUÍA DE USO",
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+
+                Text(
+                    text = "Aprende a usar paso a paso todas las funciones de la app: Muro, Chat, Rodadas, SOS Vial, Mapa y más sin términos complicados.",
+                    color = TxSteelSilver,
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp
+                )
+
+                Button(
+                    onClick = { showUserGuideDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                ) {
+                    Icon(Icons.Default.AutoStories, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Abrir Guía Interactiva", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(96.dp))
+    }
+
+    // Diálogo de Guía de Uso de la App
+    if (showUserGuideDialog) {
+        GuiaUsoAppDialog(onDismiss = { showUserGuideDialog = false })
     }
 
     // Diálogo de Donación al Desarrollador

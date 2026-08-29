@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeamTX - Documentación Interactiva</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}a:hover{text-decoration:underline}
+.hero{background:linear-gradient(135deg,#161b22 0%,#0d1117 100%);border-bottom:1px solid #30363d;padding:48px 24px;text-align:center}
+.hero h1{font-size:36px;color:#fff;margin-bottom:8px}
+.hero h1 span{color:#58a6ff}
+.hero p{font-size:16px;color:#8b949e;max-width:600px;margin:0 auto 24px}
+.hero-stats{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.hero-stat{text-align:center}
+.hero-stat .num{font-size:28px;font-weight:700;color:#58a6ff}
+.hero-stat .label{font-size:12px;color:#8b949e;text-transform:uppercase}
+.container{max-width:1100px;margin:0 auto;padding:32px 24px}
+.section-title{font-size:20px;color:#fff;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.section-title .dot{width:8px;height:8px;border-radius:50%;background:#58a6ff}
+.nav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:40px}
+.module-card{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:20px;transition:all 0.2s;cursor:pointer;text-decoration:none;color:inherit}
+.module-card:hover{border-color:#58a6ff;transform:translateY(-2px);text-decoration:none;box-shadow:0 4px 20px rgba(88,166,255,0.1)}
+.module-card .card-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.module-card .card-icon{font-size:28px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:#0d1117;border-radius:10px}
+.module-card .card-title{font-size:16px;font-weight:600;color:#fff}
+.module-card .card-status{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;margin-top:2px}
+.module-card .card-desc{font-size:13px;color:#8b949e;margin-bottom:12px}
+.module-card .card-files{font-size:11px;color:#484f58}
+.status-stable{background:#238636;color:#fff}
+.status-pending{background:#30363d;color:#8b949e}
+.status-progress{background:#9e6a03;color:#fff}
+.graph-link{display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,#161b22,#1c2128);border:1px solid #30363d;border-radius:12px;padding:24px;margin-bottom:32px;text-decoration:none;color:inherit;transition:all 0.2s}
+.graph-link:hover{border-color:#58a6ff;text-decoration:none;box-shadow:0 4px 20px rgba(88,166,255,0.1)}
+.graph-link .graph-icon{font-size:40px}
+.graph-link .graph-info h3{font-size:18px;color:#fff}
+.graph-link .graph-info p{font-size:13px;color:#8b949e}
+.graph-link .graph-arrow{margin-left:auto;font-size:24px;color:#58a6ff}
+.arch{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:20px;margin-bottom:32px}
+.arch h3{font-size:15px;color:#d2a8ff;margin-bottom:12px}
+.arch-diagram{font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;color:#8b949e;overflow-x:auto;white-space:pre;padding:16px;background:#0d1117;border-radius:8px;line-height:1.8}
+.arch-diagram .hl{color:#58a6ff}
+.arch-diagram .hl2{color:#3fb950}
+.arch-diagram .hl3{color:#f0883e}
+.search-global{width:100%;padding:12px 20px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#c9d1d9;font-size:15px;margin-bottom:24px}
+.search-global:focus{outline:none;border-color:#58a6ff}
+#search-results{display:none;background:#161b22;border:1px solid #30363d;border-radius:8px;margin-bottom:24px;max-height:400px;overflow-y:auto}
+.search-item{padding:10px 16px;border-bottom:1px solid #21262d;cursor:pointer}
+.search-item:hover{background:#21262d}
+.search-item .si-module{font-size:11px;color:#58a6ff;font-weight:600}
+.search-item .si-name{font-size:14px;color:#c9d1d9}
+.search-item .si-desc{font-size:12px;color:#8b949e}
+.footer{text-align:center;padding:32px;color:#484f58;font-size:12px;border-top:1px solid #21262d;margin-top:40px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+<h1>Team<span>TX</span> Documentación</h1>
+<p>Guía interactiva completa de la aplicación. Explora cada módulo, sus funciones, archivos y conexiones.</p>
+<div class="hero-stats">
+<div class="hero-stat"><div class="num">13</div><div class="label">Módulos</div></div>
+<div class="hero-stat"><div class="num">863</div><div class="label">Nodos</div></div>
+<div class="hero-stat"><div class="num">1477</div><div class="label">Conexiones</div></div>
+<div class="hero-stat"><div class="num">73</div><div class="label">Comunidades</div></div>
+</div>
+</div>
+
+<div class="container">
+
+<a class="graph-link" href="../Team-Nacional-TX-Aragua/graphify-out/index.html">
+<span class="graph-icon">🔬</span>
+<div class="graph-info">
+<h3>Grafo de Código Interactivo</h3>
+<p>Visualiza las 863 conexiones del código fuente. Busca nodos, filtra por comunidad, explora relaciones.</p>
+</div>
+<span class="graph-arrow">→</span>
+</a>
+
+<input type="text" class="search-global" id="globalSearch" placeholder="🔍 Buscar módulo, función, archivo..." oninput="globalSearch(this.value)">
+<div id="search-results"></div>
+
+<div class="section-title"><div class="dot"></div> Módulos de la App</div>
+<div class="nav-grid">
+
+<a class="module-card" href="../guia-muro/index.html">
+<div class="card-header">
+<div class="card-icon">📋</div>
+<div><div class="card-title">Muro (Feed)</div><div class="card-status status-stable">Estable</div></div>
+</div>
+<div class="card-desc">Tablón de anuncios. Publicaciones, retos motero, likes, comentarios y sistema de prioridades.</div>
+<div class="card-files">FeedScreen.kt · CreateNoticeDialog.kt · PublicationSync.kt</div>
+</a>
+
+<a class="module-card" href="../guia-chat/index.html">
+<div class="card-header">
+<div class="card-icon">💬</div>
+<div><div class="card-title">Chat</div><div class="card-status status-stable">Estable</div></div>
+</div>
+<div class="card-desc">Mensajería en tiempo real. Canales, grupos privados, stickers, audio, dictado por voz.</div>
+<div class="card-files">ClubChatScreen.kt · VISTA_CHAT.kt · GESTOR_STICKERS.kt · GestorAudio.kt</div>
+</a>
+
+<a class="module-card" href="../guia-rodadas/index.html">
+<div class="card-header">
+<div class="card-icon">🏍️</div>
+<div><div class="card-title">Rodadas</div><div class="card-status status-pending">Pendiente</div></div>
+</div>
+<div class="card-desc">Salidas grupales. Programación, roles de convoy, registro de participantes y asistencia.</div>
+<div class="card-files">RidesScreen.kt · RideSync.kt · RideRegistrationSync.kt</div>
+</a>
+
+<a class="module-card" href="../guia-miembros/index.html">
+<div class="card-header">
+<div class="card-icon">👥</div>
+<div><div class="card-title">Miembros</div><div class="card-status status-stable">Estable</div></div>
+</div>
+<div class="card-desc">Directorio de pilotos. Perfiles, roles, suspensión, asistencia y progreso de prospectos.</div>
+<div class="card-files">MembersScreen.kt · ControlAsistenciaScreen.kt · ProgresoProspectoScreen.kt</div>
+</a>
+
+<a class="module-card" href="../guia-tesoreria/index.html">
+<div class="card-header">
+<div class="card-icon">💰</div>
+<div><div class="card-title">Tesorería</div><div class="card-status status-pending">Pendiente</div></div>
+</div>
+<div class="card-desc">Finanzas transparentes. Ingresos, egresos, aportes, fondos de emergencia y verificación.</div>
+<div class="card-files">FinancesScreen.kt · FinancialTransactionSync.kt</div>
+</a>
+
+<a class="module-card" href="../guia-inventario/index.html">
+<div class="card-header">
+<div class="card-icon">🔧</div>
+<div><div class="card-title">Inventario</div><div class="card-status status-pending">Pendiente</div></div>
+</div>
+<div class="card-desc">Equipamiento del club. Catálogo, préstamos, control de stock y devoluciones.</div>
+<div class="card-files">InventoryScreen.kt · InventoryItemSync.kt · EquipmentLoanSync.kt</div>
+</a>
+
+<a class="module-card" href="../guia-sos-vial/index.html">
+<div class="card-header">
+<div class="card-icon">🚨</div>
+<div><div class="card-title">SOS Vial</div><div class="card-status status-pending">Pendiente</div></div>
+</div>
+<div class="card-desc">Emergencias viales. 4 niveles de triage, GPS, contactos de especialistas y protocolos.</div>
+<div class="card-files">EmergencySosScreen.kt · EmitSosDialog.kt · EmergencyAlertSync.kt</div>
+</a>
+
+<a class="module-card" href="../guia-normativas/index.html">
+<div class="card-header">
+<div class="card-icon">📜</div>
+<div><div class="card-title">Normativas</div><div class="card-status status-pending">Pendiente</div></div>
+</div>
+<div class="card-desc">Reglamentos. Normativa nacional TX 200 y normativa del capítulo Aragua.</div>
+<div class="card-files">NormativasScreen.kt · NormativaNacionalScreen.kt · NormativaAraguaScreen.kt</div>
+</a>
+
+<a class="module-card" href="../guia-directiva/index.html">
+<div class="card-header">
+<div class="card-icon">⚙️</div>
+<div><div class="card-title">Directiva</div><div class="card-status status-stable">Estable</div></div>
+</div>
+<div class="card-desc">Panel de gobernanza. Códigos de invitación, solicitudes, roles, chat directiva y grupos.</div>
+<div class="card-files">DirectivaExclusiveScreen.kt · InvitationCodeSync.kt · AccessRequestSync.kt</div>
+</a>
+
+<a class="module-card" href="../guia-carnet-tx/index.html">
+<div class="card-header">
+<div class="card-icon">🪪</div>
+<div><div class="card-title">Carnet TX</div><div class="card-status status-stable">Estable</div></div>
+</div>
+<div class="card-desc">Perfil y credencial digital. Login Google, onboarding, guantera digital, copiloto.</div>
+<div class="card-files">ProfileAndAdminScreen.kt · GatekeeperAuthScreen.kt · OnboardingProfileScreen.kt</div>
+</a>
+
+<a class="module-card" href="../guia-mapa-tx/index.html">
+<div class="card-header">
+<div class="card-icon">🗺️</div>
+<div><div class="card-title">Mapa TX</div><div class="card-status status-stable">Estable</div></div>
+</div>
+<div class="card-desc">Mapa offline con OsmAnd. Navegación sin conexión, assets de mapa locales.</div>
+<div class="card-files">MapaTxScreen.kt · MapaDevelopmentScreen.kt</div>
+</a>
+
+<a class="module-card" href="../guia-configuraciones/index.html">
+<div class="card-header">
+<div class="card-icon">⚙️</div>
+<div><div class="card-title">Configuraciones</div><div class="card-status status-progress">En Progreso</div></div>
+</div>
+<div class="card-desc">Ajustes globales. Toggles por módulo, sesión, eliminación de cuenta.</div>
+<div class="card-files">ConfiguracionesScreen.kt · PreferenciasApp.kt</div>
+</a>
+
+<a class="module-card" href="../guia-ota-notificaciones/index.html">
+<div class="card-header">
+<div class="card-icon">🔔</div>
+<div><div class="card-title">OTA / Notificaciones</div><div class="card-status status-progress">En Progreso</div></div>
+</div>
+<div class="card-desc">Actualizaciones OTA desde GitHub, FCM push, notificaciones in-app.</div>
+<div class="card-files">ACTUALIZADOR.kt · NOTIFICACIONES.kt · VISTA_INFO.kt · SERVICIO_MENSAJERIA.kt</div>
+</a>
+
+</div>
+
+<div class="section-title"><div class="dot" style="background:#d2a8ff"></div> Arquitectura</div>
+<div class="arch">
+<h3>Estructura de la App</h3>
+<div class="arch-diagram"><span class="hl">MainActivity</span> → <span class="hl2">AppEntryPoint</span> (Splash/Login)
+    ↓
+<span class="hl">MainAppScreen</span> (Bottom Navigation)
+    ├── <span class="hl3">Muro</span>      → FeedScreen        → PublicationSync
+    ├── <span class="hl3">Chat</span>      → ClubChatScreen    → FirebaseChatSync
+    ├── <span class="hl3">Rodadas</span>   → RidesScreen       → RideSync
+    ├── <span class="hl3">Miembros</span>  → MembersScreen     → MemberSync
+    ├── <span class="hl3">Tesorería</span> → FinancesScreen    → FinancialTransactionSync
+    ├── <span class="hl3">Inventario</span>→ InventoryScreen   → InventoryItemSync
+    ├── <span class="hl3">SOS Vial</span>  → EmergencySosScreen→ EmergencyAlertSync
+    ├── <span class="hl3">Normativas</span>→ NormativasScreen  (estático)
+    ├── <span class="hl3">Directiva</span> → DirectivaScreen   → InvitationCodeSync
+    ├── <span class="hl3">Carnet TX</span> → ProfileScreen     → PerfilNube
+    ├── <span class="hl3">Mapa TX</span>   → TxMapLauncher     (OsmAnd offline)
+    ├── <span class="hl3">Config</span>    → ConfigScreen      (SharedPreferences)
+    └── <span class="hl3">Info/OTA</span>  → VistaInfoScreen   → GestorActualizaciones
+
+<span class="hl">TeamTxViewModel</span> (3047 líneas) → <span class="hl2">TeamTxRepository</span> → <span class="hl2">AppDatabase</span> (Room)
+                                                       ↕
+                                              <span class="hl3">Firebase Firestore</span> (20+ Sync files)</div>
+</div>
+
+<div class="footer">
+TeamTX Venezuela - Documentación generada automáticamente<br>
+Grafo: 863 nodos · 1477 edges · 73 comunidades
+</div>
+</div>
+
+<script>
+const SEARCH_DATA = [
+{module:"Muro",name:"FeedScreen",type:"Composable",desc:"Pantalla principal del muro",url:"../guia-muro/index.html"},
+{module:"Muro",name:"NoticeCard",type:"Composable",desc:"Tarjeta de publicación",url:"../guia-muro/index.html"},
+{module:"Muro",name:"CreateNoticeDialog",type:"Composable",desc:"Crear publicación",url:"../guia-muro/index.html"},
+{module:"Muro",name:"onCreatePublication",type:"ViewModel",desc:"Crear publicación",url:"../guia-muro/funciones.html"},
+{module:"Muro",name:"onLike",type:"ViewModel",desc:"Dar/quitar like",url:"../guia-muro/funciones.html"},
+{module:"Muro",name:"onDelete",type:"ViewModel",desc:"Eliminar publicación",url:"../guia-muro/funciones.html"},
+{module:"Muro",name:"Publication",type:"Modelo",desc:"Entidad de publicación",url:"../guia-muro/index.html"},
+{module:"Chat",name:"ClubChatScreen",type:"Composable",desc:"Pantalla principal del chat",url:"../guia-chat/index.html"},
+{module:"Chat",name:"onSendMessage",type:"ViewModel",desc:"Enviar mensaje",url:"../guia-chat/funciones.html"},
+{module:"Chat",name:"onSendSticker",type:"ViewModel",desc:"Enviar sticker",url:"../guia-chat/funciones.html"},
+{module:"Chat",name:"onSendAudio",type:"ViewModel",desc:"Enviar nota de voz",url:"../guia-chat/funciones.html"},
+{module:"Chat",name:"ChatMessage",type:"Modelo",desc:"Entidad de mensaje",url:"../guia-chat/index.html"},
+{module:"Rodadas",name:"RidesScreen",type:"Composable",desc:"Pantalla de rodadas",url:"../guia-rodadas/index.html"},
+{module:"Rodadas",name:"onCreateRide",type:"ViewModel",desc:"Crear rodada",url:"../guia-rodadas/funciones.html"},
+{module:"Rodadas",name:"RideEvent",type:"Modelo",desc:"Entidad de rodada",url:"../guia-rodadas/index.html"},
+{module:"Miembros",name:"MembersScreen",type:"Composable",desc:"Directorio de miembros",url:"../guia-miembros/index.html"},
+{module:"Miembros",name:"registerMember",type:"ViewModel",desc:"Registrar miembro",url:"../guia-miembros/funciones.html"},
+{module:"Miembros",name:"MemberProfile",type:"Modelo",desc:"Perfil de miembro (50+ campos)",url:"../guia-miembros/index.html"},
+{module:"Tesorería",name:"FinancesScreen",type:"Composable",desc:"Pantalla financiera",url:"../guia-tesoreria/index.html"},
+{module:"Tesorería",name:"onSubmitPayment",type:"ViewModel",desc:"Registrar pago",url:"../guia-tesoreria/funciones.html"},
+{module:"Inventario",name:"InventoryScreen",type:"Composable",desc:"Pantalla de inventario",url:"../guia-inventario/index.html"},
+{module:"Inventario",name:"onRequestLoan",type:"ViewModel",desc:"Solicitar préstamo",url:"../guia-inventario/funciones.html"},
+{module:"SOS Vial",name:"EmergencySosScreen",type:"Composable",desc:"Pantalla de emergencias",url:"../guia-sos-vial/index.html"},
+{module:"SOS Vial",name:"onBroadcastSos",type:"ViewModel",desc:"Emitir alerta SOS",url:"../guia-sos-vial/funciones.html"},
+{module:"Normativas",name:"NormativasScreen",type:"Composable",desc:"Visor de normativas",url:"../guia-normativas/index.html"},
+{module:"Directiva",name:"DirectivaExclusiveScreen",type:"Composable",desc:"Panel de directiva",url:"../guia-directiva/index.html"},
+{module:"Directiva",name:"onGenerateCode",type:"ViewModel",desc:"Generar código invitación",url:"../guia-directiva/funciones.html"},
+{module:"Carnet TX",name:"ProfileAndAdminScreen",type:"Composable",desc:"Dashboard de perfil",url:"../guia-carnet-tx/index.html"},
+{module:"Carnet TX",name:"DigitalCredentialCard",type:"Composable",desc:"Credencial digital QR",url:"../guia-carnet-tx/index.html"},
+{module:"Mapa TX",name:"TxMapLauncher",type:"Composable",desc:"Lanzador de mapa OsmAnd",url:"../guia-mapa-tx/index.html"},
+{module:"Configuraciones",name:"ConfiguracionesScreen",type:"Composable",desc:"Pantalla de ajustes",url:"../guia-configuraciones/index.html"},
+{module:"OTA",name:"VerificadorOta",type:"Composable",desc:"Verificador de actualizaciones",url:"../guia-ota-notificaciones/index.html"},
+{module:"OTA",name:"GestorActualizaciones",type:"Función",desc:"Gestor de descarga OTA",url:"../guia-ota-notificaciones/funciones.html"},
+{module:"OTA",name:"VistaInfoScreen",type:"Composable",desc:"Pantalla de información/about",url:"../guia-ota-notificaciones/index.html"},
+{module:"Notificaciones",name:"GestorNotificacionesApp",type:"Función",desc:"Gestor de notificaciones in-app",url:"../guia-ota-notificaciones/funciones.html"},
+];
+
+function globalSearch(q) {
+const results = document.getElementById('search-results');
+if (!q || q.length < 2) { results.style.display = 'none'; return; }
+const ql = q.toLowerCase();
+const matches = SEARCH_DATA.filter(d =>
+d.name.toLowerCase().includes(ql) ||
+d.module.toLowerCase().includes(ql) ||
+d.desc.toLowerCase().includes(ql) ||
+d.type.toLowerCase().includes(ql)
+).slice(0, 10);
+if (matches.length === 0) { results.style.display = 'none'; return; }
+results.innerHTML = matches.map(m =>
+'<div class="search-item" onclick="location.href=\''+m.url+'\'">' +
+'<div class="si-module">'+m.module+' · '+m.type+'</div>' +
+'<div class="si-name">'+m.name+'</div>' +
+'<div class="si-desc">'+m.desc+'</div></div>'
+).join('');
+results.style.display = 'block';
+}
+</script>
+</body>
+</html>

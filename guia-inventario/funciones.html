@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario - Funciones Detalladas</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}a:hover{text-decoration:underline}
+.header{background:#161b22;border-bottom:1px solid #30363d;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.header .icon{font-size:32px}
+.header h1{font-size:22px;color:#fff}
+.header .back{margin-left:auto;color:#8b949e;font-size:14px}
+.container{max-width:1000px;margin:0 auto;padding:24px}
+table{width:100%;border-collapse:collapse;margin-top:16px}
+th{text-align:left;padding:10px 12px;background:#161b22;border-bottom:2px solid #30363d;font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px}
+td{padding:10px 12px;border-bottom:1px solid #21262d;font-size:13px}
+tr:hover{background:#161b22}
+code{background:#161b22;padding:2px 6px;border-radius:3px;font-size:12px;color:#58a6ff}
+.type-badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.search-box{width:100%;padding:10px 16px;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#c9d1d9;font-size:14px;margin-bottom:16px}
+.search-box:focus{outline:none;border-color:#58a6ff}
+h2{font-size:18px;color:#8b949e;margin-bottom:12px}
+.nav-bottom{display:flex;gap:12px;margin-top:32px;padding-top:16px;border-top:1px solid #21262d}
+.nav-bottom a{padding:8px 16px;background:#21262d;border-radius:6px;font-size:13px;color:#c9d1d9}
+.nav-bottom a:hover{background:#30363d;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="header">
+<span class="icon">🔧</span>
+<h1>Funciones - Inventario</h1>
+<a class="back" href="index.html">← Volver</a>
+</div>
+<div class="container">
+<h2>Todas las Funciones y Composables</h2>
+<input type="text" class="search-box" placeholder="Buscar función..." oninput="filterTable(this.value)">
+<table>
+<thead><tr><th>Nombre</th><th>Tipo</th><th>Descripción</th></tr></thead>
+<tbody id="func-table"><tr>
+<td><code>InventoryScreen</code></td>
+<td><span class="type-badge" style="background:#58a6ff20;color:#58a6ff">Composable</span></td>
+<td>Pantalla con dos tabs: Catálogo y Préstamos. Filtros por categoría, tarjetas de items y préstamos.</td>
+</tr><tr>
+<td><code>InventoryCardItem</code></td>
+<td><span class="type-badge" style="background:#58a6ff20;color:#58a6ff">Composable</span></td>
+<td>Tarjeta de item con código, badge de condición, nombre, descripción, ubicación, stock (disponible/total), fecha de mantenimiento y botón de préstamo.</td>
+</tr><tr>
+<td><code>LoanCardItem</code></td>
+<td><span class="type-badge" style="background:#58a6ff20;color:#58a6ff">Composable</span></td>
+<td>Tarjeta de préstamo activo con nombre del item, solicitante, propósito, fechas y botón de devolución.</td>
+</tr><tr>
+<td><code>RequestLoanDialog</code></td>
+<td><span class="type-badge" style="background:#58a6ff20;color:#58a6ff">Composable</span></td>
+<td>Formulario de solicitud de préstamo con fecha de retorno y propósito.</td>
+</tr><tr>
+<td><code>CreateItemDialog</code></td>
+<td><span class="type-badge" style="background:#58a6ff20;color:#58a6ff">Composable</span></td>
+<td>Formulario para registrar nuevo item (solo directiva).</td>
+</tr><tr>
+<td><code>onRequestLoan</code></td>
+<td><span class="type-badge" style="background:#3fb95020;color:#3fb950">ViewModel</span></td>
+<td>Solicitar préstamo de equipamiento.</td>
+</tr><tr>
+<td><code>onReturnLoan</code></td>
+<td><span class="type-badge" style="background:#3fb95020;color:#3fb950">ViewModel</span></td>
+<td>Devolver item prestado.</td>
+</tr><tr>
+<td><code>onCreateItem</code></td>
+<td><span class="type-badge" style="background:#3fb95020;color:#3fb950">ViewModel</span></td>
+<td>Registrar nuevo item en el inventario.</td>
+</tr></tbody>
+</table>
+
+<div class="nav-bottom">
+<a href="index.html">← Vista General</a>
+<a href="../docs-app/index.html">← Índice Principal</a>
+</div>
+</div>
+<script>
+function filterTable(q){
+const rows=document.querySelectorAll('#func-table tr');
+rows.forEach(r=>{
+const text=r.textContent.toLowerCase();
+r.style.display=text.includes(q.toLowerCase())?'':'none';
+});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rodadas - Guía TeamTX</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}a:hover{text-decoration:underline}
+.header{background:#161b22;border-bottom:1px solid #30363d;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.header .icon{font-size:32px}
+.header h1{font-size:22px;color:#fff}
+.header .back{margin-left:auto;color:#8b949e;font-size:14px}
+.container{max-width:900px;margin:0 auto;padding:24px}
+.section{margin-bottom:32px}
+.section h2{font-size:18px;color:#d29922;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #21262d}
+.section h3{font-size:15px;color:#c9d1d9;margin:16px 0 8px}
+.desc{font-size:15px;color:#8b949e;margin-bottom:20px;padding:12px 16px;background:#161b22;border-radius:8px;border-left:3px solid #d29922}
+.file-list{list-style:none}.file-list li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.file-list li::before{content:"📄 "}
+.func-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.func-card h4{color:#58a6ff;font-size:14px;margin-bottom:4px}
+.func-card p{font-size:13px;color:#8b949e}
+.model-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.model-card h4{color:#d2a8ff;font-size:14px;margin-bottom:4px}
+.model-card .fields{font-size:12px;color:#8b949e;font-family:monospace;word-break:break-all}
+.tips{list-style:none}.tips li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.tips li::before{content:"💡 "}
+.muted{color:#484f58;font-style:italic}
+.nav-bottom{display:flex;gap:12px;margin-top:32px;padding-top:16px;border-top:1px solid #21262d}
+.nav-bottom a{padding:8px 16px;background:#21262d;border-radius:6px;font-size:13px;color:#c9d1d9}
+.nav-bottom a:hover{background:#30363d;text-decoration:none}
+.tab-nav{display:flex;gap:0;margin-bottom:20px}
+.tab-btn{padding:8px 16px;background:#161b22;border:1px solid #30363d;color:#8b949e;cursor:pointer;font-size:13px}
+.tab-btn:first-child{border-radius:6px 0 0 6px}
+.tab-btn:last-child{border-radius:0 6px 6px 0}
+.tab-btn.active{background:#d29922;color:#fff;border-color:#d29922}
+.tab-content{display:none}.tab-content.active{display:block}
+</style>
+</head>
+<body>
+<div class="header">
+<span class="icon">🏍️</span>
+<h1>Rodadas</h1>
+<a class="back" href="../docs-app/index.html">← Volver al Índice</a>
+</div>
+<div class="container">
+<div class="desc">Gestión de salidas grupales de motocicleta. Crear, programar, registrar participantes con roles de convoy, y finalizar con control de asistencia.</div>
+
+<div class="section">
+<h2>Archivos del Módulo</h2>
+<ul class="file-list"><li><code>ui/screens/RidesScreen.kt</code></li><li><code>data/remote/RideSync.kt</code></li><li><code>data/remote/RideRegistrationSync.kt</code></li></ul>
+</div>
+
+<div class="tab-nav">
+<button class="tab-btn active" onclick="showTab('composables')">Composables</button>
+<button class="tab-btn" onclick="showTab('viewmodel')">ViewModel</button>
+<button class="tab-btn" onclick="showTab('models')">Modelos</button>
+<button class="tab-btn" onclick="showTab('sync')">Sync Nube</button>
+</div>
+
+<div id="tab-composables" class="tab-content active">
+<div class="section"><h2>Composables (UI)</h2><div class="func-card"><h4>RidesScreen</h4><p>Pantalla principal con búsqueda, filtros de estado (Todas/Programadas/En Ruta/Pospuestas/Archivadas), lista de rodadas y diálogos múltiples.</p></div><div class="func-card"><h4>RideItemCard</h4><p>Tarjeta expandible con banner de estado, origen->destino, km, logística (fecha, hora, líderes), paradas de gasolina, equipo requerido, terreno, costo, roster, enlace mapa, WhatsApp, y botones de unir/cancelar.</p></div><div class="func-card"><h4>CreateRideDialog</h4><p>Diálogo para crear rodada con todos los campos de logística.</p></div><div class="func-card"><h4>JoinRideDialog</h4><p>Diálogo para registrarse en una rodada con info de copiloto.</p></div><div class="func-card"><h4>RideRosterDialog</h4><p>Diálogo con lista de participantes y sus roles de convoy.</p></div></div>
+</div>
+
+<div id="tab-viewmodel" class="tab-content">
+<div class="section"><h2>ViewModel Methods</h2><div class="func-card"><h4>onCreateRide</h4><p>Crear nueva rodada con toda la info de logística.</p></div><div class="func-card"><h4>onJoinRide</h4><p>Registrarse en una rodada.</p></div><div class="func-card"><h4>onCancelJoin</h4><p>Cancelar registro en una rodada.</p></div><div class="func-card"><h4>onUpdateRideStatus</h4><p>Cambiar estado de la rodada.</p></div><div class="func-card"><h4>onFinalizeRide</h4><p>Finalizar rodada con control de asistencia.</p></div><div class="func-card"><h4>onUpdateConvoyRole</h4><p>Asignar rol de convoy a un participante.</p></div></div>
+</div>
+
+<div id="tab-models" class="tab-content">
+<div class="section"><h2>Modelos de Datos</h2><div class="model-card"><h4>RideEvent</h4><p class="fields">id, title, description, originCity, destinationCity, departureDate, meetingTime, distanceKm, terrainType, convoyLeader, gasStops, requiredGear, status, costUsdCents, maxParticipants, whatsappGroupUrl</p></div><div class="model-card"><h4>RideRegistration</h4><p class="fields">id, rideId, memberId, memberName, bikePlate, hasPillion, pillionName, convoyRole, paymentConfirmed, checkedIn</p></div><div class="model-card"><h4>ConvoyRoleType</h4><p class="fields">PUNTERO, SEGUNDO_GUIA, OFICIAL_SEGURIDAD, MEDICO, MECANICO, BARREDOR_COLA, PILOTO_CENTRAL, COPILOTO</p></div><div class="model-card"><h4>RideStatus</h4><p class="fields">PROGRAMADA, EN_CURSO, FINALIZADA, CANCELADA</p></div></div>
+</div>
+
+<div id="tab-sync" class="tab-content">
+<div class="section"><h2>Sincronización en la Nube</h2><ul class="file-list"><li><code>RideSync.kt</code></li><li><code>RideRegistrationSync.kt</code></li></ul></div>
+</div>
+
+<div class="section">
+<h2>Consejos</h2>
+<ul class="tips"><li>Cada rodada puede tener roles de convoy asignados</li><li>El estado de la rodada controla qué acciones están disponibles</li><li>Al finalizar se registra asistencia de cada participante</li><li>Se puede compartir enlace de WhatsApp del grupo de la rodada</li></ul>
+</div>
+
+<div class="nav-bottom">
+<a href="funciones.html">Ver Funciones Detalladas →</a>
+<a href="../docs-app/index.html">← Índice Principal</a>
+</div>
+</div>
+
+<script>
+function showTab(name){
+document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+document.getElementById('tab-'+name).classList.add('active');
+event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

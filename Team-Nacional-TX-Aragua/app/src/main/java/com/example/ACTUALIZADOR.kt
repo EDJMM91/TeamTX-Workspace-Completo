@@ -51,40 +51,43 @@ object GestorActualizaciones {
      * con fallback automático a GitHub CDN (ota_info.json)
      */
     suspend fun verificarActualizacion(): InformacionOta? = withContext(Dispatchers.IO) {
-        // 1. Intentar por Firestore
+        // 1. Intentar por Firestore (con timeout de 4 segundos)
         try {
-            // Garantizar sesión Firebase Auth previa para evitar PERMISSION_DENIED por reglas
-            try {
-                if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
-                    com.aistudio.teamtxvzla.nube.AutenticacionNube.inicializar()
-                }
-            } catch (_: Exception) {}
+            kotlinx.coroutines.withTimeoutOrNull(4000L) {
+                // Garantizar sesión Firebase Auth previa para evitar PERMISSION_DENIED por reglas
+                try {
+                    if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
+                        com.aistudio.teamtxvzla.nube.AutenticacionNube.inicializar()
+                    }
+                } catch (_: Exception) {}
 
-            val db = FirebaseFirestore.getInstance()
-            var doc = db.collection("configuracion").document("OTA").get().await()
-            if (!doc.exists()) {
-                // Intento alternativo con mayúscula por si acaso
-                doc = db.collection("Configuracion").document("OTA").get().await()
-            }
-
-            if (doc.exists()) {
-                val code = when (val rawCode = doc.get("versionCode")) {
-                    is Number -> rawCode.toInt()
-                    is String -> rawCode.trim().toIntOrNull() ?: 0
-                    else -> 0
+                val db = FirebaseFirestore.getInstance()
+                var doc = db.collection("configuracion").document("OTA").get().await()
+                if (!doc.exists()) {
+                    // Intento alternativo con mayúscula por si acaso
+                    doc = db.collection("Configuracion").document("OTA").get().await()
                 }
-                val url = (doc.getString("urlDescarga") ?: "").trim()
-                val notas = doc.getString("notas") ?: ""
 
-                if (code > 0 && url.isNotBlank()) {
-                    Log.d(TAG, "✅ OTA obtenido desde Firestore -> code: $code, url: $url")
-                    return@withContext InformacionOta(
-                        versionCode = code,
-                        urlDescarga = url,
-                        notas = notas
-                    )
+                if (doc.exists()) {
+                    val code = when (val rawCode = doc.get("versionCode")) {
+                        is Number -> rawCode.toInt()
+                        is String -> rawCode.trim().toIntOrNull() ?: 0
+                        else -> 0
+                    }
+                    val url = (doc.getString("urlDescarga") ?: "").trim()
+                    val notas = doc.getString("notas") ?: ""
+
+                    if (code > 0 && url.isNotBlank()) {
+                        Log.d(TAG, "✅ OTA obtenido desde Firestore -> code: $code, url: $url")
+                        return@withTimeoutOrNull InformacionOta(
+                            versionCode = code,
+                            urlDescarga = url,
+                            notas = notas
+                        )
+                    }
                 }
-            }
+                null
+            }?.let { return@withContext it }
         } catch (e: Exception) {
             Log.w(TAG, "Advertencia consultando Firestore OTA: ${e.message}. Probando fallback GitHub...")
         }

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Normativas - Guía TeamTX</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}a:hover{text-decoration:underline}
+.header{background:#161b22;border-bottom:1px solid #30363d;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.header .icon{font-size:32px}
+.header h1{font-size:22px;color:#fff}
+.header .back{margin-left:auto;color:#8b949e;font-size:14px}
+.container{max-width:900px;margin:0 auto;padding:24px}
+.section{margin-bottom:32px}
+.section h2{font-size:18px;color:#d2a8ff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #21262d}
+.section h3{font-size:15px;color:#c9d1d9;margin:16px 0 8px}
+.desc{font-size:15px;color:#8b949e;margin-bottom:20px;padding:12px 16px;background:#161b22;border-radius:8px;border-left:3px solid #d2a8ff}
+.file-list{list-style:none}.file-list li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.file-list li::before{content:"📄 "}
+.func-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.func-card h4{color:#58a6ff;font-size:14px;margin-bottom:4px}
+.func-card p{font-size:13px;color:#8b949e}
+.model-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.model-card h4{color:#d2a8ff;font-size:14px;margin-bottom:4px}
+.model-card .fields{font-size:12px;color:#8b949e;font-family:monospace;word-break:break-all}
+.tips{list-style:none}.tips li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.tips li::before{content:"💡 "}
+.muted{color:#484f58;font-style:italic}
+.nav-bottom{display:flex;gap:12px;margin-top:32px;padding-top:16px;border-top:1px solid #21262d}
+.nav-bottom a{padding:8px 16px;background:#21262d;border-radius:6px;font-size:13px;color:#c9d1d9}
+.nav-bottom a:hover{background:#30363d;text-decoration:none}
+.tab-nav{display:flex;gap:0;margin-bottom:20px}
+.tab-btn{padding:8px 16px;background:#161b22;border:1px solid #30363d;color:#8b949e;cursor:pointer;font-size:13px}
+.tab-btn:first-child{border-radius:6px 0 0 6px}
+.tab-btn:last-child{border-radius:0 6px 6px 0}
+.tab-btn.active{background:#d2a8ff;color:#fff;border-color:#d2a8ff}
+.tab-content{display:none}.tab-content.active{display:block}
+</style>
+</head>
+<body>
+<div class="header">
+<span class="icon">📜</span>
+<h1>Normativas</h1>
+<a class="back" href="../docs-app/index.html">← Volver al Índice</a>
+</div>
+<div class="container">
+<div class="desc">Visor de reglamentos y normativas. Documentos estáticos de la normativa nacional TX 200 y normativa del capítulo Aragua.</div>
+
+<div class="section">
+<h2>Archivos del Módulo</h2>
+<ul class="file-list"><li><code>ui/screens/NormativasScreen.kt</code></li><li><code>ui/screens/NormativaNacionalScreen.kt</code></li><li><code>ui/screens/NormativaAraguaScreen.kt</code></li></ul>
+</div>
+
+<div class="tab-nav">
+<button class="tab-btn active" onclick="showTab('composables')">Composables</button>
+<button class="tab-btn" onclick="showTab('viewmodel')">ViewModel</button>
+<button class="tab-btn" onclick="showTab('models')">Modelos</button>
+<button class="tab-btn" onclick="showTab('sync')">Sync Nube</button>
+</div>
+
+<div id="tab-composables" class="tab-content active">
+<div class="section"><h2>Composables (UI)</h2><div class="func-card"><h4>NormativasScreen</h4><p>Pantalla principal con navegación crossfade entre vistas MAIN, NACIONAL, ARAGUA.</p></div><div class="func-card"><h4>NormativasMainView</h4><p>Pantalla de selección con dos tarjetas clickeables para Nacional y Aragua.</p></div><div class="func-card"><h4>NormativaNacionalScreen</h4><p>Documento completo de normativa nacional en LazyColumn con secciones y reglas.</p></div><div class="func-card"><h4>NormativaAraguaView</h4><p>Normativa específica del capítulo Aragua.</p></div><div class="func-card"><h4>SectionCard</h4><p>Componente reutilizable para secciones del reglamento.</p></div><div class="func-card"><h4>RuleItem</h4><p>Componente reutilizable para reglas individuales.</p></div></div>
+</div>
+
+<div id="tab-viewmodel" class="tab-content">
+<div class="section"><h2>ViewModel Methods</h2><p class="muted">Este módulo no usa ViewModel directamente.</p></div>
+</div>
+
+<div id="tab-models" class="tab-content">
+<div class="section"><h2>Modelos de Datos</h2><p class="muted">Este módulo no tiene modelos de datos propios.</p></div>
+</div>
+
+<div id="tab-sync" class="tab-content">
+<div class="section"><h2>Sincronización en la Nube</h2><ul class="file-list"><li>Sin sincronización a la nube</li></ul></div>
+</div>
+
+<div class="section">
+<h2>Consejos</h2>
+<ul class="tips"><li>Módulo de contenido estático (sin sync a la nube)</li><li>Sin ViewModel - solo display de contenido</li><li>Navegación crossfade entre documentos</li><li>Se puede buscar texto dentro de los documentos</li></ul>
+</div>
+
+<div class="nav-bottom">
+<a href="funciones.html">Ver Funciones Detalladas →</a>
+<a href="../docs-app/index.html">← Índice Principal</a>
+</div>
+</div>
+
+<script>
+function showTab(name){
+document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+document.getElementById('tab-'+name).classList.add('active');
+event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

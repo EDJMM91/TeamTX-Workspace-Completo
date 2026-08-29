@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario - Guía TeamTX</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;line-height:1.6}
+a{color:#58a6ff;text-decoration:none}a:hover{text-decoration:underline}
+.header{background:#161b22;border-bottom:1px solid #30363d;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.header .icon{font-size:32px}
+.header h1{font-size:22px;color:#fff}
+.header .back{margin-left:auto;color:#8b949e;font-size:14px}
+.container{max-width:900px;margin:0 auto;padding:24px}
+.section{margin-bottom:32px}
+.section h2{font-size:18px;color:#8b949e;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #21262d}
+.section h3{font-size:15px;color:#c9d1d9;margin:16px 0 8px}
+.desc{font-size:15px;color:#8b949e;margin-bottom:20px;padding:12px 16px;background:#161b22;border-radius:8px;border-left:3px solid #8b949e}
+.file-list{list-style:none}.file-list li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.file-list li::before{content:"📄 "}
+.func-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.func-card h4{color:#58a6ff;font-size:14px;margin-bottom:4px}
+.func-card p{font-size:13px;color:#8b949e}
+.model-card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 16px;margin:8px 0}
+.model-card h4{color:#d2a8ff;font-size:14px;margin-bottom:4px}
+.model-card .fields{font-size:12px;color:#8b949e;font-family:monospace;word-break:break-all}
+.tips{list-style:none}.tips li{padding:6px 12px;background:#161b22;border-radius:4px;margin:4px 0;font-size:13px}
+.tips li::before{content:"💡 "}
+.muted{color:#484f58;font-style:italic}
+.nav-bottom{display:flex;gap:12px;margin-top:32px;padding-top:16px;border-top:1px solid #21262d}
+.nav-bottom a{padding:8px 16px;background:#21262d;border-radius:6px;font-size:13px;color:#c9d1d9}
+.nav-bottom a:hover{background:#30363d;text-decoration:none}
+.tab-nav{display:flex;gap:0;margin-bottom:20px}
+.tab-btn{padding:8px 16px;background:#161b22;border:1px solid #30363d;color:#8b949e;cursor:pointer;font-size:13px}
+.tab-btn:first-child{border-radius:6px 0 0 6px}
+.tab-btn:last-child{border-radius:0 6px 6px 0}
+.tab-btn.active{background:#8b949e;color:#fff;border-color:#8b949e}
+.tab-content{display:none}.tab-content.active{display:block}
+</style>
+</head>
+<body>
+<div class="header">
+<span class="icon">🔧</span>
+<h1>Inventario</h1>
+<a class="back" href="../docs-app/index.html">← Volver al Índice</a>
+</div>
+<div class="container">
+<div class="desc">Control de equipamiento del club y sistema de préstamos. Catálogo de herramientas, primeros auxilios, repuestos y control de devoluciones.</div>
+
+<div class="section">
+<h2>Archivos del Módulo</h2>
+<ul class="file-list"><li><code>ui/screens/InventoryScreen.kt</code></li><li><code>data/remote/InventoryItemSync.kt</code></li><li><code>data/remote/EquipmentLoanSync.kt</code></li></ul>
+</div>
+
+<div class="tab-nav">
+<button class="tab-btn active" onclick="showTab('composables')">Composables</button>
+<button class="tab-btn" onclick="showTab('viewmodel')">ViewModel</button>
+<button class="tab-btn" onclick="showTab('models')">Modelos</button>
+<button class="tab-btn" onclick="showTab('sync')">Sync Nube</button>
+</div>
+
+<div id="tab-composables" class="tab-content active">
+<div class="section"><h2>Composables (UI)</h2><div class="func-card"><h4>InventoryScreen</h4><p>Pantalla con dos tabs: Catálogo y Préstamos. Filtros por categoría, tarjetas de items y préstamos.</p></div><div class="func-card"><h4>InventoryCardItem</h4><p>Tarjeta de item con código, badge de condición, nombre, descripción, ubicación, stock (disponible/total), fecha de mantenimiento y botón de préstamo.</p></div><div class="func-card"><h4>LoanCardItem</h4><p>Tarjeta de préstamo activo con nombre del item, solicitante, propósito, fechas y botón de devolución.</p></div><div class="func-card"><h4>RequestLoanDialog</h4><p>Formulario de solicitud de préstamo con fecha de retorno y propósito.</p></div><div class="func-card"><h4>CreateItemDialog</h4><p>Formulario para registrar nuevo item (solo directiva).</p></div></div>
+</div>
+
+<div id="tab-viewmodel" class="tab-content">
+<div class="section"><h2>ViewModel Methods</h2><div class="func-card"><h4>onRequestLoan</h4><p>Solicitar préstamo de equipamiento.</p></div><div class="func-card"><h4>onReturnLoan</h4><p>Devolver item prestado.</p></div><div class="func-card"><h4>onCreateItem</h4><p>Registrar nuevo item en el inventario.</p></div></div>
+</div>
+
+<div id="tab-models" class="tab-content">
+<div class="section"><h2>Modelos de Datos</h2><div class="model-card"><h4>InventoryItem</h4><p class="fields">id, code, name, category, description, totalStock, availableStock, condition, location, lastMaintenanceTimestamp, custodianName</p></div><div class="model-card"><h4>EquipmentLoan</h4><p class="fields">id, itemId, itemName, borrowerName, loanTimestamp, expectedReturnTimestamp, actualReturnTimestamp, status, purpose, authorizedBy</p></div><div class="model-card"><h4>ItemCategory</h4><p class="fields">HERRAMIENTAS_RUTA, PRIMEROS_AUXILIOS, REPUESTOS_COMUNITARIOS, COMUNICACIONES, EQUIPO_EVENTO</p></div><div class="model-card"><h4>ItemCondition</h4><p class="fields">OPERATIVO, MANTENIMIENTO, DANADO, EXCELENTE</p></div><div class="model-card"><h4>LoanStatus</h4><p class="fields">ACTIVO, DEVUELTO, RETRASADO, DANADO</p></div></div>
+</div>
+
+<div id="tab-sync" class="tab-content">
+<div class="section"><h2>Sincronización en la Nube</h2><ul class="file-list"><li><code>InventoryItemSync.kt</code></li><li><code>EquipmentLoanSync.kt</code></li></ul></div>
+</div>
+
+<div class="section">
+<h2>Consejos</h2>
+<ul class="tips"><li>Dos vistas: Catálogo de items y Préstamos activos</li><li>El stock se decrementa automáticamente al prestar</li><li>Los préstamos retrasados se marcan automáticamente</li><li>Solo directiva puede crear nuevos items</li></ul>
+</div>
+
+<div class="nav-bottom">
+<a href="funciones.html">Ver Funciones Detalladas →</a>
+<a href="../docs-app/index.html">← Índice Principal</a>
+</div>
+</div>
+
+<script>
+function showTab(name){
+document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+document.getElementById('tab-'+name).classList.add('active');
+event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
