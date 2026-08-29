@@ -31,6 +31,7 @@ import com.example.ui.theme.MotoOrangePrimary
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -163,7 +164,48 @@ object GestorActualizaciones {
                 archivoApk.delete()
             }
 
-            // Manejo de Redirecciones HTTP (GitHub raw 302 -> objects.githubusercontent.com)
+            // 1. Si la URL es de Firebase Storage o ruta interna, descargar por Firebase Storage SDK
+            if (urlString.startsWith("gs://") || urlString.contains("firebasestorage.googleapis.com") || urlString.startsWith("updates/")) {
+                try {
+                    Log.d(TAG, "Descargando mediante Firebase Storage SDK: $urlString")
+                    val storageRef = if (urlString.startsWith("http") || urlString.startsWith("gs://")) {
+                        com.google.firebase.storage.FirebaseStorage.getInstance().getReferenceFromUrl(urlString)
+                    } else {
+                        com.google.firebase.storage.FirebaseStorage.getInstance().reference.child(urlString)
+                    }
+
+                    val deferred = kotlinx.coroutines.CompletableDeferred<Boolean>()
+                    val task = storageRef.getFile(archivoApk)
+
+                    task.addOnProgressListener { snap ->
+                        val total = snap.totalByteCount
+                        val leidos = snap.bytesTransferred
+                        if (total > 0) {
+                            val progreso = (leidos.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+                            val leidosMbStr = String.format("%.1f MB", leidos / (1024f * 1024f))
+                            val totalMbStr = String.format("%.1f MB", total / (1024f * 1024f))
+                            kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
+                                onProgreso(progreso, leidosMbStr, totalMbStr)
+                            }
+                        }
+                    }.addOnSuccessListener {
+                        deferred.complete(true)
+                    }.addOnFailureListener { err ->
+                        Log.e(TAG, "Error en descarga de Firebase Storage: ${err.message}", err)
+                        deferred.complete(false)
+                    }
+
+                    val exito = deferred.await()
+                    if (exito && archivoApk.exists() && archivoApk.length() > 100 * 1024) {
+                        Log.d(TAG, "APK descargado exitosamente de Firebase Storage (${archivoApk.length()} bytes)")
+                        return@withContext archivoApk
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Fallo en Firebase Storage SDK: ${e.message}. Intentando HTTP...")
+                }
+            }
+
+            // 2. Descarga directa HTTP con seguimiento de redirecciones
             var conexion: HttpURLConnection? = null
             var redirecciones = 0
             var conectada = false
@@ -219,9 +261,11 @@ object GestorActualizaciones {
             var bytesLeidos: Long = 0
             var bytesActuales: Int
 
-            while (entrada.read(buffer).also { bytesActuales = it } != -1) {
-                salida.write(buffer, 0, bytesActuales)
-                bytesLeidos += bytesActuales
+            while (true) {
+                val leidos = entrada.read(buffer)
+                if (leidos == -1) break
+                salida.write(buffer, 0, leidos)
+                bytesLeidos += leidos
                 if (longitudTotal > 0) {
                     val progreso = (bytesLeidos.toFloat() / longitudTotal.toFloat()).coerceIn(0f, 1f)
                     val leidosMbStr = String.format("%.1f MB", bytesLeidos / (1024f * 1024f))
