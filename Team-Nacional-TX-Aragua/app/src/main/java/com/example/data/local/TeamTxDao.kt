@@ -222,6 +222,12 @@ interface ChatDao {
     @Query("DELETE FROM club_chat_messages WHERE channelId = :channelId")
     suspend fun deleteMessagesByChannel(channelId: String)
 
+    @Query("SELECT * FROM club_chat_messages WHERE syncStatus = 'PENDING' OR syncStatus = 'SENDING' ORDER BY timestamp ASC")
+    suspend fun getPendingMessages(): List<ChatMessage>
+
+    @Query("UPDATE club_chat_messages SET syncStatus = :syncStatus WHERE id = :id")
+    suspend fun updateMessageSyncStatus(id: Long, syncStatus: String)
+
     @Query("DELETE FROM club_chat_messages")
     suspend fun deleteAllMessages()
 }

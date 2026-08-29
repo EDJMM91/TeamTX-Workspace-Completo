@@ -40,6 +40,7 @@ fun VistaInfoScreen() {
     // Estado para el cuadro de diálogo de actualización manual
     var infoOta by remember { mutableStateOf<GestorActualizaciones.InformacionOta?>(null) }
     var mostrarDialogo by remember { mutableStateOf(false) }
+    var mostrarDialogoDescarga by remember { mutableStateOf(false) }
     var showDonationDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -188,15 +189,25 @@ fun VistaInfoScreen() {
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
             title = {
-                Text("¡Nueva Versión Encontrada!", fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Update, contentDescription = null, tint = MotoOrangePrimary)
+                    Text("¡Nueva Versión Encontrada!", fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
+                }
             },
             text = {
-                Column {
-                    Text("Hay una nueva versión disponible para descargar.")
-                    Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Hay una nueva versión disponible para actualizar tu aplicación.")
                     if (infoOta!!.notas.isNotBlank()) {
-                        Text("Novedades:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(infoOta!!.notas, fontSize = 14.sp)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text("Novedades:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(infoOta!!.notas, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             },
@@ -204,18 +215,34 @@ fun VistaInfoScreen() {
                 Button(
                     onClick = {
                         mostrarDialogo = false
-                        GestorActualizaciones.descargarEInstalarApk(context, infoOta!!.urlDescarga)
+                        mostrarDialogoDescarga = true
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
                 ) {
-                    Text("Descargar ahora")
+                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Descargar e Instalar")
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { mostrarDialogo = false }) {
-                    Text("Cancelar")
+                OutlinedButton(
+                    onClick = {
+                        mostrarDialogo = false
+                        GestorActualizaciones.abrirDescargaEnNavegador(context, infoOta!!.urlDescarga)
+                    }
+                ) {
+                    Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Navegador")
                 }
             }
+        )
+    }
+
+    if (mostrarDialogoDescarga && infoOta != null) {
+        DialogoProgresoDescargaOta(
+            infoOta = infoOta!!,
+            onDismiss = { mostrarDialogoDescarga = false }
         )
     }
 }

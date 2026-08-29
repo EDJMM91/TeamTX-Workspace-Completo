@@ -25,6 +25,11 @@ object PreferenciasChat {
     private const val KEY_MOSTRAR_AVATARES = "mostrar_avatares"
     private const val KEY_ENVIAR_ENTER = "enviar_con_enter"
     private const val KEY_TAMANO_FUENTE = "tamano_fuente"
+    private const val KEY_TRANSCRIBIR_AUDIOS_AUTO = "transcribir_audios_auto"
+
+    var transcribirAudiosAuto: Boolean
+        get() = prefs?.getBoolean(KEY_TRANSCRIBIR_AUDIOS_AUTO, true) ?: true
+        set(value) { prefs?.edit()?.putBoolean(KEY_TRANSCRIBIR_AUDIOS_AUTO, value)?.apply() }
 
     fun inicializar(context: Context) {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

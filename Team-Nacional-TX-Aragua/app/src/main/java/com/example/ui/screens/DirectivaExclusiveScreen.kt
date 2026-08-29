@@ -80,6 +80,8 @@ fun DirectivaExclusiveScreen(
     onAbandonCargo: (MemberProfile) -> Unit,
     onAssignRole: (MemberProfile, MemberRole) -> Unit,
     onSendDirectivaChatMessage: (String) -> Unit,
+    onSendMessage: (channelId: String, text: String, isRadioCallout: Boolean, replyToId: Long?, replyToSender: String?, replyToText: String?) -> Unit = { ch, text, radio, rId, rSender, rText -> },
+    onSendAudio: (channelId: String, audioFile: java.io.File, durationSeconds: Int, transcriptionText: String?) -> Unit = { _, _, _, _ -> },
     onRequestDirectivaAccess: () -> Unit,
     onUnlockWithMasterCode: suspend (String) -> Pair<Boolean, String>,
     onToggleDirectiva: () -> Unit,
@@ -90,9 +92,11 @@ fun DirectivaExclusiveScreen(
     onToggleChatEnabled: (Boolean) -> Unit = {},
     onClearGeneralChat: () -> Unit = {},
     onDeleteChatMessage: (Long) -> Unit = {},
+    onDeleteMessageForMe: (Long) -> Unit = {},
     onMarkChatMessageAsRead: (ChatMessage) -> Unit = {},
     onMarkChannelAsRead: (String) -> Unit = {},
     onSendSticker: (String, java.io.File) -> Unit = { _, _ -> },
+    onToggleReaction: (messageId: Long, emoji: String) -> Unit = { _, _ -> },
     onToggleChatMute: (MemberProfile, Boolean, String) -> Unit = { _, _, _ -> },
     onSuspendMember: (MemberProfile, String, Int) -> Unit = { _, _, _ -> },
     onReactivateMember: (MemberProfile) -> Unit = {},
@@ -621,10 +625,23 @@ fun DirectivaExclusiveScreen(
                                 suspendDaysInput = "7"
                             }
                         )
-                        3 -> DirectivaChatSection(
+                        3 -> ClubChatScreen(
                             messages = directivaChatMessages,
                             currentMember = currentMember,
-                            onSendMessage = onSendDirectivaChatMessage
+                            isDirectivaMode = true,
+                            roleConfigs = roleConfigs,
+                            activeChannelId = "DIRECTIVA",
+                            onSelectChannel = { /* Solo canal directiva */ },
+                            onSendMessage = onSendMessage,
+                            onDeleteMessage = onDeleteChatMessage,
+                            onDeleteMessageForMe = onDeleteMessageForMe,
+                            onMarkMessageAsRead = onMarkChatMessageAsRead,
+                            onMarkChannelAsRead = onMarkChannelAsRead,
+                            onSendSticker = onSendSticker,
+                            onSendAudio = onSendAudio,
+                            onToggleReaction = onToggleReaction,
+                            allMembers = allMembers,
+                            showOnlyDirectiva = true
                         )
                         4 -> DirectivaPrivateGroupsSection(
                             groups = allPrivateGroups,

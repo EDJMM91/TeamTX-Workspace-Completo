@@ -40,12 +40,17 @@ import java.util.concurrent.atomic.AtomicReference
 object GestorStickers {
 
     private const val CARPETA_STICKERS = "stickers_guardados"
+    private const val CARPETA_FAVORITOS = "stickers_favoritos"
     private const val EXTENSION_WEBP = ".webp"
     private const val MIME_WEBP = "image/webp"
 
-    // Estado reactivo de stickers guardados
+    // Estado reactivo de stickers guardados (WhatsApp + Importados)
     private val _stickersGuardados = MutableStateFlow<List<File>>(emptyList())
     val stickersGuardados: StateFlow<List<File>> = _stickersGuardados.asStateFlow()
+
+    // Estado reactivo de stickers FAVORITOS (almacenados localmente)
+    private val _stickersFavoritos = MutableStateFlow<List<File>>(emptyList())
+    val stickersFavoritos: StateFlow<List<File>> = _stickersFavoritos.asStateFlow()
 
     // Referencias a launchers
     private var launcherSelectorRef: AtomicReference<ActivityResultLauncher<Intent>?> = AtomicReference(null)
@@ -251,7 +256,7 @@ object GestorStickers {
     }
 
     /**
-     * Lee el directorio interno y emite la lista de archivos .webp ordenados por fecha.
+     * Lee el directorio interno de stickers guardados (WhatsApp / Importados).
      */
     fun cargarStickersGuardados(context: Context) {
         val carpeta = obtenerCarpetaStickers(context)
@@ -260,6 +265,19 @@ object GestorStickers {
         }?.sortedByDescending { it.lastModified() } ?: emptyList()
 
         _stickersGuardados.value = archivos
+        cargarStickersFavoritos(context)
+    }
+
+    /**
+     * Lee el directorio interno de stickers FAVORITOS.
+     */
+    fun cargarStickersFavoritos(context: Context) {
+        val carpeta = obtenerCarpetaFavoritos(context)
+        val archivos = carpeta.listFiles { _, name ->
+            name.lowercase().endsWith(EXTENSION_WEBP)
+        }?.sortedByDescending { it.lastModified() } ?: emptyList()
+
+        _stickersFavoritos.value = archivos
     }
 
     /**
@@ -272,6 +290,16 @@ object GestorStickers {
         }?.sortedByDescending { it.lastModified() } ?: emptyList()
 
         _stickersGuardados.value = archivos
+        actualizarListaFavoritos(context)
+    }
+
+    private suspend fun actualizarListaFavoritos(context: Context) = withContext(Dispatchers.IO) {
+        val carpeta = obtenerCarpetaFavoritos(context)
+        val archivos = carpeta.listFiles { _, name ->
+            name.lowercase().endsWith(EXTENSION_WEBP)
+        }?.sortedByDescending { it.lastModified() } ?: emptyList()
+
+        _stickersFavoritos.value = archivos
     }
 
     /**
@@ -279,6 +307,17 @@ object GestorStickers {
      */
     private fun obtenerCarpetaStickers(context: Context): File {
         val carpeta = File(context.filesDir, CARPETA_STICKERS)
+        if (!carpeta.exists()) {
+            carpeta.mkdirs()
+        }
+        return carpeta
+    }
+
+    /**
+     * Obtiene (y crea si no existe) la carpeta interna para stickers FAVORITOS.
+     */
+    fun obtenerCarpetaFavoritos(context: Context): File {
+        val carpeta = File(context.filesDir, CARPETA_FAVORITOS)
         if (!carpeta.exists()) {
             carpeta.mkdirs()
         }
@@ -311,11 +350,11 @@ object GestorStickers {
     }
 
     /**
-     * Guarda cualquier sticker del chat como FAVORITO localmente.
+     * Guarda cualquier sticker del chat como FAVORITO localmente en su carpeta dedicada.
      */
     fun guardarStickerComoFavorito(context: Context, stickerSource: String, onResult: (Boolean) -> Unit = {}) = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
         try {
-            val carpetaDestino = obtenerCarpetaStickers(context)
+            val carpetaDestino = obtenerCarpetaFavoritos(context)
             val nombreArchivo = "fav_${System.currentTimeMillis()}$EXTENSION_WEBP"
             val archivoDestino = File(carpetaDestino, nombreArchivo)
 
@@ -342,18 +381,43 @@ object GestorStickers {
                 }
             }
 
-            actualizarListaStickers(context)
+            actualizarListaFavoritos(context)
             withContext(Dispatchers.Main) {
-                android.widget.Toast.makeText(context, "⭐ Sticker añadido a tus Favoritos", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, "⭐ Guardado en Favoritos locales", android.widget.Toast.LENGTH_SHORT).show()
                 onResult(true)
             }
         } catch (e: Exception) {
             Log.e("GestorStickers", "Error guardando sticker en favoritos: ${e.message}")
             withContext(Dispatchers.Main) {
-                android.widget.Toast.makeText(context, "Error al guardar el sticker", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, "Error al guardar en favoritos", android.widget.Toast.LENGTH_SHORT).show()
                 onResult(false)
             }
         }
+    }
+
+    /**
+     * Elimina un sticker específico de la lista de Favoritos.
+     */
+    fun eliminarStickerFavorito(context: Context, archivo: File) = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+        try {
+            if (archivo.exists() && archivo.delete()) {
+                actualizarListaFavoritos(context)
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, "Sticker removido de Favoritos", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GestorStickers", "Error eliminando sticker favorito: ${e.message}")
+        }
+    }
+
+    fun eliminarFavorito(context: Context, nombreArchivo: String) {
+        val archivo = File(obtenerCarpetaFavoritos(context), nombreArchivo)
+        eliminarStickerFavorito(context, archivo)
+    }
+
+    fun cargarFavoritos(context: Context) {
+        cargarStickersFavoritos(context)
     }
 
     fun descargarSticker(context: Context, url: String) {

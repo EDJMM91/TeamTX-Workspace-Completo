@@ -427,14 +427,18 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         val memberId = currentMember.value?.id ?: 1L
         viewModelScope.launch {
             val memberIdStr = memberId.toString()
-            val currentList = pub.likedByMemberIds.split(",").filter { it.isNotBlank() }.toMutableList()
+            val currentList = pub.likedByMemberIds.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
             val isAlreadyLiked = currentList.contains(memberIdStr)
+            val newCount: Int
             if (isAlreadyLiked) {
                 currentList.remove(memberIdStr)
+                val calculated = maxOf(0, pub.likesCount - 1)
+                newCount = if (currentList.size > calculated) currentList.size else calculated
             } else {
                 currentList.add(memberIdStr)
+                val calculated = pub.likesCount + 1
+                newCount = if (currentList.size > calculated) currentList.size else calculated
             }
-            val newCount = currentList.size
             val updatedPub = pub.copy(
                 likesCount = newCount,
                 likedByMemberIds = currentList.joinToString(",")
@@ -1169,9 +1173,32 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val member = currentMember.value
             val roleCfg = roleConfigs.value.find { it.roleKey == (member?.role?.name ?: "MIEMBRO_ACTIVO") }
+            val messageId = System.currentTimeMillis()
             
+            // 1. Crear e insertar mensaje local de inmediato
+            val localMessage = ChatMessage(
+                id = messageId,
+                channelId = channelId,
+                senderMemberId = member?.id ?: 1,
+                senderName = member?.fullName ?: "Piloto TX",
+                senderNickname = member?.nickname ?: "Piloto",
+                senderMemberNumber = member?.memberNumber ?: "TX-000",
+                senderRole = member?.role ?: MemberRole.MIEMBRO_ACTIVO,
+                senderCustomRoleTitle = roleCfg?.customTitle ?: member?.role?.displayName,
+                senderInitials = member?.avatarInitials ?: "TX",
+                senderPhotoUrl = member?.profilePhotoUri,
+                messageText = "Sticker",
+                messageType = MessageType.STICKER,
+                stickerFileName = stickerFile.name,
+                stickerFilePath = stickerFile.absolutePath,
+                localMediaPath = stickerFile.absolutePath,
+                syncStatus = "PENDING",
+                timestamp = System.currentTimeMillis()
+            )
+            repository.insertChatMessage(localMessage)
+
             try {
-                // Upload sticker to Firebase Storage
+                // 2. Intentar subida a Firebase Storage
                 val storageRef = com.google.firebase.storage.FirebaseStorage.getInstance().reference
                 val fileUri = android.net.Uri.fromFile(stickerFile)
                 val stickerRef = storageRef.child("chat_stickers/${java.util.UUID.randomUUID()}_${stickerFile.name}")
@@ -1179,37 +1206,49 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 stickerRef.putFile(fileUri).await()
                 val downloadUrl = stickerRef.downloadUrl.await().toString()
                 
-                val message = ChatMessage(
-                    id = System.currentTimeMillis(), // 🛡️ ID Manual Atómico
-                    channelId = channelId,
-                    senderMemberId = member?.id ?: 1,
-                    senderName = member?.fullName ?: "Piloto TX",
-                    senderNickname = member?.nickname ?: "Piloto",
-                    senderMemberNumber = member?.memberNumber ?: "TX-000",
-                    senderRole = member?.role ?: MemberRole.MIEMBRO_ACTIVO,
-                    senderCustomRoleTitle = roleCfg?.customTitle ?: member?.role?.displayName,
-                    senderInitials = member?.avatarInitials ?: "TX",
-                    senderPhotoUrl = member?.profilePhotoUri, // 📸 Foto configurada
-                    messageText = "Sticker",
-                    messageType = MessageType.STICKER,
-                    stickerFileName = stickerFile.name,
-                    stickerFilePath = downloadUrl, // Store remote URL
-                    timestamp = System.currentTimeMillis()
+                val updatedMessage = localMessage.copy(
+                    stickerFilePath = downloadUrl,
+                    syncStatus = "SENT"
                 )
-                repository.insertChatMessage(message)
+                repository.insertChatMessage(updatedMessage)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.w("TeamTxViewModel", "Subida de sticker pendiente para sincronización diferida: ${e.message}")
             }
         }
     }
 
-    fun sendAudioMessage(channelId: String, audioFile: java.io.File, durationSeconds: Int) {
+    fun sendAudioMessage(channelId: String, audioFile: java.io.File, durationSeconds: Int, transcriptionText: String? = null) {
         viewModelScope.launch {
             val member = currentMember.value
             val roleCfg = roleConfigs.value.find { it.roleKey == (member?.role?.name ?: "MIEMBRO_ACTIVO") }
+            val messageId = System.currentTimeMillis()
+
+            val textoMensaje = if (!transcriptionText.isNullOrBlank()) transcriptionText else "🎤 Nota de voz (${durationSeconds}s)"
+
+            // 1. Crear e insertar mensaje local de inmediato
+            val localMessage = ChatMessage(
+                id = messageId,
+                channelId = channelId,
+                senderMemberId = member?.id ?: 1,
+                senderName = member?.fullName ?: "Piloto TX",
+                senderNickname = member?.nickname ?: "Piloto",
+                senderMemberNumber = member?.memberNumber ?: "TX-000",
+                senderRole = member?.role ?: MemberRole.MIEMBRO_ACTIVO,
+                senderCustomRoleTitle = roleCfg?.customTitle ?: member?.role?.displayName,
+                senderInitials = member?.avatarInitials ?: "TX",
+                senderPhotoUrl = member?.profilePhotoUri,
+                messageText = textoMensaje,
+                messageType = MessageType.AUDIO,
+                audioUrl = audioFile.absolutePath,
+                localMediaPath = audioFile.absolutePath,
+                audioDurationSeconds = durationSeconds,
+                syncStatus = "PENDING",
+                timestamp = System.currentTimeMillis()
+            )
+            repository.insertChatMessage(localMessage)
 
             try {
-                // Upload audio to Firebase Storage
+                // 2. Intentar subida a Firebase Storage
                 val storageRef = com.google.firebase.storage.FirebaseStorage.getInstance().reference
                 val fileUri = android.net.Uri.fromFile(audioFile)
                 val audioRef = storageRef.child("audios_chat/${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}.m4a")
@@ -1217,26 +1256,13 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 audioRef.putFile(fileUri).await()
                 val downloadUrl = audioRef.downloadUrl.await().toString()
 
-                val message = ChatMessage(
-                    id = System.currentTimeMillis(),
-                    channelId = channelId,
-                    senderMemberId = member?.id ?: 1,
-                    senderName = member?.fullName ?: "Piloto TX",
-                    senderNickname = member?.nickname ?: "Piloto",
-                    senderMemberNumber = member?.memberNumber ?: "TX-000",
-                    senderRole = member?.role ?: MemberRole.MIEMBRO_ACTIVO,
-                    senderCustomRoleTitle = roleCfg?.customTitle ?: member?.role?.displayName,
-                    senderInitials = member?.avatarInitials ?: "TX",
-                    senderPhotoUrl = member?.profilePhotoUri,
-                    messageText = "🎤 Nota de voz (${durationSeconds}s)",
-                    messageType = MessageType.AUDIO,
+                val updatedMessage = localMessage.copy(
                     audioUrl = downloadUrl,
-                    audioDurationSeconds = durationSeconds,
-                    timestamp = System.currentTimeMillis()
+                    syncStatus = "SENT"
                 )
-                repository.insertChatMessage(message)
+                repository.insertChatMessage(updatedMessage)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.w("TeamTxViewModel", "Subida de audio pendiente para sincronización diferida: ${e.message}")
             }
         }
     }

@@ -61,7 +61,7 @@ fun ClubChatScreen(
     onMarkMessageAsRead: (ChatMessage) -> Unit = {},
     onMarkChannelAsRead: (String) -> Unit = {},
     onSendSticker: (String, java.io.File) -> Unit = { _, _ -> },
-    onSendAudio: (channelId: String, audioFile: java.io.File, durationSeconds: Int) -> Unit = { _, _, _ -> },
+    onSendAudio: (channelId: String, audioFile: java.io.File, durationSeconds: Int, transcriptionText: String?) -> Unit = { _, _, _, _ -> },
     onToggleReaction: (messageId: Long, emoji: String) -> Unit = { _, _ -> },
     onToggleBottomNav: (() -> Unit)? = null,
     onBack: () -> Unit = {},
@@ -102,33 +102,40 @@ fun ClubChatScreen(
     val audioPlaybackProgress by com.example.chat.GestorAudio.progresoReproduccion.collectAsState()
     val isAudioPaused by com.example.chat.GestorAudio.estaPausado.collectAsState()
 
+    // Estados de Transcripción de Voz a Texto
+    val estaDictandoVoz by com.example.chat.TranscriptorVoz.estaEscuchando.collectAsState()
+    val textoDictadoParcial by com.example.chat.TranscriptorVoz.textoParcial.collectAsState()
+
     // Permiso de micrófono para notas de voz
     val audioPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             com.example.chat.GestorAudio.iniciarGrabacion(context)
+            if (com.example.chat.PreferenciasChat.transcribirAudiosAuto) {
+                com.example.chat.TranscriptorVoz.iniciarEscucha(context)
+            }
         } else {
             android.widget.Toast.makeText(context, "Se requiere permiso de micrófono para notas de voz", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Auto-ocultar teclado al hacer scroll
-    LaunchedEffect(listState.isScrollInProgress) {
-        if (listState.isScrollInProgress) {
-            keyboardController?.hide()
-        }
-    }
-
-    // Auto-ocultar teclado tras 15s de inactividad sin escribir
-    var lastTypingTime by remember { mutableStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(messageInput) {
-        lastTypingTime = System.currentTimeMillis()
-        if (messageInput.isNotEmpty()) {
-            kotlinx.coroutines.delay(15000L)
-            if (System.currentTimeMillis() - lastTypingTime >= 15000L) {
-                keyboardController?.hide()
-            }
+    // Permiso de micrófono para transcriptor de voz a texto
+    val dictadoPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            com.example.chat.TranscriptorVoz.iniciarEscucha(
+                contexto = context,
+                alObtenerTexto = { textoFinal ->
+                    messageInput = if (messageInput.isBlank()) textoFinal else "$messageInput $textoFinal"
+                },
+                alRecibirError = { err ->
+                    android.widget.Toast.makeText(context, err, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            )
+        } else {
+            android.widget.Toast.makeText(context, "Se requiere permiso de micrófono para dictado de voz a texto", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -163,14 +170,7 @@ fun ClubChatScreen(
     // Auto-scroll to bottom on new message
     LaunchedEffect(filteredMessages.size) {
         if (filteredMessages.isNotEmpty()) {
-            listState.animateScrollToItem(filteredMessages.size - 1)
-        }
-    }
-
-    // Auto-scroll when keyboard opens
-    LaunchedEffect(messageInput) {
-        if (filteredMessages.isNotEmpty() && messageInput.isNotEmpty()) {
-            listState.animateScrollToItem(filteredMessages.size - 1)
+            listState.scrollToItem(filteredMessages.size - 1)
         }
     }
 
@@ -188,199 +188,101 @@ fun ClubChatScreen(
             // ═══════════════════════════════════════════════
             // HEADER: Canal + Info + Botón Configuración
             // ═══════════════════════════════════════════════
+            // ═══════════════════════════════════════════════
+            // HEADER: TopAppBar WhatsApp Red + Selector de Canales
+            // ═══════════════════════════════════════════════
             Surface(
-                color = Color(0xFF1A1F2E),
+                color = Color(0xFF8C1414),
                 tonalElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Top bar: Channel selector + Settings
+                    // Barra superior sólida WhatsApp Red
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (showOnlyDirectiva) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Avatar circular del chat
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    if (isPrivateGroupActive) Icons.Default.Groups
+                                    else activeChannel?.icon ?: Icons.Default.ChatBubble,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        // Título y subtítulo de estado
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (isPrivateGroupActive && currentPrivateGroup != null) {
+                                    currentPrivateGroup.name
+                                } else {
+                                    activeChannel?.title ?: "Chat TX"
+                                },
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = if (isPrivateGroupActive && currentPrivateGroup != null) {
+                                    if (currentPrivateGroup.isBlockedByDirectiva) "🔒 Bloqueado por Directiva"
+                                    else "${currentPrivateGroup.memberIds.size} miembros • Grupo Privado"
+                                } else if (activeChannelId == "DIRECTIVA") {
+                                    "Consejo Directivo • Privado"
+                                } else {
+                                    "en línea • Comunidad TX"
+                                },
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.85f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        // Botones de acción a la derecha
+                        if (isPrivateGroupActive && currentPrivateGroup != null) {
                             IconButton(
-                                onClick = onBack,
+                                onClick = { showGroupMembersDialog = true },
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
-                                    Icons.Default.ArrowBack,
-                                    contentDescription = "Volver al Panel",
-                                    tint = MotoOrangePrimary,
-                                    modifier = Modifier.size(22.dp)
+                                    Icons.Default.Group,
+                                    contentDescription = "Miembros",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
                                 )
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
-
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.weight(1f),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val channelsToShow = if (showOnlyDirectiva) {
-                                ChatChannel.values().filter { it.directivaOnly }
-                            } else {
-                                ChatChannel.values().filter { !it.directivaOnly }
-                            }
-                            items(channelsToShow) { channel ->
-                                val isSelected = channel.id == activeChannelId
-                                val unreadForThisChannel = remember(messages, currentMember, channel.id) {
-                                    val memberId = currentMember?.id ?: 0L
-                                    if (memberId <= 0L) 0
-                                    else messages.count { it.channelId == channel.id && it.senderMemberId != memberId && !it.readBy.contains(memberId) }
-                                }
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { onSelectChannel(channel.id) },
-                                    leadingIcon = {
-                                        Icon(
-                                            channel.icon,
-                                            contentDescription = null,
-                                            tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                    },
-                                    label = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Text(
-                                                channel.title,
-                                                fontSize = 11.sp,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                maxLines = 1
-                                            )
-                                            if (unreadForThisChannel > 0) {
-                                                Surface(
-                                                    shape = CircleShape,
-                                                    color = StatusError,
-                                                    modifier = Modifier.defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
-                                                ) {
-                                                    Box(
-                                                        contentAlignment = Alignment.Center,
-                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = if (unreadForThisChannel > 99) "99+" else "$unreadForThisChannel",
-                                                            color = Color.White,
-                                                            fontSize = 9.sp,
-                                                            fontWeight = FontWeight.Black
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = if (channel.directivaOnly) TxRedDark else TxFlameRed,
-                                        selectedLabelColor = Color.White
-                                    )
-                                )
-                            }
-
-                            // ═══════════════════════════════════════════════
-                            // BOTÓN CREAR GRUPO PRIVADO (Con ícono de grupo)
-                            // ═══════════════════════════════════════════════
-                            if (!showOnlyDirectiva) {
-                                item {
-                                    AssistChip(
-                                        onClick = { showCreateGroupDialog = true },
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Default.GroupAdd,
-                                                contentDescription = "Crear Grupo Privado",
-                                                tint = MotoGoldSecondary,
-                                                modifier = Modifier.size(15.dp)
-                                            )
-                                        },
-                                        label = {
-                                            Text(
-                                                "+ Crear Grupo",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MotoGoldSecondary
-                                            )
-                                        },
-                                        colors = AssistChipDefaults.assistChipColors(
-                                            containerColor = Color(0xFF262114)
-                                        ),
-                                        border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.6f))
-                                    )
-                                }
-
-                                // ═══════════════════════════════════════════════
-                                // CHIPS DE GRUPOS PRIVADOS ACTIVOS DEL USUARIO
-                                // ═══════════════════════════════════════════════
-                                items(privateGroups) { group ->
-                                    val isSelected = group.id == activeChannelId
-                                    val unreadForThisGroup = remember(messages, currentMember, group.id) {
-                                        val memberId = currentMember?.id ?: 0L
-                                        if (memberId <= 0L) 0
-                                        else messages.count { it.channelId == group.id && it.senderMemberId != memberId && !it.readBy.contains(memberId) }
-                                    }
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = { onSelectChannel(group.id) },
-                                        leadingIcon = {
-                                            Icon(
-                                                if (group.isBlockedByDirectiva) Icons.Default.Lock else Icons.Default.Groups,
-                                                contentDescription = null,
-                                                tint = if (group.isBlockedByDirectiva) StatusError else if (isSelected) Color.White else MotoOrangePrimary,
-                                                modifier = Modifier.size(15.dp)
-                                            )
-                                        },
-                                        label = {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                            ) {
-                                                Text(
-                                                    group.name,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                    maxLines = 1
-                                                )
-                                                if (unreadForThisGroup > 0) {
-                                                    Surface(
-                                                        shape = CircleShape,
-                                                        color = StatusError,
-                                                        modifier = Modifier.defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
-                                                    ) {
-                                                        Box(
-                                                            contentAlignment = Alignment.Center,
-                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                                        ) {
-                                                            Text(
-                                                                text = if (unreadForThisGroup > 99) "99+" else "$unreadForThisGroup",
-                                                                color = Color.White,
-                                                                fontSize = 9.sp,
-                                                                fontWeight = FontWeight.Black
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = if (group.isBlockedByDirectiva) StatusError.copy(alpha = 0.8f) else MotoOrangePrimary,
-                                            selectedLabelColor = Color.White,
-                                            containerColor = Color(0xFF1E2333)
-                                        ),
-                                        border = BorderStroke(
-                                            1.dp,
-                                            if (group.isBlockedByDirectiva) StatusError.copy(alpha = 0.5f) else Color(0xFF333B50)
-                                        )
-                                    )
-                                }
                             }
                         }
 
-                        // Botón Configuración del Chat
+                        // Menú de opciones ⋮
                         Box {
                             IconButton(
                                 onClick = { showSettingsMenu = true },
@@ -388,13 +290,12 @@ fun ClubChatScreen(
                             ) {
                                 Icon(
                                     Icons.Default.MoreVert,
-                                    contentDescription = "Configuración del chat",
-                                    tint = Color.White.copy(alpha = 0.8f),
-                                    modifier = Modifier.size(20.dp)
+                                    contentDescription = "Opciones",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
 
-                            // Menú desplegable
                             DropdownMenu(
                                 expanded = showSettingsMenu,
                                 onDismissRequest = { showSettingsMenu = false }
@@ -517,41 +418,167 @@ fun ClubChatScreen(
                             }
                         }
                     }
+                }
+            }
 
-                    // Channel description bar
-                    Surface(
-                        color = Color(0xFF131722),
-                        modifier = Modifier.fillMaxWidth()
+            // Sub-barra: Selector de Canales & Grupos
+            if (!showOnlyDirectiva) {
+                Surface(
+                    color = Color(0xFF161B26),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                if (isGroupBlocked) Icons.Default.Lock
-                                else if (isPrivateGroupActive) Icons.Default.Groups
-                                else Icons.Default.Info,
-                                contentDescription = null,
-                                tint = if (isGroupBlocked) StatusError else TxGoldSecondary,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text(
-                                text = if (isPrivateGroupActive && currentPrivateGroup != null) {
-                                    if (currentPrivateGroup.isBlockedByDirectiva) {
-                                        "🔒 BLOQUEADO POR DIRECTIVA: ${currentPrivateGroup.blockedReason.ifBlank { "Sanción preventiva" }}"
-                                    } else {
-                                        "${currentPrivateGroup.name} • ${currentPrivateGroup.memberIds.size} miembros (Creador: ${currentPrivateGroup.creatorNickname})"
-                                    }
-                                } else {
-                                    activeChannel?.shortDesc ?: ""
+                        val channelsToShow = ChatChannel.values().filter { !it.directivaOnly }
+                        items(channelsToShow) { channel ->
+                            val isSelected = channel.id == activeChannelId
+                            val unreadForThisChannel = remember(messages, currentMember, channel.id) {
+                                val memberId = currentMember?.id ?: 0L
+                                if (memberId <= 0L) 0
+                                else messages.count { it.channelId == channel.id && it.senderMemberId != memberId && !it.readBy.contains(memberId) }
+                            }
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onSelectChannel(channel.id) },
+                                leadingIcon = {
+                                    Icon(
+                                        channel.icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(14.dp)
+                                    )
                                 },
-                                fontSize = 10.sp,
-                                color = if (isGroupBlocked) Color(0xFFFFCDD2) else Color(0xFF90A4AE),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                label = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            channel.title,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            maxLines = 1
+                                        )
+                                        if (unreadForThisChannel > 0) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = StatusError,
+                                                modifier = Modifier.defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                                            ) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                ) {
+                                                    Text(
+                                                        text = if (unreadForThisChannel > 99) "99+" else "$unreadForThisChannel",
+                                                        color = Color.White,
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Black
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = TxFlameRed,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+
+                        // Botón Crear Grupo Privado
+                        item {
+                            AssistChip(
+                                onClick = { showCreateGroupDialog = true },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.GroupAdd,
+                                        contentDescription = "Crear Grupo Privado",
+                                        tint = MotoGoldSecondary,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        "+ Crear Grupo",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MotoGoldSecondary
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = Color(0xFF262114)
+                                ),
+                                border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.6f))
+                            )
+                        }
+
+                        // Chips de grupos privados
+                        items(privateGroups) { group ->
+                            val isSelected = group.id == activeChannelId
+                            val unreadForThisGroup = remember(messages, currentMember, group.id) {
+                                val memberId = currentMember?.id ?: 0L
+                                if (memberId <= 0L) 0
+                                else messages.count { it.channelId == group.id && it.senderMemberId != memberId && !it.readBy.contains(memberId) }
+                            }
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onSelectChannel(group.id) },
+                                leadingIcon = {
+                                    Icon(
+                                        if (group.isBlockedByDirectiva) Icons.Default.Lock else Icons.Default.Groups,
+                                        contentDescription = null,
+                                        tint = if (group.isBlockedByDirectiva) StatusError else if (isSelected) Color.White else MotoOrangePrimary,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                },
+                                label = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            group.name,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            maxLines = 1
+                                        )
+                                        if (unreadForThisGroup > 0) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = StatusError,
+                                                modifier = Modifier.defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                                            ) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                ) {
+                                                    Text(
+                                                        text = if (unreadForThisGroup > 99) "99+" else "$unreadForThisGroup",
+                                                        color = Color.White,
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Black
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = if (group.isBlockedByDirectiva) StatusError.copy(alpha = 0.8f) else MotoOrangePrimary,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFF1E2333)
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (group.isBlockedByDirectiva) StatusError.copy(alpha = 0.5f) else Color(0xFF333B50)
+                                )
                             )
                         }
                     }
@@ -624,6 +651,7 @@ fun ClubChatScreen(
                             onReply = { replyingToMessage = it },
                             onToggleReaction = { emoji -> onToggleReaction(msg.id, emoji) },
                             currentMemberId = currentMember?.id,
+                            allMembers = allMembers,
                             audioPlayingUrl = audioPlayingUrl,
                             audioPlaybackProgress = audioPlaybackProgress,
                             isAudioPaused = isAudioPaused
@@ -699,7 +727,7 @@ fun ClubChatScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             if (estaGrabandoAudio) {
                                 // 🎙️ PANEL DE GRABACIÓN DE AUDIO EN VIVO
@@ -730,7 +758,7 @@ fun ClubChatScreen(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "Grabando nota de voz...",
+                                            text = "Grabando audio...",
                                             color = Color(0xFF90A4AE),
                                             fontSize = 11.sp
                                         )
@@ -740,6 +768,7 @@ fun ClubChatScreen(
                                     IconButton(
                                         onClick = {
                                             com.example.chat.GestorAudio.detenerGrabacion(descartar = true)
+                                            com.example.chat.TranscriptorVoz.cancelarEscucha()
                                         },
                                         modifier = Modifier.size(32.dp)
                                     ) {
@@ -747,88 +776,146 @@ fun ClubChatScreen(
                                     }
                                 }
 
-                                // Botón Enviar Audio
+                                // Botón Enviar Audio (FAB Circular Rojo Sólido)
                                 Surface(
                                     shape = CircleShape,
-                                    color = Color(0xFF25D366),
+                                    color = TxFlameRed,
+                                    shadowElevation = 4.dp,
                                     modifier = Modifier
-                                        .size(44.dp)
+                                        .size(48.dp)
                                         .clickable {
+                                            val textoTranscrito = if (com.example.chat.PreferenciasChat.transcribirAudiosAuto) {
+                                                com.example.chat.TranscriptorVoz.textoTranscrito.value.ifBlank { null }
+                                            } else null
+                                            com.example.chat.TranscriptorVoz.detenerEscucha()
                                             val resultado = com.example.chat.GestorAudio.detenerGrabacion(descartar = false)
                                             if (resultado != null) {
                                                 val (archivoAudio, duracionSeg) = resultado
-                                                onSendAudio(activeChannelId, archivoAudio, duracionSeg)
+                                                onSendAudio(activeChannelId, archivoAudio, duracionSeg, textoTranscrito)
                                             }
                                         }
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Send, contentDescription = "Enviar Audio", tint = Color.White, modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.Send, contentDescription = "Enviar Audio", tint = Color.White, modifier = Modifier.size(22.dp))
                                     }
                                 }
                             } else {
-                                // Botón menú/adjuntar
-                                if (onToggleBottomNav != null) {
-                                    IconButton(
-                                        onClick = onToggleBottomNav,
-                                        modifier = Modifier.size(40.dp)
+                                // 💊 Campo de texto en píldora (85% ancho)
+                                Surface(
+                                    shape = RoundedCornerShape(24.dp),
+                                    color = Color(0xFF242938),
+                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.12f)),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            Icons.Default.Menu,
-                                            contentDescription = "Menú",
-                                            tint = Color(0xFF90A4AE),
-                                            modifier = Modifier.size(22.dp)
+                                        // Botón Emojis/Stickers
+                                        IconButton(
+                                            onClick = { showStickerBox = !showStickerBox },
+                                            modifier = Modifier.size(38.dp)
+                                        ) {
+                                            Icon(
+                                                if (showStickerBox) Icons.Default.Keyboard else Icons.Default.EmojiEmotions,
+                                                contentDescription = "Stickers",
+                                                tint = if (showStickerBox) MotoOrangePrimary else Color(0xFF94A3B8),
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+
+                                        // Campo de texto
+                                        OutlinedTextField(
+                                            value = messageInput,
+                                            onValueChange = { messageInput = it },
+                                            placeholder = {
+                                                Text(
+                                                    text = if (estaDictandoVoz) {
+                                                        if (textoDictadoParcial.isNotBlank()) "🎙️ $textoDictadoParcial" else "🎙️ Escuchando... habla ahora"
+                                                    } else {
+                                                        "Mensaje"
+                                                    },
+                                                    fontSize = 14.sp,
+                                                    color = if (estaDictandoVoz) TxFlameRed else Color(0xFF94A3B8)
+                                                )
+                                            },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .testTag("input_chat_message"),
+                                            shape = RoundedCornerShape(20.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = Color.Transparent,
+                                                unfocusedBorderColor = Color.Transparent,
+                                                focusedContainerColor = Color.Transparent,
+                                                unfocusedContainerColor = Color.Transparent,
+                                                cursorColor = TxFlameRed
+                                            ),
+                                            maxLines = 5,
+                                            textStyle = LocalTextStyle.current.copy(
+                                                color = Color.White,
+                                                fontSize = 14.sp
+                                            )
                                         )
+
+                                        // 🎙️ Botón de Dictado de Voz a Texto (SpeechRecognizer)
+                                        IconButton(
+                                            onClick = {
+                                                if (estaDictandoVoz) {
+                                                    com.example.chat.TranscriptorVoz.detenerEscucha()
+                                                } else {
+                                                    val permCheck = androidx.core.content.ContextCompat.checkSelfPermission(
+                                                        context,
+                                                        android.Manifest.permission.RECORD_AUDIO
+                                                    )
+                                                    if (permCheck == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                                        com.example.chat.TranscriptorVoz.iniciarEscucha(
+                                                            contexto = context,
+                                                            alObtenerTexto = { textoFinal ->
+                                                                messageInput = if (messageInput.isBlank()) textoFinal else "$messageInput $textoFinal"
+                                                            },
+                                                            alRecibirError = { err ->
+                                                                android.widget.Toast.makeText(context, err, android.widget.Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        )
+                                                    } else {
+                                                        dictadoPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                                    }
+                                                }
+                                            },
+                                            modifier = Modifier.size(38.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (estaDictandoVoz) Icons.Default.GraphicEq else Icons.Default.KeyboardVoice,
+                                                contentDescription = "Dictar por voz",
+                                                tint = if (estaDictandoVoz) TxFlameRed else Color(0xFF94A3B8),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+
+                                        // Botón Adjuntar Stickers
+                                        IconButton(
+                                            onClick = { showStickerBox = true },
+                                            modifier = Modifier.size(38.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.AttachFile,
+                                                contentDescription = "Adjuntar",
+                                                tint = Color(0xFF94A3B8),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
                                 }
 
-                                // Campo de texto estilo WhatsApp
-                                OutlinedTextField(
-                                    value = messageInput,
-                                    onValueChange = { messageInput = it },
-                                    placeholder = {
-                                        Text(
-                                            "Mensaje",
-                                            fontSize = 14.sp,
-                                            color = Color(0xFF607D8B)
-                                        )
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .testTag("input_chat_message"),
-                                    shape = RoundedCornerShape(24.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color.Transparent,
-                                        unfocusedBorderColor = Color.Transparent,
-                                        focusedContainerColor = Color(0xFF2A2F3E),
-                                        unfocusedContainerColor = Color(0xFF2A2F3E),
-                                        cursorColor = TxFlameRed
-                                    ),
-                                    maxLines = 5,
-                                    textStyle = LocalTextStyle.current.copy(
-                                        color = Color.White,
-                                        fontSize = 14.sp
-                                    )
-                                )
-
-                                // Botón Stickers
-                                IconButton(
-                                    onClick = { showStickerBox = !showStickerBox },
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.EmojiEmotions,
-                                        contentDescription = "Stickers",
-                                        tint = if (showStickerBox) MotoOrangePrimary else Color(0xFF90A4AE),
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-
-                                // Botón Enviar / Micrófono
+                                // 🔴 FAB Circular Rojo Sólido (15% ancho / 48dp)
                                 Surface(
                                     shape = CircleShape,
-                                    color = if (messageInput.isNotBlank()) TxFlameRed else Color(0xFF2A2F3E),
+                                    color = TxFlameRed,
+                                    shadowElevation = 4.dp,
                                     modifier = Modifier
-                                        .size(44.dp)
+                                        .size(48.dp)
                                         .clickable {
                                             if (messageInput.isNotBlank()) {
                                                 com.example.chat.PreferenciasChat.sonidoMensajeEnviado(context)
@@ -844,29 +931,27 @@ fun ClubChatScreen(
                                                 messageInput = ""
                                                 keyboardController?.hide()
                                             } else {
-                                                // Grabar audio con comprobación de permisos
                                                 val permCheck = androidx.core.content.ContextCompat.checkSelfPermission(
                                                     context,
                                                     android.Manifest.permission.RECORD_AUDIO
                                                 )
                                                 if (permCheck == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                                                     com.example.chat.GestorAudio.iniciarGrabacion(context)
+                                                    if (com.example.chat.PreferenciasChat.transcribirAudiosAuto) {
+                                                        com.example.chat.TranscriptorVoz.iniciarEscucha(context)
+                                                    }
                                                 } else {
                                                     audioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                                                 }
                                             }
-                                        },
-                                    border = BorderStroke(
-                                        1.dp,
-                                        if (messageInput.isNotBlank()) TxFlameRed else Color(0xFF4A5568)
-                                    )
+                                        }
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             if (messageInput.isNotBlank()) Icons.Default.Send else Icons.Default.Mic,
                                             contentDescription = if (messageInput.isNotBlank()) "Enviar" else "Micrófono",
                                             tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(22.dp)
                                         )
                                     }
                                 }
@@ -874,7 +959,7 @@ fun ClubChatScreen(
                         }
 
                         // ═══════════════════════════════════════════════
-                        // STICKER BOX
+                        // STICKER BOX CON PESTAÑAS (FAVORITOS, WHATSAPP, IMPORTADOS)
                         // ═══════════════════════════════════════════════
                         AnimatedVisibility(
                             visible = showStickerBox,
@@ -882,61 +967,101 @@ fun ClubChatScreen(
                             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
                         ) {
                             val context = androidx.compose.ui.platform.LocalContext.current
-                            val stickers by com.example.chat.GestorStickers.stickersGuardados.collectAsState()
+                            val stickersTodos by com.example.chat.GestorStickers.stickersGuardados.collectAsState()
+                            val stickersFavs by com.example.chat.GestorStickers.stickersFavoritos.collectAsState()
+                            var selectedStickerTab by remember { mutableStateOf(0) }
 
                             LaunchedEffect(Unit) {
                                 com.example.chat.GestorStickers.cargarStickersGuardados(context)
+                                com.example.chat.GestorStickers.cargarFavoritos(context)
+                            }
+
+                            val stickersWhatsApp = remember(stickersTodos) {
+                                stickersTodos.filter { it.name.startsWith("wa_") }
+                            }
+
+                            val activeStickersList = when (selectedStickerTab) {
+                                1 -> stickersFavs
+                                2 -> stickersWhatsApp
+                                3 -> stickersTodos
+                                else -> emptyList()
                             }
 
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(260.dp)
+                                    .height(290.dp)
                                     .background(Color(0xFF141923))
                                     .padding(8.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                // Pestañas de Emojis y Stickers
+                                TabRow(
+                                    selectedTabIndex = selectedStickerTab,
+                                    containerColor = Color(0xFF1B2130),
+                                    contentColor = Color.White,
+                                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            "Stickers",
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            fontSize = 13.sp
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            "(${stickers.size})",
-                                            color = MotoGoldSecondary,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                                    Tab(
+                                        selected = selectedStickerTab == 0,
+                                        onClick = { selectedStickerTab = 0 },
+                                        text = { Text("😀 Emojis", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                    )
+                                    Tab(
+                                        selected = selectedStickerTab == 1,
+                                        onClick = { selectedStickerTab = 1 },
+                                        text = { Text("⭐ Favs (${stickersFavs.size})", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                    )
+                                    Tab(
+                                        selected = selectedStickerTab == 2,
+                                        onClick = { selectedStickerTab = 2 },
+                                        text = { Text("📱 WA (${stickersWhatsApp.size})", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                    )
+                                    Tab(
+                                        selected = selectedStickerTab == 3,
+                                        onClick = { selectedStickerTab = 3 },
+                                        text = { Text("📁 Stickers (${stickersTodos.size})", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                    )
+                                }
 
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        // Botón Escanear WhatsApp
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                if (selectedStickerTab == 0) {
+                                    // 🌟 Pestaña 0: Emojis Universales
+                                    UniversalEmojiGrid(
+                                        onEmojiClick = { emoji ->
+                                            messageInput += emoji
+                                        },
+                                        onBackspace = {
+                                            if (messageInput.isNotEmpty()) {
+                                                messageInput = messageInput.dropLast(1)
+                                            }
+                                        }
+                                    )
+                                } else {
+                                    // Fila de acciones (Escanear WhatsApp, Elegir Carpeta, Importar Archivos)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
                                         Button(
                                             onClick = {
                                                 android.widget.Toast.makeText(context, "Buscando stickers de WhatsApp...", android.widget.Toast.LENGTH_SHORT).show()
                                                 com.example.chat.GestorStickers.escanearStickersWhatsApp(context) { count: Int ->
-                                                    val msg = if (count > 0) "✅ Se sincronizaron $count stickers de WhatsApp" else "No se detectaron stickers nuevos en las carpetas de WhatsApp"
+                                                    val msg = if (count > 0) "✅ Se sincronizaron $count stickers de WhatsApp" else "No se detectaron stickers nuevos en WhatsApp"
                                                     android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
                                                 }
                                             },
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
-                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                             shape = RoundedCornerShape(8.dp),
                                             modifier = Modifier.height(28.dp)
                                         ) {
                                             Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
                                             Spacer(modifier = Modifier.width(3.dp))
-                                            Text("WhatsApp", fontSize = 9.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text("Escanear WA", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
                                         }
 
-                                        // Botón Elegir Carpeta
                                         OutlinedButton(
                                             onClick = {
                                                 try {
@@ -953,10 +1078,9 @@ fun ClubChatScreen(
                                         ) {
                                             Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(12.dp), tint = MotoGoldSecondary)
                                             Spacer(modifier = Modifier.width(3.dp))
-                                            Text("Carpeta", fontSize = 9.sp, color = MotoGoldSecondary)
+                                            Text("Carpeta", fontSize = 10.sp, color = MotoGoldSecondary)
                                         }
 
-                                        // Botón Importar archivos
                                         OutlinedButton(
                                             onClick = {
                                                 try {
@@ -973,52 +1097,77 @@ fun ClubChatScreen(
                                         ) {
                                             Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(12.dp))
                                             Spacer(modifier = Modifier.width(3.dp))
-                                            Text("Archivos", fontSize = 9.sp)
+                                            Text("Archivos", fontSize = 10.sp)
                                         }
                                     }
-                                }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(6.dp))
 
-                                if (stickers.isEmpty()) {
-                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text(
-                                            "No hay stickers guardados.\nImporta desde tus archivos.",
-                                            color = Color.Gray,
-                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                            fontSize = 12.sp
-                                        )
-                                    }
-                                } else {
-                                    androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
-                                        columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(70.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                                        modifier = Modifier.fillMaxSize()
-                                    ) {
-                                        items(stickers.size) { index ->
-                                            val file = stickers[index]
-                                            Surface(
-                                                color = Color.Transparent,
-                                                modifier = Modifier
-                                                    .size(70.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .combinedClickable(
-                                                        onClick = {
-                                                            onSendSticker(activeChannelId, file)
-                                                            showStickerBox = false
-                                                        },
-                                                        onLongClick = {
-                                                            com.example.chat.GestorStickers.eliminarSticker(context, file)
-                                                            android.widget.Toast.makeText(context, "Sticker eliminado de tu colección", android.widget.Toast.LENGTH_SHORT).show()
-                                                        }
+                                    if (activeStickersList.isEmpty()) {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text(
+                                                if (selectedStickerTab == 1) "No tienes stickers favoritos.\nToca la estrella ⭐ en cualquier sticker para guardarlo."
+                                                else if (selectedStickerTab == 2) "No hay stickers de WhatsApp detectados.\nPresiona 'Escanear WA' para buscar."
+                                                else "No hay stickers guardados.\nImporta desde tus archivos.",
+                                                color = Color.Gray,
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    } else {
+                                        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                                            columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(70.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                                            modifier = Modifier.fillMaxSize()
+                                        ) {
+                                            items(activeStickersList.size) { index ->
+                                                val file = activeStickersList[index]
+                                                val isFav = stickersFavs.any { it.name == file.name }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(70.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(Color(0xFF1E2430))
+                                                        .combinedClickable(
+                                                            onClick = {
+                                                                onSendSticker(activeChannelId, file)
+                                                                showStickerBox = false
+                                                            },
+                                                            onLongClick = {
+                                                                if (isFav) {
+                                                                    com.example.chat.GestorStickers.eliminarFavorito(context, file.name)
+                                                                    android.widget.Toast.makeText(context, "Eliminado de favoritos", android.widget.Toast.LENGTH_SHORT).show()
+                                                                } else {
+                                                                    com.example.chat.GestorStickers.guardarStickerComoFavorito(context, file.absolutePath)
+                                                                    android.widget.Toast.makeText(context, "⭐ Guardado en Favoritos", android.widget.Toast.LENGTH_SHORT).show()
+                                                                }
+                                                            }
+                                                        )
+                                                ) {
+                                                    coil.compose.AsyncImage(
+                                                        model = file,
+                                                        contentDescription = "Sticker",
+                                                        modifier = Modifier.fillMaxSize()
                                                     )
-                                            ) {
-                                                coil.compose.AsyncImage(
-                                                    model = file,
-                                                    contentDescription = "Sticker",
-                                                    modifier = Modifier.fillMaxSize()
-                                                )
+                                                    if (isFav) {
+                                                        Surface(
+                                                            shape = CircleShape,
+                                                            color = Color.Black.copy(alpha = 0.6f),
+                                                            modifier = Modifier
+                                                                .align(Alignment.TopEnd)
+                                                                .padding(2.dp)
+                                                                .size(16.dp)
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Default.Star,
+                                                                contentDescription = null,
+                                                                tint = MotoGoldSecondary,
+                                                                modifier = Modifier.padding(2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -1140,6 +1289,7 @@ fun ClubChatScreen(
         var tempVibracion by remember { mutableStateOf(com.example.chat.PreferenciasChat.vibracion) }
         var tempNotificaciones by remember { mutableStateOf(com.example.chat.PreferenciasChat.notificacionesCanal) }
         var tempAvatares by remember { mutableStateOf(com.example.chat.PreferenciasChat.mostrarAvatares) }
+        var tempTranscribirAudios by remember { mutableStateOf(com.example.chat.PreferenciasChat.transcribirAudiosAuto) }
 
         AlertDialog(
             onDismissRequest = { showSettingsDialog = false },
@@ -1238,6 +1388,32 @@ fun ClubChatScreen(
                             onCheckedChange = {
                                 tempAvatares = it
                                 com.example.chat.PreferenciasChat.mostrarAvatares = it
+                            },
+                            colors = SwitchDefaults.colors(checkedTrackColor = MotoOrangePrimary)
+                        )
+                    }
+
+                    HorizontalDivider(color = Color(0xFF2A2F3E))
+
+                    // Transcripción automática de audios (Estilo WhatsApp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Subtitles, contentDescription = null, tint = Color(0xFF90A4AE), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("Transcribir audios a texto", fontSize = 14.sp)
+                                Text("Muestra el texto debajo de las notas de voz (tipo WhatsApp)", fontSize = 10.sp, color = Color.Gray)
+                            }
+                        }
+                        Switch(
+                            checked = tempTranscribirAudios,
+                            onCheckedChange = {
+                                tempTranscribirAudios = it
+                                com.example.chat.PreferenciasChat.transcribirAudiosAuto = it
                             },
                             colors = SwitchDefaults.colors(checkedTrackColor = MotoOrangePrimary)
                         )
@@ -1376,6 +1552,7 @@ fun ChatMessageBubble(
     onReply: (ChatMessage) -> Unit = {},
     onToggleReaction: (String) -> Unit = {},
     currentMemberId: Long? = null,
+    allMembers: List<MemberProfile> = emptyList(),
     audioPlayingUrl: String? = null,
     audioPlaybackProgress: Float = 0f,
     isAudioPaused: Boolean = false,
@@ -1387,6 +1564,7 @@ fun ChatMessageBubble(
 
     val roleColor = Color(message.senderRole.badgeColorHex)
     var showContextMenu by remember { mutableStateOf(false) }
+    var showInfoDialog by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Box(modifier = modifier.fillMaxWidth()) {
@@ -1438,11 +1616,12 @@ fun ChatMessageBubble(
 
             // Burbuja del mensaje
             Column(
-                modifier = Modifier.widthIn(max = 290.dp),
+                modifier = Modifier.widthIn(max = 295.dp),
                 horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
             ) {
-                // Nombre del remitente
+                // Nombre del remitente (Gris minimalista / Blanco según tema, eliminando amarillo chillón)
                 if (!isMe) {
+                    val nameColor = if (isSystemInDarkTheme()) Color(0xFFCBD5E1) else Color(0xFF475569)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1450,8 +1629,8 @@ fun ChatMessageBubble(
                         Text(
                             text = message.senderNickname,
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = roleColor
+                            fontWeight = FontWeight.SemiBold,
+                            color = nameColor
                         )
                         Surface(
                             shape = RoundedCornerShape(3.dp),
@@ -1470,263 +1649,378 @@ fun ChatMessageBubble(
                     Spacer(modifier = Modifier.height(2.dp))
                 }
 
-                // La burbuja
-                Surface(
-                    shape = RoundedCornerShape(
-                        topStart = if (isMe) 16.dp else 4.dp,
-                        topEnd = if (isMe) 4.dp else 16.dp,
-                        bottomStart = 16.dp,
-                        bottomEnd = 16.dp
-                    ),
-                    color = when {
-                        message.isRadioCallout -> Color(0xFF241C10)
-                        isMe -> TxFlameRed.copy(alpha = 0.85f)
-                        else -> Color(0xFF2A2F3E)
-                    },
-                    border = if (message.isRadioCallout) BorderStroke(1.dp, MotoGoldSecondary)
-                    else BorderStroke(0.5.dp, Color.White.copy(alpha = 0.08f)),
-                    modifier = Modifier
-                        .combinedClickable(
-                            onClick = {},
-                            onLongClick = { showContextMenu = true }
-                        )
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                        // Radio callout header
-                        if (message.isRadioCallout) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Sensors,
-                                    contentDescription = null,
-                                    tint = MotoGoldSecondary,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Text(
-                                    text = "RADIO",
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = MotoGoldSecondary
-                                )
+                if (message.messageType == com.example.data.model.MessageType.STICKER || message.isSticker) {
+                    // 🌟 STICKER FLOTANTE TIPO PNG (SIN RECUADRO DE FONDO)
+                    val stickerSource = message.stickerFilePath ?: message.stickerFileName
+                    Box(
+                        modifier = Modifier
+                            .padding(vertical = 2.dp)
+                            .combinedClickable(
+                                onClick = {
+                                    if (!stickerSource.isNullOrBlank()) {
+                                        com.example.chat.GestorStickers.guardarStickerComoFavorito(context, stickerSource)
+                                        android.widget.Toast.makeText(context, "⭐ Guardado en Favoritos", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                onLongClick = { showContextMenu = true }
+                            )
+                    ) {
+                        coil.compose.SubcomposeAsyncImage(
+                            model = stickerSource,
+                            contentDescription = "Sticker",
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                            loading = {
+                                Box(modifier = Modifier.size(140.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color(0xFF8C1414))
+                                }
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
-                        }
+                        )
 
-                        // Cita / Mensaje respondido (estilo WhatsApp)
-                        if (!message.replyToSenderName.isNullOrBlank()) {
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Color.Black.copy(alpha = 0.35f),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 6.dp)
+                        // Píldora sutil flotante en la esquina inferior con hora y estado de entrega
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color.Black.copy(alpha = 0.55f),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(3.dp)
-                                            .height(26.dp)
-                                            .background(MotoOrangePrimary, RoundedCornerShape(1.5.dp))
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Column {
-                                        Text(
-                                            text = message.replyToSenderName ?: "",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MotoGoldSecondary
+                                Text(
+                                    text = dateStr,
+                                    fontSize = 9.sp,
+                                    color = Color.White
+                                )
+                                if (isMe) {
+                                    if (message.isPending) {
+                                        Icon(
+                                            Icons.Default.AccessTime,
+                                            contentDescription = "Pendiente",
+                                            tint = Color.White.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(11.dp)
                                         )
-                                        Text(
-                                            text = message.replyToText ?: "",
-                                            fontSize = 9.sp,
-                                            color = Color.White.copy(alpha = 0.85f),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                    } else {
+                                        val readCount = message.readBy.size
+                                        Icon(
+                                            when {
+                                                readCount > 1 -> Icons.Default.DoneAll
+                                                readCount == 1 -> Icons.Default.DoneAll
+                                                else -> Icons.Default.Done
+                                            },
+                                            contentDescription = null,
+                                            tint = if (readCount > 1) Color(0xFF4FC3F7) else Color.White.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(12.dp)
                                         )
                                     }
                                 }
                             }
                         }
+                    }
+                } else {
+                    // La burbuja con forma Tail (Pico inferior)
+                    val bubbleShape = if (isMe) {
+                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 2.dp)
+                    } else {
+                        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 2.dp, bottomEnd = 16.dp)
+                    }
 
-                        // Contenido del mensaje (Sticker, Audio o Texto)
-                        if (message.messageType == com.example.data.model.MessageType.STICKER || message.isSticker) {
-                            val stickerSource = message.stickerFilePath ?: message.stickerFileName
-                            Box(
-                                modifier = Modifier
-                                    .size(125.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        if (!stickerSource.isNullOrBlank()) {
-                                            com.example.chat.GestorStickers.guardarStickerComoFavorito(context, stickerSource)
-                                        }
-                                    }
-                            ) {
-                                coil.compose.AsyncImage(
-                                    model = stickerSource,
-                                    contentDescription = "Sticker",
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                                // Ícono sutil de estrella para guardar a favoritos
-                                Surface(
-                                    shape = CircleShape,
-                                    color = Color.Black.copy(alpha = 0.5f),
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .padding(4.dp)
-                                        .size(20.dp)
+                    val bubbleBgColor = when {
+                        message.isRadioCallout -> Color(0xFF241C10)
+                        isMe -> if (isSystemInDarkTheme()) Color(0xFF381419) else Color(0xFFFFEBEE)
+                        else -> if (isSystemInDarkTheme()) Color(0xFF1E2430) else Color(0xFFFFFFFF)
+                    }
+
+                    val bubbleBorder = when {
+                        message.isRadioCallout -> BorderStroke(1.dp, MotoGoldSecondary)
+                        isMe -> BorderStroke(0.5.dp, Color(0xFF8C1414).copy(alpha = if (isSystemInDarkTheme()) 0.4f else 0.25f))
+                        else -> BorderStroke(0.5.dp, if (isSystemInDarkTheme()) Color.White.copy(alpha = 0.08f) else Color(0xFFE2E8F0))
+                    }
+
+                    val mainTextColor = when {
+                        message.isRadioCallout -> Color.White
+                        isMe -> if (isSystemInDarkTheme()) Color.White else Color(0xFF1E293B)
+                        else -> if (isSystemInDarkTheme()) Color(0xFFF1F5F9) else Color(0xFF1E293B)
+                    }
+
+                    Surface(
+                        shape = bubbleShape,
+                        color = bubbleBgColor,
+                        border = bubbleBorder,
+                        shadowElevation = if (isSystemInDarkTheme()) 0.dp else 1.dp,
+                        modifier = Modifier
+                            .combinedClickable(
+                                onClick = {},
+                                onLongClick = { showContextMenu = true }
+                            )
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                            // Radio callout header
+                            if (message.isRadioCallout) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Icon(
-                                        Icons.Default.Star,
-                                        contentDescription = "Añadir a Favoritos",
+                                        Icons.Default.Sensors,
+                                        contentDescription = null,
                                         tint = MotoGoldSecondary,
-                                        modifier = Modifier.padding(3.dp)
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text(
+                                        text = "RADIO",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = MotoGoldSecondary
                                     )
                                 }
+                                Spacer(modifier = Modifier.height(2.dp))
                             }
-                        } else if (message.messageType == com.example.data.model.MessageType.AUDIO || !message.audioUrl.isNullOrBlank()) {
-                            // 🎙️ REPRODUCTOR DE NOTA DE VOZ
-                            val audioUrl = message.audioUrl ?: ""
-                            val isPlaying = audioPlayingUrl == audioUrl && !isAudioPaused
-                            val progress = if (audioPlayingUrl == audioUrl) audioPlaybackProgress else 0f
 
-                            Row(
-                                modifier = Modifier
-                                    .width(220.dp)
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            // Cita / Mensaje respondido (estilo WhatsApp)
+                            if (!message.replyToSenderName.isNullOrBlank()) {
                                 Surface(
-                                    shape = CircleShape,
-                                    color = if (isPlaying) TxFlameRed else MotoOrangePrimary,
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isSystemInDarkTheme()) Color.Black.copy(alpha = 0.35f) else Color(0xFFF1F5F9),
                                     modifier = Modifier
-                                        .size(36.dp)
-                                        .clickable {
-                                            if (audioUrl.isNotBlank()) {
-                                                com.example.chat.GestorAudio.toggleReproducirAudio(audioUrl)
-                                            }
-                                        }
+                                        .fillMaxWidth()
+                                        .padding(bottom = 6.dp)
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                            contentDescription = if (isPlaying) "Pausar" else "Reproducir",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    LinearProgressIndicator(
-                                        progress = { progress },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(5.dp)
-                                            .clip(RoundedCornerShape(3.dp)),
-                                        color = MotoGoldSecondary,
-                                        trackColor = Color.White.copy(alpha = 0.2f),
-                                    )
-                                    Spacer(modifier = Modifier.height(3.dp))
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("🎤 Audio", fontSize = 9.sp, color = Color.White.copy(alpha = 0.7f))
-                                        val dur = message.audioDurationSeconds
-                                        val min = dur / 60
-                                        val sec = dur % 60
-                                        Text(String.format("%02d:%02d", min, sec), fontSize = 9.sp, color = Color.White.copy(alpha = 0.7f))
-                                    }
-                                }
-                            }
-                        } else {
-                            Text(
-                                text = message.messageText,
-                                fontSize = 14.sp,
-                                color = Color.White,
-                                lineHeight = 19.sp
-                            )
-                        }
-
-                        // ═══════════════════════════════════════════════
-                        // REACCIONES CON EMOJIS (Chips de conteo)
-                        // ═══════════════════════════════════════════════
-                        val reactionsMap = remember(message.reactions) { message.getReactionsMap() }
-                        if (reactionsMap.isNotEmpty()) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(top = 4.dp)
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                reactionsMap.forEach { (emoji, userIds) ->
-                                    val hasMyReaction = currentMemberId != null && userIds.contains(currentMemberId)
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = if (hasMyReaction) MotoOrangePrimary.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.4f),
-                                        border = BorderStroke(1.dp, if (hasMyReaction) MotoOrangePrimary else Color.White.copy(alpha = 0.15f)),
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .clickable {
-                                                onToggleReaction(emoji)
-                                            }
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                        ) {
-                                            Text(text = emoji, fontSize = 12.sp)
+                                        Box(
+                                            modifier = Modifier
+                                                .width(3.dp)
+                                                .height(26.dp)
+                                                .background(Color(0xFF8C1414), RoundedCornerShape(1.5.dp))
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Column {
                                             Text(
-                                                text = "${userIds.size}",
-                                                fontSize = 11.sp,
+                                                text = message.replyToSenderName ?: "",
+                                                fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (hasMyReaction) MotoOrangePrimary else Color.White
+                                                color = Color(0xFF8C1414)
+                                            )
+                                            Text(
+                                                text = message.replyToText ?: "",
+                                                fontSize = 9.sp,
+                                                color = mainTextColor.copy(alpha = 0.85f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
                                     }
                                 }
                             }
-                        }
 
-                        // Hora + Checks (vistos)
-                        Row(
-                            modifier = Modifier.align(Alignment.End),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Text(
-                                text = dateStr,
-                                fontSize = 10.sp,
-                                color = if (isMe) Color.White.copy(alpha = 0.65f) else Color(0xFF78909C)
-                            )
-                            if (isMe) {
-                                val readCount = message.readBy.size
-                                Icon(
-                                    when {
-                                        readCount > 1 -> Icons.Default.DoneAll
-                                        readCount == 1 -> Icons.Default.DoneAll
-                                        else -> Icons.Default.Done
-                                    },
-                                    contentDescription = when {
-                                        readCount > 1 -> "Visto"
-                                        readCount == 1 -> "Entregado"
-                                        else -> "Enviado"
-                                    },
-                                    tint = when {
-                                        readCount > 1 -> Color(0xFF4FC3F7) // ✓✓ azul = visto
-                                        readCount == 1 -> Color(0xFF90A4AE) // ✓✓ gris = entregado
-                                        else -> Color.White.copy(alpha = 0.5f) // ✓ gris = enviado
-                                    },
-                                    modifier = Modifier.size(14.dp)
+                            // Contenido del mensaje (Audio o Texto)
+                            if (message.messageType == com.example.data.model.MessageType.AUDIO || !message.audioUrl.isNullOrBlank()) {
+                                // 🎙️ REPRODUCTOR DE NOTA DE VOZ FLOTANTE Y ALINEADO VERTICALMENTE
+                                val audioUrl = message.audioUrl ?: ""
+                                val isPlaying = audioPlayingUrl == audioUrl && !isAudioPaused
+                                val progress = if (audioPlayingUrl == audioUrl) audioPlaybackProgress else 0f
+
+                                Row(
+                                    modifier = Modifier
+                                        .width(235.dp)
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFF8C1414),
+                                        shadowElevation = 2.dp,
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clickable {
+                                                if (audioUrl.isNotBlank()) {
+                                                    com.example.chat.GestorAudio.toggleReproducirAudio(audioUrl)
+                                                }
+                                            }
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        LinearProgressIndicator(
+                                            progress = { progress },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(5.dp)
+                                                .clip(RoundedCornerShape(3.dp)),
+                                            color = Color(0xFF8C1414),
+                                            trackColor = if (isSystemInDarkTheme()) Color.White.copy(alpha = 0.2f) else Color(0xFFCBD5E1),
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            val dur = message.audioDurationSeconds
+                                            val min = dur / 60
+                                            val sec = dur % 60
+                                            Text(
+                                                text = String.format("%02d:%02d", min, sec),
+                                                fontSize = 11.sp,
+                                                color = mainTextColor.copy(alpha = 0.75f),
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                            Icon(
+                                                Icons.Default.Mic,
+                                                contentDescription = null,
+                                                tint = Color(0xFF8C1414),
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // 📝 TRANSCRIPCIÓN DE AUDIO (Estilo WhatsApp)
+                                val mostrarTranscripcion = com.example.chat.PreferenciasChat.transcribirAudiosAuto
+                                val tieneTextoValido = message.messageText.isNotBlank() && !message.messageText.startsWith("🎤 Nota de voz")
+                                if (mostrarTranscripcion && tieneTextoValido) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSystemInDarkTheme()) Color.Black.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.85f),
+                                        border = BorderStroke(0.5.dp, if (isSystemInDarkTheme()) Color.White.copy(alpha = 0.12f) else Color(0xFFE2E8F0)),
+                                        modifier = Modifier.widthIn(min = 200.dp, max = 260.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                            verticalAlignment = Alignment.Top,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Subtitles,
+                                                contentDescription = "Transcripción",
+                                                tint = Color(0xFF8C1414),
+                                                modifier = Modifier
+                                                    .size(14.dp)
+                                                    .padding(top = 2.dp)
+                                            )
+                                            Text(
+                                                text = message.messageText,
+                                                fontSize = 12.sp,
+                                                color = mainTextColor.copy(alpha = 0.95f),
+                                                lineHeight = 16.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = message.messageText,
+                                    fontSize = 14.sp,
+                                    color = mainTextColor,
+                                    lineHeight = 19.sp
                                 )
+                            }
+
+                            // ═══════════════════════════════════════════════
+                            // REACCIONES CON EMOJIS (Chips de conteo)
+                            // ═══════════════════════════════════════════════
+                            val reactionsMap = remember(message.reactions) { message.getReactionsMap() }
+                            if (reactionsMap.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(top = 4.dp)
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    reactionsMap.forEach { (emoji, userIds) ->
+                                        val hasMyReaction = currentMemberId != null && userIds.contains(currentMemberId)
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = if (hasMyReaction) Color(0xFF8C1414).copy(alpha = 0.25f) else if (isSystemInDarkTheme()) Color.Black.copy(alpha = 0.4f) else Color(0xFFE2E8F0),
+                                            border = BorderStroke(1.dp, if (hasMyReaction) Color(0xFF8C1414) else Color.White.copy(alpha = 0.15f)),
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .clickable {
+                                                    onToggleReaction(emoji)
+                                                }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                            ) {
+                                                Text(text = emoji, fontSize = 12.sp)
+                                                Text(
+                                                    text = "${userIds.size}",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (hasMyReaction) Color(0xFF8C1414) else mainTextColor
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Hora + Estado de sincronización (Reloj si PENDING, Ticks si SENT)
+                            Row(
+                                modifier = Modifier.align(Alignment.End),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Text(
+                                    text = dateStr,
+                                    fontSize = 10.sp,
+                                    color = mainTextColor.copy(alpha = 0.65f)
+                                )
+                                if (isMe) {
+                                    if (message.isPending) {
+                                        // 🕒 Ícono de reloj (En cola / Offline)
+                                        Icon(
+                                            Icons.Default.AccessTime,
+                                            contentDescription = "Pendiente (En cola local)",
+                                            tint = mainTextColor.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    } else {
+                                        val readCount = message.readBy.size
+                                        Icon(
+                                            when {
+                                                readCount > 1 -> Icons.Default.DoneAll
+                                                readCount == 1 -> Icons.Default.DoneAll
+                                                else -> Icons.Default.Done
+                                            },
+                                            contentDescription = when {
+                                                readCount > 1 -> "Visto"
+                                                readCount == 1 -> "Entregado"
+                                                else -> "Enviado"
+                                            },
+                                            tint = when {
+                                                readCount > 1 -> Color(0xFF4FC3F7) // ✓✓ azul = visto
+                                                readCount == 1 -> Color(0xFF90A4AE) // ✓✓ gris = entregado
+                                                else -> mainTextColor.copy(alpha = 0.5f) // ✓ gris = enviado
+                                            },
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -1850,11 +2144,207 @@ fun ChatMessageBubble(
             }
             DropdownMenuItem(
                 text = { Text("Info del mensaje") },
-                onClick = { showContextMenu = false },
-                leadingIcon = { Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                onClick = {
+                    showContextMenu = false
+                    showInfoDialog = true
+                },
+                leadingIcon = { Icon(Icons.Default.DoneAll, contentDescription = null, tint = Color(0xFF4FC3F7), modifier = Modifier.size(18.dp)) }
+            )
+        }
+
+        if (showInfoDialog) {
+            MessageInfoDialog(
+                message = message,
+                allMembers = allMembers,
+                onDismiss = { showInfoDialog = false }
             )
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DIÁLOGO: INFO DEL MENSAJE (Visto por / Integrantes que leyeron)
+// ═══════════════════════════════════════════════════════════════════════
+@Composable
+fun MessageInfoDialog(
+    message: ChatMessage,
+    allMembers: List<MemberProfile>,
+    onDismiss: () -> Unit
+) {
+    val dateFull = remember(message.timestamp) {
+        SimpleDateFormat("dd/MM/yyyy • hh:mm:ss a", Locale.getDefault()).format(Date(message.timestamp))
+    }
+
+    val readersList = remember(message.readBy, allMembers) {
+        message.readBy.mapNotNull { readId ->
+            allMembers.find { it.id == readId }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.DoneAll, contentDescription = null, tint = Color(0xFF4FC3F7), modifier = Modifier.size(24.dp))
+                Column {
+                    Text("Info del Mensaje", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(dateFull, fontSize = 11.sp, color = Color.Gray)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Vista previa del mensaje
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF1E2433),
+                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.12f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(
+                            text = "${message.senderName} (${message.senderNickname})",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(message.senderRole.badgeColorHex)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = message.messageText.ifBlank { if (message.isSticker) "🖼️ Sticker" else "🎙️ Nota de voz (${message.audioDurationSeconds}s)" },
+                            fontSize = 12.sp,
+                            color = Color.White,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFF2A3142))
+
+                // Encabezado de Leídos
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.Default.DoneAll, contentDescription = null, tint = Color(0xFF4FC3F7), modifier = Modifier.size(16.dp))
+                        Text("Leído por", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4FC3F7))
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF4FC3F7).copy(alpha = 0.2f),
+                        border = BorderStroke(1.dp, Color(0xFF4FC3F7))
+                    ) {
+                        Text(
+                            text = "${message.readBy.size} integrantes",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4FC3F7),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                // Lista de miembros que leyeron
+                if (readersList.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Aún no ha sido leído por otros integrantes.",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(readersList) { reader ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF1A1F2C),
+                                border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.08f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = Color(reader.role.badgeColorHex).copy(alpha = 0.25f),
+                                            border = BorderStroke(1.dp, Color(reader.role.badgeColorHex).copy(alpha = 0.6f)),
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = reader.avatarInitials,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(reader.role.badgeColorHex)
+                                                )
+                                            }
+                                        }
+                                        Column {
+                                            Text(
+                                                text = reader.fullName,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "${reader.nickname} • ${reader.memberNumber} • ${reader.role.displayName}",
+                                                fontSize = 10.sp,
+                                                color = Color(reader.role.badgeColorHex),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                    Icon(
+                                        Icons.Default.DoneAll,
+                                        contentDescription = "Leído",
+                                        tint = Color(0xFF4FC3F7),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
+            ) {
+                Text("Listo")
+            }
+        }
+    )
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -2290,3 +2780,108 @@ fun AddMembersDialog(
         }
     )
 }
+
+// ═══════════════════════════════════════════════════════════════
+// EMOJI GRID UNIVERSAL CATEGORIZADO
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun UniversalEmojiGrid(
+    onEmojiClick: (String) -> Unit,
+    onBackspace: () -> Unit
+) {
+    var selectedCategory by remember { mutableStateOf(0) }
+    val categories = remember {
+        listOf(
+            "😀 Caritas" to listOf(
+                "😀","😃","😄","😁","😆","😅","😂","🤣","🥲","🥹","☺️","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚",
+                "😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥸","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖",
+                "😫","😩","🥺","😢","😭","😮‍💨","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗","🤔","🫣",
+                "🤭","🫢","🫡","🤫","🫠","🤥","😶","🫥","😐","🫤","😑","🫨","😬","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤",
+                "😪","😵","😵‍💫","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡","💩","👻","💀","☠️","👽","👾","🤖","🎃"
+            ),
+            "👍 Gestos" to listOf(
+                "👍","👎","👊","✊","🤛","🤜","👏","🙌","👐","🤲","🤝","🙏","✍️","💅","🤳","💪","🦾","🦿","🦵","🦶","👂","🦻","👃",
+                "🧠","🫀","🫁","🦷","🦴","👀","👁️","👅","👄","🫦","💋","🫰","🤌","🤏","✌️","🤞","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","🖐️","✋","🖖","👋"
+            ),
+            "🏍️ Motos & Motor" to listOf(
+                "🏍️","🛵","🏎️","🚗","🚘","🚙","🚚","🚛","🚜","🚲","🛴","🚨","🚔","🛣️","⛽","🏁","🏆","🥇","🥈","🥉","🎖️","🎫","🗺️",
+                "🧭","🏔️","🏕️","⛺","🔧","🔨","⚙️","🔩","🧰","🛡️","🚦","🚧","🛑","⚓","✈️","🚀"
+            ),
+            "❤️ Pasión & Fuego" to listOf(
+                "❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","❣️","💕","💞","💓","💗","💖","💘","💝","🔥","💥","✨","🌟","💫","⚡","☄️","🧨","🎉","🎊","💯"
+            ),
+            "🇻🇪 Banderas" to listOf(
+                "🇻🇪","🇨🇴","🇧🇷","🇦🇷","🇪🇸","🇲🇽","🇺🇸","🏁","🚩","🏴","🏳️"
+            )
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Selector horizontal de categoría + Botón de retroceso
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            LazyRow(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(categories.size) { idx ->
+                    val isCatSelected = selectedCategory == idx
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isCatSelected) Color(0xFF8C1414) else Color(0xFF222838),
+                        border = BorderStroke(0.5.dp, if (isCatSelected) Color(0xFFE53935) else Color.White.copy(alpha = 0.1f)),
+                        modifier = Modifier.clickable { selectedCategory = idx }
+                    ) {
+                        Text(
+                            text = categories[idx].first,
+                            fontSize = 11.sp,
+                            fontWeight = if (isCatSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            IconButton(
+                onClick = onBackspace,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.Backspace,
+                    contentDescription = "Borrar",
+                    tint = Color(0xFFEF5350),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        val currentEmojis = categories[selectedCategory].second
+        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+            columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(38.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(currentEmojis.size) { i ->
+                val emoji = currentEmojis[i]
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onEmojiClick(emoji) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = emoji, fontSize = 22.sp)
+                }
+            }
+        }
+    }
+}
+

@@ -5,6 +5,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -74,6 +76,8 @@ fun FeedScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var selectedPublicationForEdit by remember { mutableStateOf<Publication?>(null) }
     val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
+    val screenBg = if (isDark) Color(0xFF121212) else Color(0xFFF2F4F7)
 
     // Auto-dismiss upload status banner after 4 seconds
     LaunchedEffect(uploadError, uploadSuccess) {
@@ -98,19 +102,22 @@ fun FeedScreen(
     }
 
     Scaffold(
+        containerColor = screenBg,
         floatingActionButton = {
             if (isDirectivaMode) {
                 ExtendedFloatingActionButton(
                     onClick = { showCreateDialog = true },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("Publicar Aviso / Reto") },
-                    containerColor = MotoOrangePrimary,
+                    text = { Text("Publicar Aviso / Reto", fontWeight = FontWeight.Bold) },
+                    containerColor = TxFlameRed,
                     contentColor = Color.White,
                     modifier = Modifier.testTag("fab_create_notice")
                 )
             }
         },
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
+            .fillMaxSize()
+            .background(screenBg)
     ) { innerPadding ->
         // Upload status banner
         if (uploadError != null || uploadSuccess) {
@@ -127,16 +134,17 @@ fun FeedScreen(
                     exit = slideOutVertically(targetOffsetY = { -it })
                 ) {
                     Card(
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (uploadError != null) StatusError.copy(alpha = 0.9f) else StatusSuccess.copy(alpha = 0.9f)
+                            containerColor = if (uploadError != null) StatusError else StatusSuccess
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
+                                .padding(14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -154,7 +162,7 @@ fun FeedScreen(
                                     text = if (uploadError != null) uploadError else "¡Aviso publicado correctamente!",
                                     color = Color.White,
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp,
+                                    fontSize = 13.sp,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -176,15 +184,19 @@ fun FeedScreen(
                 end = 16.dp
             ),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .background(screenBg)
         ) {
             // Incomplete Profile Warning Banner
             if (currentMember != null && !currentMember.isProfileComplete) {
                 item {
                     Card(
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF261908)),
-                        border = BorderStroke(1.5.dp, MotoOrangePrimary),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isDark) Color(0xFF261908) else Color(0xFFFFF8E1)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -192,10 +204,19 @@ fun FeedScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(Icons.Default.WarningAmber, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(30.dp))
+                            Icon(Icons.Default.WarningAmber, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(28.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("FICHA DE PERFIL INCOMPLETA", fontWeight = FontWeight.Black, color = TxGoldLight, fontSize = 13.sp)
-                                Text("Por favor completa tus datos personales, contacto SOS y fotos en Carnet TX.", color = Color.White, fontSize = 11.sp)
+                                Text(
+                                    "FICHA DE PERFIL INCOMPLETA",
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isDark) TxGoldLight else Color(0xFFB45309),
+                                    fontSize = 13.sp
+                                )
+                                Text(
+                                    "Por favor completa tus datos personales, contacto SOS y fotos en Carnet TX.",
+                                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF4B5563),
+                                    fontSize = 11.sp
+                                )
                             }
                         }
                     }
@@ -229,8 +250,10 @@ fun FeedScreen(
                 item {
                     Card(
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF19222E)),
-                        border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.5f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -242,12 +265,12 @@ fun FeedScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.Cake, contentDescription = null, tint = MotoOrangePrimary)
+                                Icon(Icons.Default.Cake, contentDescription = null, tint = TxFlameRed)
                                 Text(
                                     text = "¡CUMPLEAÑEROS DEL MES!",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Black,
-                                    color = Color.White
+                                    color = if (isDark) Color.White else Color(0xFF1E293B)
                                 )
                             }
                             Spacer(modifier = Modifier.height(10.dp))
@@ -268,14 +291,14 @@ fun FeedScreen(
                                             modifier = Modifier
                                                 .size(32.dp)
                                                 .clip(CircleShape)
-                                                .background(MotoOrangePrimary.copy(alpha = 0.2f)),
+                                                .background(TxFlameRed.copy(alpha = 0.15f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = day,
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = MotoOrangePrimary
+                                                color = TxFlameRed
                                             )
                                         }
                                         Column {
@@ -283,12 +306,12 @@ fun FeedScreen(
                                                 text = "${member.fullName} (${member.memberNumber})",
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = Color.White
+                                                color = if (isDark) Color.White else Color(0xFF1E293B)
                                             )
                                             Text(
                                                 text = member.role.displayName,
                                                 fontSize = 10.sp,
-                                                color = Color(0xFFB0BEC5)
+                                                color = if (isDark) Color(0xFF9E9E9E) else Color(0xFF757575)
                                             )
                                         }
                                     }
@@ -299,7 +322,7 @@ fun FeedScreen(
                 }
             }
 
-            // Categories Filter Bar
+            // Categories Filter Bar (Chips sin bordes: Activo rojo sólido, Inactivo gris suave)
             item {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -311,7 +334,7 @@ fun FeedScreen(
                             text = "Muro y Tablero de Anuncios",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = if (isDark) Color.White else Color(0xFF1E293B)
                         )
                         IconButton(
                             onClick = onRefresh,
@@ -323,58 +346,68 @@ fun FeedScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(18.dp),
                                     strokeWidth = 2.dp,
-                                    color = MotoOrangePrimary
+                                    color = TxFlameRed
                                 )
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
                                     contentDescription = "Actualizar avisos",
-                                    tint = MotoOrangePrimary
+                                    tint = TxFlameRed
                                 )
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(end = 16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         item {
-                            FilterChip(
+                            FeedFilterChip(
                                 selected = selectedCategoryFilter == null,
                                 onClick = { selectedCategoryFilter = null },
-                                label = { Text("Todos (${publications.size})", fontSize = 12.sp) }
+                                label = "Todos (${publications.size})"
                             )
                         }
                         item {
-                            FilterChip(
+                            FeedFilterChip(
                                 selected = selectedCategoryFilter == NoticeCategory.AVISO_OFICIAL,
                                 onClick = {
                                     selectedCategoryFilter =
                                         if (selectedCategoryFilter == NoticeCategory.AVISO_OFICIAL) null else NoticeCategory.AVISO_OFICIAL
                                 },
-                                label = { Text("Avisos", fontSize = 12.sp) }
+                                label = "Avisos"
                             )
                         }
                         item {
-                            FilterChip(
+                            FeedFilterChip(
                                 selected = selectedCategoryFilter == NoticeCategory.RETO_MOTERO,
                                 onClick = {
                                     selectedCategoryFilter =
                                         if (selectedCategoryFilter == NoticeCategory.RETO_MOTERO) null else NoticeCategory.RETO_MOTERO
                                 },
-                                label = { Text("Retos TX", fontSize = 12.sp) }
+                                label = "Retos TX"
                             )
                         }
                         item {
-                            FilterChip(
+                            FeedFilterChip(
                                 selected = selectedCategoryFilter == NoticeCategory.CAPACITACION,
                                 onClick = {
                                     selectedCategoryFilter =
                                         if (selectedCategoryFilter == NoticeCategory.CAPACITACION) null else NoticeCategory.CAPACITACION
                                 },
-                                label = { Text("Mecánica", fontSize = 12.sp) }
+                                label = "Mecánica"
+                            )
+                        }
+                        item {
+                            FeedFilterChip(
+                                selected = selectedCategoryFilter == NoticeCategory.COMUNICADO,
+                                onClick = {
+                                    selectedCategoryFilter =
+                                        if (selectedCategoryFilter == NoticeCategory.COMUNICADO) null else NoticeCategory.COMUNICADO
+                                },
+                                label = "Comunicados"
                             )
                         }
                     }
@@ -440,6 +473,41 @@ fun FeedScreen(
 }
 
 @Composable
+fun FeedFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String
+) {
+    val isDark = isSystemInDarkTheme()
+    val bgColor = if (selected) {
+        TxFlameRed
+    } else {
+        if (isDark) Color(0xFF2C2C2C) else Color(0xFFE0E0E0)
+    }
+    val textColor = if (selected) {
+        Color.White
+    } else {
+        if (isDark) Color(0xFF9E9E9E) else Color(0xFF757575)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = bgColor,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = textColor,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+        )
+    }
+}
+
+@Composable
 fun NoticeCard(
     pub: Publication,
     comments: List<NoticeComment> = emptyList(),
@@ -452,6 +520,7 @@ fun NoticeCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
     var isCommentsExpanded by remember { mutableStateOf(false) }
     var commentInputText by remember { mutableStateOf("") }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -497,498 +566,488 @@ fun NoticeCard(
         SimpleDateFormat("dd/MM/yyyy • hh:mm a", Locale.getDefault()).format(Date(pub.timestamp))
     }
 
+    val cardBg = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = cardBg
         ),
-        border = BorderStroke(
-            1.dp,
-            if (pub.isPinned) MotoOrangePrimary else if (pub.priority == NoticePriority.URGENTE) StatusError else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (pub.isPinned) 4.dp else 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (pub.isPinned) 4.dp else 2.dp),
         modifier = modifier
             .fillMaxWidth()
             .testTag("notice_card_${pub.id}")
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Header Tags: Category + Priority / Pinned
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Header Tags: Category + Priority / Pinned & Actions (Padding interno)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (pub.isPinned) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (pub.isPinned) {
+                            val pinnedBg = if (isDark) Color(0xFF381419) else Color(0xFFFFEBEE)
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = pinnedBg
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.PushPin,
+                                        contentDescription = null,
+                                        tint = TxFlameRed,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text("Fijado", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TxFlameRed)
+                                }
+                            }
+                        }
+
+                        val (catBg, catText) = when (pub.category) {
+                            NoticeCategory.AVISO_OFICIAL -> if (isDark) Pair(Color(0xFF331E18), Color(0xFFFF8A65)) else Pair(Color(0xFFFFEBE6), Color(0xFFD84315))
+                            NoticeCategory.RETO_MOTERO -> if (isDark) Pair(Color(0xFF332314), Color(0xFFFFB74D)) else Pair(Color(0xFFFFF3E0), Color(0xFFE65100))
+                            NoticeCategory.COMUNICADO -> if (isDark) Pair(Color(0xFF15283E), Color(0xFF64B5F6)) else Pair(Color(0xFFE3F2FD), Color(0xFF1565C0))
+                            NoticeCategory.NOTICIA_RUTA -> if (isDark) Pair(Color(0xFF1B3322), Color(0xFF81C784)) else Pair(Color(0xFFE8F5E9), Color(0xFF2E7D32))
+                            NoticeCategory.CAPACITACION -> if (isDark) Pair(Color(0xFF2C1938), Color(0xFFBA68C8)) else Pair(Color(0xFFF3E5F5), Color(0xFF6A1B9A))
+                        }
+
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = MotoOrangePrimary.copy(alpha = 0.2f),
-                            border = BorderStroke(1.dp, MotoOrangePrimary)
+                            shape = RoundedCornerShape(50),
+                            color = catBg
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            Text(
+                                text = pub.category.displayName,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = catText,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+
+                        if (pub.priority == NoticePriority.URGENTE) {
+                            val urgBg = if (isDark) Color(0xFF381419) else Color(0xFFFFEBEE)
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = urgBg
+                            ) {
+                                Text(
+                                    text = "Urgente",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TxFlameRed,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (canDelete) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = onEdit,
+                                modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(
-                                    Icons.Default.PushPin,
-                                    contentDescription = null,
-                                    tint = MotoOrangePrimary,
-                                    modifier = Modifier.size(12.dp)
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Editar aviso",
+                                    tint = if (isDark) Color(0xFF9E9E9E) else Color(0xFF757575),
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Text("FIJADO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
+                            }
+                            IconButton(
+                                onClick = { showDeleteConfirmDialog = true },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Eliminar aviso",
+                                    tint = StatusError,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                     }
-
-                    val catBg = when (pub.category) {
-                        NoticeCategory.AVISO_OFICIAL -> MotoOrangeDark
-                        NoticeCategory.RETO_MOTERO -> Color(0xFFE65100)
-                        NoticeCategory.COMUNICADO -> Color(0xFF0D47A1)
-                        NoticeCategory.NOTICIA_RUTA -> Color(0xFF2E7D32)
-                        NoticeCategory.CAPACITACION -> Color(0xFF4A148C)
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = catBg.copy(alpha = 0.25f),
-                        border = BorderStroke(1.dp, catBg)
-                    ) {
-                        Text(
-                            text = pub.category.displayName.uppercase(),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-
-                    if (pub.priority == NoticePriority.URGENTE) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = StatusError.copy(alpha = 0.2f),
-                            border = BorderStroke(1.dp, StatusError)
-                        ) {
-                            Text(
-                                text = "URGENTE",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = StatusError,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.PushPin,
-                            contentDescription = "Fijado",
-                            tint = MotoOrangePrimary,
-                            modifier = Modifier
-                                .size(18.dp)
-                                .padding(end = 4.dp)
-                        )
-                    }
                 }
 
-                if (canDelete) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = onEdit,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Editar aviso",
-                                tint = MotoOrangePrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        IconButton(
-                            onClick = { showDeleteConfirmDialog = true },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Eliminar aviso",
-                                tint = StatusError,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Title & Content
+                Text(
+                    text = pub.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDark) Color(0xFFF5F5F5) else Color(0xFF1E293B)
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = pub.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isDark) Color(0xFFB0BEC5) else Color(0xFF475569),
+                    lineHeight = 20.sp
+                )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Title & Content
-            Text(
-                text = pub.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = pub.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 20.sp
-            )
-
-            // Flyer / Imagen de la publicación
+            // Flyer / Imagen de la publicación (Ancho completo de borde a borde sin padding lateral)
             if (!pub.imageUrl.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF121212)),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val imageUrl = pub.imageUrl
-                    LaunchedEffect(imageUrl) {
-                        android.util.Log.d("TEAM_TX_IMAGES", "🖼️ Intentando cargar imagen para aviso: ${pub.title} | URL: $imageUrl")
-                    }
-                    SubcomposeAsyncImage(
-                        model = imageUrl,
-                        contentDescription = "Flyer de la Publicación",
-                        onSuccess = {
-                            android.util.Log.i("TEAM_TX_IMAGES", "✅ Imagen cargada con éxito: $imageUrl")
-                        },
-                        onError = { state ->
-                            android.util.Log.e("TEAM_TX_IMAGES", "❌ Error cargando imagen: $imageUrl | Causa: ${state.result.throwable.message}")
-                        },
-                        loading = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(30.dp),
-                                    color = MotoOrangePrimary,
-                                    strokeWidth = 2.dp
+                Spacer(modifier = Modifier.height(8.dp))
+                val imageUrl = pub.imageUrl
+                LaunchedEffect(imageUrl) {
+                    android.util.Log.d("TEAM_TX_IMAGES", "🖼️ Cargando flyer para: ${pub.title} | URL: $imageUrl")
+                }
+                SubcomposeAsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Flyer de la Publicación",
+                    loading = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .background(if (isDark) Color(0xFF262626) else Color(0xFFF5F5F5)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(28.dp),
+                                color = TxFlameRed,
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    },
+                    error = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .background(if (isDark) Color(0xFF262626) else Color(0xFFF5F5F5)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.BrokenImage,
+                                    contentDescription = "Error al cargar imagen",
+                                    tint = if (isDark) Color(0xFF757575) else Color(0xFF9E9E9E),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "Error al cargar imagen",
+                                    fontSize = 11.sp,
+                                    color = if (isDark) Color(0xFF757575) else Color(0xFF9E9E9E)
                                 )
                             }
-                        },
-                        error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(150.dp)
-                                    .background(Color.DarkGray.copy(alpha = 0.3f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        imageVector = Icons.Default.BrokenImage,
-                                        contentDescription = "Error al cargar imagen",
-                                        tint = Color.White.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(40.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        "Error al cargar flyer",
-                                        fontSize = 11.sp,
-                                        color = Color.White.copy(alpha = 0.5f)
-                                    )
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 180.dp, max = 450.dp),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Fit
-                    )
-                }
-            }
-
-            // If challenge: show special Challenge badge
-            if (pub.category == NoticeCategory.RETO_MOTERO && pub.targetChallengeDistanceKm > 0) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF231C10),
-                    border = BorderStroke(1.dp, MotoGoldSecondary)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.EmojiEvents,
-                            contentDescription = null,
-                            tint = MotoGoldSecondary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Column {
-                            Text(
-                                text = pub.challengeBadgeText ?: "RETO OFICIAL TX",
-                                color = MotoGoldSecondary,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = "Distancia Meta: ${pub.targetChallengeDistanceKm} KM • Sello en Pasaporte Motero",
-                                color = Color(0xFFD4E0ED),
-                                fontSize = 11.sp
-                            )
                         }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Footer: Author, Date, Likes, Telegram post & Comments Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = pub.authorName,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = dateStr,
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    if (pub.telegramPostUrl != null) {
-                        IconButton(
-                            onClick = { openUrl(context, pub.telegramPostUrl!!) },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Send,
-                                contentDescription = "Ver en Telegram",
-                                tint = TelegramBlue,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-
-                    // Comments toggle button
-                    TextButton(
-                        onClick = { isCommentsExpanded = !isCommentsExpanded },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                        modifier = Modifier.testTag("btn_comments_${pub.id}")
-                    ) {
-                        Icon(
-                            Icons.Default.ChatBubbleOutline,
-                            contentDescription = "Respuestas",
-                            tint = if (isCommentsExpanded) TxFlameRed else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "${comments.size}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isCommentsExpanded) TxFlameRed else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // Like button
-                    val isLikedByMe = pub.likedByMemberIds.split(",").filter { it.isNotBlank() }.contains(currentMember?.id?.toString() ?: "")
-                    TextButton(
-                        onClick = onLike,
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                        modifier = Modifier.testTag("btn_like_${pub.id}")
-                    ) {
-                        Icon(
-                            if (isLikedByMe) Icons.Default.ThumbUp else Icons.Outlined.ThumbUp,
-                            contentDescription = "Me gusta",
-                            tint = if (isLikedByMe) MotoOrangePrimary else Color(0xFF90A4AE),
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "${pub.likesCount}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isLikedByMe) MotoOrangePrimary else Color(0xFF90A4AE)
-                        )
-                    }
-                }
-            }
-
-            // Expandable Comments Section (Respuestas de Miembros)
-            AnimatedVisibility(visible = isCommentsExpanded) {
-                Column(
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp)
+                        .heightIn(min = 180.dp, max = 420.dp),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            }
+
+            // Bottom Section (Reto, Footer, Comments)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp)
+            ) {
+                // If challenge: show special Challenge badge
+                if (pub.category == NoticeCategory.RETO_MOTERO && pub.targetChallengeDistanceKm > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isDark) Color(0xFF2B1F0E) else Color(0xFFFFF8E1),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.EmojiEvents,
+                                contentDescription = null,
+                                tint = MotoGoldSecondary,
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = pub.challengeBadgeText ?: "RETO OFICIAL TX",
+                                    color = MotoGoldSecondary,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "Distancia Meta: ${pub.targetChallengeDistanceKm} KM • Sello en Pasaporte Motero",
+                                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = if (isDark) Color.White.copy(alpha = 0.06f) else Color(0xFFF1F5F9))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Footer: Author, Date, Likes, Telegram post & Comments Button
+                val secondaryTextColor = if (isDark) Color(0xFF9E9E9E) else Color(0xFF757575)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = "RESPUESTAS DE LA HERMANDAD (${comments.size})",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TxGoldSecondary,
-                        letterSpacing = 0.5.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (comments.isEmpty()) {
+                    Column {
                         Text(
-                            text = "No hay respuestas todavía. ¡Sé el primer piloto en comentar!",
+                            text = pub.authorName,
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 6.dp)
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
                         )
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            comments.forEach { c ->
-                                val roleColor = Color(c.authorRole.badgeColorHex)
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color(0xFF161C26),
-                                    border = BorderStroke(0.5.dp, AsphaltDarkBorder),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Column(modifier = Modifier.padding(10.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
+                        Text(
+                            text = dateStr,
+                            fontSize = 12.sp,
+                            color = secondaryTextColor
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        if (pub.telegramPostUrl != null) {
+                            IconButton(
+                                onClick = { openUrl(context, pub.telegramPostUrl!!) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Send,
+                                    contentDescription = "Ver en Telegram",
+                                    tint = TelegramBlue,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
+                        // Comments toggle button
+                        TextButton(
+                            onClick = { isCommentsExpanded = !isCommentsExpanded },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.testTag("btn_comments_${pub.id}")
+                        ) {
+                            Icon(
+                                Icons.Default.ChatBubbleOutline,
+                                contentDescription = "Respuestas",
+                                tint = if (isCommentsExpanded) TxFlameRed else secondaryTextColor,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${comments.size}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isCommentsExpanded) TxFlameRed else secondaryTextColor
+                            )
+                        }
+
+                        // Like button
+                        val myMemberIdStr = currentMember?.id?.toString() ?: ""
+                        val isLikedByMe = pub.likedByMemberIds.split(",").map { it.trim() }.contains(myMemberIdStr) && myMemberIdStr.isNotEmpty()
+
+                        TextButton(
+                            onClick = onLike,
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.testTag("btn_like_${pub.id}")
+                        ) {
+                            Icon(
+                                if (isLikedByMe) Icons.Default.ThumbUp else Icons.Outlined.ThumbUp,
+                                contentDescription = "Me gusta",
+                                tint = if (isLikedByMe) TxFlameRed else secondaryTextColor,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${pub.likesCount}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isLikedByMe) TxFlameRed else secondaryTextColor
+                            )
+                        }
+                    }
+                }
+
+                // Expandable Comments Section (Respuestas de Miembros)
+                AnimatedVisibility(visible = isCommentsExpanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp)
+                    ) {
+                        HorizontalDivider(color = if (isDark) Color.White.copy(alpha = 0.06f) else Color(0xFFF1F5F9))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = "RESPUESTAS DE LA HERMANDAD (${comments.size})",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TxFlameRed,
+                            letterSpacing = 0.5.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (comments.isEmpty()) {
+                            Text(
+                                text = "No hay respuestas todavía. ¡Sé el primer piloto en comentar!",
+                                fontSize = 12.sp,
+                                color = secondaryTextColor,
+                                modifier = Modifier.padding(vertical = 6.dp)
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                comments.forEach { c ->
+                                    val roleColor = Color(c.authorRole.badgeColorHex)
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isDark) Color(0xFF14171F) else Color(0xFFF8FAFC),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp)) {
                                             Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(22.dp)
-                                                        .clip(CircleShape)
-                                                        .background(roleColor.copy(alpha = 0.25f)),
-                                                    contentAlignment = Alignment.Center
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(22.dp)
+                                                            .clip(CircleShape)
+                                                            .background(roleColor.copy(alpha = 0.25f)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = c.authorInitials,
+                                                            fontSize = 9.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = roleColor
+                                                        )
+                                                    }
                                                     Text(
-                                                        text = c.authorInitials,
-                                                        fontSize = 9.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = roleColor
-                                                    )
-                                                }
-                                                Text(
-                                                    text = "${c.authorNickname} (${c.authorMemberNumber})",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color.White
-                                                )
-                                                Surface(
-                                                    shape = RoundedCornerShape(3.dp),
-                                                    color = roleColor.copy(alpha = 0.15f),
-                                                    border = BorderStroke(0.5.dp, roleColor)
-                                                ) {
-                                                    Text(
-                                                        text = c.authorRole.displayName,
-                                                        fontSize = 8.sp,
+                                                        text = "${c.authorNickname} (${c.authorMemberNumber})",
+                                                        fontSize = 11.sp,
                                                         fontWeight = FontWeight.SemiBold,
-                                                        color = roleColor,
-                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                        color = if (isDark) Color.White else Color(0xFF1E293B)
                                                     )
+                                                    Surface(
+                                                        shape = RoundedCornerShape(3.dp),
+                                                        color = roleColor.copy(alpha = 0.15f)
+                                                    ) {
+                                                        Text(
+                                                            text = c.authorRole.displayName,
+                                                            fontSize = 8.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = roleColor,
+                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                        )
+                                                    }
                                                 }
+
+                                                val commentTime = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(c.timestamp))
+                                                Text(text = commentTime, fontSize = 9.sp, color = secondaryTextColor)
                                             }
 
-                                            val commentTime = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(c.timestamp))
-                                            Text(text = commentTime, fontSize = 9.sp, color = Color(0xFF78909C))
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = c.content,
+                                                fontSize = 12.sp,
+                                                color = if (isDark) Color(0xFFECEFF1) else Color(0xFF334155),
+                                                lineHeight = 16.sp
+                                            )
                                         }
-
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = c.content,
-                                            fontSize = 12.sp,
-                                            color = Color(0xFFECEFF1),
-                                            lineHeight = 16.sp
-                                        )
                                     }
                                 }
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                    if (pub.allowComments) {
-                        // Comment Reply Input Field
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = commentInputText,
-                                onValueChange = { commentInputText = it },
-                                placeholder = { Text("Escribir respuesta al aviso...", fontSize = 12.sp) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("input_notice_comment_${pub.id}"),
-                                shape = RoundedCornerShape(20.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = TxFlameRed,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                                ),
-                                maxLines = 2
-                            )
-
-                            IconButton(
-                                onClick = {
-                                    if (commentInputText.isNotBlank()) {
-                                        onAddComment(commentInputText.trim())
-                                        commentInputText = ""
-                                    }
-                                },
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = if (commentInputText.isNotBlank()) TxFlameRed else MaterialTheme.colorScheme.surfaceVariant,
-                                    contentColor = Color.White
-                                ),
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .testTag("btn_send_notice_comment_${pub.id}")
-                            ) {
-                                Icon(Icons.Default.Send, contentDescription = "Enviar respuesta", modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    } else {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        ) {
+                        if (pub.allowComments) {
+                            // Comment Reply Input Field
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                                Text("Comentarios bloqueados por la directiva para este aviso", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                OutlinedTextField(
+                                    value = commentInputText,
+                                    onValueChange = { commentInputText = it },
+                                    placeholder = { Text("Escribir respuesta al aviso...", fontSize = 12.sp) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("input_notice_comment_${pub.id}"),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = TxFlameRed,
+                                        unfocusedBorderColor = if (isDark) Color(0xFF333333) else Color(0xFFCBD5E1)
+                                    ),
+                                    maxLines = 2
+                                )
+
+                                IconButton(
+                                    onClick = {
+                                        if (commentInputText.isNotBlank()) {
+                                            onAddComment(commentInputText.trim())
+                                            commentInputText = ""
+                                        }
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = if (commentInputText.isNotBlank()) TxFlameRed else if (isDark) Color(0xFF2C2C2C) else Color(0xFFE2E8F0),
+                                        contentColor = Color.White
+                                    ),
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .testTag("btn_send_notice_comment_${pub.id}")
+                                ) {
+                                    Icon(Icons.Default.Send, contentDescription = "Enviar respuesta", modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isDark) Color(0xFF262626) else Color(0xFFF1F5F9),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = secondaryTextColor, modifier = Modifier.size(16.dp))
+                                    Text("Comentarios bloqueados por la directiva para este aviso", fontSize = 12.sp, color = secondaryTextColor)
+                                }
                             }
                         }
                     }

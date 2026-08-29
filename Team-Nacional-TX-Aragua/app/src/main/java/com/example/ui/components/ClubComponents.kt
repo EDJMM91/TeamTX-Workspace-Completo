@@ -10,6 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,7 +50,7 @@ fun VenezuelanFlagRibbon(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(3.dp)
+            .height(2.dp)
     ) {
         Box(modifier = Modifier.weight(1f).fillMaxHeight().background(VzlaYellow))
         Box(modifier = Modifier.weight(1f).fillMaxHeight().background(VzlaBlue))
@@ -130,7 +131,6 @@ fun ClubTopBar(
                         )
                     }
 
-
                     // TikTok link shortcut
                     IconButton(
                         onClick = {
@@ -145,57 +145,64 @@ fun ClubTopBar(
                         )
                     }
 
-                    // Directiva Mode Toggle Pill
+                    // Directiva Mode Toggle Pill (Limpio sin bordes grises)
                     val canToggle = isDeveloperMode || (currentMember?.isDirectiva == true) || (currentMember?.role?.canManageApp == true)
+                    val isDarkTheme = isSystemInDarkTheme()
                     
                     if (canToggle) {
-                        FilterChip(
-                            selected = isDirectivaMode,
-                            onClick = onToggleDirectiva,
-                            label = {
-                                Text(
-                                    text = if (isDirectivaMode) "DIRECTIVA" else "MIEMBRO",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            },
-                            leadingIcon = {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = if (isDirectivaMode) TxFlameRed else if (isDarkTheme) Color(0xFF2A2A2A) else Color(0xFFE2E8F0),
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .clip(RoundedCornerShape(50))
+                                .clickable(onClick = onToggleDirectiva)
+                                .testTag("btn_toggle_directiva_mode")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
                                 Icon(
                                     imageVector = if (isDirectivaMode) Icons.Default.AdminPanelSettings else Icons.Default.Person,
                                     contentDescription = "Modo",
-                                    modifier = Modifier.size(16.dp)
+                                    tint = if (isDirectivaMode) Color.White else if (isDarkTheme) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                    modifier = Modifier.size(15.dp)
                                 )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotoOrangePrimary,
-                                selectedLabelColor = Color.White,
-                                selectedLeadingIconColor = Color.White
-                            ),
-                            modifier = Modifier
-                                .padding(end = 4.dp)
-                                .testTag("btn_toggle_directiva_mode")
-                        )
-                    } else {
-                        FilterChip(
-                            selected = false,
-                            onClick = {},
-                            enabled = false,
-                            label = {
                                 Text(
-                                    text = "MIEMBRO",
+                                    text = if (isDirectivaMode) "DIRECTIVA" else "MIEMBRO",
                                     fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDirectivaMode) Color.White else if (isDarkTheme) Color(0xFFCBD5E1) else Color(0xFF475569)
                                 )
-                            },
-                            leadingIcon = {
+                            }
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = if (isDarkTheme) Color(0xFF222222) else Color(0xFFE2E8F0),
+                            modifier = Modifier.padding(end = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = "Modo",
-                                    modifier = Modifier.size(16.dp)
+                                    tint = if (isDarkTheme) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    modifier = Modifier.size(15.dp)
                                 )
-                            },
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
+                                Text(
+                                    text = "MIEMBRO",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkTheme) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                )
+                            }
+                        }
                     }
                 }
             )

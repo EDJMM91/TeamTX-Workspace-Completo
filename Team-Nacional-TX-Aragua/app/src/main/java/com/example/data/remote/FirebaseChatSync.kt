@@ -218,59 +218,104 @@ class FirebaseChatSync(
     // ═══════════════════════════════════════════════
 
     /**
-     * Envía un mensaje de chat.
+     * Envía un mensaje de chat con enfoque Offline-First.
      *
-     * SI Auth = AUTENTICADO: envía directamente a Firestore.
-     * SI Auth NO está lista: guarda en Room + encola para envío diferido.
-     *
-     * En ambos casos, el mensaje se guarda en Room inmediatamente
-     * para que la UI lo muestre al instante (offline-first).
+     * 1. Guarda de inmediato en Room con syncStatus = "PENDING" (o "SENT" si se sube al instante).
+     * 2. Si hay conexión y Auth, sube a Firestore de inmediato.
+     * 3. Si no hay conexión o falla la subida, queda con reloj 🕒 en Room y la cola de fondo
+     *    lo despacha automáticamente apenas detecte red.
      */
     suspend fun sendMessage(message: ChatMessage) {
-        // 1. SIEMPRE guardar en Room primero (la UI lo ve al instante)
-        database.chatDao().insertMessage(message)
-
-        // 2. Verificar si Auth está lista (o hay usuario Firebase activo)
         val hayAuth = FirebaseAuth.getInstance().currentUser != null || AutenticacionNube.estaAutenticado()
-        if (hayAuth) {
-            // Auth OK → enviar a Firestore directamente
-            enviarAFirestore(message)
-        } else {
-            // Auth NO lista → encolar para envío diferido
-            Log.w(TAG, "⚠️ Auth no disponible. Mensaje ${message.id} encolado.")
+
+        if (!hayAuth) {
+            // Guardar local con estado PENDING
+            message.syncStatus = "PENDING"
+            database.chatDao().insertMessage(message)
             colaPendientes.add(message)
             _conexionChat.value = ConexionChat.ENCOLADO
+            iniciarCicloReintentoCola()
+            return
         }
-    }
 
-    /**
-     * Procesa todos los mensajes que se encolaron antes de que Auth estuviera lista.
-     */
-    private fun procesarColaPendientes() {
-        if (colaPendientes.isEmpty()) return
-
-        val cantidad = colaPendientes.size
-        Log.i(TAG, "📤 Procesando $cantidad mensajes encolados...")
+        // Intento directo
+        message.syncStatus = "PENDING"
+        database.chatDao().insertMessage(message)
 
         scope.launch(Dispatchers.IO) {
-            while (colaPendientes.isNotEmpty()) {
-                val mensaje = colaPendientes.poll() ?: break
-                enviarAFirestore(mensaje)
+            val enviado = enviarAFirestore(message)
+            if (enviado) {
+                database.chatDao().updateMessageSyncStatus(message.id, "SENT")
+            } else {
+                colaPendientes.add(message)
+                _conexionChat.value = ConexionChat.ENCOLADO
+                iniciarCicloReintentoCola()
             }
-            Log.i(TAG, "✅ Todos los mensajes encolados enviados a Firestore")
-            _conexionChat.value = ConexionChat.CONECTADO
+        }
+    }
+
+    private var colaReintentoJob: kotlinx.coroutines.Job? = null
+
+    private fun iniciarCicloReintentoCola() {
+        if (colaReintentoJob?.isActive == true) return
+        colaReintentoJob = scope.launch(Dispatchers.IO) {
+            while (true) {
+                kotlinx.coroutines.delay(4000L) // Reintento cada 4 segundos
+                val pendientesDb = database.chatDao().getPendingMessages()
+                if (pendientesDb.isEmpty() && colaPendientes.isEmpty()) {
+                    _conexionChat.value = ConexionChat.CONECTADO
+                    break
+                }
+
+                val hayAuth = FirebaseAuth.getInstance().currentUser != null || AutenticacionNube.estaAutenticado()
+                if (hayAuth) {
+                    procesarColaPendientes()
+                }
+            }
         }
     }
 
     /**
-     * Escribe un mensaje en Firestore. Método interno.
+     * Procesa todos los mensajes pendientes tanto de memoria como de Room.
      */
-    private suspend fun enviarAFirestore(message: ChatMessage) = withContext(Dispatchers.IO) {
+    fun procesarColaPendientes() {
+        scope.launch(Dispatchers.IO) {
+            val pendientesDb = database.chatDao().getPendingMessages()
+            val listaAEnviar = (pendientesDb + colaPendientes.toList()).distinctBy { it.id }
+
+            if (listaAEnviar.isEmpty()) return@launch
+
+            Log.i(TAG, "📤 Despachando ${listaAEnviar.size} mensajes de la cola local...")
+            var fallos = 0
+
+            for (mensaje in listaAEnviar) {
+                val exito = enviarAFirestore(mensaje)
+                if (exito) {
+                    database.chatDao().updateMessageSyncStatus(mensaje.id, "SENT")
+                    colaPendientes.remove(mensaje)
+                } else {
+                    fallos++
+                }
+            }
+
+            if (fallos == 0) {
+                Log.i(TAG, "✅ Todos los mensajes de la cola local fueron despachados a Firestore")
+                _conexionChat.value = ConexionChat.CONECTADO
+            } else {
+                _conexionChat.value = ConexionChat.ENCOLADO
+            }
+        }
+    }
+
+    /**
+     * Escribe un mensaje en Firestore. Retorna true si se sincronizó correctamente.
+     */
+    private suspend fun enviarAFirestore(message: ChatMessage): Boolean = withContext(Dispatchers.IO) {
         try {
             val localId = message.id
             if (localId <= 0) {
                 Log.w(TAG, "⚠️ ID inválido ($localId), omitiendo subida")
-                return@withContext
+                return@withContext false
             }
 
             val docRef = db.collection("chat_channels")
@@ -278,13 +323,14 @@ class FirebaseChatSync(
                 .collection("messages")
                 .document(localId.toString())
 
+            val mensajeSincronizado = message.copy(syncStatus = "SENT")
             Log.d(TAG, "📤 Enviando msg a canal ${message.channelId}, ID: $localId")
-            docRef.set(message, com.google.firebase.firestore.SetOptions.merge()).await()
+            docRef.set(mensajeSincronizado, com.google.firebase.firestore.SetOptions.merge()).await()
             Log.i(TAG, "✅ Mensaje sincronizado: $localId")
+            true
         } catch (e: Exception) {
-            Log.e(TAG, "❌ FALLO enviando msg: ${e.message}", e)
-            // Re-encolar para reintentar
-            colaPendientes.add(message)
+            Log.e(TAG, "❌ FALLO enviando msg: ${e.message}")
+            false
         }
     }
 

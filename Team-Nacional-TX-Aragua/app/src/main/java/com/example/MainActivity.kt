@@ -432,8 +432,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onSendSticker = { ch, file ->
                             viewModel.sendStickerMessage(ch, file)
                         },
-                        onSendAudio = { ch, file, dur ->
-                            viewModel.sendAudioMessage(ch, file, dur)
+                        onSendAudio = { ch, file, dur, transcription ->
+                            viewModel.sendAudioMessage(ch, file, dur, transcription)
                         },
                         onToggleReaction = { msgId, emoji ->
                             viewModel.toggleMessageReaction(msgId, emoji)
@@ -779,6 +779,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onAbandonCargo = { member -> viewModel.abandonCargo(member) },
                         onAssignRole = { member, role -> viewModel.updateMemberRole(member, role) },
                         onSendDirectivaChatMessage = { text -> viewModel.sendChatMessage("DIRECTIVA", text, true) },
+                        onSendMessage = { ch, text, radio, rId, rSender, rText -> viewModel.sendChatMessage(ch, text, radio, rId, rSender, rText) },
+                        onSendAudio = { ch, file, dur, trans -> viewModel.sendAudioMessage(ch, file, dur, trans) },
                         onRequestDirectivaAccess = { viewModel.submitAccessRequest("", "", "", "", "", "", "", "", "SOLICITUD_DIRECTIVA") },
                         onUnlockWithMasterCode = { code -> viewModel.loginWithCode(code) },
                         onToggleDirectiva = { viewModel.toggleDirectivaMode() },
@@ -789,9 +791,11 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onToggleChatEnabled = { viewModel.toggleChatEnabled(it) },
                         onClearGeneralChat = { viewModel.clearGeneralChat() },
                         onDeleteChatMessage = { viewModel.deleteChatMessage(it) },
+                        onDeleteMessageForMe = { viewModel.deleteChatMessageForMe(it) },
                         onMarkChatMessageAsRead = { viewModel.markMessageAsRead(it) },
                         onMarkChannelAsRead = { viewModel.markChannelMessagesAsRead(it) },
                         onSendSticker = { ch, file -> viewModel.sendStickerMessage(ch, file) },
+                        onToggleReaction = { msgId, emoji -> viewModel.toggleMessageReaction(msgId, emoji) },
                         onToggleChatMute = { member, isMuted, reason -> viewModel.toggleMemberChatMute(member, isMuted, reason) },
                         onSuspendMember = { member, reason, days -> viewModel.suspendMember(member, reason, days) },
                         onReactivateMember = { member -> viewModel.reactivateMember(member) },

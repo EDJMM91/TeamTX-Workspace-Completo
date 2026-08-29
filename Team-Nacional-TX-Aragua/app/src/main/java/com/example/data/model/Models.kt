@@ -696,8 +696,15 @@ data class ChatMessage(
 
     // Soporte de Notas de Voz / Audio
     var audioDurationSeconds: Int = 0,
-    var audioUrl: String? = null
+    var audioUrl: String? = null,
+
+    // Enfoque Offline-First / Cola Local
+    var syncStatus: String = "SENT", // "PENDING", "SENDING", "SENT", "DELIVERED", "READ"
+    var localMediaPath: String? = null
 ) {
+    val isPending: Boolean
+        get() = syncStatus == "PENDING" || syncStatus == "SENDING"
+
     val isSticker: Boolean
         get() = messageType == MessageType.STICKER && (stickerFileName != null || stickerFilePath != null)
 
