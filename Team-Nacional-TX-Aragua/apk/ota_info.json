@@ -1,6 +1,6 @@
 {
   "versionCode": 11,
   "versionName": "1.2.9-beta",
-  "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/apk/TeamTX-latest.apk",
-  "notas": "Actualización Team TX: Mejoras en Chat de Directiva, notas de voz, info de lectura de mensajes, corrección de teclado y nuevo actualizador OTA directo."
+  "urlDescarga": "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd",
+  "notas": "Actualización Team TX: Nuevo manual interactivo de usuario para 13 módulos, soporte completo de notas de voz, chat de directiva renovado, verificación de lectura de mensajes y descargas directas de alta velocidad desde Firebase Storage."
 }

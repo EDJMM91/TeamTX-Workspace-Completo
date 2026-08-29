@@ -347,6 +347,28 @@ object GestorActualizaciones {
     fun abrirDescargaEnNavegador(context: Context, url: String) {
         try {
             val urlLimpia = url.trim()
+            if (urlLimpia.startsWith("gs://") || urlLimpia.startsWith("updates/")) {
+                val storageRef = try {
+                    if (urlLimpia.startsWith("gs://")) {
+                        com.google.firebase.storage.FirebaseStorage.getInstance().getReferenceFromUrl(urlLimpia)
+                    } else {
+                        com.google.firebase.storage.FirebaseStorage.getInstance().reference.child(urlLimpia)
+                    }
+                } catch (_: Exception) {
+                    com.google.firebase.storage.FirebaseStorage.getInstance().reference.child("updates/TeamTX-latest.apk")
+                }
+
+                storageRef.downloadUrl.addOnSuccessListener { uri ->
+                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(intent)
+                }.addOnFailureListener {
+                    Toast.makeText(context, "No se pudo obtener el enlace de descarga.", Toast.LENGTH_SHORT).show()
+                }
+                return
+            }
+
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlLimpia)).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
