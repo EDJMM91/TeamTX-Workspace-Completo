@@ -108,3 +108,7 @@ al compilar ✅ App lanzada en ambos dispositivos (com.aistudio.teamtxvzla.rkqp)
 > 2. **Evitar el error de verificación de integridad (`Room cannot verify the data integrity`)**:
 >    - Si se modifica alguna entidad sin registrar la migración SQL e incrementar la versión en `AppDatabase.kt`, la aplicación crasheará en segundo plano y se cerrará sin llegar al panel principal (Feed / Muro).
 >    - **Regla preventiva:** Siempre auditar y revisar si se hizo un cambio en SQL, DAOs o Base de Datos antes de compilar y desplegar.
+>
+> ### 📜 Registro Histórico de Migraciones Room:
+> - **Migración SQL 25 -> 26 Registrada:** Gamificación y reputación de pilotos (`positiveRatingsCount`, `negativeRatingsCount`, `reputationPoints`, `ratedByMemberIdsJson`).
+> - **Migración SQL 26 -> 27 Registrada:** Ubicación de eventos en publicaciones (`locationCoordinates`, `locationName` en tabla `publications`).

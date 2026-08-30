@@ -56,6 +56,13 @@ import android.widget.Toast
 import com.example.data.model.*
 import com.example.ui.components.openUrl
 import com.example.ui.theme.*
+import com.example.mapa.PuenteMapa
+import com.example.mapa.GestorPortapapeles
+import com.example.mapa.AnalizadorCoordenadas
+import com.example.chat.GestorUbicacion
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.Lifecycle
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -89,7 +96,9 @@ fun FeedScreen(
         challengeBadge: String?,
         telegramUrl: String?,
         imageUri: Uri?,
-        allowComments: Boolean
+        allowComments: Boolean,
+        locationCoordinates: String?,
+        locationName: String?
     ) -> Unit,
     onShare: (Publication) -> Unit = {},
     onSave: (Publication) -> Unit = {},
@@ -509,6 +518,16 @@ fun FeedScreen(
                                 label = "Comunicados"
                             )
                         }
+                        item {
+                            FeedFilterChip(
+                                selected = selectedCategoryFilter == NoticeCategory.EMERGENCIA,
+                                onClick = {
+                                    selectedCategoryFilter =
+                                        if (selectedCategoryFilter == NoticeCategory.EMERGENCIA) null else NoticeCategory.EMERGENCIA
+                                },
+                                label = "🚨 Emergencias SOS"
+                            )
+                        }
                     }
                 }
             }
@@ -641,8 +660,8 @@ fun FeedScreen(
     if (showCreateDialog) {
         CreateNoticeDialog(
             onDismiss = { showCreateDialog = false },
-            onCreate = { title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments ->
-                onCreatePublication(title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments)
+            onCreate = { title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName ->
+                onCreatePublication(title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName)
                 showCreateDialog = false
             }
         )
@@ -814,6 +833,7 @@ fun NoticeCard(
                             NoticeCategory.AVISO_OFICIAL -> if (isDark) Pair(Color(0xFF331E18), Color(0xFFFF8A65)) else Pair(Color(0xFFFFEBE6), Color(0xFFD84315))
                             NoticeCategory.RETO_MOTERO -> if (isDark) Pair(Color(0xFF332314), Color(0xFFFFB74D)) else Pair(Color(0xFFFFF3E0), Color(0xFFE65100))
                             NoticeCategory.COMUNICADO -> if (isDark) Pair(Color(0xFF15283E), Color(0xFF64B5F6)) else Pair(Color(0xFFE3F2FD), Color(0xFF1565C0))
+                            NoticeCategory.EMERGENCIA -> if (isDark) Pair(Color(0xFF3E1515), Color(0xFFFF5252)) else Pair(Color(0xFFFFEBEE), Color(0xFFD32F2F))
                             NoticeCategory.NOTICIA_RUTA -> if (isDark) Pair(Color(0xFF1B3322), Color(0xFF81C784)) else Pair(Color(0xFFE8F5E9), Color(0xFF2E7D32))
                             NoticeCategory.CAPACITACION -> if (isDark) Pair(Color(0xFF2C1938), Color(0xFFBA68C8)) else Pair(Color(0xFFF3E5F5), Color(0xFF6A1B9A))
                         }
@@ -1028,6 +1048,66 @@ fun NoticeCard(
                                     fontSize = 11.sp
                                 )
                             }
+                        }
+                    }
+                }
+
+                // 📍 Lugar del Evento / Punto de Encuentro (Botón para abrir Mapa TX)
+                if (!pub.locationCoordinates.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isDark) Color(0xFF1B2838) else Color(0xFFE8F4FD),
+                        border = BorderStroke(1.dp, if (isDark) Color(0xFF2E5C8A) else Color(0xFF90CAF9)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable {
+                                PuenteMapa.mostrarUbicacionEnMapa(
+                                    contexto = context,
+                                    coordenadas = pub.locationCoordinates!!,
+                                    tituloEtiqueta = pub.locationName?.ifBlank { null } ?: pub.title
+                                )
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFEF5350).copy(alpha = 0.2f),
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.LocationOn,
+                                        contentDescription = "Ubicación del evento",
+                                        tint = Color(0xFFEF5350),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = pub.locationName?.ifBlank { null } ?: "Ver lugar del evento",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = if (isDark) Color(0xFF90CAF9) else Color(0xFF1565C0)
+                                )
+                                Text(
+                                    text = "📍 ${pub.locationCoordinates} • Toca para abrir Mapa TX",
+                                    fontSize = 11.sp,
+                                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                                )
+                            }
+                            Icon(
+                                Icons.Default.Navigation,
+                                contentDescription = "Abrir Mapa TX",
+                                tint = MotoOrangePrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
                 }
@@ -1346,7 +1426,9 @@ fun CreateNoticeDialog(
         challengeBadge: String?,
         telegramUrl: String?,
         imageUri: Uri?,
-        allowComments: Boolean
+        allowComments: Boolean,
+        locationCoordinates: String?,
+        locationName: String?
     ) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
@@ -1359,6 +1441,32 @@ fun CreateNoticeDialog(
     var challengeBadge by remember { mutableStateOf("") }
     var telegramUrl by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var locationName by remember { mutableStateOf("") }
+    var locationCoordinates by remember { mutableStateOf("") }
+    var autoDetectedCoordsMsg by remember { mutableStateOf<String?>(null) }
+    var estaCapturandoGps by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val gestorUbicacion = remember { GestorUbicacion(context) }
+
+    // 📋 Detección automática de coordenadas desde el portapapeles al regresar del Mapa TX
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val coordsPortapapeles = GestorPortapapeles.leerCoordenadaValida(context)
+                if (coordsPortapapeles != null && coordsPortapapeles != locationCoordinates) {
+                    locationCoordinates = coordsPortapapeles
+                    autoDetectedCoordsMsg = "¡Coordenada copiada desde el Mapa TX detectada!"
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -1383,7 +1491,7 @@ fun CreateNoticeDialog(
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
-                        label = { Text("Título del Aviso o Reto") },
+                        label = { Text("Título del Aviso, Reto o Alerta") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("input_notice_title")
@@ -1406,7 +1514,12 @@ fun CreateNoticeDialog(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        NoticeCategory.values().take(3).forEach { cat ->
+                        listOf(
+                            NoticeCategory.AVISO_OFICIAL,
+                            NoticeCategory.RETO_MOTERO,
+                            NoticeCategory.COMUNICADO,
+                            NoticeCategory.EMERGENCIA
+                        ).forEach { cat ->
                             FilterChip(
                                 selected = category == cat,
                                 onClick = { category = cat },
@@ -1433,6 +1546,169 @@ fun CreateNoticeDialog(
                         )
                     }
                 }
+
+                // 📍 SECCIÓN: UBICACIÓN DEL EVENTO (Extractor Mapa TX / Portapapeles)
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, if (locationCoordinates.isNotBlank()) Color(0xFF4CAF50).copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = if (locationCoordinates.isNotBlank()) Color(0xFF4CAF50) else Color(0xFFEF5350),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Ubicación del Evento / Punto de Encuentro",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            OutlinedTextField(
+                                value = locationName,
+                                onValueChange = { locationName = it },
+                                label = { Text("Nombre del Sitio / Local (Opcional)") },
+                                placeholder = { Text("Ej: Club de Abogados, Bomba PDV...") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // Botón para ir al Mapa TX
+                            OutlinedButton(
+                                onClick = {
+                                    val coordsActuales = if (locationCoordinates.isNotBlank()) locationCoordinates else "10.228,-67.475"
+                                    PuenteMapa.mostrarUbicacionEnMapa(
+                                        contexto = context,
+                                        coordenadas = coordsActuales,
+                                        tituloEtiqueta = locationName.ifBlank { "Punto de Evento" }
+                                    )
+                                    Toast.makeText(context, "👉 En el mapa: toque prolongado en el lugar -> 'Copiar' o 'Compartir'", Toast.LENGTH_LONG).show()
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00B0FF)),
+                                border = BorderStroke(1.dp, Color(0xFF00B0FF).copy(alpha = 0.6f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("🗺️ Seleccionar Ubicación en Mapa TX", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Botones de acción rápida: Pegar y GPS
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val coords = GestorPortapapeles.leerCoordenadaValida(context)
+                                        if (coords != null) {
+                                            locationCoordinates = coords
+                                            autoDetectedCoordsMsg = "Coordenada pegada del portapapeles"
+                                            Toast.makeText(context, "✅ Coordenada detectada: $coords", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            val texto = GestorPortapapeles.leerTexto(context)
+                                            if (texto.isNullOrBlank()) {
+                                                Toast.makeText(context, "El portapapeles está vacío", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, "No se encontraron coordenadas en el texto copiado", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("📋 Pegar", fontSize = 11.sp)
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            estaCapturandoGps = true
+                                            val coords = gestorUbicacion.capturarCoordenadaActual()
+                                            estaCapturandoGps = false
+                                            if (coords != null) {
+                                                locationCoordinates = coords
+                                                autoDetectedCoordsMsg = "Ubicación GPS actual capturada"
+                                                Toast.makeText(context, "📍 GPS actual: $coords", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, "No se pudo obtener la posición GPS", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    if (estaCapturandoGps) {
+                                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("📍 Mi GPS", fontSize = 11.sp)
+                                    }
+                                }
+                            }
+
+                            // Feedback visual de éxito cuando hay coordenadas
+                            if (locationCoordinates.isNotBlank()) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF4CAF50).copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.4f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                                            Column {
+                                                Text(
+                                                    text = "Coordenadas fijadas: $locationCoordinates",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSystemInDarkTheme()) Color(0xFF81C784) else Color(0xFF2E7D32)
+                                                )
+                                                autoDetectedCoordsMsg?.let { msg ->
+                                                    Text(text = msg, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                }
+                                            }
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                locationCoordinates = ""
+                                                autoDetectedCoordsMsg = null
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = "Borrar", tint = Color.Gray, modifier = Modifier.size(14.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 item {
                     OutlinedTextField(
                         value = telegramUrl,
@@ -1531,7 +1807,9 @@ fun CreateNoticeDialog(
                             if (challengeBadge.isNotBlank()) challengeBadge else null,
                             if (telegramUrl.isNotBlank()) telegramUrl else null,
                             selectedImageUri,
-                            allowComments
+                            allowComments,
+                            if (locationCoordinates.isNotBlank()) locationCoordinates.trim() else null,
+                            if (locationName.isNotBlank()) locationName.trim() else null
                         )
                     }
                 },
@@ -1565,6 +1843,32 @@ fun EditNoticeDialog(
     var challengeBadge by remember { mutableStateOf(pub.challengeBadgeText ?: "") }
     var telegramUrl by remember { mutableStateOf(pub.telegramPostUrl ?: "") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var locationName by remember { mutableStateOf(pub.locationName ?: "") }
+    var locationCoordinates by remember { mutableStateOf(pub.locationCoordinates ?: "") }
+    var autoDetectedCoordsMsg by remember { mutableStateOf<String?>(null) }
+    var estaCapturandoGps by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val gestorUbicacion = remember { GestorUbicacion(context) }
+
+    // 📋 Detección automática de coordenadas desde el portapapeles al regresar del Mapa TX
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val coordsPortapapeles = GestorPortapapeles.leerCoordenadaValida(context)
+                if (coordsPortapapeles != null && coordsPortapapeles != locationCoordinates) {
+                    locationCoordinates = coordsPortapapeles
+                    autoDetectedCoordsMsg = "¡Coordenada copiada desde el Mapa TX detectada!"
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -1608,7 +1912,12 @@ fun EditNoticeDialog(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        NoticeCategory.values().take(3).forEach { cat ->
+                        listOf(
+                            NoticeCategory.AVISO_OFICIAL,
+                            NoticeCategory.RETO_MOTERO,
+                            NoticeCategory.COMUNICADO,
+                            NoticeCategory.EMERGENCIA
+                        ).forEach { cat ->
                             FilterChip(
                                 selected = category == cat,
                                 onClick = { category = cat },
@@ -1635,6 +1944,169 @@ fun EditNoticeDialog(
                         )
                     }
                 }
+
+                // 📍 SECCIÓN: UBICACIÓN DEL EVENTO (Extractor Mapa TX / Portapapeles)
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, if (locationCoordinates.isNotBlank()) Color(0xFF4CAF50).copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = if (locationCoordinates.isNotBlank()) Color(0xFF4CAF50) else Color(0xFFEF5350),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Ubicación del Evento / Punto de Encuentro",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            OutlinedTextField(
+                                value = locationName,
+                                onValueChange = { locationName = it },
+                                label = { Text("Nombre del Sitio / Local (Opcional)") },
+                                placeholder = { Text("Ej: Club de Abogados, Bomba PDV...") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // Botón para ir al Mapa TX
+                            OutlinedButton(
+                                onClick = {
+                                    val coordsActuales = if (locationCoordinates.isNotBlank()) locationCoordinates else "10.228,-67.475"
+                                    PuenteMapa.mostrarUbicacionEnMapa(
+                                        contexto = context,
+                                        coordenadas = coordsActuales,
+                                        tituloEtiqueta = locationName.ifBlank { "Punto de Evento" }
+                                    )
+                                    Toast.makeText(context, "👉 En el mapa: toque prolongado en el lugar -> 'Copiar' o 'Compartir'", Toast.LENGTH_LONG).show()
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00B0FF)),
+                                border = BorderStroke(1.dp, Color(0xFF00B0FF).copy(alpha = 0.6f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("🗺️ Seleccionar Ubicación en Mapa TX", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Botones de acción rápida: Pegar y GPS
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val coords = GestorPortapapeles.leerCoordenadaValida(context)
+                                        if (coords != null) {
+                                            locationCoordinates = coords
+                                            autoDetectedCoordsMsg = "Coordenada pegada del portapapeles"
+                                            Toast.makeText(context, "✅ Coordenada detectada: $coords", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            val texto = GestorPortapapeles.leerTexto(context)
+                                            if (texto.isNullOrBlank()) {
+                                                Toast.makeText(context, "El portapapeles está vacío", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, "No se encontraron coordenadas en el texto copiado", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("📋 Pegar", fontSize = 11.sp)
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            estaCapturandoGps = true
+                                            val coords = gestorUbicacion.capturarCoordenadaActual()
+                                            estaCapturandoGps = false
+                                            if (coords != null) {
+                                                locationCoordinates = coords
+                                                autoDetectedCoordsMsg = "Ubicación GPS actual capturada"
+                                                Toast.makeText(context, "📍 GPS actual: $coords", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                Toast.makeText(context, "No se pudo obtener la posición GPS", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    if (estaCapturandoGps) {
+                                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("📍 Mi GPS", fontSize = 11.sp)
+                                    }
+                                }
+                            }
+
+                            // Feedback visual de éxito cuando hay coordenadas
+                            if (locationCoordinates.isNotBlank()) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF4CAF50).copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.4f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                                            Column {
+                                                Text(
+                                                    text = "Coordenadas fijadas: $locationCoordinates",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSystemInDarkTheme()) Color(0xFF81C784) else Color(0xFF2E7D32)
+                                                )
+                                                autoDetectedCoordsMsg?.let { msg ->
+                                                    Text(text = msg, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                }
+                                            }
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                locationCoordinates = ""
+                                                autoDetectedCoordsMsg = null
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = "Borrar", tint = Color.Gray, modifier = Modifier.size(14.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 item {
                     OutlinedTextField(
                         value = telegramUrl,
@@ -1742,7 +2214,9 @@ fun EditNoticeDialog(
                             targetChallengeDistanceKm = km,
                             challengeBadgeText = if (challengeBadge.isNotBlank()) challengeBadge else null,
                             telegramPostUrl = if (telegramUrl.isNotBlank()) telegramUrl else null,
-                            allowComments = allowComments
+                            allowComments = allowComments,
+                            locationCoordinates = if (locationCoordinates.isNotBlank()) locationCoordinates.trim() else null,
+                            locationName = if (locationName.isNotBlank()) locationName.trim() else null
                         )
                         onConfirmEdit(updated, selectedImageUri)
                     }

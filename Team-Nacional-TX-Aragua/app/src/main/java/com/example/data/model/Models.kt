@@ -212,7 +212,8 @@ enum class ConvoyRoleType(val label: String, val shortDesc: String, val colorHex
 enum class NoticeCategory(val displayName: String, val iconName: String) {
     AVISO_OFICIAL("Aviso Oficial", "announcement"),
     RETO_MOTERO("Reto Motero TX", "trophy"),
-    COMUNICADO("Comunicado Directiva", "campaign"),
+    COMUNICADO("Comunicado", "campaign"),
+    EMERGENCIA("Emergencia SOS", "warning"),
     NOTICIA_RUTA("Reporte de Carretera", "map"),
     CAPACITACION("Taller / Mecánica", "build")
 }
@@ -501,7 +502,9 @@ data class Publication(
     var imageUrl: String? = null,
     var allowComments: Boolean = true,
     var sharesCount: Int = 0,
-    var savesCount: Int = 0
+    var savesCount: Int = 0,
+    var locationCoordinates: String? = null,
+    var locationName: String? = null
 )
 
 @Entity(tableName = "ride_events")

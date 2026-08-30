@@ -490,7 +490,9 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         challengeBadge: String? = null,
         telegramUrl: String? = null,
         imageUri: Uri? = null,
-        allowComments: Boolean = true
+        allowComments: Boolean = true,
+        locationCoordinates: String? = null,
+        locationName: String? = null
     ) {
         viewModelScope.launch {
             _isUploadingPublication.value = true
@@ -535,11 +537,13 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     telegramPostUrl = telegramUrl,
                     imageUrl = uploadedImageUrl,
                     allowComments = allowComments,
+                    locationCoordinates = locationCoordinates?.trim()?.ifBlank { null },
+                    locationName = locationName?.trim()?.ifBlank { null },
                     timestamp = System.currentTimeMillis()
                 )
                 repository.insertPublication(pub)
                 _publicationUploadSuccess.value = true
-                Log.i("TeamTxViewModel", "✅ Publicación creada (imagen: $uploadOrigen)")
+                Log.i("TeamTxViewModel", "✅ Publicación creada con ubicación: ${pub.locationCoordinates} (imagen: $uploadOrigen)")
             } catch (e: Exception) {
                 Log.e("TeamTxViewModel", "❌ Error creando publicación", e)
                 _publicationUploadError.value = "Error al publicar: ${e.message}"

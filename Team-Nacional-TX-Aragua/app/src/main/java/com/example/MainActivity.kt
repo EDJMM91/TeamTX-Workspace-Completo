@@ -457,8 +457,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onDelete = { viewModel.deletePublication(it) },
                         onUpdatePublication = { pub, uri -> viewModel.updatePublication(pub, uri) },
                         onAddComment = { pubId, content -> viewModel.addNoticeComment(pubId, content) },
-                        onCreatePublication = { title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments ->
-                            viewModel.createPublication(title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments)
+                        onCreatePublication = { title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName ->
+                            viewModel.createPublication(title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName)
                         },
                         onShare = { viewModel.sharePublication(it) },
                         onSave = { viewModel.savePublication(it) },

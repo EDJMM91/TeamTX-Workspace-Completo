@@ -40,7 +40,7 @@ import kotlinx.coroutines.launch
         UserChallengeProgress::class,
         BikerCalendarEvent::class
     ],
-    version = 26, // 🛡️ Módulos: Ranking, Calificación de Pilotos y Reputación Gamificada
+    version = 27, // 🛡️ Módulos: Ubicación de Eventos, Extracción de Portapapeles y Emergencias SOS
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -543,6 +543,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                try {
+                    db.execSQL("ALTER TABLE `publications` ADD COLUMN `locationCoordinates` TEXT DEFAULT NULL")
+                } catch (e: Exception) {}
+                try {
+                    db.execSQL("ALTER TABLE `publications` ADD COLUMN `locationName` TEXT DEFAULT NULL")
+                } catch (e: Exception) {}
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -550,7 +561,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "team_tx_venezuela_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27)
                 .fallbackToDestructiveMigration(dropAllTables = true) // 🛡️ Fuerza la limpieza total para evitar conflicto de IDs
                 .addCallback(DatabaseCallback(scope))
                 .build()
