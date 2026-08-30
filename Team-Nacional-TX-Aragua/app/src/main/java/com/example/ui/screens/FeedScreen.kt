@@ -6,6 +6,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,25 +22,47 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
+import android.content.ContentValues
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.Toast
 import com.example.data.model.*
 import com.example.ui.components.openUrl
 import com.example.ui.theme.*
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +88,12 @@ fun FeedScreen(
         imageUri: Uri?,
         allowComments: Boolean
     ) -> Unit,
+    onShare: (Publication) -> Unit = {},
+    onSave: (Publication) -> Unit = {},
+    dismissedNoticeIds: Set<Long> = emptySet(),
+    onDismissNotice: (Long) -> Unit = {},
+    onClearAllNotices: (List<Long>) -> Unit = {},
+    onRestoreDismissedNotices: () -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     uploadError: String? = null,
@@ -75,6 +104,8 @@ fun FeedScreen(
     var selectedCategoryFilter by remember { mutableStateOf<NoticeCategory?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var selectedPublicationForEdit by remember { mutableStateOf<Publication?>(null) }
+    var viewingFlyerPublication by remember { mutableStateOf<Publication?>(null) }
+    var sharingPublication by remember { mutableStateOf<Publication?>(null) }
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     val screenBg = if (isDark) Color(0xFF121212) else Color(0xFFF2F4F7)
@@ -87,12 +118,13 @@ fun FeedScreen(
         }
     }
 
-    val validPublications = remember(publications) {
+    val validPublications = remember(publications, dismissedNoticeIds) {
         publications.filter {
             val t = it.title.trim()
             val c = it.content.trim()
             val isDefaultOnly = (t.equals("Aviso Oficial", ignoreCase = true) && c.isEmpty()) || (c.equals("Aviso Oficial", ignoreCase = true) && t.isEmpty())
-            (t.isNotBlank() || c.isNotBlank()) && !isDefaultOnly && it.id != 0L
+            val isValid = (t.isNotBlank() || c.isNotBlank()) && !isDefaultOnly && it.id != 0L
+            isValid && !dismissedNoticeIds.contains(it.id)
         }
     }
 
@@ -336,27 +368,91 @@ fun FeedScreen(
                             fontWeight = FontWeight.Bold,
                             color = if (isDark) Color.White else Color(0xFF1E293B)
                         )
-                        IconButton(
-                            onClick = onRefresh,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .testTag("btn_refresh_feed")
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            if (isRefreshing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = TxFlameRed
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Actualizar avisos",
-                                    tint = TxFlameRed
+                            if (filteredList.isNotEmpty()) {
+                                OutlinedButton(
+                                    onClick = { onClearAllNotices(filteredList.map { it.id }) },
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(30.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.CleaningServices,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(13.dp),
+                                        tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        "Limpiar",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                                    )
+                                }
+                            }
+
+                            IconButton(
+                                onClick = onRefresh,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .testTag("btn_refresh_feed")
+                            ) {
+                                if (isRefreshing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp,
+                                        color = TxFlameRed
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Actualizar avisos",
+                                        tint = TxFlameRed
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (dismissedNoticeIds.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = onRestoreDismissedNotices)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(Icons.Default.VisibilityOff, contentDescription = null, tint = MotoGoldSecondary, modifier = Modifier.size(15.dp))
+                                    Text(
+                                        text = "${dismissedNoticeIds.size} avisos ocultados de tu pantalla",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
+                                    )
+                                }
+                                Text(
+                                    text = "Restaurar",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MotoOrangePrimary
                                 )
                             }
                         }
                     }
+
                     Spacer(modifier = Modifier.height(8.dp))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -423,11 +519,25 @@ fun FeedScreen(
                             .padding(vertical = 40.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "No hay avisos en esta categoría",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircleOutline,
+                                contentDescription = null,
+                                tint = MotoGoldSecondary,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (dismissedNoticeIds.isNotEmpty()) "¡Pantalla limpia! Todos los avisos fueron leídos." else "No hay avisos en esta categoría",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (dismissedNoticeIds.isNotEmpty()) {
+                                TextButton(onClick = onRestoreDismissedNotices) {
+                                    Text("Ver avisos ocultados", color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
                 }
             } else {
@@ -443,11 +553,95 @@ fun FeedScreen(
                         onLike = { onLike(pub) },
                         onDelete = { onDelete(pub.id) },
                         onEdit = { selectedPublicationForEdit = pub },
-                        onAddComment = { content -> onAddComment(pub.id, content) }
+                        onAddComment = { content -> onAddComment(pub.id, content) },
+                        onViewFlyer = { viewingFlyerPublication = pub },
+                        onOpenShareDialog = { sharingPublication = pub },
+                        onDismissNotice = { onDismissNotice(pub.id) },
+                        onQuickSave = {
+                            if (!pub.imageUrl.isNullOrBlank()) {
+                                saveFlyerToGallery(context, pub.imageUrl!!, pub) {
+                                    onSave(pub)
+                                }
+                            } else {
+                                copyNoticeTextForStatus(context, pub) {
+                                    onSave(pub)
+                                }
+                            }
+                        }
                     )
                 }
             }
         }
+    }
+
+    if (viewingFlyerPublication != null) {
+        FlyerImageViewerDialog(
+            pub = viewingFlyerPublication!!,
+            onDismiss = { viewingFlyerPublication = null },
+            onSave = {
+                val p = viewingFlyerPublication
+                if (p != null && !p.imageUrl.isNullOrBlank()) {
+                    saveFlyerToGallery(context, p.imageUrl!!, p) {
+                        onSave(p)
+                    }
+                }
+            },
+            onShare = {
+                val p = viewingFlyerPublication
+                if (p != null) {
+                    shareNotice(context, p) {
+                        onShare(p)
+                    }
+                }
+            },
+            onCopyStatusText = {
+                val p = viewingFlyerPublication
+                if (p != null) {
+                    copyNoticeTextForStatus(context, p) {
+                        onShare(p)
+                    }
+                }
+            }
+        )
+    }
+
+    if (sharingPublication != null) {
+        ShareNoticeDialog(
+            pub = sharingPublication!!,
+            onDismiss = { sharingPublication = null },
+            onShareWhatsApp = {
+                val p = sharingPublication
+                if (p != null) {
+                    shareNotice(context, p) {
+                        onShare(p)
+                    }
+                }
+                sharingPublication = null
+            },
+            onCopyStatus = {
+                val p = sharingPublication
+                if (p != null) {
+                    copyNoticeTextForStatus(context, p) {
+                        onShare(p)
+                    }
+                }
+                sharingPublication = null
+            },
+            onSaveFlyer = {
+                val p = sharingPublication
+                if (p != null && !p.imageUrl.isNullOrBlank()) {
+                    saveFlyerToGallery(context, p.imageUrl!!, p) {
+                        onSave(p)
+                    }
+                }
+                sharingPublication = null
+            },
+            onViewFullFlyer = {
+                val p = sharingPublication
+                sharingPublication = null
+                viewingFlyerPublication = p
+            }
+        )
     }
 
     if (showCreateDialog) {
@@ -517,6 +711,10 @@ fun NoticeCard(
     onDelete: () -> Unit,
     onEdit: () -> Unit = {},
     onAddComment: (String) -> Unit = {},
+    onViewFlyer: () -> Unit = {},
+    onOpenShareDialog: () -> Unit = {},
+    onQuickSave: () -> Unit = {},
+    onDismissNotice: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -656,8 +854,20 @@ fun NoticeCard(
                         }
                     }
 
-                    if (canDelete) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = onDismissNotice,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.VisibilityOff,
+                                contentDescription = "Ocultar aviso de mi pantalla",
+                                tint = if (isDark) Color(0xFF9E9E9E) else Color(0xFF757575),
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+
+                        if (canDelete) {
                             IconButton(
                                 onClick = onEdit,
                                 modifier = Modifier.size(32.dp)
@@ -675,7 +885,7 @@ fun NoticeCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
-                                    contentDescription = "Eliminar aviso",
+                                    contentDescription = "Eliminar aviso definitivamente",
                                     tint = StatusError,
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -704,60 +914,83 @@ fun NoticeCard(
                 )
             }
 
-            // Flyer / Imagen de la publicación (Ancho completo de borde a borde sin padding lateral)
+            // Flyer / Imagen de la publicación (Ancho completo con soporte para tocar y ver pantalla completa)
             if (!pub.imageUrl.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 val imageUrl = pub.imageUrl
                 LaunchedEffect(imageUrl) {
                     android.util.Log.d("TEAM_TX_IMAGES", "🖼️ Cargando flyer para: ${pub.title} | URL: $imageUrl")
                 }
-                SubcomposeAsyncImage(
-                    model = imageUrl,
-                    contentDescription = "Flyer de la Publicación",
-                    loading = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(220.dp)
-                                .background(if (isDark) Color(0xFF262626) else Color(0xFFF5F5F5)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(28.dp),
-                                color = TxFlameRed,
-                                strokeWidth = 2.dp
-                            )
-                        }
-                    },
-                    error = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
-                                .background(if (isDark) Color(0xFF262626) else Color(0xFFF5F5F5)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.BrokenImage,
-                                    contentDescription = "Error al cargar imagen",
-                                    tint = if (isDark) Color(0xFF757575) else Color(0xFF9E9E9E),
-                                    modifier = Modifier.size(36.dp)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "Error al cargar imagen",
-                                    fontSize = 11.sp,
-                                    color = if (isDark) Color(0xFF757575) else Color(0xFF9E9E9E)
-                                )
-                            }
-                        }
-                    },
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 180.dp, max = 420.dp),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                )
+                        .heightIn(min = 180.dp, max = 420.dp)
+                        .clickable(onClick = onViewFlyer)
+                ) {
+                    SubcomposeAsyncImage(
+                        model = imageUrl,
+                        contentDescription = "Flyer de la Publicación",
+                        loading = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(220.dp)
+                                    .background(if (isDark) Color(0xFF262626) else Color(0xFFF5F5F5)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    color = TxFlameRed,
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        },
+                        error = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(160.dp)
+                                    .background(if (isDark) Color(0xFF262626) else Color(0xFFF5F5F5)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = Icons.Default.BrokenImage,
+                                        contentDescription = "Error al cargar imagen",
+                                        tint = if (isDark) Color(0xFF757575) else Color(0xFF9E9E9E),
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "Error al cargar imagen",
+                                        fontSize = 11.sp,
+                                        color = if (isDark) Color(0xFF757575) else Color(0xFF9E9E9E)
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 420.dp),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+
+                    // Overlay flotante: Ver Flyer en Grande
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.Black.copy(alpha = 0.65f),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Fullscreen, contentDescription = "Ver en Grande", tint = Color.White, modifier = Modifier.size(15.dp))
+                            Text("Ver Flyer", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
 
             // Bottom Section (Reto, Footer, Comments)
@@ -808,7 +1041,7 @@ fun NoticeCard(
                 HorizontalDivider(color = if (isDark) Color.White.copy(alpha = 0.06f) else Color(0xFFF1F5F9))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Footer: Author, Date, Likes, Telegram post & Comments Button
+                // Footer: Author, Date, Likes, Shares, Saves & Comments Button
                 val secondaryTextColor = if (isDark) Color(0xFF9E9E9E) else Color(0xFF757575)
 
                 Row(
@@ -816,34 +1049,36 @@ fun NoticeCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
                         Text(
                             text = pub.authorName,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
+                            color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = dateStr,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             color = secondaryTextColor
                         )
                     }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        horizontalArrangement = Arrangement.spacedBy(1.dp)
                     ) {
                         if (pub.telegramPostUrl != null) {
                             IconButton(
                                 onClick = { openUrl(context, pub.telegramPostUrl!!) },
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(30.dp)
                             ) {
                                 Icon(
                                     Icons.Default.Send,
                                     contentDescription = "Ver en Telegram",
                                     tint = TelegramBlue,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
                             }
                         }
@@ -851,19 +1086,19 @@ fun NoticeCard(
                         // Comments toggle button
                         TextButton(
                             onClick = { isCommentsExpanded = !isCommentsExpanded },
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
                             modifier = Modifier.testTag("btn_comments_${pub.id}")
                         ) {
                             Icon(
                                 Icons.Default.ChatBubbleOutline,
                                 contentDescription = "Respuestas",
                                 tint = if (isCommentsExpanded) TxFlameRed else secondaryTextColor,
-                                modifier = Modifier.size(15.dp)
+                                modifier = Modifier.size(14.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = "${comments.size}",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (isCommentsExpanded) TxFlameRed else secondaryTextColor
                             )
@@ -875,22 +1110,68 @@ fun NoticeCard(
 
                         TextButton(
                             onClick = onLike,
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
                             modifier = Modifier.testTag("btn_like_${pub.id}")
                         ) {
                             Icon(
                                 if (isLikedByMe) Icons.Default.ThumbUp else Icons.Outlined.ThumbUp,
                                 contentDescription = "Me gusta",
                                 tint = if (isLikedByMe) TxFlameRed else secondaryTextColor,
-                                modifier = Modifier.size(15.dp)
+                                modifier = Modifier.size(14.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = "${pub.likesCount}",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (isLikedByMe) TxFlameRed else secondaryTextColor
                             )
+                        }
+
+                        // Share button (WhatsApp / Estados)
+                        TextButton(
+                            onClick = onOpenShareDialog,
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                            modifier = Modifier.testTag("btn_share_${pub.id}")
+                        ) {
+                            Icon(
+                                Icons.Default.Share,
+                                contentDescription = "Compartir aviso",
+                                tint = if (pub.sharesCount > 0) Color(0xFF25D366) else secondaryTextColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            if (pub.sharesCount > 0) {
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "${pub.sharesCount}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF25D366)
+                                )
+                            }
+                        }
+
+                        // Save / Download button
+                        TextButton(
+                            onClick = onQuickSave,
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                            modifier = Modifier.testTag("btn_save_${pub.id}")
+                        ) {
+                            Icon(
+                                Icons.Default.SaveAlt,
+                                contentDescription = "Guardar flyer",
+                                tint = if (pub.savesCount > 0) MotoGoldSecondary else secondaryTextColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            if (pub.savesCount > 0) {
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "${pub.savesCount}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MotoGoldSecondary
+                                )
+                            }
                         }
                     }
                 }
@@ -1485,3 +1766,524 @@ fun EditNoticeDialog(
     )
 }
 
+/**
+ * Guarda un flyer o imagen de aviso directamente en la galería del dispositivo (Pictures/TeamTX)
+ */
+fun saveFlyerToGallery(
+    context: Context,
+    imageUrl: String,
+    pub: Publication,
+    onSaved: () -> Unit
+) {
+    Toast.makeText(context, "📥 Descargando flyer en alta resolución...", Toast.LENGTH_SHORT).show()
+    CoroutineScope(Dispatchers.IO).launch {
+        try {
+            val url = URL(imageUrl)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.doInput = true
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
+            connection.connect()
+            val inputStream: InputStream = connection.inputStream
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream.close()
+            connection.disconnect()
+
+            if (bitmap != null) {
+                val filename = "TeamTX_Flyer_${pub.id}_${System.currentTimeMillis()}.jpg"
+                val resolver = context.contentResolver
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/TeamTX")
+                        put(MediaStore.MediaColumns.IS_PENDING, 1)
+                    }
+                }
+
+                val imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                if (imageUri != null) {
+                    resolver.openOutputStream(imageUri)?.use { out ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        contentValues.clear()
+                        contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                        resolver.update(imageUri, contentValues, null, null)
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            "✅ Flyer guardado con éxito en Fotos / TeamTX",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        onSaved()
+                    }
+                } else {
+                    throw Exception("No se pudo crear entrada en MediaStore")
+                }
+            } else {
+                throw Exception("No se pudo procesar el formato de la imagen")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FeedScreen", "Error guardando flyer: ${e.message}", e)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    "❌ Error al guardar flyer: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+}
+
+/**
+ * Comparte el aviso con formato oficial a WhatsApp o cualquier otra app del sistema
+ */
+fun shareNotice(
+    context: Context,
+    pub: Publication,
+    onShared: () -> Unit
+) {
+    try {
+        val textBuilder = StringBuilder()
+        textBuilder.append("🏍️ *TEAM NACIONAL TX ARAGUA*\n")
+        textBuilder.append("📢 *${pub.category.displayName.uppercase()}*\n\n")
+        textBuilder.append("📌 *${pub.title}*\n\n")
+        textBuilder.append("${pub.content}\n\n")
+        if (pub.category == NoticeCategory.RETO_MOTERO && pub.targetChallengeDistanceKm > 0) {
+            textBuilder.append("🏆 *Reto Oficial:* ${pub.challengeBadgeText ?: "RETO TX"}\n")
+            textBuilder.append("📍 *Distancia Meta:* ${pub.targetChallengeDistanceKm} KM\n\n")
+        }
+        textBuilder.append("✍️ *Publicado por:* ${pub.authorName} (${pub.authorRole})\n")
+        if (!pub.imageUrl.isNullOrBlank()) {
+            textBuilder.append("🖼️ *Flyer adjunto:* ${pub.imageUrl}\n")
+        }
+        textBuilder.append("📲 _Comunidad Oficial Team TX Aragua_")
+
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, textBuilder.toString())
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, "Compartir Aviso Team TX")
+        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(shareIntent)
+        onShared()
+    } catch (e: Exception) {
+        android.util.Log.e("FeedScreen", "Error compartiendo aviso: ${e.message}")
+    }
+}
+
+/**
+ * Copia el texto formateado con emojis y hashtags listo para Estados de WhatsApp o Instagram Stories
+ */
+fun copyNoticeTextForStatus(
+    context: Context,
+    pub: Publication,
+    onCopied: () -> Unit
+) {
+    try {
+        val textBuilder = StringBuilder()
+        textBuilder.append("🏍️ *TEAM NACIONAL TX ARAGUA*\n")
+        textBuilder.append("📢 ${pub.category.displayName} • ${pub.title}\n\n")
+        textBuilder.append("${pub.content}\n\n")
+        if (pub.category == NoticeCategory.RETO_MOTERO && pub.targetChallengeDistanceKm > 0) {
+            textBuilder.append("🏁 Reto: ${pub.targetChallengeDistanceKm} KM • ${pub.challengeBadgeText ?: "Sello TX"}\n\n")
+        }
+        textBuilder.append("🔥 #TeamTX #TeamNacionalTX #MundoBiker #Aragua")
+
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        val clip = android.content.ClipData.newPlainText("Aviso Team TX", textBuilder.toString())
+        clipboard.setPrimaryClip(clip)
+
+        Toast.makeText(
+            context,
+            "📋 ¡Texto copiado para Estados de WhatsApp / Instagram!",
+            Toast.LENGTH_SHORT
+        ).show()
+        onCopied()
+    } catch (e: Exception) {
+        android.util.Log.e("FeedScreen", "Error copiando texto: ${e.message}")
+    }
+}
+
+/**
+ * Visor de flyer / imagen a pantalla completa con soporte inmersivo para zoom táctil (Pinch to Zoom),
+ * guardado en galería, compartir en WhatsApp y copiar texto de estados.
+ */
+@Composable
+fun FlyerImageViewerDialog(
+    pub: Publication,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+    onShare: () -> Unit,
+    onCopyStatusText: () -> Unit
+) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xF00A0E17))
+        ) {
+            // Central Zoomable Image
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            scale = (scale * zoom).coerceIn(1f, 4f)
+                            if (scale > 1f) {
+                                val maxOffsetX = (size.width * (scale - 1f)) / 2f
+                                val maxOffsetY = (size.height * (scale - 1f)) / 2f
+                                offset = Offset(
+                                    x = (offset.x + pan.x).coerceIn(-maxOffsetX, maxOffsetX),
+                                    y = (offset.y + pan.y).coerceIn(-maxOffsetY, maxOffsetY)
+                                )
+                            } else {
+                                offset = Offset.Zero
+                            }
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (!pub.imageUrl.isNullOrBlank()) {
+                    SubcomposeAsyncImage(
+                        model = pub.imageUrl,
+                        contentDescription = pub.title,
+                        loading = {
+                            CircularProgressIndicator(color = TxFlameRed, strokeWidth = 3.dp)
+                        },
+                        error = {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.BrokenImage, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(54.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("No se pudo cargar la imagen a pantalla completa", color = Color.Gray, fontSize = 13.sp)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(vertical = 80.dp)
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                translationX = offset.x
+                                translationY = offset.y
+                            },
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                    )
+                }
+            }
+
+            // Top Toolbar
+            Surface(
+                color = Color.Black.copy(alpha = 0.75f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
+                        }
+                        Column {
+                            Text(
+                                text = pub.title,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${pub.category.displayName} • ${pub.authorName}",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (scale > 1f) {
+                            IconButton(onClick = {
+                                scale = 1f
+                                offset = Offset.Zero
+                            }) {
+                                Icon(Icons.Default.RestartAlt, contentDescription = "Reset Zoom", tint = MotoGoldSecondary)
+                            }
+                        }
+                        IconButton(onClick = onSave) {
+                            Icon(Icons.Default.Download, contentDescription = "Guardar Imagen", tint = Color.White)
+                        }
+                        IconButton(onClick = onShare) {
+                            Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Color.White)
+                        }
+                    }
+                }
+            }
+
+            // Bottom Actions Bar
+            Surface(
+                color = Color.Black.copy(alpha = 0.85f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    if (pub.content.isNotBlank()) {
+                        Text(
+                            text = pub.content,
+                            color = Color(0xFFE2E8F0),
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(bottom = 10.dp)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Guardar Flyer
+                        Button(
+                            onClick = onSave,
+                            colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier.weight(1f).height(42.dp)
+                        ) {
+                            Icon(Icons.Default.SaveAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Guardar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        // Compartir WhatsApp
+                        Button(
+                            onClick = onShare,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier.weight(1.2f).height(42.dp)
+                        ) {
+                            Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        // Copiar Estado
+                        OutlinedButton(
+                            onClick = onCopyStatusText,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFF475569)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier.weight(1.1f).height(42.dp)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text("Copiar", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Diálogo interactivo para seleccionar la forma de compartir el aviso o guardar su flyer
+ */
+@Composable
+fun ShareNoticeDialog(
+    pub: Publication,
+    onDismiss: () -> Unit,
+    onShareWhatsApp: () -> Unit,
+    onCopyStatus: () -> Unit,
+    onSaveFlyer: () -> Unit,
+    onViewFullFlyer: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val hasFlyer = !pub.imageUrl.isNullOrBlank()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Share, contentDescription = null, tint = TxFlameRed)
+                Text("Compartir Aviso", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = pub.title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Selecciona cómo deseas difundir esta publicación de la hermandad:",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Opción 1: WhatsApp / Redes Sociales
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onShareWhatsApp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF25D366)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Enviar a WhatsApp / Redes", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Comparte mensaje con formato oficial y enlace", fontSize = 11.sp, color = Color.Gray)
+                        }
+                    }
+                }
+
+                // Opción 2: Copiar Texto para Estados
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onCopyStatus)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MotoOrangePrimary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Copiar para Estados", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Texto con emojis listo para WhatsApp / Instagram Stories", fontSize = 11.sp, color = Color.Gray)
+                        }
+                    }
+                }
+
+                // Opción 3: Guardar Flyer (si tiene)
+                if (hasFlyer) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onSaveFlyer)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF3B82F6)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.SaveAlt, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Guardar Flyer en Galería", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Descarga el póster en alta calidad en Fotos/TeamTX", fontSize = 11.sp, color = Color.Gray)
+                            }
+                        }
+                    }
+
+                    // Opción 4: Ver a Pantalla Completa
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onViewFullFlyer)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF8B5CF6)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Fullscreen, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Ver Flyer en Pantalla Grande", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Abre el visor inmersivo con zoom interactivo", fontSize = 11.sp, color = Color.Gray)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar")
+            }
+        }
+    )
+}

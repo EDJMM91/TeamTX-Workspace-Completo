@@ -35,6 +35,16 @@ data class FinancialSummary(
 )
 
 class TeamTxViewModel(application: Application) : AndroidViewModel(application) {
+    companion object {
+        const val TAG_FEED = "TEAM_TX_FEED"
+        const val TAG_RODADAS = "TEAM_TX_RODADAS"
+        const val TAG_SOS = "TEAM_TX_SOS"
+        const val TAG_MEMBERS = "TEAM_TX_MEMBERS"
+        const val TAG_TREASURY = "TEAM_TX_TREASURY"
+        const val TAG_INVENTORY = "TEAM_TX_INVENTORY"
+        const val TAG_DIRECTIVA = "TEAM_TX_DIRECTIVA"
+    }
+
     private val repository: TeamTxRepository
     private val prefs = application.getSharedPreferences("team_tx_session", Context.MODE_PRIVATE)
 
@@ -46,12 +56,21 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     private val _isChatEnabled = MutableStateFlow(true)
     val isChatEnabled: StateFlow<Boolean> = _isChatEnabled.asStateFlow()
 
+    // Dismissed Notices / Local Feed Cleanup State
+    private val _dismissedNoticeIds = MutableStateFlow<Set<Long>>(emptySet())
+    val dismissedNoticeIds: StateFlow<Set<Long>> = _dismissedNoticeIds.asStateFlow()
+
     init {
         val db = AppDatabase.getDatabase(application, viewModelScope)
         repository = TeamTxRepository(db, viewModelScope)
         GestorNotificacionesApp.inicializar(db)
         // Initialize background jobs
         InvitationCodeCleanupJob(db, viewModelScope)
+
+        // Cargar avisos descartados/ocultados localmente
+        val savedDismissed = prefs.getStringSet("dismissed_notices_set", emptySet()) ?: emptySet()
+        _dismissedNoticeIds.value = savedDismissed.mapNotNull { it.toLongOrNull() }.toSet()
+        Log.i(TAG_FEED, "📂 Avisos ocultados restaurados localmente: ${_dismissedNoticeIds.value.size}")
 
         FirebaseFirestore.getInstance().collection("app_settings").document("global")
             .addSnapshotListener { snapshot, _ ->
@@ -447,13 +466,99 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun sharePublication(pub: Publication) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val updatedPub = pub.copy(sharesCount = pub.sharesCount + 1)
+                repository.updatePublication(updatedPub)
+                Log.i("TeamTxViewModel", "📊 Publicación ${pub.id} compartida (Total: ${updatedPub.sharesCount})")
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error incrementando sharesCount: ${e.message}")
+            }
+        }
+    }
+
+    fun savePublication(pub: Publication) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val updatedPub = pub.copy(savesCount = pub.savesCount + 1)
+                repository.updatePublication(updatedPub)
+                Log.i("TeamTxViewModel", "📊 Flyer de publicación ${pub.id} guardado/descargado (Total: ${updatedPub.savesCount})")
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error incrementando savesCount: ${e.message}")
+            }
+        }
+    }
+
+    fun dismissNotice(publicationId: Long) {
+        val updated = _dismissedNoticeIds.value.toMutableSet().apply { add(publicationId) }
+        _dismissedNoticeIds.value = updated
+        prefs.edit().putStringSet("dismissed_notices_set", updated.map { it.toString() }.toSet()).apply()
+        Log.i(TAG_FEED, "🧹 Aviso $publicationId ocultado de la pantalla localmente")
+    }
+
+    fun clearAllNoticesFromScreen(currentIds: List<Long>) {
+        val updated = _dismissedNoticeIds.value.toMutableSet().apply { addAll(currentIds) }
+        _dismissedNoticeIds.value = updated
+        prefs.edit().putStringSet("dismissed_notices_set", updated.map { it.toString() }.toSet()).apply()
+        Log.i(TAG_FEED, "🧹 ${currentIds.size} avisos ocultados de la pantalla (Limpieza total)")
+    }
+
+    fun restoreDismissedNotices() {
+        _dismissedNoticeIds.value = emptySet()
+        prefs.edit().remove("dismissed_notices_set").apply()
+        Log.i(TAG_FEED, "👁️ Todos los avisos ocultos fueron restaurados en la pantalla")
+    }
+
+    fun postSystemNotice(
+        title: String,
+        content: String,
+        category: NoticeCategory = NoticeCategory.COMUNICADO,
+        priority: NoticePriority = NoticePriority.NORMAL,
+        isPinned: Boolean = false,
+        targetChallengeDistanceKm: Int = 0,
+        challengeBadgeText: String? = null,
+        telegramPostUrl: String? = null,
+        imageUrl: String? = null,
+        allowComments: Boolean = true
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val publication = Publication(
+                    id = System.currentTimeMillis(),
+                    title = title,
+                    content = content,
+                    category = category,
+                    priority = priority,
+                    isPinned = isPinned,
+                    targetChallengeDistanceKm = targetChallengeDistanceKm,
+                    challengeBadgeText = challengeBadgeText,
+                    telegramPostUrl = telegramPostUrl,
+                    imageUrl = imageUrl,
+                    allowComments = allowComments,
+                    authorName = "Sistema Team TX",
+                    authorRole = "SISTEMA",
+                    timestamp = System.currentTimeMillis(),
+                    likesCount = 0,
+                    sharesCount = 0,
+                    savesCount = 0,
+                    likedByMemberIds = ""
+                )
+                repository.insertPublication(publication)
+                Log.i(TAG_FEED, "📢 Aviso de sistema publicado en Muro: $title [$category]")
+            } catch (e: Exception) {
+                Log.e(TAG_FEED, "❌ Error publicando aviso de sistema: ${e.message}", e)
+            }
+        }
+    }
+
     fun deletePublication(id: Long) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.deletePublication(id)
-                Log.i("TeamTxViewModel", "✅ Publicación $id eliminada exitosamente de Room y Firestore")
+                Log.i(TAG_FEED, "✅ Publicación $id eliminada exitosamente de Room y Firestore")
             } catch (e: Exception) {
-                Log.e("TeamTxViewModel", "❌ Error eliminando publicación $id", e)
+                Log.e(TAG_FEED, "❌ Error eliminando publicación $id", e)
             }
         }
     }
@@ -512,6 +617,24 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 whatsappGroupUrl = whatsappLink
             )
             repository.insertRide(ride)
+            Log.i(TAG_RODADAS, "🏍️ Rodada creada: $title ($origin -> $destination)")
+
+            // Auto-publicación en el Muro (Avisos de Rodadas)
+            postSystemNotice(
+                title = "🏍️ NUEVA RODADA: $title",
+                content = "Ruta: $origin ➡️ $destination\n" +
+                        "📅 Fecha: $departureDate • ⏰ Hora: $meetingTime\n" +
+                        "📍 Distancia: $distanceKm KM • Terreno: $terrainType\n" +
+                        "👑 Capitán de Ruta: $convoyLeader\n" +
+                        (if (tailRider.isNotBlank()) "🛡️ Barrendero: $tailRider\n" else "") +
+                        "\n$description",
+                category = NoticeCategory.NOTICIA_RUTA,
+                priority = NoticePriority.NORMAL,
+                isPinned = true,
+                targetChallengeDistanceKm = distanceKm,
+                challengeBadgeText = "RODADA OFICIAL TX",
+                telegramPostUrl = whatsappLink
+            )
         }
     }
 
@@ -829,10 +952,26 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 respondersNotes = "Alerta emitida. Grupo de apoyo y Directiva notificados."
             )
             repository.insertAlert(alert)
+            Log.i(TAG_SOS, "🚨 Alerta SOS emitida: ${alert.reporterName} en $locationDesc")
+
             notifyDirectivaChannel(
                 titulo = "EMERGENCIA SOS VIAL",
                 detalle = "🚨 ${alert.reporterName} (${alert.memberNumber}) ha emitido una alerta de ${emergencyType.name} en: $locationDesc.\nDetalles: $details",
                 tipo = "SOS"
+            )
+
+            // Auto-publicación en el Muro como Aviso Oficial Urgente
+            postSystemNotice(
+                title = "🚨 ALERTA SOS VIAL: ${alert.reporterName} en $locationDesc",
+                content = "⚠️ *Tipo de Emergencia:* ${emergencyType.name}\n" +
+                        "📍 *Ubicación:* $locationDesc\n" +
+                        "🏍️ *Vehículo:* ${alert.bikeDetails}\n" +
+                        (if (!alert.bloodTypeNeeded.isNullOrBlank()) "🩸 *Tipo de Sangre:* ${alert.bloodTypeNeeded}\n" else "") +
+                        "📝 *Detalles:* $details\n\n" +
+                        "📲 Contacto: ${alert.reporterPhone}. Hermanos moteros en la zona, prestar asistencia inmediata.",
+                category = NoticeCategory.AVISO_OFICIAL,
+                priority = NoticePriority.URGENTE,
+                isPinned = true
             )
         }
     }
@@ -840,6 +979,18 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     fun updateAlertStatus(alert: EmergencyAlert, newStatus: EmergencyStatus, notes: String) {
         viewModelScope.launch {
             repository.updateAlert(alert.copy(status = newStatus, respondersNotes = notes))
+            Log.i(TAG_SOS, "🚨 Alerta SOS ${alert.id} actualizada a $newStatus")
+
+            if (newStatus == EmergencyStatus.RESUELTA || newStatus == EmergencyStatus.ATENDIDA) {
+                postSystemNotice(
+                    title = "✅ SOS VIAL RESUELTO: ${alert.reporterName}",
+                    content = "La alerta de emergencia en ${alert.locationDescription} ha sido atendida con éxito.\n" +
+                            "📋 Notas: ${notes.ifBlank { "Hermano asistido por el equipo de ruta." }}\n" +
+                            "¡Gracias a la hermandad por la respuesta y solidaridad!",
+                    category = NoticeCategory.COMUNICADO,
+                    priority = NoticePriority.NORMAL
+                )
+            }
         }
     }
 

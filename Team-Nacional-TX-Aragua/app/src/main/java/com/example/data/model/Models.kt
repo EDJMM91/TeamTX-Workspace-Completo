@@ -488,7 +488,9 @@ data class Publication(
     var challengeBadgeText: String? = null,
     var telegramPostUrl: String? = null,
     var imageUrl: String? = null,
-    var allowComments: Boolean = true
+    var allowComments: Boolean = true,
+    var sharesCount: Int = 0,
+    var savesCount: Int = 0
 )
 
 @Entity(tableName = "ride_events")

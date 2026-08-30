@@ -42,7 +42,7 @@ POR CADA MODULO INTEGRALE UNA DIRECCION DE LOGCAST PARA PONERLA EN
 EL LOGCAST DE ANDROID STUDIO Y VER CADA ERROR ALLI 
 | # | Módulo | Estado |
 |---|--------|--------|
-| 1 | **Muro** | 🟢 Estable (Sincronizado y eliminación reactiva) |
+| 1 | **Muro** | 🟢 Estable (Visor Flyer Zoom, Descarga en Galería, Compartir WhatsApp/Estados, Limpieza Local Persistente, Sync Global y Auto-avisos Intermodulares) |
 | 2 | **Chat** | 🟢 Estable (Multicanal en vivo + Directiva + Killswitch) |
 | 3 | **Rodadas** | ⚪ Pendiente |
 | 4 | **Miembros** | 🟢 Estable (Directorio real, logo oficial y sync en vivo) |
@@ -87,6 +87,8 @@ prohibido tocar gradles o manifest leerlos si pero editarlos no sin mi autorizac
 NO PUEDE HABER REGRESION EL CODIGO COMPILA SOLO MEJORAR O OPTIMIZAR AGREGAR COSAS TIPO ACTUALIZACION O PARCHE 
 
 VAS A TRABAJAR BAJO LOS MANIFEST ACTUALES NADA DE MODIFICARLOS NI TOCARLOS ESTAN BLOQUEADOS PARA TI 
+
+antes de proceder a editar codigo crea un plan de implementacion detallado de que es lo que vas a hacer paso a paso .
 
 al compilar ✅ App lanzada en ambos dispositivos (com.aistudio.teamtxvzla.rkqp):
 - RFGL52W368D → iniciada

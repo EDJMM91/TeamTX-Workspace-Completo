@@ -396,6 +396,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                 NavigationTab.FEED -> {
                     val uploadError by viewModel.publicationUploadError.collectAsStateWithLifecycle()
                     val uploadSuccess by viewModel.publicationUploadSuccess.collectAsStateWithLifecycle()
+                    val dismissedNoticeIds by viewModel.dismissedNoticeIds.collectAsStateWithLifecycle()
                     
                     FeedScreen(
                         publications = publications,
@@ -410,6 +411,12 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onCreatePublication = { title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments ->
                             viewModel.createPublication(title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments)
                         },
+                        onShare = { viewModel.sharePublication(it) },
+                        onSave = { viewModel.savePublication(it) },
+                        dismissedNoticeIds = dismissedNoticeIds,
+                        onDismissNotice = { viewModel.dismissNotice(it) },
+                        onClearAllNotices = { viewModel.clearAllNoticesFromScreen(it) },
+                        onRestoreDismissedNotices = { viewModel.restoreDismissedNotices() },
                         isRefreshing = isRefreshingFeed,
                         onRefresh = { viewModel.refreshFeed() },
                         uploadError = uploadError,
