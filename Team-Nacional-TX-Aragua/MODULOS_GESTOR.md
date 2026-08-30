@@ -94,3 +94,17 @@ al compilar ✅ App lanzada en ambos dispositivos (com.aistudio.teamtxvzla.rkqp)
 - RFGL52W368D → iniciada
 - A9FRUT4315006621
 -  estos son los de confianza que se usan para probar la app y ver que todo este bien antes de subir a producción
+
+---
+
+## 🛡️ Regla Crítica: Base de Datos Room y Migraciones SQL (`AppDatabase.kt`)
+
+> **REGLA OBLIGATORIA PARA TODOS LOS AGENTES:**
+> Cada vez que se agregue, modifique o elimine cualquier campo en las entidades de base de datos (`Models.kt` / `@Entity`):
+> 1. **SIEMPRE verificar y actualizar `AppDatabase.kt`**:
+>    - Incrementar la versión de la base de datos Room (`version = N + 1`).
+>    - Crear el objeto de migración correspondiente (ejemplo: `MIGRATION_25_26 = object : Migration(25, 26)` con los `ALTER TABLE ... ADD COLUMN ...`).
+>    - Registrar obligatoriamente la nueva migración en `.addMigrations(...)` dentro de `getDatabase()`.
+> 2. **Evitar el error de verificación de integridad (`Room cannot verify the data integrity`)**:
+>    - Si se modifica alguna entidad sin registrar la migración SQL e incrementar la versión en `AppDatabase.kt`, la aplicación crasheará en segundo plano y se cerrará sin llegar al panel principal (Feed / Muro).
+>    - **Regla preventiva:** Siempre auditar y revisar si se hizo un cambio en SQL, DAOs o Base de Datos antes de compilar y desplegar.
