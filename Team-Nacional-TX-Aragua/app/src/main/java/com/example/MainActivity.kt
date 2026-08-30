@@ -417,6 +417,10 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onDismissNotice = { viewModel.dismissNotice(it) },
                         onClearAllNotices = { viewModel.clearAllNoticesFromScreen(it) },
                         onRestoreDismissedNotices = { viewModel.restoreDismissedNotices() },
+                        onOpenMemberCarnet = { member ->
+                            viewModel.selectMember(member.id)
+                            selectedTab = NavigationTab.PROFILE
+                        },
                         isRefreshing = isRefreshingFeed,
                         onRefresh = { viewModel.refreshFeed() },
                         uploadError = uploadError,

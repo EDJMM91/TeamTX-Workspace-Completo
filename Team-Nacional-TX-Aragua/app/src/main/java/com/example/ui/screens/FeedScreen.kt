@@ -38,8 +38,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
+import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
+import com.example.ui.components.DigitalCredentialCard
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -99,6 +102,7 @@ fun FeedScreen(
     uploadError: String? = null,
     uploadSuccess: Boolean = false,
     onDismissUploadStatus: () -> Unit = {},
+    onOpenMemberCarnet: (MemberProfile) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedCategoryFilter by remember { mutableStateOf<NoticeCategory?>(null) }
@@ -106,6 +110,7 @@ fun FeedScreen(
     var selectedPublicationForEdit by remember { mutableStateOf<Publication?>(null) }
     var viewingFlyerPublication by remember { mutableStateOf<Publication?>(null) }
     var sharingPublication by remember { mutableStateOf<Publication?>(null) }
+    var viewingCarnetMember by remember { mutableStateOf<MemberProfile?>(null) }
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     val screenBg = if (isDark) Color(0xFF121212) else Color(0xFFF2F4F7)
@@ -549,6 +554,7 @@ fun FeedScreen(
                         pub = pub,
                         comments = pubComments,
                         currentMember = currentMember,
+                        allMembers = allMembers,
                         isDirectivaMode = isDirectivaMode,
                         onLike = { onLike(pub) },
                         onDelete = { onDelete(pub.id) },
@@ -557,6 +563,7 @@ fun FeedScreen(
                         onViewFlyer = { viewingFlyerPublication = pub },
                         onOpenShareDialog = { sharingPublication = pub },
                         onDismissNotice = { onDismissNotice(pub.id) },
+                        onOpenMemberCarnet = { member -> viewingCarnetMember = member },
                         onQuickSave = {
                             if (!pub.imageUrl.isNullOrBlank()) {
                                 saveFlyerToGallery(context, pub.imageUrl!!, pub) {
@@ -598,48 +605,52 @@ fun FeedScreen(
                 val p = viewingFlyerPublication
                 if (p != null) {
                     copyNoticeTextForStatus(context, p) {
-                        onShare(p)
+                        onSave(p)
                     }
                 }
             }
         )
     }
 
+    // Modal para compartir y descargar
     if (sharingPublication != null) {
         ShareNoticeDialog(
             pub = sharingPublication!!,
             onDismiss = { sharingPublication = null },
             onShareWhatsApp = {
-                val p = sharingPublication
-                if (p != null) {
-                    shareNotice(context, p) {
-                        onShare(p)
-                    }
-                }
+                val p = sharingPublication!!
+                shareNotice(context, p) { onShare(p) }
                 sharingPublication = null
             },
             onCopyStatus = {
-                val p = sharingPublication
-                if (p != null) {
-                    copyNoticeTextForStatus(context, p) {
-                        onShare(p)
-                    }
-                }
+                val p = sharingPublication!!
+                copyNoticeTextForStatus(context, p) { onSave(p) }
                 sharingPublication = null
             },
             onSaveFlyer = {
-                val p = sharingPublication
-                if (p != null && !p.imageUrl.isNullOrBlank()) {
-                    saveFlyerToGallery(context, p.imageUrl!!, p) {
-                        onSave(p)
-                    }
+                val p = sharingPublication!!
+                if (!p.imageUrl.isNullOrBlank()) {
+                    saveFlyerToGallery(context, p.imageUrl!!, p) { onSave(p) }
                 }
                 sharingPublication = null
             },
             onViewFullFlyer = {
-                val p = sharingPublication
+                val p = sharingPublication!!
                 sharingPublication = null
                 viewingFlyerPublication = p
+            }
+        )
+    }
+
+    // Visor oficial de Carnet TX en vivo
+    if (viewingCarnetMember != null) {
+        MemberCarnetPreviewDialog(
+            member = viewingCarnetMember!!,
+            onDismiss = { viewingCarnetMember = null },
+            onNavigateToFullProfile = {
+                val mem = viewingCarnetMember!!
+                viewingCarnetMember = null
+                onOpenMemberCarnet(mem)
             }
         )
     }
@@ -706,6 +717,7 @@ fun NoticeCard(
     pub: Publication,
     comments: List<NoticeComment> = emptyList(),
     currentMember: MemberProfile? = null,
+    allMembers: List<MemberProfile> = emptyList(),
     isDirectivaMode: Boolean,
     onLike: () -> Unit,
     onDelete: () -> Unit,
@@ -715,6 +727,7 @@ fun NoticeCard(
     onOpenShareDialog: () -> Unit = {},
     onQuickSave: () -> Unit = {},
     onDismissNotice: () -> Unit = {},
+    onOpenMemberCarnet: (MemberProfile) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -723,6 +736,27 @@ fun NoticeCard(
     var commentInputText by remember { mutableStateOf("") }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     val canDelete = isDirectivaMode || (currentMember?.isDirectiva == true) || (currentMember?.role?.canManageApp == true) || (currentMember?.role == MemberRole.PRESIDENTE) || (currentMember?.role == MemberRole.DIRECTIVA)
+
+    val authorMember = remember(pub.authorName, allMembers, currentMember) {
+        allMembers.find {
+            it.fullName.equals(pub.authorName, ignoreCase = true) ||
+            it.nickname.equals(pub.authorName, ignoreCase = true) ||
+            (it.memberNumber.isNotBlank() && pub.authorRole.contains(it.memberNumber, ignoreCase = true))
+        } ?: if (currentMember != null && currentMember.fullName.equals(pub.authorName, ignoreCase = true)) currentMember else null
+    }
+
+    val roleCategoryLabel = when {
+        authorMember?.role == MemberRole.COPILOTO || pub.authorRole.contains("COPILOTO", ignoreCase = true) -> "COPILOTO"
+        authorMember?.isDirectiva == true || authorMember?.role?.canManageApp == true ||
+        authorMember?.role == MemberRole.PRESIDENTE || authorMember?.role == MemberRole.VICEPRESIDENTE ||
+        authorMember?.role == MemberRole.DIRECTIVA || authorMember?.role == MemberRole.SECRETARIO ||
+        authorMember?.role == MemberRole.TESORERO || authorMember?.role == MemberRole.CAPITAN_RUTA ||
+        authorMember?.role == MemberRole.DISCIPLINARIO || pub.authorRole.contains("DIRECTIVA", ignoreCase = true) ||
+        pub.authorRole.contains("PRESIDENTE", ignoreCase = true) || pub.authorRole.contains("SISTEMA", ignoreCase = true) -> "DIRECTIVO"
+        else -> "PILOTO"
+    }
+
+    val roleSubtitle = authorMember?.role?.displayName ?: (if (pub.authorRole.isNotBlank() && pub.authorRole != "SISTEMA") pub.authorRole else roleCategoryLabel)
 
     if (showDeleteConfirmDialog) {
         AlertDialog(
@@ -1041,7 +1075,7 @@ fun NoticeCard(
                 HorizontalDivider(color = if (isDark) Color.White.copy(alpha = 0.06f) else Color(0xFFF1F5F9))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Footer: Author, Date, Likes, Shares, Saves & Comments Button
+                // Footer: Author Avatar with Carnet TX Photo, Role Badge, Date & Actions
                 val secondaryTextColor = if (isDark) Color(0xFF9E9E9E) else Color(0xFF757575)
 
                 Row(
@@ -1049,20 +1083,85 @@ fun NoticeCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f, fill = false)) {
-                        Text(
-                            text = pub.authorName,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = dateStr,
-                            fontSize = 11.sp,
-                            color = secondaryTextColor
-                        )
+                    Row(
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(enabled = authorMember != null) {
+                                authorMember?.let { onOpenMemberCarnet(it) }
+                            }
+                            .padding(vertical = 2.dp, horizontal = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Foto de perfil del Carnet TX (Ícono redondo con borde distintivo y soporte táctil)
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(if (isDark) Color(0xFF262626) else Color(0xFFE2E8F0))
+                                .border(
+                                    1.5.dp,
+                                    if (roleCategoryLabel == "DIRECTIVO") MotoGoldSecondary else if (roleCategoryLabel == "COPILOTO") Color(0xFF78909C) else TxFlameRed,
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val photoUri = authorMember?.profilePhotoUri
+                            if (!photoUri.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = photoUri,
+                                    contentDescription = pub.authorName,
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                val initials = if (pub.authorName.isNotBlank()) {
+                                    pub.authorName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("")
+                                } else "TX"
+                                Text(
+                                    text = initials.uppercase(),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isDark) Color.White else Color(0xFF1E293B)
+                                )
+                            }
+                        }
+
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = pub.authorName,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = if (roleCategoryLabel == "DIRECTIVO") MotoGoldSecondary.copy(alpha = 0.2f) else if (roleCategoryLabel == "COPILOTO") Color(0xFF78909C).copy(alpha = 0.2f) else TxFlameRed.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = roleCategoryLabel,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (roleCategoryLabel == "DIRECTIVO") MotoGoldSecondary else if (roleCategoryLabel == "COPILOTO") Color(0xFF90A4AE) else TxFlameRed,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "$roleSubtitle • $dateStr",
+                                fontSize = 10.sp,
+                                color = secondaryTextColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
 
                     Row(
@@ -2286,4 +2385,97 @@ fun ShareNoticeDialog(
             }
         }
     )
+}
+
+@Composable
+fun MemberCarnetPreviewDialog(
+    member: MemberProfile,
+    onDismiss: () -> Unit,
+    onNavigateToFullProfile: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = if (isDark) Color(0xFF18181B) else Color(0xFFF8FAFC),
+            border = BorderStroke(1.dp, if (isDark) Color(0xFF27272A) else Color(0xFFE2E8F0)),
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .padding(vertical = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Badge,
+                            contentDescription = null,
+                            tint = MotoGoldSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Carnet Digital TX",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 16.sp,
+                            color = if (isDark) Color.White else Color(0xFF0F172A)
+                        )
+                    }
+
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Cerrar", modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Tarjeta oficial del Carnet TX
+                DigitalCredentialCard(
+                    member = member,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cerrar")
+                    }
+                    Button(
+                        onClick = {
+                            onDismiss()
+                            onNavigateToFullProfile()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1.4f)
+                    ) {
+                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Ver Perfil Completo", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
 }
