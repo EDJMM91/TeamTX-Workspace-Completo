@@ -32,12 +32,14 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.model.MemberProfile
 import com.example.data.model.MemberRole
+import com.example.ui.components.RatePilotDialog
 import com.example.ui.theme.*
 
 private const val TAG_LOGCAT = "TEAM_TX_RANKING"
 
 enum class RankingCategoryFilter(val displayName: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     GENERAL("Mérito General", Icons.Default.EmojiEvents),
+    REPUTACION("Reputación Biker", Icons.Default.ThumbUp),
     KILOMETRAJE("Más KM Recorridos", Icons.Default.Speed),
     ASISTENCIA("Rodadas & Eventos", Icons.Default.TwoWheeler),
     HEROES_SOS("Héroes SOS Vial", Icons.Default.Emergency),
@@ -72,7 +74,8 @@ fun calculateMemberMeritPoints(member: MemberProfile): Int {
     val bigEventsPoints = member.bigEventsCount * 200
     val sosPoints = member.sosAssistanceCount * 150
     val challengePoints = member.challengesCompletedCount * 75
-    return kmPoints + attendancePoints + longRidesPoints + bigEventsPoints + sosPoints + challengePoints
+    val ratingNet = (member.positiveRatingsCount * 15) - (member.negativeRatingsCount * 15) + member.reputationPoints
+    return (kmPoints + attendancePoints + longRidesPoints + bigEventsPoints + sosPoints + challengePoints + ratingNet).coerceAtLeast(0)
 }
 
 fun getMemberHonorRank(points: Int): BikerHonorRank {
@@ -85,12 +88,14 @@ fun RankingScreen(
     allMembers: List<MemberProfile>,
     currentMember: MemberProfile? = null,
     onOpenMemberCarnet: (MemberProfile) -> Unit = {},
+    onRateMember: (MemberProfile, Boolean, String, Int, String) -> Unit = { _, _, _, _, _ -> },
     onBack: () -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
     var selectedFilter by remember { mutableStateOf(RankingCategoryFilter.GENERAL) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedChapterFilter by remember { mutableStateOf<String?>(null) }
+    var ratingTargetMember by remember { mutableStateOf<MemberProfile?>(null) }
 
     // Logcat inicial de auditoría
     LaunchedEffect(Unit) {
@@ -110,6 +115,7 @@ fun RankingScreen(
 
         when (selectedFilter) {
             RankingCategoryFilter.GENERAL -> filtered.sortedByDescending { calculateMemberMeritPoints(it) }
+            RankingCategoryFilter.REPUTACION -> filtered.sortedByDescending { (it.positiveRatingsCount * 15) - (it.negativeRatingsCount * 15) + it.reputationPoints }
             RankingCategoryFilter.KILOMETRAJE -> filtered.sortedByDescending { it.totalKmRidden }
             RankingCategoryFilter.ASISTENCIA -> filtered.sortedByDescending { it.attendanceCount + it.longRidesCount * 2 + it.bigEventsCount * 3 }
             RankingCategoryFilter.HEROES_SOS -> filtered.sortedByDescending { it.sosAssistanceCount }
@@ -274,7 +280,8 @@ fun RankingScreen(
                     item {
                         VisualPodiumView(
                             topMembers = top3,
-                            onOpenMemberCarnet = onOpenMemberCarnet
+                            onOpenMemberCarnet = onOpenMemberCarnet,
+                            onRateMember = { ratingTargetMember = it }
                         )
                     }
                 }
@@ -298,6 +305,7 @@ fun RankingScreen(
                         Text(
                             text = when (selectedFilter) {
                                 RankingCategoryFilter.GENERAL -> "Puntos de Mérito"
+                                RankingCategoryFilter.REPUTACION -> "Reputación (+Likes/-Dislikes)"
                                 RankingCategoryFilter.KILOMETRAJE -> "KM Totales"
                                 RankingCategoryFilter.ASISTENCIA -> "Rodadas"
                                 RankingCategoryFilter.HEROES_SOS -> "Auxilios SOS"
@@ -344,7 +352,8 @@ fun RankingScreen(
                             member = member,
                             isCurrentUser = isCurrentUser,
                             filterCategory = selectedFilter,
-                            onClick = { onOpenMemberCarnet(member) }
+                            onClick = { onOpenMemberCarnet(member) },
+                            onRateClick = { ratingTargetMember = member }
                         )
                     }
                 }
@@ -387,6 +396,8 @@ fun RankingScreen(
                             }
 
                             Column {
+                                val myPoints = calculateMemberMeritPoints(currentMember)
+                                val myRank = getMemberHonorRank(myPoints)
                                 Text(
                                     text = "Tu Posición: ${currentMember.fullName}",
                                     fontWeight = FontWeight.Bold,
@@ -420,6 +431,17 @@ fun RankingScreen(
             }
         }
     }
+
+    if (ratingTargetMember != null) {
+        RatePilotDialog(
+            targetMember = ratingTargetMember!!,
+            currentMember = currentMember,
+            onDismiss = { ratingTargetMember = null },
+            onConfirmRating = { isPositive, category, pointsDelta, comment ->
+                onRateMember(ratingTargetMember!!, isPositive, category, pointsDelta, comment)
+            }
+        )
+    }
 }
 
 /**
@@ -428,7 +450,8 @@ fun RankingScreen(
 @Composable
 fun VisualPodiumView(
     topMembers: List<MemberProfile>,
-    onOpenMemberCarnet: (MemberProfile) -> Unit
+    onOpenMemberCarnet: (MemberProfile) -> Unit,
+    onRateMember: (MemberProfile) -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
 
@@ -539,10 +562,10 @@ fun PodiumStepItem(
         // Avatar con Borde de Corona
         Box(
             modifier = Modifier
-                .size(if (position == 1) 54.dp else 44.dp)
+                .size(if (position == 1) 52.dp else 44.dp)
                 .clip(CircleShape)
                 .background(if (isDark) Color(0xFF262626) else Color(0xFFE2E8F0))
-                .border(2.dp, stepColor, CircleShape),
+                .border(2.dp, crownColor, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             if (!member.profilePhotoUri.isNullOrBlank()) {
@@ -612,7 +635,8 @@ fun RankingPilotCard(
     member: MemberProfile,
     isCurrentUser: Boolean,
     filterCategory: RankingCategoryFilter,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onRateClick: () -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
     val meritPoints = calculateMemberMeritPoints(member)
@@ -750,33 +774,44 @@ fun RankingPilotCard(
 
                 // Métricas Rápidas en Píldoras
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     MetricChip(
-                        icon = Icons.Default.Speed,
-                        value = "${member.totalKmRidden.toInt()} km",
-                        tint = MotoGoldSecondary
+                        icon = Icons.Default.ThumbUp,
+                        value = "${member.positiveRatingsCount}",
+                        tint = Color(0xFF22C55E)
                     )
+                    if (member.negativeRatingsCount > 0) {
+                        MetricChip(
+                            icon = Icons.Default.ThumbDown,
+                            value = "${member.negativeRatingsCount}",
+                            tint = TxFlameRed
+                        )
+                    }
                     MetricChip(
-                        icon = Icons.Default.TwoWheeler,
-                        value = "${member.attendanceCount} rodadas",
-                        tint = Color(0xFF60A5FA)
+                        icon = Icons.Default.Speed,
+                        value = "${member.totalKmRidden.toInt()}k",
+                        tint = MotoGoldSecondary
                     )
                     if (member.sosAssistanceCount > 0) {
                         MetricChip(
                             icon = Icons.Default.Emergency,
-                            value = "${member.sosAssistanceCount} SOS",
+                            value = "${member.sosAssistanceCount}",
                             tint = StatusError
                         )
                     }
                 }
             }
 
-            // Puntuación Principal Destacada según Filtro
-            Column(horizontalAlignment = Alignment.End) {
+            // Puntuación Principal Destacada según Filtro y Botón Calificar
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 val primaryMetricText = when (filterCategory) {
                     RankingCategoryFilter.GENERAL, RankingCategoryFilter.DESTACADOS -> "$meritPoints"
+                    RankingCategoryFilter.REPUTACION -> "+${member.positiveRatingsCount} / -${member.negativeRatingsCount}"
                     RankingCategoryFilter.KILOMETRAJE -> String.format("%.1f", member.totalKmRidden)
                     RankingCategoryFilter.ASISTENCIA -> "${member.attendanceCount}"
                     RankingCategoryFilter.HEROES_SOS -> "${member.sosAssistanceCount}"
@@ -785,6 +820,7 @@ fun RankingPilotCard(
 
                 val metricUnit = when (filterCategory) {
                     RankingCategoryFilter.GENERAL, RankingCategoryFilter.DESTACADOS -> "PTS"
+                    RankingCategoryFilter.REPUTACION -> "VOTOS"
                     RankingCategoryFilter.KILOMETRAJE -> "KM"
                     RankingCategoryFilter.ASISTENCIA -> "RUTAS"
                     RankingCategoryFilter.HEROES_SOS -> "AUXILIOS"
@@ -793,16 +829,45 @@ fun RankingPilotCard(
 
                 Text(
                     text = primaryMetricText,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Black,
                     color = MotoOrangePrimary
                 )
                 Text(
                     text = metricUnit,
-                    fontSize = 9.sp,
+                    fontSize = 8.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
                 )
+
+                if (!isCurrentUser) {
+                    Surface(
+                        onClick = onRateClick,
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.6f)),
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.ThumbUp,
+                                contentDescription = null,
+                                tint = MotoGoldSecondary,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Text(
+                                text = "Calificar",
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MotoGoldSecondary
+                            )
+                        }
+                    }
+                }
             }
         }
     }

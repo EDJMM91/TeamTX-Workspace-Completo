@@ -471,6 +471,8 @@ fun PilotAvatar(
 @Composable
 fun DigitalCredentialCard(
     member: MemberProfile,
+    currentLoggedInMemberId: Long = 0L,
+    onRateMember: (MemberProfile) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -570,111 +572,112 @@ fun DigitalCredentialCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.Gavel, contentDescription = null, tint = StatusError, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Gavel, contentDescription = null, tint = StatusError, modifier = Modifier.size(18.dp))
                         Column {
-                            Text(
-                                text = "SANCIÓN DIRECTIVA ACTIVA",
-                                color = StatusError,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                            Text(
-                                text = "Motivo: ${member.suspensionReason.ifBlank { "Incumplimiento de normas" }}",
-                                color = Color(0xFFFFCDD2),
-                                fontSize = 10.sp
-                            )
-                            if (member.suspensionEndDate.isNotBlank()) {
-                                Text(
-                                    text = "Vigencia: ${member.suspensionEndDate} • Por: ${member.suspendedBy.ifBlank { "Directiva" }}",
-                                    color = TxGoldSecondary,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+                            Text("MOTIVO: ${member.suspensionReason}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Vence: ${member.suspensionEndDate}", color = TxGoldLight, fontSize = 10.sp)
                         }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            VenezuelanFlagRibbon(modifier = Modifier.clip(RoundedCornerShape(2.dp)))
-            Spacer(modifier = Modifier.height(14.dp))
 
-            // Body: Pilot Avatar + Details
+            // Member Photo, Names and Roles
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Pilot Avatar
-                PilotAvatar(
-                    member = member,
-                    size = 72.dp,
-                    showRankGlow = true
-                )
+                // Profile Avatar / Photo
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1E2638))
+                        .border(
+                            2.dp,
+                            if (member.isSuspended) StatusError else if (member.isDirectiva) TxGoldBrass else TxSteelSilver,
+                            RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!member.profilePhotoUri.isNullOrBlank()) {
+                        val photoUrl = member.profilePhotoUri
+                        LaunchedEffect(photoUrl) {
+                            android.util.Log.d("TEAM_TX_IMAGES", "📸 Cargando Foto Perfil: ${member.fullName} | URL: $photoUrl")
+                        }
+                        AsyncImage(
+                            model = photoUrl,
+                            contentDescription = "Foto de perfil",
+                            onSuccess = { android.util.Log.i("TEAM_TX_IMAGES", "✅ Foto Perfil cargada: ${member.fullName}") },
+                            onError = { e -> android.util.Log.e("TEAM_TX_IMAGES", "❌ Error Foto Perfil: ${member.fullName} | ${e.result.throwable.message}") },
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text(
+                            text = member.avatarInitials,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White
+                        )
+                    }
+                }
 
-                // Member Name, Alias & Role Badge
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = member.fullName,
+                        text = member.fullName.uppercase(),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 15.sp,
                         color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = "Alias: \"${member.nickname}\"",
-                        color = TxGoldBrass,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp
-                    )
+                    if (member.nickname.isNotBlank()) {
+                        Text(
+                            text = "\"${member.nickname}\"",
+                            color = TxGoldLight,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                        )
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = if (member.isSuspended) StatusError.copy(alpha = 0.2f) else Color(member.role.badgeColorHex).copy(alpha = 0.2f),
-                            border = BorderStroke(1.dp, if (member.isSuspended) StatusError else Color(member.role.badgeColorHex))
+                            color = if (member.isDirectiva) TxGoldBrass.copy(alpha = 0.2f) else Color(0xFF2A3447),
+                            border = BorderStroke(1.dp, if (member.isDirectiva) TxGoldBrass else Color(0xFF3E4C66))
                         ) {
                             Text(
-                                text = if (member.isSuspended) "SUSPENDIDO (${member.role.displayName.uppercase()})" else member.role.displayName.uppercase(),
-                                color = if (member.isSuspended) StatusError else Color(member.role.badgeColorHex),
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 10.sp,
+                                text = member.role.displayName.uppercase(),
+                                color = if (member.isDirectiva) TxGoldLight else Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
-
-                        val rank = com.example.ui.screens.getMemberHonorRank(member.meritPoints)
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = rank.badgeColor.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, rank.badgeColor.copy(alpha = 0.6f))
-                        ) {
-                            Text(
-                                text = "🏆 ${rank.title.uppercase()}",
-                                color = rank.badgeColor,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 9.sp,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                            )
-                        }
+                        Text(
+                            text = member.chapterState,
+                            color = Color(0xFFA0ADC0),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = Color(0xFF28303E))
-            Spacer(modifier = Modifier.height(10.dp))
 
-            // FICHA TÉCNICA DE LA MOTO
+            // Ficha Técnica de la Moto
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF161C26),
-                border = BorderStroke(1.dp, Color(0xFF263346)),
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFF171D28),
+                border = BorderStroke(1.dp, Color(0xFF283244)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -763,7 +766,7 @@ fun DigitalCredentialCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // QR de verificacion del carnet (persistente: Configuraciones > Carnet TX)
+            // QR de verificacion del carnet
             if (PreferenciasApp.carnetMostrarQr) {
                 val qrPayload = buildString {
                     append("TEAMTX VZLA|")
@@ -799,41 +802,44 @@ fun DigitalCredentialCard(
                         val bmp = Bitmap.createBitmap(320, 320, Bitmap.Config.RGB_565)
                         for (x in 0 until 320) for (y in 0 until 320)
                             bmp.setPixel(x, y, if (matrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
-                        bmp.asImageBitmap()
-                    } catch (_: Exception) { null }
+                        bmp
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
                 if (qrImage != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF171D28),
+                        border = BorderStroke(1.dp, Color(0xFF283244)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color.White,
-                                border = BorderStroke(2.dp, TxGoldBrass)
-                            ) {
-                                Image(
-                                    bitmap = qrImage,
-                                    contentDescription = "QR del carnet",
-                                    modifier = Modifier.padding(6.dp).size(110.dp)
-                                )
-                            }
-                            Text(
-                                text = "CREDENCIAL VERIFICABLE TEAM TX",
-                                fontSize = 8.sp,
-                                color = TxGoldBrass,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp,
-                                modifier = Modifier.padding(top = 4.dp)
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Image(
+                                bitmap = qrImage.asImageBitmap(),
+                                contentDescription = "QR de Verificacion",
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(6.dp))
                             )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("QR DE VERIFICACIÓN OFICIAL", color = TxGoldBrass, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                                Text("Escaneable para verificar autenticidad de la credencial en rodadas y puntos de control.", color = Color(0xFF8C9BAE), fontSize = 9.sp)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text("TEAMTX-OK-2026", color = Color(0xFF5A6E85), fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+                            }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
 
-            // FICHA MÉDICA Y PERSONAL
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Medical & Emergency Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -861,7 +867,7 @@ fun DigitalCredentialCard(
                         )
                         Text(
                             text = member.medicalNotes,
-                            color = Color(0xFFFFCDD2),
+                            color = Color(0xFFE2E8F0),
                             fontSize = 9.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -869,12 +875,86 @@ fun DigitalCredentialCard(
                     }
                 }
 
-                // Contacto Personal & Teléfono
+                // Contacto SOS
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF161C26),
-                    border = BorderStroke(1.dp, Color(0xFF263346)),
+                    color = Color(0xFF1B2230),
+                    border = BorderStroke(1.dp, Color(0xFF2E384D)),
                     modifier = Modifier.weight(1.3f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Emergency, contentDescription = null, tint = TxFlameRed, modifier = Modifier.size(12.dp))
+                            Text("CONTACTO SOS", fontSize = 9.sp, color = TxGoldLight, fontWeight = FontWeight.Black)
+                        }
+                        Text(
+                            text = member.emergencyContactName,
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "📞 ${member.emergencyContactPhone} (${member.emergencyContactRelation})",
+                            color = Color(0xFFA0ADC0),
+                            fontSize = 9.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Copiloto Oficial y Teléfono / DNI
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (!member.copilotName.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1A2234),
+                        border = BorderStroke(1.dp, Color(0xFF2A3A55)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(Icons.Default.AirlineSeatReclineNormal, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(12.dp))
+                                Text("COPILOTO OFICIAL", fontSize = 9.sp, color = TxGoldBrass, fontWeight = FontWeight.Black)
+                            }
+                            Text(
+                                text = member.copilotName ?: "",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Parentesco: ${member.copilotRelation ?: "Familiar"}",
+                                color = Color(0xFFA0ADC0),
+                                fontSize = 9.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF1B2230),
+                    border = BorderStroke(1.dp, Color(0xFF2E384D)),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Column(
                         modifier = Modifier.padding(8.dp),
@@ -897,6 +977,127 @@ fun DigitalCredentialCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // ─── REPUTACIÓN, GAMIFICACIÓN Y CALIFICACIONES ─────────────
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFF161F2C),
+                border = BorderStroke(1.dp, TxGoldBrass.copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Stars, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(16.dp))
+                            Text(
+                                text = "REPUTACIÓN & GAMIFICACIÓN",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                color = TxGoldBrass,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+
+                        val rank = com.example.ui.screens.getMemberHonorRank(com.example.ui.screens.calculateMemberMeritPoints(member))
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = rank.badgeColor.copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, rank.badgeColor)
+                        ) {
+                            Text(
+                                text = rank.title,
+                                color = rank.badgeColor,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF16A34A).copy(alpha = 0.15f),
+                                border = BorderStroke(1.dp, Color(0xFF22C55E).copy(alpha = 0.4f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.ThumbUp, contentDescription = null, tint = Color(0xFF22C55E), modifier = Modifier.size(12.dp))
+                                    Text(
+                                        text = "${member.positiveRatingsCount} Likes",
+                                        color = Color(0xFF22C55E),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = TxFlameRed.copy(alpha = 0.15f),
+                                border = BorderStroke(1.dp, TxFlameRed.copy(alpha = 0.4f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.ThumbDown, contentDescription = null, tint = TxFlameRed, modifier = Modifier.size(12.dp))
+                                    Text(
+                                        text = "${member.negativeRatingsCount} Dislikes",
+                                        color = TxFlameRed,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = "${com.example.ui.screens.calculateMemberMeritPoints(member)} PTS",
+                            color = TxGoldLight,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+
+                    if (currentLoggedInMemberId > 0L && member.id != currentLoggedInMemberId) {
+                        Button(
+                            onClick = { onRateMember(member) },
+                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.fillMaxWidth().height(34.dp)
+                        ) {
+                            Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Calificar a este Piloto (Likes / Dislikes)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }

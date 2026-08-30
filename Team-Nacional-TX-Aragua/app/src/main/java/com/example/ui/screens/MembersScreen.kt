@@ -80,6 +80,7 @@ fun MembersScreen(
     onSuspendMember: (member: MemberProfile, reason: String, days: Int) -> Unit = { _, _, _ -> },
     onReactivateMember: (member: MemberProfile) -> Unit = {},
     onSelectMemberAsActive: (Long) -> Unit,
+    onRateMember: (MemberProfile, Boolean, String, Int, String) -> Unit = { _, _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -91,6 +92,7 @@ fun MembersScreen(
     var selectedMemberForDetail by remember { mutableStateOf<MemberProfile?>(null) }
     var memberToSuspend by remember { mutableStateOf<MemberProfile?>(null) }
     var showRegisterDialog by remember { mutableStateOf(false) }
+    var ratingTargetMember by remember { mutableStateOf<MemberProfile?>(null) }
 
     val context = LocalContext.current
 
@@ -525,6 +527,8 @@ fun MembersScreen(
             member = detailMember,
             currentAdmin = currentMember,
             isDirectivaMode = isDirectivaMode,
+            currentLoggedInMemberId = currentMember?.id ?: 0L,
+            onRateMember = { ratingTargetMember = it },
             onDismiss = { selectedMemberForDetail = null },
             onToggleSolvency = {
                 onToggleSolvency(detailMember)
@@ -551,6 +555,17 @@ fun MembersScreen(
                 onSelectMemberAsActive(detailMember.id)
                 selectedMemberForDetail = null
                 Toast.makeText(context, "Perfil activo seleccionado", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (ratingTargetMember != null) {
+        RatePilotDialog(
+            targetMember = ratingTargetMember!!,
+            currentMember = currentMember,
+            onDismiss = { ratingTargetMember = null },
+            onConfirmRating = { isPositive, category, pointsDelta, comment ->
+                onRateMember(ratingTargetMember!!, isPositive, category, pointsDelta, comment)
             }
         )
     }
@@ -962,6 +977,8 @@ fun MemberDetailDossierDialog(
     member: MemberProfile,
     currentAdmin: MemberProfile?,
     isDirectivaMode: Boolean,
+    currentLoggedInMemberId: Long = 0L,
+    onRateMember: (MemberProfile) -> Unit = {},
     onDismiss: () -> Unit,
     onToggleSolvency: () -> Unit,
     onUpdateRole: (MemberRole) -> Unit,
@@ -1008,7 +1025,11 @@ fun MemberDetailDossierDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 item {
-                    DigitalCredentialCard(member = member)
+                    DigitalCredentialCard(
+                        member = member,
+                        currentLoggedInMemberId = currentLoggedInMemberId,
+                        onRateMember = onRateMember
+                    )
                 }
 
                 if (member.bikePhotoUri != null) {

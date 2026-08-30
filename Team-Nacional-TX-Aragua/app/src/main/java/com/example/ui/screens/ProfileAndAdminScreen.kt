@@ -52,6 +52,8 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.launch
 
+import com.example.ui.components.RatePilotDialog
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileAndAdminScreen(
@@ -63,10 +65,12 @@ fun ProfileAndAdminScreen(
     onUpdateProfile: (MemberProfile) -> Unit,
     onVincularGoogle: (String, String, String?) -> Unit = { _, _, _ -> },
     onUnlockWithMasterCode: suspend (String) -> Pair<Boolean, String> = { _ -> Pair(false, "") },
+    onRateMember: (MemberProfile, Boolean, String, Int, String) -> Unit = { _, _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showMemberSelectorDialog by remember { mutableStateOf(false) }
+    var ratingTargetMember by remember { mutableStateOf<MemberProfile?>(null) }
     var isGoogleAuthLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -100,7 +104,11 @@ fun ProfileAndAdminScreen(
             // Member Digital Credential Card
             item {
                 if (currentMember != null) {
-                    DigitalCredentialCard(member = currentMember)
+                    DigitalCredentialCard(
+                        member = currentMember,
+                        currentLoggedInMemberId = currentMember.id,
+                        onRateMember = { ratingTargetMember = it }
+                    )
                 }
             }
 
@@ -552,8 +560,16 @@ fun ProfileAndAdminScreen(
         )
     }
 
-
-
+    if (ratingTargetMember != null) {
+        RatePilotDialog(
+            targetMember = ratingTargetMember!!,
+            currentMember = currentMember,
+            onDismiss = { ratingTargetMember = null },
+            onConfirmRating = { isPositive, category, pointsDelta, comment ->
+                onRateMember(ratingTargetMember!!, isPositive, category, pointsDelta, comment)
+            }
+        )
+    }
 }
 @Composable
 fun EditProfileDialog(

@@ -449,6 +449,10 @@ data class MemberProfile(
     var challengesCompletedCount: Int = 0,
     var meritPoints: Int = 0,
     var rankingTitle: String = "Piloto TX",
+    var positiveRatingsCount: Int = 0,
+    var negativeRatingsCount: Int = 0,
+    var reputationPoints: Int = 0,
+    var ratedByMemberIdsJson: String = "",
     // Google / Firebase Sync
     var firebaseUid: String? = null,
     var email: String? = null

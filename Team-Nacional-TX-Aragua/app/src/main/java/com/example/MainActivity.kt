@@ -577,6 +577,11 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             viewModel.selectMember(member.id)
                             selectedTab = NavigationTab.PROFILE
                         },
+                        onRateMember = { target, isPos, cat, pts, comm ->
+                            viewModel.ratePilotMember(target.id, isPos, cat, pts, comm) { _, msg ->
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         onBack = { selectedTab = NavigationTab.FEED }
                     )
                 }
@@ -729,6 +734,11 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         },
                         onSelectMemberAsActive = { memberId ->
                             viewModel.selectMember(memberId)
+                        },
+                        onRateMember = { target, isPos, cat, pts, comm ->
+                            viewModel.ratePilotMember(target.id, isPos, cat, pts, comm) { _, msg ->
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
                         }
                     )
                 }
@@ -824,7 +834,12 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                     Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
                                 }
                             },
-                            onUnlockWithMasterCode = { code -> viewModel.loginWithCode(code) }
+                            onUnlockWithMasterCode = { code -> viewModel.loginWithCode(code) },
+                            onRateMember = { target, isPos, cat, pts, comm ->
+                                viewModel.ratePilotMember(target.id, isPos, cat, pts, comm) { _, msg ->
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         )
                     }
                 }

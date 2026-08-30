@@ -183,6 +183,92 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /**
+     * Califica el desempeño de un piloto otorgando likes positivos o manitos abajo
+     * que suman o restan puntos de mérito en la gamificación del Ranking.
+     */
+    fun ratePilotMember(
+        targetMemberId: Long,
+        isPositive: Boolean,
+        category: String,
+        pointsDelta: Int,
+        comment: String = "",
+        onComplete: (Boolean, String) -> Unit = { _, _ -> }
+    ) {
+        val reviewer = currentMember.value
+        if (reviewer == null) {
+            onComplete(false, "Debes iniciar sesión para calificar a un compañero.")
+            return
+        }
+        if (reviewer.id == targetMemberId) {
+            onComplete(false, "No puedes calificar tu propio perfil de piloto.")
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val target = allMembers.value.find { it.id == targetMemberId }
+            if (target == null) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "Piloto no encontrado.")
+                }
+                return@launch
+            }
+
+            val newPositive = if (isPositive) target.positiveRatingsCount + 1 else target.positiveRatingsCount
+            val newNegative = if (!isPositive) target.negativeRatingsCount + 1 else target.negativeRatingsCount
+            val newReputationPoints = target.reputationPoints + pointsDelta
+
+            val totalMerit = (
+                (target.totalKmRidden / 10.0).toInt() +
+                (target.attendanceCount * 50) +
+                (target.longRidesCount * 100) +
+                (target.bigEventsCount * 200) +
+                (target.sosAssistanceCount * 150) +
+                (target.challengesCompletedCount * 75) +
+                (newPositive * 15) -
+                (newNegative * 15) +
+                newReputationPoints
+            ).coerceAtLeast(0)
+
+            val newRankTitle = com.example.ui.screens.getMemberHonorRank(totalMerit).title
+
+            val updated = target.copy(
+                positiveRatingsCount = newPositive,
+                negativeRatingsCount = newNegative,
+                reputationPoints = newReputationPoints,
+                meritPoints = totalMerit,
+                rankingTitle = newRankTitle
+            )
+
+            repository.updateMember(updated)
+
+            // Sincronizar hacia Firestore
+            val targetUid = target.firebaseUid
+            if (!targetUid.isNullOrBlank()) {
+                try {
+                    com.example.data.remote.BaseDatosCarnet.sincronizarHaciaNube(targetUid, updated)
+                } catch (e: Exception) {
+                    Log.e("TEAM_TX_RANKING", "Error sincronizando carnet en nube: ${e.message}")
+                }
+            }
+
+            Log.d(
+                "TEAM_TX_RANKING",
+                "⭐ Calificación de ${reviewer.fullName} a ${target.fullName}: " +
+                "${if (isPositive) "👍 POSITIVO" else "👎 NEGATIVO"} ($category, $pointsDelta pts) -> " +
+                "Likes: $newPositive, Dislikes: $newNegative, Total: $totalMerit pts ($newRankTitle)"
+            )
+
+            withContext(Dispatchers.Main) {
+                onComplete(
+                    true,
+                    if (isPositive) "¡Calificación positiva registrada para ${target.fullName} (+${pointsDelta} pts)!"
+                    else "Calificación registrada para ${target.fullName} (${pointsDelta} pts)."
+                )
+            }
+        }
+    }
+
     fun registerMember(
         fullName: String,
         nickname: String,
