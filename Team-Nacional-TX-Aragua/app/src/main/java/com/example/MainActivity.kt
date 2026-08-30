@@ -276,6 +276,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     isDirectivaMode = isDirectivaMode,
                     onToggleDirectiva = { viewModel.toggleDirectivaMode() },
                     onOpenSosModal = { showQuickSosModal = true },
+                    onOpenCarnet = { selectedTab = NavigationTab.PROFILE },
                     isDeveloperMode = currentMember?.role == MemberRole.PRESIDENTE && isDirectivaMode
                 )
             }
@@ -417,10 +418,6 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onDismissNotice = { viewModel.dismissNotice(it) },
                         onClearAllNotices = { viewModel.clearAllNoticesFromScreen(it) },
                         onRestoreDismissedNotices = { viewModel.restoreDismissedNotices() },
-                        onOpenMemberCarnet = { member ->
-                            viewModel.selectMember(member.id)
-                            selectedTab = NavigationTab.PROFILE
-                        },
                         isRefreshing = isRefreshingFeed,
                         onRefresh = { viewModel.refreshFeed() },
                         uploadError = uploadError,

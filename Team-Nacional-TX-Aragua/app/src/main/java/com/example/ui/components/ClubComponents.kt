@@ -63,8 +63,9 @@ fun VenezuelanFlagRibbon(modifier: Modifier = Modifier) {
 fun ClubTopBar(
     currentMember: MemberProfile? = null,
     isDirectivaMode: Boolean,
-    onToggleDirectiva: () -> Unit,
+    onToggleDirectiva: () -> Unit = {},
     onOpenSosModal: () -> Unit,
+    onOpenCarnet: () -> Unit = {},
     isDeveloperMode: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -117,89 +118,107 @@ fun ClubTopBar(
                     }
                 },
                 actions = {
-                    // Telegram link shortcut
+                    // Telegram link shortcut (más a la izquierda y compacto)
                     IconButton(
                         onClick = {
                             openUrl(context, "https://t.me/+R_oloXwkGqhkNzJh")
                         },
-                        modifier = Modifier.testTag("btn_top_telegram")
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("btn_top_telegram")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Send,
                             contentDescription = "Telegram Team TX",
-                            tint = TelegramBlue
+                            tint = TelegramBlue,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
 
-                    // TikTok link shortcut
+                    Spacer(modifier = Modifier.width(2.dp))
+
+                    // TikTok link shortcut (compacto)
                     IconButton(
                         onClick = {
                             openUrl(context, "https://www.tiktok.com/@teamnacionaltx.aragua")
                         },
-                        modifier = Modifier.testTag("btn_top_tiktok")
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("btn_top_tiktok")
                     ) {
                         Icon(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = "TikTok Team TX",
-                            tint = MaterialTheme.colorScheme.onSurface
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
 
-                    // Directiva Mode Toggle Pill (Limpio sin bordes grises)
-                    val canToggle = isDeveloperMode || (currentMember?.isDirectiva == true) || (currentMember?.role?.canManageApp == true)
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     val isDarkTheme = isSystemInDarkTheme()
-                    
-                    if (canToggle) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = if (isDirectivaMode) TxFlameRed else if (isDarkTheme) Color(0xFF2A2A2A) else Color(0xFFE2E8F0),
+
+                    // Determinación del Rol de la cuenta actual
+                    val roleLabel = when {
+                        currentMember?.role == MemberRole.COPILOTO -> "COPILOTO"
+                        isDirectivaMode || (currentMember?.isDirectiva == true) || (currentMember?.role?.canManageApp == true) ||
+                        (currentMember?.role == MemberRole.PRESIDENTE) || (currentMember?.role == MemberRole.DIRECTIVA) ||
+                        (currentMember?.role == MemberRole.VICEPRESIDENTE) || (currentMember?.role == MemberRole.SECRETARIO) ||
+                        (currentMember?.role == MemberRole.TESORERO) || (currentMember?.role == MemberRole.CAPITAN_RUTA) ||
+                        (currentMember?.role == MemberRole.DISCIPLINARIO) -> "DIRECTIVO"
+                        else -> "PILOTO"
+                    }
+
+                    val borderColor = when (roleLabel) {
+                        "DIRECTIVO" -> TxGoldBrass
+                        "COPILOTO" -> Color(0xFF94A3B8)
+                        else -> TxFlameRed
+                    }
+
+                    // Botón de Perfil / Carnet TX con texto de Rol a la izquierda
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable(onClick = onOpenCarnet)
+                            .padding(start = 6.dp, end = 2.dp, top = 2.dp, bottom = 2.dp)
+                            .testTag("btn_top_carnet_profile")
+                    ) {
+                        Text(
+                            text = roleLabel,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (roleLabel == "DIRECTIVO") TxGoldBrass else if (roleLabel == "COPILOTO") Color(0xFF94A3B8) else (if (isDarkTheme) Color(0xFFE2E8F0) else Color(0xFF1E293B)),
+                            letterSpacing = 0.5.sp
+                        )
+
+                        Box(
                             modifier = Modifier
-                                .padding(end = 4.dp)
-                                .clip(RoundedCornerShape(50))
-                                .clickable(onClick = onToggleDirectiva)
-                                .testTag("btn_toggle_directiva_mode")
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(if (isDarkTheme) Color(0xFF262626) else Color(0xFFE2E8F0))
+                                .border(1.5.dp, borderColor, CircleShape),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (isDirectivaMode) Icons.Default.AdminPanelSettings else Icons.Default.Person,
-                                    contentDescription = "Modo",
-                                    tint = if (isDirectivaMode) Color.White else if (isDarkTheme) Color(0xFFCBD5E1) else Color(0xFF475569),
-                                    modifier = Modifier.size(15.dp)
+                            val photoUri = currentMember?.profilePhotoUri
+                            if (!photoUri.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = photoUri,
+                                    contentDescription = "Carnet TX",
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = ContentScale.Crop
                                 )
+                            } else {
+                                val initials = if (currentMember != null && currentMember.fullName.isNotBlank()) {
+                                    currentMember.fullName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("")
+                                } else "TX"
                                 Text(
-                                    text = if (isDirectivaMode) "DIRECTIVA" else "MIEMBRO",
+                                    text = initials.uppercase(),
                                     fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDirectivaMode) Color.White else if (isDarkTheme) Color(0xFFCBD5E1) else Color(0xFF475569)
-                                )
-                            }
-                        }
-                    } else {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = if (isDarkTheme) Color(0xFF222222) else Color(0xFFE2E8F0),
-                            modifier = Modifier.padding(end = 4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Modo",
-                                    tint = if (isDarkTheme) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Text(
-                                    text = "MIEMBRO",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDarkTheme) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isDarkTheme) Color.White else Color(0xFF1E293B)
                                 )
                             }
                         }
