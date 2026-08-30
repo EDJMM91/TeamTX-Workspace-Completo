@@ -91,6 +91,10 @@ fun ClubChatScreen(
     var showLeaveGroupDialog by remember { mutableStateOf(false) }
     var showDeleteGroupDialog by remember { mutableStateOf(false) }
 
+    // Estados de Chats Privados 1 a 1 (DMs)
+    var showPrivateChatsDialog by remember { mutableStateOf(false) }
+    var showNewDirectChatDialog by remember { mutableStateOf(false) }
+
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -145,6 +149,17 @@ fun ClubChatScreen(
     val isPrivateGroupActive = currentPrivateGroup != null || activeChannelId.startsWith("GRP_")
     val isGroupBlocked = currentPrivateGroup?.isBlockedByDirectiva == true
 
+    // Detección de Chat Privado 1 a 1 (Direct Message)
+    val isDirectChatActive = activeChannelId.startsWith("DM_")
+    val otherDirectMember = remember(activeChannelId, allMembers, currentMember) {
+        if (isDirectChatActive) {
+            val parts = activeChannelId.removePrefix("DM_").split("_")
+            val myId = currentMember?.id ?: 0L
+            val otherId = parts.mapNotNull { it.toLongOrNull() }.find { it != myId } ?: parts.firstOrNull()?.toLongOrNull()
+            allMembers.find { it.id == otherId }
+        } else null
+    }
+
     val myMemberIdStr = currentMember?.id?.toString() ?: ""
     val filteredMessages = remember(messages, activeChannelId, myMemberIdStr) {
         messages.filter {
@@ -153,8 +168,8 @@ fun ClubChatScreen(
         }
     }
 
-    val activeChannel = remember(activeChannelId, isPrivateGroupActive) {
-        if (isPrivateGroupActive) null
+    val activeChannel = remember(activeChannelId, isPrivateGroupActive, isDirectChatActive) {
+        if (isPrivateGroupActive || isDirectChatActive) null
         else ChatChannel.values().find { it.id == activeChannelId } ?: ChatChannel.GENERAL
     }
 
@@ -221,17 +236,39 @@ fun ClubChatScreen(
                         Surface(
                             shape = CircleShape,
                             color = Color.White.copy(alpha = 0.2f),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isDirectChatActive && otherDirectMember != null) Color(otherDirectMember.role.badgeColorHex)
+                                else Color.White.copy(alpha = 0.4f)
+                            ),
                             modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    if (isPrivateGroupActive) Icons.Default.Groups
-                                    else activeChannel?.icon ?: Icons.Default.ChatBubble,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                if (isDirectChatActive && otherDirectMember != null) {
+                                    if (!otherDirectMember.profilePhotoUri.isNullOrBlank()) {
+                                        coil.compose.AsyncImage(
+                                            model = otherDirectMember.profilePhotoUri,
+                                            contentDescription = otherDirectMember.fullName,
+                                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
+                                    } else {
+                                        Text(
+                                            text = if (otherDirectMember.nickname.isNotBlank()) otherDirectMember.nickname.take(2).uppercase() else otherDirectMember.avatarInitials,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 13.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                } else {
+                                    Icon(
+                                        if (isPrivateGroupActive) Icons.Default.Groups
+                                        else activeChannel?.icon ?: Icons.Default.ChatBubble,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
 
@@ -240,7 +277,9 @@ fun ClubChatScreen(
                         // Título y subtítulo de estado
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (isPrivateGroupActive && currentPrivateGroup != null) {
+                                text = if (isDirectChatActive && otherDirectMember != null) {
+                                    otherDirectMember.fullName
+                                } else if (isPrivateGroupActive && currentPrivateGroup != null) {
                                     currentPrivateGroup.name
                                 } else {
                                     activeChannel?.title ?: "Chat TX"
@@ -252,7 +291,11 @@ fun ClubChatScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = if (isPrivateGroupActive && currentPrivateGroup != null) {
+                                text = if (isDirectChatActive && otherDirectMember != null) {
+                                    val alias = if (otherDirectMember.nickname.isNotBlank()) "\"${otherDirectMember.nickname}\" • " else ""
+                                    val online = if (otherDirectMember.isOnline) "🟢 en línea" else "últ. vez reciente"
+                                    "$alias${otherDirectMember.role.displayName} • $online"
+                                } else if (isPrivateGroupActive && currentPrivateGroup != null) {
                                     if (currentPrivateGroup.isBlockedByDirectiva) "🔒 Bloqueado por Directiva"
                                     else "${currentPrivateGroup.memberIds.size} miembros • Grupo Privado"
                                 } else if (activeChannelId == "DIRECTIVA") {
@@ -264,6 +307,19 @@ fun ClubChatScreen(
                                 color = Color.White.copy(alpha = 0.85f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        // Botón de Contactos / Chats Privados
+                        IconButton(
+                            onClick = { showPrivateChatsDialog = true },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.PersonSearch,
+                                contentDescription = "Chats Privados",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
 
@@ -489,6 +545,61 @@ fun ClubChatScreen(
                                     selectedContainerColor = TxFlameRed,
                                     selectedLabelColor = Color.White
                                 )
+                            )
+                        }
+
+                        // Botón de acceso a Bandeja de Chats Privados Directos (1 a 1)
+                        item {
+                            val totalUnreadDMs = remember(messages, currentMember) {
+                                val memberId = currentMember?.id ?: 0L
+                                if (memberId <= 0L) 0
+                                else messages.count { it.channelId.startsWith("DM_") && it.senderMemberId != memberId && !it.readBy.contains(memberId) }
+                            }
+
+                            AssistChip(
+                                onClick = { showPrivateChatsDialog = true },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Forum,
+                                        contentDescription = "Chats Privados",
+                                        tint = if (isDirectChatActive) Color.White else Color(0xFF38BDF8),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                },
+                                label = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            if (isDirectChatActive && otherDirectMember != null) "💬 ${otherDirectMember.fullName}" else "💬 Chats Privados",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDirectChatActive) Color.White else Color(0xFF38BDF8),
+                                            maxLines = 1
+                                        )
+                                        if (totalUnreadDMs > 0) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = StatusError,
+                                                modifier = Modifier.defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)) {
+                                                    Text(
+                                                        text = if (totalUnreadDMs > 99) "99+" else "$totalUnreadDMs",
+                                                        color = Color.White,
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Black
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = if (isDirectChatActive) TxFlameRed else Color(0xFF142236)
+                                ),
+                                border = BorderStroke(1.dp, if (isDirectChatActive) TxFlameRed else Color(0xFF38BDF8).copy(alpha = 0.6f))
                             )
                         }
 
@@ -1534,6 +1645,44 @@ fun ClubChatScreen(
                     Text("Cancelar")
                 }
             }
+        )
+    }
+
+    // ═══════════════════════════════════════════════
+    // DIÁLOGOS DE CHATS PRIVADOS 1 A 1
+    // ═══════════════════════════════════════════════
+    if (showPrivateChatsDialog) {
+        PrivateChatsManagerDialog(
+            allMessages = messages,
+            allMembers = allMembers,
+            currentMember = currentMember,
+            activeChannelId = activeChannelId,
+            onSelectDirectChat = { otherMemberId ->
+                val myId = currentMember?.id ?: 0L
+                val dmChannel = "DM_${minOf(myId, otherMemberId)}_${maxOf(myId, otherMemberId)}"
+                android.util.Log.d("TEAM_TX_CHAT", "💬 Abriendo chat privado: $dmChannel")
+                onSelectChannel(dmChannel)
+            },
+            onOpenNewChat = {
+                showNewDirectChatDialog = true
+            },
+            onDismiss = { showPrivateChatsDialog = false }
+        )
+    }
+
+    if (showNewDirectChatDialog) {
+        NewDirectChatSelectMemberDialog(
+            allMembers = allMembers,
+            currentMember = currentMember,
+            onSelectMember = { member ->
+                val myId = currentMember?.id ?: 0L
+                val dmChannel = "DM_${minOf(myId, member.id)}_${maxOf(myId, member.id)}"
+                android.util.Log.d("TEAM_TX_CHAT", "💬 Iniciando nuevo chat privado con ${member.fullName}: $dmChannel")
+                onSelectChannel(dmChannel)
+                showPrivateChatsDialog = false
+                showNewDirectChatDialog = false
+            },
+            onDismiss = { showNewDirectChatDialog = false }
         )
     }
 }
@@ -2883,5 +3032,445 @@ fun UniversalEmojiGrid(
             }
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BANDEJA DE CHATS PRIVADOS DIRECTOS (1 A 1)
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun PrivateChatsManagerDialog(
+    allMessages: List<ChatMessage>,
+    allMembers: List<MemberProfile>,
+    currentMember: MemberProfile?,
+    activeChannelId: String,
+    onSelectDirectChat: (otherMemberId: Long) -> Unit,
+    onOpenNewChat: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val myId = currentMember?.id ?: 0L
+    var searchQuery by remember { mutableStateOf("") }
+
+    val activeDMs = remember(allMessages, allMembers, myId, searchQuery) {
+        val dmChannels = allMessages.filter { it.channelId.startsWith("DM_") }
+        val memberMap = allMembers.associateBy { it.id }
+
+        val grouped = dmChannels.groupBy { msg ->
+            val parts = msg.channelId.removePrefix("DM_").split("_")
+            parts.mapNotNull { it.toLongOrNull() }.find { it != myId } ?: parts.firstOrNull()?.toLongOrNull() ?: 0L
+        }.filterKeys { it > 0L && it != myId }
+
+        grouped.mapNotNull { (otherId, msgs) ->
+            val other = memberMap[otherId]
+            if (other != null) {
+                val lastMsg = msgs.maxByOrNull { it.timestamp }
+                val unreadCount = msgs.count { it.senderMemberId != myId && !it.readBy.contains(myId) }
+                Triple(other, lastMsg, unreadCount)
+            } else null
+        }.filter { (other, lastMsg, _) ->
+            searchQuery.isBlank() ||
+            other.fullName.contains(searchQuery, ignoreCase = true) ||
+            other.nickname.contains(searchQuery, ignoreCase = true) ||
+            other.bikePlate.contains(searchQuery, ignoreCase = true) ||
+            (lastMsg?.messageText?.contains(searchQuery, ignoreCase = true) == true)
+        }.sortedByDescending { it.second?.timestamp ?: 0L }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF161B26),
+        modifier = Modifier.fillMaxWidth().fillMaxHeight(0.85f),
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Forum, contentDescription = null, tint = MotoOrangePrimary)
+                    Text("CHATS PRIVADOS (1 A 1)", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White)
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White, modifier = Modifier.size(20.dp))
+                }
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Buscador
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Buscar conversación o miembro...", fontSize = 12.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Limpiar", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFF222838),
+                        focusedContainerColor = Color(0xFF222838)
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(46.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (activeDMs.isEmpty()) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.QuestionAnswer, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("No tienes conversaciones privadas activas", color = Color.Gray, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Toca el botón '+' abajo para iniciar un chat privado con cualquier miembro del club.", color = Color(0xFF64748B), fontSize = 11.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(activeDMs) { (otherMember, lastMsg, unreadCount) ->
+                            val expectedChannelId = "DM_${minOf(myId, otherMember.id)}_${maxOf(myId, otherMember.id)}"
+                            val isCurrentlyOpen = expectedChannelId == activeChannelId
+
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isCurrentlyOpen) TxFlameRed.copy(alpha = 0.2f) else Color(0xFF1E2434),
+                                border = BorderStroke(1.dp, if (isCurrentlyOpen) TxFlameRed else Color(0xFF2E374D)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelectDirectChat(otherMember.id)
+                                        onDismiss()
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    // Avatar
+                                    Box(
+                                        modifier = Modifier
+                                            .size(44.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF262626))
+                                            .border(1.5.dp, Color(otherMember.role.badgeColorHex), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (!otherMember.profilePhotoUri.isNullOrBlank()) {
+                                            coil.compose.AsyncImage(
+                                                model = otherMember.profilePhotoUri,
+                                                contentDescription = otherMember.fullName,
+                                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                            )
+                                        } else {
+                                            Text(
+                                                text = if (otherMember.nickname.isNotBlank()) otherMember.nickname.take(2).uppercase() else otherMember.avatarInitials,
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 13.sp,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+
+                                    // Info
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = otherMember.fullName,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (otherMember.isOnline) {
+                                                Box(modifier = Modifier.size(7.dp).background(Color(0xFF22C55E), CircleShape))
+                                            }
+                                        }
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = otherMember.role.displayName,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color(otherMember.role.badgeColorHex)
+                                            )
+                                            Text(text = "•", fontSize = 9.sp, color = Color.Gray)
+                                            Text(
+                                                text = if (otherMember.nickname.isNotBlank()) "\"${otherMember.nickname}\"" else otherMember.bikePlate,
+                                                fontSize = 9.sp,
+                                                color = TxSteelSilver,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        // Último mensaje
+                                        val snippet = when {
+                                            lastMsg == null -> "Sin mensajes aún"
+                                            lastMsg.audioUrl != null || lastMsg.audioDurationSeconds > 0 -> "🎤 Nota de voz (${lastMsg.audioDurationSeconds}s)"
+                                            lastMsg.stickerFileName != null -> "🏷️ Sticker"
+                                            lastMsg.messageText.isNotBlank() -> lastMsg.messageText
+                                            else -> "Mensaje"
+                                        }
+
+                                        Text(
+                                            text = snippet,
+                                            fontSize = 11.sp,
+                                            color = if (unreadCount > 0) Color.White else Color(0xFF94A3B8),
+                                            fontWeight = if (unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    // Hora y Badge no leído
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        if (lastMsg != null) {
+                                            val timeStr = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(lastMsg.timestamp))
+                                            Text(text = timeStr, fontSize = 10.sp, color = Color.Gray)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        if (unreadCount > 0) {
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = StatusError,
+                                                modifier = Modifier.defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)) {
+                                                    Text(text = "$unreadCount", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onDismiss()
+                    onOpenNewChat()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("+ Iniciar Nuevo Chat con Miembro", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            }
+        },
+        dismissButton = {}
+    )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DIÁLOGO: SELECCIONAR MIEMBRO PARA NUEVO CHAT PRIVADO
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun NewDirectChatSelectMemberDialog(
+    allMembers: List<MemberProfile>,
+    currentMember: MemberProfile?,
+    onSelectMember: (MemberProfile) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val myId = currentMember?.id ?: 0L
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredMembers = remember(allMembers, myId, searchQuery) {
+        allMembers.filter { it.id != myId }.filter { member ->
+            searchQuery.isBlank() ||
+            member.fullName.contains(searchQuery, ignoreCase = true) ||
+            member.nickname.contains(searchQuery, ignoreCase = true) ||
+            member.cedulaDni.contains(searchQuery, ignoreCase = true) ||
+            member.bikePlate.contains(searchQuery, ignoreCase = true) ||
+            member.chapterState.contains(searchQuery, ignoreCase = true)
+        }.sortedBy { it.fullName }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF161B26),
+        modifier = Modifier.fillMaxWidth().fillMaxHeight(0.85f),
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = MotoOrangePrimary)
+                    Text("NUEVO CHAT PRIVADO", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color.White)
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White, modifier = Modifier.size(20.dp))
+                }
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = "Selecciona un miembro de la agrupación para abrir una conversación 1 a 1 directa:",
+                    fontSize = 11.sp,
+                    color = Color(0xFF94A3B8)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Buscar por nombre, apodo, cédula, placa o estado...", fontSize = 12.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Limpiar", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = Color(0xFF222838),
+                        focusedContainerColor = Color(0xFF222838)
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(46.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (filteredMembers.isEmpty()) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("No se encontraron miembros con ese criterio", color = Color.Gray, fontSize = 12.sp)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(filteredMembers) { member ->
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFF1E2434),
+                                border = BorderStroke(1.dp, Color(0xFF2E374D)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelectMember(member)
+                                        onDismiss()
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    // Avatar
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF262626))
+                                            .border(1.5.dp, Color(member.role.badgeColorHex), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (!member.profilePhotoUri.isNullOrBlank()) {
+                                            coil.compose.AsyncImage(
+                                                model = member.profilePhotoUri,
+                                                contentDescription = member.fullName,
+                                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                            )
+                                        } else {
+                                            Text(
+                                                text = if (member.nickname.isNotBlank()) member.nickname.take(2).uppercase() else member.avatarInitials,
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 12.sp,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+
+                                    // Datos
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = member.fullName,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = Color.White,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = member.role.displayName,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(member.role.badgeColorHex)
+                                            )
+                                            Text(text = "•", fontSize = 9.sp, color = Color.Gray)
+                                            Text(
+                                                text = if (member.nickname.isNotBlank()) "\"${member.nickname}\"" else "${member.bikeBrand} ${member.bikeModel}",
+                                                fontSize = 9.sp,
+                                                color = TxSteelSilver,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (member.chapterState.isNotBlank()) {
+                                                Text(text = "•", fontSize = 9.sp, color = Color.Gray)
+                                                Text(text = member.chapterState, fontSize = 9.sp, color = MotoGoldSecondary)
+                                            }
+                                        }
+                                    }
+
+                                    Icon(
+                                        Icons.Default.ChatBubbleOutline,
+                                        contentDescription = "Chatear",
+                                        tint = MotoOrangePrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = Color.White)
+            }
+        }
+    )
 }
 

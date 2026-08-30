@@ -99,12 +99,12 @@ Jerarquía de carpetas creada automáticamente en la memoria del teléfono para 
 - **Lenguaje**: Kotlin 2.1+
 - **UI Toolkit**: Jetpack Compose con Material 3 y animaciones avanzadas
 - **Arquitectura**: MVVM (Model-View-ViewModel) + Repository Pattern + Clean Architecture
-- **Persistencia Local**: Room Database v22 (SQLite) + SharedPreferences
+- **Persistencia Local**: Room Database v25 (SQLite) + SharedPreferences
 - **Backend & Sincronización**:
   - Firebase Authentication (Control de acceso Gatekeeper)
   - Firebase Firestore (Sincronización en tiempo real)
   - Firebase Cloud Messaging (Notificaciones push)
-  - Firebase Storage (Archivos multimedia y notas de voz)
+  - Firebase Storage (Archivos multimedia, notas de voz y distribución OTA en `updates/`)
   - Supabase Storage (Almacenamiento CDN secundario)
 - **Mapas y GIS**: OsmAnd Core Engine + Vector Maps
 - **Procesamiento Asíncrono**: Kotlin Coroutines + StateFlow / SharedFlow
@@ -126,40 +126,38 @@ Jerarquía de carpetas creada automáticamente en la memoria del teléfono para 
 
 ### Instalar en Dispositivo mediante ADB
 ```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r apk/TeamTX-latest.apk
 ```
 
 ---
 
-## 📡 Sistema Oficial de Actualizaciones OTA (Over-The-Air) & Rutas Inmutables
+## 📡 Sistema Oficial de Distribución OTA, Firebase Storage & Nomenclatura de APKs
 
-> ⚠️ **REGLA OBLIGATORIA PARA TODOS LOS AGENTES Y DESARROLLADORES**:  
-> Esta estructura de rutas, nombres de archivos y colecciones de Firebase es **OFICIAL E INMUTABLE**. No debe ser alterada ni renombrada por ningún agente.
+> ⚠️ **ESTÁNDAR OBLIGATORIO DE NOMENCLATURA Y DISTRIBUCIÓN DE VERSIONES**:  
+> A partir de ahora, cada archivo APK generado y subido a Firebase Storage (`gs://teamnacionaltx.firebasestorage.app/updates/`) debe seguir la siguiente estructura estandarizada:
 
-### 1. Carpeta y Ubicación Oficial del APK en el Repositorio:
-- **Carpeta Oficial**: `apk/` (Rastreada con Git LFS para archivos binarios pesados con motor OsmAnd).
-- **Ruta Local**: `d:\MAPA\Team-Nacional-TX-Aragua\apk\TeamTX-v1.2.9-beta.apk` (y generado en `app/build/outputs/apk/debug/app-debug.apk`).
+### 1. Nombres Oficiales de Archivos APK:
+- **Versión Estable**: `TeamTX-v<VersionName>-estable.apk` (Ejemplo: `TeamTX-v2.5.0-estable.apk`).
+- **Versión Beta / Pruebas**: `TeamTX-v<VersionName>-beta.apk` (Ejemplo: `TeamTX-v2.5.1-beta.apk`).
+- **Alias Última Versión Oficial**: `TeamTX-latest.apk` (siempre debe actualizarse y mantenerse en `apk/TeamTX-latest.apk` y en Storage `updates/TeamTX-latest.apk`).
 
-### 2. URL Oficial y Permanente de Descarga Directa en GitHub:
-Esta es la URL fija que lee el gestor OTA (`ACTUALIZADOR.kt`) y que debe colocarse en Firebase:
-```text
-https://github.com/EDJMM91/Team-Nacional-TX-Aragua/raw/main/apk/TeamTX-v1.2.9-beta.apk
-```
-*(URL directa Raw)*:
-```text
-https://raw.githubusercontent.com/EDJMM91/Team-Nacional-TX-Aragua/main/apk/TeamTX-v1.2.9-beta.apk
-```
+### 2. Repositorio de Versiones en Firebase Storage (`updates/`):
+- **Bucket**: `gs://teamnacionaltx.firebasestorage.app/updates/`
+- **Capacidad de Rollback**: La app consulta dinámicamente este directorio en tiempo real dentro del **Módulo Info** (`Historial de Versiones y Rollback`), destacando la **Última Versión Estable [RECOMENDADA]** y permitiendo a cualquier usuario instalar versiones anteriores en caso de requerir un rollback por fallos de compatibilidad o bugs.
 
 ### 3. Configuración en Firebase Firestore:
 - **Colección**: `configuracion` *(en minúsculas)*
 - **Documento**: `OTA` *(en mayúsculas)*
 - **Campos Requeridos**:
-  - `versionCode` (`number` / `int64`): Código numérico incremental de versión (ej. `11`, `12`...).
-  - `urlDescarga` (`string`): La URL oficial de GitHub arriba especificada.
-  - `notas` (`string`): Descripción de las mejoras de la nueva versión.
+  - `versionCode` (`number` / `int64`): Código numérico incremental de versión (ej. `25`, `26`...).
+  - `urlDescarga` (`string`): URL de descarga directa en Firebase Storage (`updates/TeamTX-latest.apk`).
+  - `notas` (`string`): Novedades y mejoras incluidas en la versión.
 
 ---
 
-## 📄 Licencia
-Desarrollado para el **Team Nacional TX Venezuela**. Todos los derechos reservados.
+## 📄 Licencia y Créditos
+Desarrollado con pasión para el **Team Nacional TX Venezuela**.  
+Desarrollador Principal: **Eduardo Márquez** (`+584243769999` / `eduardo.androide.em@gmail.com`).  
+*Cuidamos nuestros colores bikers, esta app es parte de ellos. Fomentando la hermandad y unión.*
+
 

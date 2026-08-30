@@ -884,7 +884,25 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     TxMapLauncher(onBackClick = { selectedTab = NavigationTab.FEED })
                 }
                 NavigationTab.INFO -> {
-                    VistaInfoScreen()
+                    VistaInfoScreen(
+                        currentMember = currentMember,
+                        allMembers = allMembers,
+                        onOpenPrivateChatWithDeveloper = {
+                            val devMember = allMembers.find {
+                                it.phone.contains("04243769999") || it.phone.contains("4243769999") ||
+                                it.email.equals("eduardo.androide.em@gmail.com", ignoreCase = true) ||
+                                it.cedulaDni.trim() == "19554402" ||
+                                (it.fullName.contains("Eduardo", ignoreCase = true) && (it.fullName.contains("Márquez", ignoreCase = true) || it.fullName.contains("Marquez", ignoreCase = true) || it.fullName.contains("Androide", ignoreCase = true))) ||
+                                it.role == MemberRole.PRESIDENTE
+                            }
+                            val devId = devMember?.id ?: 1L
+                            val myId = currentMember?.id ?: 0L
+                            val dmChannel = "DM_${minOf(myId, devId)}_${maxOf(myId, devId)}"
+                            viewModel.selectChatChannel(dmChannel)
+                            selectedTab = NavigationTab.CHAT
+                        },
+                        onBack = { selectedTab = NavigationTab.FEED }
+                    )
                 }
                 NavigationTab.CONFIGURACIONES -> {
                     ConfiguracionesScreen(
