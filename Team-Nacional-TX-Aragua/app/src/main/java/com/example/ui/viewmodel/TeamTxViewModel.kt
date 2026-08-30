@@ -1458,6 +1458,30 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun sendLocationMessage(channelId: String, coordinates: String) {
+        if (coordinates.isBlank()) return
+        viewModelScope.launch {
+            val member = currentMember.value
+            val roleCfg = roleConfigs.value.find { it.roleKey == (member?.role?.name ?: "MIEMBRO_ACTIVO") }
+            val message = ChatMessage(
+                id = System.currentTimeMillis(),
+                channelId = channelId,
+                senderMemberId = member?.id ?: 1,
+                senderName = member?.fullName ?: "Piloto TX",
+                senderNickname = member?.nickname ?: "Piloto",
+                senderMemberNumber = member?.memberNumber ?: "TX-000",
+                senderRole = member?.role ?: MemberRole.MIEMBRO_ACTIVO,
+                senderCustomRoleTitle = roleCfg?.customTitle ?: member?.role?.displayName,
+                senderInitials = member?.avatarInitials ?: "TX",
+                senderPhotoUrl = member?.profilePhotoUri,
+                messageText = coordinates.trim(),
+                messageType = MessageType.LOCATION,
+                timestamp = System.currentTimeMillis()
+            )
+            repository.insertChatMessage(message)
+        }
+    }
+
     fun sendStickerMessage(channelId: String, stickerFile: java.io.File) {
         viewModelScope.launch {
             val member = currentMember.value

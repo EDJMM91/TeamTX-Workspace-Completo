@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -95,6 +96,77 @@ fun VistaChat(
             }
         }
         mostrarPanelStickers = false
+    }
+
+    // 📍 Gestor de Ubicación GPS
+    val gestorUbicacion = remember { GestorUbicacion(contextoAndroid) }
+    var estaCapturandoUbicacion by remember { mutableStateOf(false) }
+    val locationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fine = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarse = permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fine || coarse) {
+            corrutinaScope.launch {
+                estaCapturandoUbicacion = true
+                val coords = gestorUbicacion.capturarCoordenadaActual()
+                estaCapturandoUbicacion = false
+                if (coords != null) {
+                    NubeMensajes.enviarMensajeMultimedia(
+                        tipo = TipoMensaje.UBICACION,
+                        urlMultimedia = "geo:$coords",
+                        nombreArchivo = "ubicacion.geo",
+                        texto = coords,
+                        emisor = nombreUsuario,
+                        apodoEmisor = nombreUsuario
+                    )
+                    android.widget.Toast.makeText(contextoAndroid, "📍 Ubicación compartida", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(contextoAndroid, "No se pudo obtener la posición GPS", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            android.widget.Toast.makeText(contextoAndroid, "Permiso de ubicación denegado", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun compartirUbicacion() {
+        val fine = androidx.core.content.ContextCompat.checkSelfPermission(
+            contextoAndroid,
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val coarse = androidx.core.content.ContextCompat.checkSelfPermission(
+            contextoAndroid,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (fine || coarse) {
+            corrutinaScope.launch {
+                estaCapturandoUbicacion = true
+                val coords = gestorUbicacion.capturarCoordenadaActual()
+                estaCapturandoUbicacion = false
+                if (coords != null) {
+                    NubeMensajes.enviarMensajeMultimedia(
+                        tipo = TipoMensaje.UBICACION,
+                        urlMultimedia = "geo:$coords",
+                        nombreArchivo = "ubicacion.geo",
+                        texto = coords,
+                        emisor = nombreUsuario,
+                        apodoEmisor = nombreUsuario
+                    )
+                    android.widget.Toast.makeText(contextoAndroid, "📍 Ubicación compartida", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(contextoAndroid, "No se pudo obtener la posición GPS", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
     }
 
     Column(
@@ -227,6 +299,28 @@ fun VistaChat(
                             contentDescription = "Importar sticker",
                             modifier = Modifier.size(20.dp)
                         )
+                    }
+
+                    // 📍 Botón Compartir Ubicación
+                    IconButton(
+                        onClick = { compartirUbicacion() },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = Color(0xFF1B2232),
+                            contentColor = Color(0xFFEF5350)
+                        ),
+                        modifier = Modifier
+                            .size(40.dp)
+                            .testTag("boton_compartir_ubicacion")
+                    ) {
+                        if (estaCapturandoUbicacion) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFFEF5350))
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = "Compartir Ubicación",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
                     // Emojis básicos
@@ -549,6 +643,13 @@ fun TarjetaMensaje(
                             Text(text = formatoHora, fontSize = 9.sp, color = if (esMio) Color.White.copy(alpha = 0.8f) else Color(0xFF90A4AE), modifier = Modifier.align(Alignment.End))
                         }
                     }
+                }
+                TipoMensaje.UBICACION -> {
+                    TarjetaUbicacion(
+                        coordenadasString = mensaje.texto.removePrefix("📍 ").trim(),
+                        esRemitentePropio = esMio,
+                        nombrePiloto = mensaje.apodoEmisor.ifBlank { mensaje.emisor }
+                    )
                 }
                 else -> {
                     // Texto, audio y otros con burbuja normal

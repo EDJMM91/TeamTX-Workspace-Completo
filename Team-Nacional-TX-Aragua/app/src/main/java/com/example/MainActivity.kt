@@ -491,6 +491,9 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onSendAudio = { ch, file, dur, transcription ->
                             viewModel.sendAudioMessage(ch, file, dur, transcription)
                         },
+                        onSendLocation = { ch, coords ->
+                            viewModel.sendLocationMessage(ch, coords)
+                        },
                         onToggleReaction = { msgId, emoji ->
                             viewModel.toggleMessageReaction(msgId, emoji)
                         },
@@ -807,6 +810,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             activeChannelId = "DIRECTIVA",
                             onSelectChannel = { /* No-op, only one channel */ },
                             onSendMessage = { ch, text, radio, rId, rSender, rText -> viewModel.sendChatMessage(ch, text, radio, rId, rSender, rText) },
+                            onSendLocation = { ch, coords -> viewModel.sendLocationMessage(ch, coords) },
                             onDeleteMessage = { viewModel.deleteChatMessage(it) },
                             showOnlyDirectiva = true
                         )

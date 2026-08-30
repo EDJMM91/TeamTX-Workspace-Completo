@@ -32,6 +32,7 @@ import com.example.data.model.*
 import com.example.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.launch
 
 enum class ChatChannel(
     val id: String,
@@ -62,6 +63,7 @@ fun ClubChatScreen(
     onMarkChannelAsRead: (String) -> Unit = {},
     onSendSticker: (String, java.io.File) -> Unit = { _, _ -> },
     onSendAudio: (channelId: String, audioFile: java.io.File, durationSeconds: Int, transcriptionText: String?) -> Unit = { _, _, _, _ -> },
+    onSendLocation: (channelId: String, coordinates: String) -> Unit = { _, _ -> },
     onToggleReaction: (messageId: Long, emoji: String) -> Unit = { _, _ -> },
     onToggleBottomNav: (() -> Unit)? = null,
     onBack: () -> Unit = {},
@@ -140,6 +142,32 @@ fun ClubChatScreen(
             )
         } else {
             android.widget.Toast.makeText(context, "Se requiere permiso de micrófono para dictado de voz a texto", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 📍 Sensor silencioso de Ubicación GPS (GESTOR_UBICACION)
+    val gestorUbicacion = remember { com.example.chat.GestorUbicacion(context) }
+    var estaCapturandoUbicacion by remember { mutableStateOf(false) }
+    val corrutinaScope = rememberCoroutineScope()
+    val locationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineGranted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted || coarseGranted) {
+            corrutinaScope.launch {
+                estaCapturandoUbicacion = true
+                val coords = gestorUbicacion.capturarCoordenadaActual()
+                estaCapturandoUbicacion = false
+                if (coords != null) {
+                    onSendLocation(activeChannelId, coords)
+                    android.widget.Toast.makeText(context, "📍 Ubicación enviada al chat", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(context, "No se pudo obtener la posición GPS", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            android.widget.Toast.makeText(context, "Permiso de ubicación denegado", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1016,6 +1044,57 @@ fun ClubChatScreen(
                                                 tint = Color(0xFF94A3B8),
                                                 modifier = Modifier.size(20.dp)
                                             )
+                                        }
+
+                                        // 📍 Botón Compartir Ubicación GPS
+                                        IconButton(
+                                            onClick = {
+                                                val fine = androidx.core.content.ContextCompat.checkSelfPermission(
+                                                    context,
+                                                    android.Manifest.permission.ACCESS_FINE_LOCATION
+                                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                                val coarse = androidx.core.content.ContextCompat.checkSelfPermission(
+                                                    context,
+                                                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                                                if (fine || coarse) {
+                                                    corrutinaScope.launch {
+                                                        estaCapturandoUbicacion = true
+                                                        val coords = gestorUbicacion.capturarCoordenadaActual()
+                                                        estaCapturandoUbicacion = false
+                                                        if (coords != null) {
+                                                            onSendLocation(activeChannelId, coords)
+                                                            android.widget.Toast.makeText(context, "📍 Ubicación compartida", android.widget.Toast.LENGTH_SHORT).show()
+                                                        } else {
+                                                            android.widget.Toast.makeText(context, "No se pudo obtener la posición GPS", android.widget.Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    }
+                                                } else {
+                                                    locationPermissionLauncher.launch(
+                                                        arrayOf(
+                                                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                                            android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                                        )
+                                                    )
+                                                }
+                                            },
+                                            modifier = Modifier.size(38.dp)
+                                        ) {
+                                            if (estaCapturandoUbicacion) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(18.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = MotoOrangePrimary
+                                                )
+                                            } else {
+                                                Icon(
+                                                    Icons.Default.LocationOn,
+                                                    contentDescription = "Compartir Ubicación",
+                                                    tint = Color(0xFFEF5350),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -2078,6 +2157,14 @@ fun ChatMessageBubble(
                                         }
                                     }
                                 }
+                            } else if (message.messageType == com.example.data.model.MessageType.LOCATION || (message.messageText.contains(",") && message.messageText.matches(Regex("^-?\\d+(\\.\\d+)?,\\s*-?\\d+(\\.\\d+)?$")))) {
+                                // 📍 TARJETA DE UBICACIÓN COMPARTIDA (Intercepción OsmAnd)
+                                val coordsLimpia = message.messageText.removePrefix("📍 ").trim()
+                                com.example.chat.TarjetaUbicacion(
+                                    coordenadasString = coordsLimpia,
+                                    esRemitentePropio = isMe,
+                                    nombrePiloto = message.senderNickname.ifBlank { message.senderName }
+                                )
                             } else {
                                 Text(
                                     text = message.messageText,
