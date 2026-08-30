@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.example.data.model.MemberProfile
 import com.example.ui.preferences.PreferenciasApp
 import com.example.ui.theme.*
 import kotlinx.coroutines.delay
@@ -59,6 +60,9 @@ enum class SpeedometerMode(val displayName: String, val shortName: String, val i
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VelocimetroScreen(
+    currentMember: MemberProfile? = null,
+    onAccumulateKm: (Double) -> Unit = {},
+    onUpdateTopSpeed: (Float) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -78,7 +82,6 @@ fun VelocimetroScreen(
 
     // Estados de Velocidad y Telemetría
     var currentGpsSpeedKmh by remember { mutableFloatStateOf(0f) }
-    var currentAccelSpeedKmh by remember { mutableFloatStateOf(0f) }
     var effectiveSpeedKmh by remember { mutableFloatStateOf(0f) }
     var tripMaxSpeedKmh by remember { mutableFloatStateOf(0f) }
     var persistentRecordKmh by remember { mutableFloatStateOf(PreferenciasApp.topSpeedRecordKmh) }
@@ -155,7 +158,7 @@ fun VelocimetroScreen(
         isSelfTestRunning = false
     }
 
-    // Sensor de Acelerómetro (Detección de arrancadas rápidas en moto)
+    // Sensor de Acelerómetro (Cálculo Físico de Fuerza G Instantánea y Aceleración)
     DisposableEffect(context) {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         val accelSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
@@ -165,25 +168,16 @@ fun VelocimetroScreen(
             override fun onSensorChanged(event: SensorEvent?) {
                 if (event == null) return
                 val now = System.currentTimeMillis()
-                val dt = (now - lastAccelTimestamp) / 1000f
                 lastAccelTimestamp = now
 
                 val ax = event.values[0]
                 val ay = event.values[1]
                 val az = event.values[2]
 
-                // Magnitud de aceleración (Fuerza G)
+                // Magnitud vectorial de aceleración instantánea y Fuerza G
                 val totalAccel = sqrt(ax * ax + ay * ay + az * az)
                 instantAccelMss = totalAccel
-                gForceInstant = totalAccel / 9.80665f
-
-                // Si hay arrancada fuerte en avance
-                if (totalAccel > 1.8f && dt in 0.005f..0.5f) {
-                    val deltaKmh = (totalAccel * dt) * 3.6f
-                    currentAccelSpeedKmh = (currentAccelSpeedKmh + deltaKmh).coerceAtMost(220f)
-                } else if (currentGpsSpeedKmh == 0f) {
-                    currentAccelSpeedKmh = (currentAccelSpeedKmh - 1.5f).coerceAtLeast(0f)
-                }
+                gForceInstant = (totalAccel / 9.80665f).coerceIn(0f, 6.0f)
             }
 
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -200,7 +194,7 @@ fun VelocimetroScreen(
         }
     }
 
-    // Listener de GPS de alta frecuencia
+    // Listener de GPS de alta frecuencia (Sincronización en tiempo real y Odómetro)
     DisposableEffect(context, hasLocationPermission) {
         if (!hasLocationPermission) return@DisposableEffect onDispose {}
 
@@ -221,41 +215,53 @@ fun VelocimetroScreen(
                 isGpsActive = true
                 isGpsSearching = false
 
-                val speedKmh = if (loc.hasSpeed()) loc.speed * 3.6f else 0f
-                val filteredSpeed = if (speedKmh < 1.2f) 0f else speedKmh
-
-                currentGpsSpeedKmh = filteredSpeed
-
-                // Fusión con sensor de acelerómetro
-                val fusedSpeed = if (filteredSpeed > 0f) {
-                    maxOf(filteredSpeed, currentAccelSpeedKmh)
-                } else 0f
-
-                effectiveSpeedKmh = fusedSpeed
-
-                // Récords de viaje y persistente
-                if (fusedSpeed > tripMaxSpeedKmh) {
-                    tripMaxSpeedKmh = fusedSpeed
+                // Cálculo puro de velocidad por satélite GPS (m/s * 3.6 = km/h)
+                val speedKmh = if (loc.hasSpeed()) {
+                    loc.speed * 3.6f
+                } else {
+                    lastLocation?.let { prev ->
+                        val dt = (loc.time - prev.time) / 1000f
+                        if (dt in 0.2f..5.0f) {
+                            (prev.distanceTo(loc) / dt) * 3.6f
+                        } else 0f
+                    } ?: 0f
                 }
-                if (fusedSpeed > persistentRecordKmh) {
-                    persistentRecordKmh = fusedSpeed
-                    PreferenciasApp.topSpeedRecordKmh = fusedSpeed
+
+                // Filtrar ruido de vibración o deriva quieta
+                val filteredSpeed = if (speedKmh < 1.2f) 0f else speedKmh
+                currentGpsSpeedKmh = filteredSpeed
+                effectiveSpeedKmh = filteredSpeed
+
+                // Récord del viaje actual
+                if (filteredSpeed > tripMaxSpeedKmh) {
+                    tripMaxSpeedKmh = filteredSpeed
+                }
+
+                // Récord histórico persistente del piloto
+                if (filteredSpeed > persistentRecordKmh && filteredSpeed < 300f) {
+                    persistentRecordKmh = filteredSpeed
+                    PreferenciasApp.topSpeedRecordKmh = filteredSpeed
                     isNewRecordAchieved = true
+                    onUpdateTopSpeed(filteredSpeed)
                 }
 
                 altitudeMeters = loc.altitude
                 bearingDegrees = loc.bearing
 
+                // Odómetro: Sumar distancia acumulada si hay movimiento real (>1.2 km/h)
                 lastLocation?.let { prev ->
                     val dist = prev.distanceTo(loc)
-                    if (dist > 0.8f && filteredSpeed > 1f) {
+                    if (dist > 0.8f && filteredSpeed > 1.2f) {
                         tripDistanceMeters += dist
                         val addedKm = dist / 1000.0
                         totalOdoKm += addedKm
                         PreferenciasApp.odometroTotalKm = totalOdoKm
+                        onAccumulateKm(addedKm)
                     }
                 }
                 lastLocation = loc
+
+                android.util.Log.d("TEAM_TX_VELOCIMETRO", "🛰️ GPS: $filteredSpeed km/h | G: $gForceInstant | ODO: $totalOdoKm km | TRIP: $tripDistanceMeters m")
             }
 
             override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
@@ -1260,6 +1266,20 @@ fun AnalogSpeedometerView(
                     fontWeight = FontWeight.Bold,
                     color = MotoOrangePrimary
                 )
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (gForce > 0.3f) MotoOrangePrimary.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.6f),
+                    border = BorderStroke(1.dp, if (gForce > 0.3f) MotoOrangePrimary else TxSteelSilver.copy(alpha = 0.3f)),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Text(
+                        text = String.format("%.2f G", gForce),
+                        fontSize = if (isFullscreen) 11.sp else 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (gForce > 0.3f) MotoOrangePrimary else MotoGoldSecondary,
+                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                    )
+                }
             }
         }
     }

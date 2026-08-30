@@ -442,6 +442,13 @@ data class MemberProfile(
     // Perfil y Moto (Imágenes)
     var profilePhotoUri: String? = null,
     var bikePhotoUri: String? = null,
+    // Métricas de Rendimiento, Velocímetro, Odómetro y Ranking Gamificado
+    var totalKmRidden: Double = 0.0,
+    var topSpeedRecordKmh: Float = 0f,
+    var sosAssistanceCount: Int = 0,
+    var challengesCompletedCount: Int = 0,
+    var meritPoints: Int = 0,
+    var rankingTitle: String = "Piloto TX",
     // Google / Firebase Sync
     var firebaseUid: String? = null,
     var email: String? = null

@@ -171,4 +171,9 @@ object PreferenciasApp {
     var odometroTotalKm: Double
         get() = java.lang.Double.longBitsToDouble(prefs.getLong("odometro_total_km_bits", java.lang.Double.doubleToLongBits(0.0)))
         set(value) = prefs.edit().putLong("odometro_total_km_bits", java.lang.Double.doubleToLongBits(value)).apply()
+
+    /** Registrar Odómetro continuo en toda la app (GPS continuo en primer plano) */
+    var odometroGlobalActivo: Boolean
+        get() = prefs.getBoolean("odometro_global_activo", false)
+        set(value) = prefs.edit().putBoolean("odometro_global_activo", value).apply()
 }

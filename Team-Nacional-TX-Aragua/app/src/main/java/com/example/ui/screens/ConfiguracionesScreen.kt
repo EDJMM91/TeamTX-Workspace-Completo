@@ -3,6 +3,7 @@ package com.example.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -88,6 +89,10 @@ fun ConfiguracionesScreen(
 
     // Carnet
     var carnetQr by remember { mutableStateOf(PreferenciasApp.carnetMostrarQr) }
+
+    // Velocímetro & Odómetro
+    var odometroGlobal by remember { mutableStateOf(PreferenciasApp.odometroGlobalActivo) }
+    var velocidadMphConfig by remember { mutableStateOf(PreferenciasApp.velocidadEnMph) }
 
     LazyColumn(
         modifier = Modifier
@@ -440,6 +445,66 @@ fun ConfiguracionesScreen(
                     onCheckedChange = {
                         carnetQr = it
                         PreferenciasApp.carnetMostrarQr = it
+                    }
+                )
+            }
+        }
+
+        // ── Módulo 11: Velocímetro & Odómetro ────────────────────────────────
+        item {
+            SeccionConfiguraciones(
+                titulo = "Velocímetro & Odómetro",
+                icono = Icons.Default.Speed,
+            ) {
+                ItemToggle(
+                    label = "Odómetro continuo (App Abierta)",
+                    descripcion = "Registra kilómetros recorridos mientras uses la app para sumar a tu carnet y ranking",
+                    icono = Icons.Default.Route,
+                    checked = odometroGlobal,
+                    onCheckedChange = {
+                        odometroGlobal = it
+                        PreferenciasApp.odometroGlobalActivo = it
+                    }
+                )
+                
+                if (odometroGlobal) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MotoOrangePrimary.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.4f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BatteryAlert,
+                                contentDescription = null,
+                                tint = MotoOrangePrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Aviso de Batería: Mantener el sensor GPS activo continuamente consume mayor nivel de energía del dispositivo.",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
+                }
+
+                ItemToggle(
+                    label = "Unidad en Millas por Hora (MPH)",
+                    descripcion = "Mostrar velocidad en MPH en lugar de KM/H",
+                    icono = Icons.Default.AvTimer,
+                    checked = velocidadMphConfig,
+                    onCheckedChange = {
+                        velocidadMphConfig = it
+                        PreferenciasApp.velocidadEnMph = it
                     }
                 )
             }

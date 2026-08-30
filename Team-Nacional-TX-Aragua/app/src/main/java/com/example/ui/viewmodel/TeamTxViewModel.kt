@@ -131,6 +131,58 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun accumulateMemberKilometers(addedKm: Double) {
+        val member = currentMember.value ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            val newTotalKm = member.totalKmRidden + addedKm
+            val newMeritPoints = (newTotalKm / 10.0).toInt() +
+                    (member.attendanceCount * 50) +
+                    (member.longRidesCount * 100) +
+                    (member.bigEventsCount * 200) +
+                    (member.sosAssistanceCount * 150) +
+                    (member.challengesCompletedCount * 75)
+            val newRankTitle = com.example.ui.screens.getMemberHonorRank(newMeritPoints).title
+            val updated = member.copy(
+                totalKmRidden = newTotalKm,
+                meritPoints = newMeritPoints,
+                rankingTitle = newRankTitle
+            )
+            repository.updateMember(updated)
+            Log.d("TEAM_TX_RANKING", "📈 Odómetro sincronizado para ${member.fullName}: +$addedKm km (Total: $newTotalKm km, $newMeritPoints pts)")
+        }
+    }
+
+    fun updateMemberTopSpeed(speed: Float) {
+        val member = currentMember.value ?: return
+        if (speed <= member.topSpeedRecordKmh) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val updated = member.copy(topSpeedRecordKmh = speed)
+            repository.updateMember(updated)
+            Log.d("TEAM_TX_VELOCIMETRO", "⚡ Nuevo récord de velocidad guardado para ${member.fullName}: $speed km/h")
+        }
+    }
+
+    fun incrementMemberSosAssistance(memberId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val member = allMembers.value.find { it.id == memberId } ?: return@launch
+            val newCount = member.sosAssistanceCount + 1
+            val newMeritPoints = (member.totalKmRidden / 10.0).toInt() +
+                    (member.attendanceCount * 50) +
+                    (member.longRidesCount * 100) +
+                    (member.bigEventsCount * 200) +
+                    (newCount * 150) +
+                    (member.challengesCompletedCount * 75)
+            val newRankTitle = com.example.ui.screens.getMemberHonorRank(newMeritPoints).title
+            val updated = member.copy(
+                sosAssistanceCount = newCount,
+                meritPoints = newMeritPoints,
+                rankingTitle = newRankTitle
+            )
+            repository.updateMember(updated)
+            Log.d("TEAM_TX_RANKING", "🆘 Auxilio SOS sumado a ${member.fullName}: $newCount auxilios ($newMeritPoints pts)")
+        }
+    }
+
     fun registerMember(
         fullName: String,
         nickname: String,

@@ -331,11 +331,11 @@ fun ProfileAndAdminScreen(
                                 modifier = Modifier.weight(1f).padding(end = 4.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text("KM RECORRIDOS", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                                    Text("3,450 KM", fontSize = 14.sp, fontWeight = FontWeight.Black, color = TxGoldLight)
+                                    Text("KM RECORRIDOS", fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                    Text("${currentMember?.totalKmRidden?.toInt() ?: 0} KM", fontSize = 13.sp, fontWeight = FontWeight.Black, color = TxGoldLight)
                                 }
                             }
 
@@ -345,11 +345,11 @@ fun ProfileAndAdminScreen(
                                 modifier = Modifier.weight(1f).padding(horizontal = 2.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text("RODADAS OFICIALES", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                                    Text("14 Asistidas", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                    Text("TOP VELOCIDAD", fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                    Text("${currentMember?.topSpeedRecordKmh?.toInt() ?: 0} KM/H", fontSize = 13.sp, fontWeight = FontWeight.Black, color = MotoOrangePrimary)
                                 }
                             }
 
@@ -359,11 +359,11 @@ fun ProfileAndAdminScreen(
                                 modifier = Modifier.weight(1f).padding(start = 4.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text("ANTIGÜEDAD", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                                    Text("Desde ${currentMember?.joinYear ?: "2023"}", fontSize = 14.sp, fontWeight = FontWeight.Black, color = StatusSuccess)
+                                    Text("PUNTOS MÉRITO", fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                    Text("${currentMember?.meritPoints ?: 0} PTS", fontSize = 13.sp, fontWeight = FontWeight.Black, color = StatusSuccess)
                                 }
                             }
                         }

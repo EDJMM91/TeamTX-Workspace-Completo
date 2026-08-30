@@ -630,18 +630,38 @@ fun DigitalCredentialCard(
                         fontSize = 13.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = if (member.isSuspended) StatusError.copy(alpha = 0.2f) else Color(member.role.badgeColorHex).copy(alpha = 0.2f),
-                        border = BorderStroke(1.dp, if (member.isSuspended) StatusError else Color(member.role.badgeColorHex))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = if (member.isSuspended) "SUSPENDIDO (${member.role.displayName.uppercase()})" else member.role.displayName.uppercase(),
-                            color = if (member.isSuspended) StatusError else Color(member.role.badgeColorHex),
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 10.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = if (member.isSuspended) StatusError.copy(alpha = 0.2f) else Color(member.role.badgeColorHex).copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, if (member.isSuspended) StatusError else Color(member.role.badgeColorHex))
+                        ) {
+                            Text(
+                                text = if (member.isSuspended) "SUSPENDIDO (${member.role.displayName.uppercase()})" else member.role.displayName.uppercase(),
+                                color = if (member.isSuspended) StatusError else Color(member.role.badgeColorHex),
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 10.sp,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+
+                        val rank = com.example.ui.screens.getMemberHonorRank(member.meritPoints)
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = rank.badgeColor.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, rank.badgeColor.copy(alpha = 0.6f))
+                        ) {
+                            Text(
+                                text = "🏆 ${rank.title.uppercase()}",
+                                color = rank.badgeColor,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 9.sp,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }

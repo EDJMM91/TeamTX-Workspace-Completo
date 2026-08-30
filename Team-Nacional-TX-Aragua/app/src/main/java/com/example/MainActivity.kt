@@ -4,6 +4,13 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -63,6 +70,7 @@ enum class NavigationTab(val label: String, val iconFilled: ImageVector, val ico
     FEED("Muro", Icons.Default.Campaign, Icons.Outlined.Campaign, "tab_feed"),
     CHAT("Chat", Icons.Default.Forum, Icons.Outlined.Forum, "tab_chat"),
     NOTIFICACIONES("Avisos", Icons.Default.Notifications, Icons.Outlined.Notifications, "tab_notificaciones"),
+    RANKING("Ranking", Icons.Default.MilitaryTech, Icons.Outlined.MilitaryTech, "tab_ranking"),
     CALENDARIO("Calendario", Icons.Default.CalendarMonth, Icons.Outlined.CalendarMonth, "tab_calendario"),
     RETOS("Retos", Icons.Default.EmojiEvents, Icons.Outlined.EmojiEvents, "tab_retos"),
     VELOCIMETRO("Velocímetro", Icons.Default.Speed, Icons.Outlined.Speed, "tab_velocimetro"),
@@ -262,6 +270,46 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             isBottomNavVisible = false
         } else {
             isBottomNavVisible = true
+        }
+    }
+
+    // 🌐 Odómetro Continuo Global en Toda la App (Si está habilitado en Ajustes)
+    val appCtx = LocalContext.current
+    val hasLocPerm = remember {
+        ContextCompat.checkSelfPermission(appCtx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    DisposableEffect(hasLocPerm) {
+        if (!hasLocPerm) return@DisposableEffect onDispose {}
+        val locManager = appCtx.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        var lastAppLoc: Location? = null
+
+        val globalListener = object : LocationListener {
+            override fun onLocationChanged(loc: Location) {
+                if (!PreferenciasApp.odometroGlobalActivo) return
+                val speedKmh = if (loc.hasSpeed()) loc.speed * 3.6f else 0f
+                lastAppLoc?.let { prev ->
+                    val dist = prev.distanceTo(loc)
+                    if (dist > 1.2f && (speedKmh > 1.2f || dist / 2.0f > 0.5f)) {
+                        val addedKm = dist / 1000.0
+                        PreferenciasApp.odometroTotalKm += addedKm
+                        viewModel.accumulateMemberKilometers(addedKm)
+                        Log.d("TEAM_TX_VELOCIMETRO", "🌐 Odómetro continuo global: +$addedKm km")
+                    }
+                }
+                lastAppLoc = loc
+            }
+            override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
+            override fun onProviderEnabled(p: String) {}
+            override fun onProviderDisabled(p: String) {}
+        }
+
+        try {
+            locManager?.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000L, 2.0f, globalListener)
+        } catch (_: SecurityException) {}
+
+        onDispose {
+            try { locManager?.removeUpdates(globalListener) } catch (_: Exception) {}
         }
     }
 
@@ -521,8 +569,22 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onBack = { selectedTab = NavigationTab.FEED }
                     )
                 }
+                NavigationTab.RANKING -> {
+                    RankingScreen(
+                        allMembers = allMembers,
+                        currentMember = currentMember,
+                        onOpenMemberCarnet = { member ->
+                            viewModel.selectMember(member.id)
+                            selectedTab = NavigationTab.PROFILE
+                        },
+                        onBack = { selectedTab = NavigationTab.FEED }
+                    )
+                }
                 NavigationTab.VELOCIMETRO -> {
                     VelocimetroScreen(
+                        currentMember = currentMember,
+                        onAccumulateKm = { viewModel.accumulateMemberKilometers(it) },
+                        onUpdateTopSpeed = { viewModel.updateMemberTopSpeed(it) },
                         onBack = { selectedTab = NavigationTab.FEED }
                     )
                 }
