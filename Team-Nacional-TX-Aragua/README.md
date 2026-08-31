@@ -80,7 +80,20 @@
 ### 15. 🛡️ Panel de Directiva (`DirectivaExclusiveScreen`)
 - Gestión de solicitudes de ingreso, asignación de rangos, moderación de canales y anuncios oficiales.
 
-### 16. 📁 Sistema Organizado de Carpetas en Español (`GestorCarpetasApp`)
+### 16. 🎵 Reproductor TX Pro (`REPRODUCTOR_PRINCIPAL`)
+- Reproductor de música completo con interfaz estilo Spotify para riders.
+- **Motor DSP Nativo**: Pipeline de efectos de audio en tiempo real (Ecualizador multibanda, BassBoost, Virtualizer 3D, LoudnessEnhancer) integrado con JNI/C++.
+- **Biblioteca Local**: Escáner automático de música del dispositivo con filtros de WhatsApp/audios cortos.
+- **Listas de Reproducción Personalizadas**: Crear, editar, eliminar listas con arrastre de canciones.
+- **Gestión de Cola**: Modo aleatorio, repetición (una/todas/sin bucle), navegación por cola.
+- **Descargas YouTube (YT)**: Búsqueda integrada con descarga directa a MP3 320kbps vía Invidious/JioSaavn, registro automático en MediaStore y lista "Descargas TX".
+- **Ecualizador Visual**: Panel interactivo con 5 bandas, BassBoost y Virtualizer en tiempo real.
+- **Widget de Pantalla**: Widget flotante con controles de play/pause, siguiente/anterior y barra de progreso.
+- **Notificación Multimedia**: Controles integrados en la barra de notificaciones con skip, pause y carátula del álbum.
+- **Persistencia**: Última canción, posición, configuración de efectos y listas guardadas en SharedPreferences.
+- **Carga de Carátulas**: Sistema automático de obtención de carátulas locales y en línea.
+
+### 17. 📁 Sistema Organizado de Carpetas en Español (`GestorCarpetasApp`)
 Jerarquía de carpetas creada automáticamente en la memoria del teléfono para un fácil acceso:
 ```
 📁 Team Nacional TX/
@@ -99,7 +112,7 @@ Jerarquía de carpetas creada automáticamente en la memoria del teléfono para 
 - **Lenguaje**: Kotlin 2.1+
 - **UI Toolkit**: Jetpack Compose con Material 3 y animaciones avanzadas
 - **Arquitectura**: MVVM (Model-View-ViewModel) + Repository Pattern + Clean Architecture
-- **Persistencia Local**: Room Database v25 (SQLite) + SharedPreferences
+- **Persistencia Local**: Room Database v27 (SQLite) + SharedPreferences
 - **Backend & Sincronización**:
   - Firebase Authentication (Control de acceso Gatekeeper)
   - Firebase Firestore (Sincronización en tiempo real)
@@ -107,6 +120,7 @@ Jerarquía de carpetas creada automáticamente en la memoria del teléfono para 
   - Firebase Storage (Archivos multimedia, notas de voz y distribución OTA en `updates/`)
   - Supabase Storage (Almacenamiento CDN secundario)
 - **Mapas y GIS**: OsmAnd Core Engine + Vector Maps
+- **Descarga de Audio**: youtubedl-android + Invidious API + JioSaavn API
 - **Procesamiento Asíncrono**: Kotlin Coroutines + StateFlow / SharedFlow
 - **Permisos y Almacenamiento**: Scoped Storage + SAF DocumentTree + Android 14/15 Media Permissions
 

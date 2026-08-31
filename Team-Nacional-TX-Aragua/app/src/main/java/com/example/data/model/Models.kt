@@ -215,7 +215,10 @@ enum class NoticeCategory(val displayName: String, val iconName: String) {
     COMUNICADO("Comunicado", "campaign"),
     EMERGENCIA("Emergencia SOS", "warning"),
     NOTICIA_RUTA("Reporte de Carretera", "map"),
-    CAPACITACION("Taller / Mecánica", "build")
+    CAPACITACION("Taller / Mecánica", "build"),
+    OBRA_BENEFICA("Obra Benéfica", "volunteer_activism"),
+    MANTENIMIENTO_PREVENTIVO("Mantenimiento Preventivo para Rodada", "handyman"),
+    LAVADO_FAMILIAR("Lavado de Moto en Familia", "local_car_wash")
 }
 
 enum class NoticePriority {
@@ -504,7 +507,11 @@ data class Publication(
     var sharesCount: Int = 0,
     var savesCount: Int = 0,
     var locationCoordinates: String? = null,
-    var locationName: String? = null
+    var locationName: String? = null,
+    var eventDate: String? = null,
+    var eventTime: String? = null,
+    var isEventFinished: Boolean = false,
+    var linkedCalendarEventId: Long? = null
 )
 
 @Entity(tableName = "ride_events")
@@ -999,5 +1006,7 @@ data class BikerCalendarEvent(
     var creatorMemberId: Long = 0L,
     var creatorName: String = "",
     var flyerUrl: String? = null,
+    var linkedPublicationId: Long? = null,
+    var isEventFinished: Boolean = false,
     var timestamp: Long = System.currentTimeMillis()
 )

@@ -90,7 +90,7 @@ VAS A TRABAJAR BAJO LOS MANIFEST ACTUALES NADA DE MODIFICARLOS NI TOCARLOS ESTAN
 
 antes de proceder a editar codigo crea un plan de implementacion detallado de que es lo que vas a hacer paso a paso .
 
-al compilar ✅ App lanzada en ambos dispositivos (com.aistudio.teamtxvzla.rkqp):
+al compilar ✅ App lanzada en ambos dispositivos PERO DESPUES DE MI ORDEN PARA INSTALAR A MENOS QUE ESTES HACIENDO PRUEBAS DE LOGCAST  (com.aistudio.teamtxvzla.rkqp):
 - RFGL52W368D → iniciada
 - A9FRUT4315006621
 -  estos son los de confianza que se usan para probar la app y ver que todo este bien antes de subir a producción

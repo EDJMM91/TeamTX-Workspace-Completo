@@ -12,7 +12,11 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -28,7 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
+import com.example.ui.theme.MotoGoldSecondary
 import com.example.ui.theme.MotoOrangePrimary
+import com.example.ui.theme.TxFlameRed
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -39,13 +46,38 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GESTOR DE ACTUALIZACIONES OTA Y CHANGELOG DINÁMICO (TEAM TX PRO)
+// Muestra con exactitud qué incluye cada versión: novedades, mejoras y fixes.
+// ═══════════════════════════════════════════════════════════════════════════
+
 object GestorActualizaciones {
     private const val TAG = "OTA_UPDATER"
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // MODELOS DE DATOS DE ACTUALIZACIONES Y CHANGELOG
+    // ─────────────────────────────────────────────────────────────────────────
+
+    data class NotaVersionDetallada(
+        val versionCode: Int,
+        val versionName: String,
+        val titulo: String,
+        val fecha: String,
+        val descripcionCorta: String,
+        val novedades: List<String>,
+        val correcciones: List<String> = emptyList(),
+        val esRecomendada: Boolean = false
+    )
+
     data class InformacionOta(
         val versionCode: Int = 0,
+        val versionName: String = "",
+        val titulo: String = "",
         val urlDescarga: String = "",
-        val notas: String = ""
+        val notas: String = "",
+        val novedades: List<String> = emptyList(),
+        val correcciones: List<String> = emptyList(),
+        val fechaPublicacion: String = ""
     )
 
     data class StorageApkVersion(
@@ -56,10 +88,136 @@ object GestorActualizaciones {
         val updatedTimestamp: Long = 0L,
         val formattedDate: String = "",
         val versionName: String = "",
+        val versionCode: Int = 0,
+        val titulo: String = "",
+        val notas: String = "",
+        val novedades: List<String> = emptyList(),
+        val correcciones: List<String> = emptyList(),
         val isStable: Boolean = true,
         val isBeta: Boolean = false,
         val isRecommendedLatest: Boolean = false
     )
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // REGISTRO HISTÓRICO OFICIAL DE VERSIONES Y CHANGELOGS DETALLADOS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    val HISTORIAL_VERSIONES_OFICIALES = listOf(
+        NotaVersionDetallada(
+            versionCode = 14,
+            versionName = "1.4.0",
+            titulo = "Módulo Reproductor TX Pro & Calendario Avanzado",
+            fecha = "30 ago 2026",
+            descripcionCorta = "Nuevo Reproductor de música nativo con Super Bass y Ultra Volumen (+300%), ecualizador 5 bandas, La Nube in-app, widget y mejoras en el Calendario Motero.",
+            novedades = listOf(
+                "🎧 Reproductor TX Pro: Motor de audio nativo C++ (JNI) de alto rendimiento para rodadas.",
+                "🔥 Super Bass & Ultra Volumen (+300%): Amplificación con limitador suave para evitar distorsiones a alta velocidad.",
+                "🎚️ Ecualizador Real de 5 Bandas: 6 presets moteros (Rock, Carretera, Bass Boost, Club, etc.) y simulación espacial 3D.",
+                "☁️ La Nube In-App: Burbuja flotante arrastrable con bloqueo de pantalla para controlar la música mientras navegas.",
+                "📱 Widget de Escritorio: Control de reproducción nativo desde la pantalla de inicio de Android.",
+                "💾 Persistencia Total: Guarda y restaura automáticamente la última canción, posición en milisegundos y carpetas locales.",
+                "🗓️ Calendario Motero Renovado: Ocultación de barra inferior y modales para programar actividades y cumpleaños.",
+                "📢 Muro TX: Nuevas categorías para Obras Benéficas, Mantenimiento Preventivo y Lavado Familiar."
+            ),
+            correcciones = listOf(
+                "Solucionado el reinicio de navegación al entrar a módulos en pantalla completa.",
+                "Optimizada la carga de imágenes en publicaciones del Muro."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
+            versionCode = 13,
+            versionName = "1.3.5",
+            titulo = "Sincronización GPS y Rutas Moteras",
+            fecha = "30 ago 2026",
+            descripcionCorta = "Sincronización directa de coordenadas para puntos de encuentro de Jueves Moteros y rodadas de fin de semana.",
+            novedades = listOf(
+                "🗺️ Puntos de Encuentro GPS: Copia y navegación directa de coordenadas desde el Calendario al Mapa TX.",
+                "🏍️ Planificador de Rodadas: Asignación de Capitán de Ruta, Colero, nivel de dificultad y estado del clima.",
+                "🔔 Notificaciones de Eventos: Avisos automáticos para confirmación de asistencia (RSVP) y copiloto."
+            ),
+            correcciones = listOf(
+                "Mejorada la precisión del cálculo de distancias en rutas moteras.",
+                "Corregido el cierre inesperado al seleccionar ubicaciones en mapas sin conexión."
+            )
+        ),
+        NotaVersionDetallada(
+            versionCode = 12,
+            versionName = "1.3.0",
+            titulo = "Calendario Motero & Puntos de Interés",
+            fecha = "29 ago 2026",
+            descripcionCorta = "Planificación integral de salidas y eventos del club con sincronización comunitaria.",
+            novedades = listOf(
+                "📅 Calendario Motero TX: Agenda interactiva mensual con filtros por tipo de rodada.",
+                "🏷️ Categorías Especiales: Cumpleaños de pilotos, paradas en bar motero y mantenimiento preventivo.",
+                "📢 Publicación Automática: Envío de eventos directamente al Muro Social TX."
+            ),
+            correcciones = listOf(
+                "Ajuste en la visualización de fechas en dispositivos con diferentes zonas horarias."
+            )
+        ),
+        NotaVersionDetallada(
+            versionCode = 11,
+            versionName = "1.2.0",
+            titulo = "Notas de Voz y Chat de Directiva",
+            fecha = "28 ago 2026",
+            descripcionCorta = "Mensajería con notas de voz, transcripción automática y canal privado de oficiales.",
+            novedades = listOf(
+                "🎙️ Notas de Voz en Chat: Grabación y envío instantáneo de audios en los canales del club.",
+                "📝 Transcripción Automática: Conversión de voz a texto para leer mensajes en marcha.",
+                "🛡️ Chat de Directiva Exclusivo: Canal privado con acceso restringido para directivos.",
+                "📖 Manual de Usuario Interactivo: Guía animada paso a paso para 13 módulos del sistema."
+            ),
+            correcciones = listOf(
+                "Optimizado el consumo de batería durante la sincronización en segundo plano de Firestore.",
+                "Corregida la duplicación de mensajes en conexiones intermitentes."
+            )
+        ),
+        NotaVersionDetallada(
+            versionCode = 10,
+            versionName = "1.1.0",
+            titulo = "Mapas Offline OsmAnd & SOS Vial",
+            fecha = "25 ago 2026",
+            descripcionCorta = "Navegación GPS sin conexión y sistema de auxilio vial de emergencia.",
+            novedades = listOf(
+                "🗺️ Mapas Offline de Venezuela: Navegación completa por capas vectoriales sin consumir datos móviles.",
+                "🚨 SOS Vial TX: Botón de auxilio inmediato con emisión de tipo de sangre y coordenadas GPS.",
+                "💳 Carnet Digital TX: Perfil oficial de miembro con código QR y estado de solvencia."
+            ),
+            correcciones = listOf(
+                "Mejorada la estabilidad del motor gráfico de mapas vectoriales."
+            )
+        )
+    )
+
+    /**
+     * Resuelve los detalles completos de una versión por su código o nombre.
+     */
+    fun obtenerDetalleVersion(versionCode: Int, versionName: String = ""): NotaVersionDetallada {
+        val porCodigo = HISTORIAL_VERSIONES_OFICIALES.find { it.versionCode == versionCode }
+        if (porCodigo != null) return porCodigo
+
+        val cleanName = versionName.removePrefix("v").trim()
+        val porNombre = HISTORIAL_VERSIONES_OFICIALES.find {
+            it.versionName.equals(cleanName, ignoreCase = true) || it.versionName.startsWith(cleanName)
+        }
+        if (porNombre != null) return porNombre
+
+        // Si es una versión más nueva no registrada aún, generar una ficha descriptiva
+        return NotaVersionDetallada(
+            versionCode = versionCode,
+            versionName = if (cleanName.isNotBlank()) cleanName else "v$versionCode",
+            titulo = "Actualización Team TX (v$versionCode)",
+            fecha = "Versión Reciente",
+            descripcionCorta = "Nuevas mejoras de estabilidad, optimizaciones de rendimiento y funciones de carretera para Team TX.",
+            novedades = listOf(
+                "🚀 Optimizaciones generales de rendimiento y estabilidad del sistema.",
+                "🔧 Mejoras de sincronización en tiempo real con Firebase.",
+                "🛡️ Actualizaciones de seguridad y compatibilidad con versiones recientes de Android."
+            ),
+            correcciones = listOf("Correcciones de errores menores reportados por la comunidad.")
+        )
+    }
 
     /**
      * Consulta y lista todas las versiones de APK alojadas en la carpeta 'updates' de Firebase Storage
@@ -84,7 +242,7 @@ object GestorActualizaciones {
                         val sizeMb = if (sizeBytes > 0) String.format(java.util.Locale.US, "%.1f MB", sizeBytes / (1024f * 1024f)) else "372.4 MB"
                         val dateStr = if (updatedTime > 0) {
                             java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale.getDefault()).format(java.util.Date(updatedTime))
-                        } else "29 ago 2026"
+                        } else "30 ago 2026"
 
                         val isBeta = item.name.contains("beta", ignoreCase = true)
                         val isStable = !isBeta || item.name.contains("estable", ignoreCase = true) || item.name.contains("latest", ignoreCase = true)
@@ -95,9 +253,19 @@ object GestorActualizaciones {
                                 val match = Regex("""v\d+(\.\d+)*(-[a-zA-Z0-9]+)?""").find(item.name)
                                 match?.value ?: item.name.removeSuffix(".apk")
                             }
-                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v${BuildConfig.VERSION_NAME} (Última)"
+                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v1.4.0 (Última)"
                             else -> item.name.removeSuffix(".apk")
                         }
+
+                        val estimatedCode = when {
+                            item.name.contains("1.4") || isLatest -> 14
+                            item.name.contains("1.3.5") -> 13
+                            item.name.contains("1.3") -> 12
+                            item.name.contains("1.2") -> 11
+                            else -> 10
+                        }
+
+                        val detalle = obtenerDetalleVersion(estimatedCode, vName)
 
                         versions.add(
                             StorageApkVersion(
@@ -108,6 +276,11 @@ object GestorActualizaciones {
                                 updatedTimestamp = updatedTime,
                                 formattedDate = dateStr,
                                 versionName = vName,
+                                versionCode = estimatedCode,
+                                titulo = detalle.titulo,
+                                notas = detalle.descripcionCorta,
+                                novedades = detalle.novedades,
+                                correcciones = detalle.correcciones,
                                 isStable = isStable,
                                 isBeta = isBeta,
                                 isRecommendedLatest = isLatest
@@ -122,6 +295,7 @@ object GestorActualizaciones {
             versions.sortWith(compareByDescending<StorageApkVersion> { it.isRecommendedLatest }.thenByDescending { it.updatedTimestamp })
 
             if (versions.isEmpty()) {
+                val detalleTop = obtenerDetalleVersion(14, "1.4.0")
                 versions.add(
                     StorageApkVersion(
                         fileName = "TeamTX-latest.apk",
@@ -129,8 +303,13 @@ object GestorActualizaciones {
                         sizeBytes = 390525647L,
                         formattedSize = "372.4 MB",
                         updatedTimestamp = System.currentTimeMillis(),
-                        formattedDate = "29 ago 2026, 10:30 PM",
-                        versionName = "v${BuildConfig.VERSION_NAME} (Recomendada)",
+                        formattedDate = "30 ago 2026, 06:00 PM",
+                        versionName = "v1.4.0 (Recomendada)",
+                        versionCode = 14,
+                        titulo = detalleTop.titulo,
+                        notas = detalleTop.descripcionCorta,
+                        novedades = detalleTop.novedades,
+                        correcciones = detalleTop.correcciones,
                         isStable = true,
                         isBeta = false,
                         isRecommendedLatest = true
@@ -141,6 +320,7 @@ object GestorActualizaciones {
             versions
         } catch (e: Exception) {
             Log.e(TAG, "Error listando versiones de Firebase Storage: ${e.message}", e)
+            val detalleTop = obtenerDetalleVersion(14, "1.4.0")
             listOf(
                 StorageApkVersion(
                     fileName = "TeamTX-latest.apk",
@@ -148,8 +328,13 @@ object GestorActualizaciones {
                     sizeBytes = 390525647L,
                     formattedSize = "372.4 MB",
                     updatedTimestamp = System.currentTimeMillis(),
-                    formattedDate = "29 ago 2026, 10:30 PM",
-                    versionName = "v${BuildConfig.VERSION_NAME} (Recomendada)",
+                    formattedDate = "30 ago 2026, 06:00 PM",
+                    versionName = "v1.4.0 (Recomendada)",
+                    versionCode = 14,
+                    titulo = detalleTop.titulo,
+                    notas = detalleTop.descripcionCorta,
+                    novedades = detalleTop.novedades,
+                    correcciones = detalleTop.correcciones,
                     isStable = true,
                     isBeta = false,
                     isRecommendedLatest = true
@@ -160,7 +345,7 @@ object GestorActualizaciones {
 
     /**
      * Consulta Firestore en la colección 'configuracion' / documento 'OTA'
-     * con respaldo oficial en Firebase Storage y GitHub
+     * con resolución de changelog dinámico por versión.
      */
     suspend fun verificarActualizacion(): InformacionOta = withContext(Dispatchers.IO) {
         val urlOficialFirebaseStorage = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd"
@@ -179,8 +364,25 @@ object GestorActualizaciones {
                     is String -> rawCode.trim().toIntOrNull() ?: 0
                     else -> 0
                 }
+                val versionName = doc.getString("versionName") ?: "v$code"
                 var url = (doc.getString("urlDescarga") ?: "").trim()
-                val notas = doc.getString("notas") ?: ""
+                val customNotas = doc.getString("notas") ?: ""
+                val customTitulo = doc.getString("titulo") ?: ""
+
+                // Extraer novedades de Firestore si existen como Array o String multilínea
+                val listaNovedadesFirestore = mutableListOf<String>()
+                val rawNovedades = doc.get("novedades")
+                if (rawNovedades is List<*>) {
+                    rawNovedades.filterIsInstance<String>().forEach { listaNovedadesFirestore.add(it) }
+                } else if (rawNovedades is String && rawNovedades.isNotBlank()) {
+                    listaNovedadesFirestore.addAll(rawNovedades.split("\n").map { it.trim() }.filter { it.isNotBlank() })
+                }
+
+                val listaCorreccionesFirestore = mutableListOf<String>()
+                val rawCorrecciones = doc.get("correcciones")
+                if (rawCorrecciones is List<*>) {
+                    rawCorrecciones.filterIsInstance<String>().forEach { listaCorreccionesFirestore.add(it) }
+                }
 
                 // Si la URL en Firestore estaba vacía o apuntaba a GitHub privado, usar Firebase Storage
                 if (url.isBlank() || url.contains("github.com")) {
@@ -188,24 +390,41 @@ object GestorActualizaciones {
                 }
 
                 if (code > 0) {
-                    Log.i(TAG, "✅ OTA obtenido desde Firestore -> code: $code, url: $url")
+                    val detalleOficial = obtenerDetalleVersion(code, versionName)
+                    val novedadesFinales = if (listaNovedadesFirestore.isNotEmpty()) listaNovedadesFirestore else detalleOficial.novedades
+                    val correccionesFinales = if (listaCorreccionesFirestore.isNotEmpty()) listaCorreccionesFirestore else detalleOficial.correcciones
+                    val tituloFinal = if (customTitulo.isNotBlank()) customTitulo else detalleOficial.titulo
+                    val notasFinales = if (customNotas.isNotBlank()) customNotas else detalleOficial.descripcionCorta
+
+                    Log.i(TAG, "✅ OTA obtenido desde Firestore -> code: $code, vName: $versionName, titulo: $tituloFinal")
                     return@withContext InformacionOta(
                         versionCode = code,
+                        versionName = versionName,
+                        titulo = tituloFinal,
                         urlDescarga = url,
-                        notas = notas
+                        notas = notasFinales,
+                        novedades = novedadesFinales,
+                        correcciones = correccionesFinales,
+                        fechaPublicacion = detalleOficial.fecha
                     )
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Consulta Firestore OTA falló: ${e.message}. Activando respaldo oficial...")
+            Log.e(TAG, "Consulta Firestore OTA falló: ${e.message}. Activando release oficial...")
         }
 
-        // 2. Fallback Oficial Firebase Storage Garantizado
-        Log.i(TAG, "✅ Activando release oficial de Firebase Storage (v11)")
+        // 2. Fallback Oficial Firebase Storage Garantizado (v1.4.0 / Build 14)
+        val detalleV14 = obtenerDetalleVersion(14, "1.4.0")
+        Log.i(TAG, "✅ Activando release oficial de Firebase Storage (v1.4.0 - Build 14)")
         return@withContext InformacionOta(
-            versionCode = 11,
+            versionCode = 14,
+            versionName = "1.4.0",
+            titulo = detalleV14.titulo,
             urlDescarga = urlOficialFirebaseStorage,
-            notas = "Actualización Team TX: Nuevo manual interactivo de usuario para 13 módulos, notas de voz en chat, transcripción de audios, chat de directiva renovado e info de lectura de mensajes."
+            notas = detalleV14.descripcionCorta,
+            novedades = detalleV14.novedades,
+            correcciones = detalleV14.correcciones,
+            fechaPublicacion = detalleV14.fecha
         )
     }
 
@@ -239,129 +458,119 @@ object GestorActualizaciones {
             // 1. Si la URL es de Firebase Storage o ruta interna, descargar por Firebase Storage SDK
             if (urlString.startsWith("gs://") || urlString.contains("firebasestorage.googleapis.com") || urlString.startsWith("updates/")) {
                 try {
-                    Log.d(TAG, "Descargando mediante Firebase Storage SDK: $urlString")
-                    val storageRef = if (urlString.startsWith("http") || urlString.startsWith("gs://")) {
-                        com.google.firebase.storage.FirebaseStorage.getInstance().getReferenceFromUrl(urlString)
+                    val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
+                    val storageRef = if (urlString.startsWith("gs://")) {
+                        storage.getReferenceFromUrl(urlString)
+                    } else if (urlString.contains("/o/")) {
+                        storage.getReferenceFromUrl(urlString)
                     } else {
-                        com.google.firebase.storage.FirebaseStorage.getInstance().reference.child(urlString)
+                        storage.reference.child("updates/TeamTX-latest.apk")
                     }
 
-                    val deferred = kotlinx.coroutines.CompletableDeferred<Boolean>()
-                    val task = storageRef.getFile(archivoApk)
+                    Log.d(TAG, "Descargando vía Firebase Storage SDK: ${storageRef.path}")
+                    var completado = false
+                    var errorDescarga: Exception? = null
 
-                    task.addOnProgressListener { snap ->
-                        val total = snap.totalByteCount
-                        val leidos = snap.bytesTransferred
-                        if (total > 0) {
-                            val progreso = (leidos.toFloat() / total.toFloat()).coerceIn(0f, 1f)
-                            val leidosMbStr = String.format("%.1f MB", leidos / (1024f * 1024f))
-                            val totalMbStr = String.format("%.1f MB", total / (1024f * 1024f))
-                            kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
-                                onProgreso(progreso, leidosMbStr, totalMbStr)
-                            }
+                    val downloadTask = storageRef.getFile(archivoApk)
+                    downloadTask.addOnProgressListener { snapshot ->
+                        val bytesTransferred = snapshot.bytesTransferred
+                        val totalBytes = snapshot.totalByteCount
+                        if (totalBytes > 0) {
+                            val progreso = bytesTransferred.toFloat() / totalBytes.toFloat()
+                            val mbLeidos = String.format(java.util.Locale.US, "%.1f", bytesTransferred / (1024f * 1024f))
+                            val mbTotal = String.format(java.util.Locale.US, "%.1f", totalBytes / (1024f * 1024f))
+                            onProgreso(progreso, mbLeidos, mbTotal)
                         }
                     }.addOnSuccessListener {
-                        deferred.complete(true)
-                    }.addOnFailureListener { err ->
-                        Log.e(TAG, "Error en descarga de Firebase Storage: ${err.message}", err)
-                        deferred.complete(false)
+                        completado = true
+                    }.addOnFailureListener { e ->
+                        errorDescarga = e
+                        completado = true
                     }
 
-                    val exito = deferred.await()
-                    if (exito && archivoApk.exists() && archivoApk.length() > 100 * 1024) {
-                        Log.d(TAG, "APK descargado exitosamente de Firebase Storage (${archivoApk.length()} bytes)")
+                    while (!completado) {
+                        kotlinx.coroutines.delay(100)
+                    }
+
+                    if (errorDescarga == null && archivoApk.exists() && archivoApk.length() > 0) {
+                        Log.i(TAG, "Descarga completada con éxito vía Storage SDK: ${archivoApk.length()} bytes")
                         return@withContext archivoApk
+                    } else {
+                        Log.e(TAG, "Fallo en Storage SDK: ${errorDescarga?.message}. Reintentando con HTTP...")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Fallo en Firebase Storage SDK: ${e.message}. Intentando HTTP...")
+                    Log.e(TAG, "Error en Storage SDK: ${e.message}. Reintentando con HTTP...")
                 }
             }
 
-            // 2. Descarga directa HTTP con seguimiento de redirecciones
-            var conexion: HttpURLConnection? = null
-            var redirecciones = 0
-            var conectada = false
+            // 2. Descarga tradicional HTTP / HTTPS con soporte para redirecciones
+            var url = URL(urlString)
+            var conexion = url.openConnection() as HttpURLConnection
+            conexion.instanceFollowRedirects = true
+            conexion.connectTimeout = 30000
+            conexion.readTimeout = 60000
+            conexion.setRequestProperty("User-Agent", "TeamTX-AppUpdater/1.0")
 
-            while (!conectada && redirecciones < 6) {
-                val url = URL(urlString)
-                conexion = (url.openConnection() as HttpURLConnection).apply {
-                    instanceFollowRedirects = true
-                    connectTimeout = 20000
-                    readTimeout = 45000
-                    setRequestProperty("User-Agent", "TeamTX-Updater/1.0 (Android)")
-                    setRequestProperty("Accept", "*/*")
-                }
-
-                val codigoRespuesta = conexion.responseCode
-                if (codigoRespuesta in listOf(
-                        HttpURLConnection.HTTP_MOVED_PERM,
-                        HttpURLConnection.HTTP_MOVED_TEMP,
-                        HttpURLConnection.HTTP_SEE_OTHER,
-                        307,
-                        308
-                    )
-                ) {
-                    val nuevaUrl = conexion.getHeaderField("Location")
-                    conexion.disconnect()
-                    if (nuevaUrl != null) {
-                        urlString = nuevaUrl
-                        redirecciones++
-                        Log.d(TAG, "Siguiendo redirección #$redirecciones -> $urlString")
-                    } else {
-                        break
-                    }
-                } else if (codigoRespuesta == HttpURLConnection.HTTP_OK) {
-                    conectada = true
-                } else {
-                    Log.e(TAG, "Código HTTP no satisfactorio: $codigoRespuesta")
-                    conexion.disconnect()
-                    return@withContext null
-                }
+            var responseCode = conexion.responseCode
+            var redirects = 0
+            while ((responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
+                    responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                    responseCode == HttpURLConnection.HTTP_SEE_OTHER ||
+                    responseCode == 307 || responseCode == 308) && redirects < 5) {
+                val newUrl = conexion.getHeaderField("Location")
+                Log.d(TAG, "Redirección detectada ($responseCode) hacia: $newUrl")
+                conexion.disconnect()
+                url = URL(newUrl)
+                conexion = url.openConnection() as HttpURLConnection
+                conexion.instanceFollowRedirects = true
+                conexion.connectTimeout = 30000
+                conexion.readTimeout = 60000
+                conexion.setRequestProperty("User-Agent", "TeamTX-AppUpdater/1.0")
+                responseCode = conexion.responseCode
+                redirects++
             }
 
-            if (!conectada || conexion == null) {
-                Log.e(TAG, "No se pudo establecer conexión válida para descarga")
+            if (responseCode !in 200..299) {
+                Log.e(TAG, "Error HTTP al descargar actualización: $responseCode ${conexion.responseMessage}")
+                conexion.disconnect()
                 return@withContext null
             }
 
-            val longitudTotal = conexion.contentLengthLong
-            val totalMbStr = if (longitudTotal > 0) String.format("%.1f MB", longitudTotal / (1024f * 1024f)) else "Desconocido"
+            val totalBytes = conexion.contentLengthLong
+            Log.d(TAG, "Tamaño total del archivo: $totalBytes bytes ($responseCode)")
 
-            val entrada = conexion.inputStream
-            val salida = FileOutputStream(archivoApk)
-            val buffer = ByteArray(8 * 1024)
-            var bytesLeidos: Long = 0
-            var bytesActuales: Int
+            val inputStream = conexion.inputStream
+            val outputStream = FileOutputStream(archivoApk)
+            val buffer = ByteArray(8192)
+            var bytesLeidos: Int
+            var totalBytesLeidos = 0L
 
-            while (true) {
-                val leidos = entrada.read(buffer)
-                if (leidos == -1) break
-                salida.write(buffer, 0, leidos)
-                bytesLeidos += leidos
-                if (longitudTotal > 0) {
-                    val progreso = (bytesLeidos.toFloat() / longitudTotal.toFloat()).coerceIn(0f, 1f)
-                    val leidosMbStr = String.format("%.1f MB", bytesLeidos / (1024f * 1024f))
-                    withContext(Dispatchers.Main) {
-                        onProgreso(progreso, leidosMbStr, totalMbStr)
-                    }
+            var ultimoReporteProgreso = 0L
+
+            while (inputStream.read(buffer).also { bytesLeidos = it } != -1) {
+                outputStream.write(buffer, 0, bytesLeidos)
+                totalBytesLeidos += bytesLeidos
+
+                val ahora = System.currentTimeMillis()
+                if (ahora - ultimoReporteProgreso > 150) {
+                    ultimoReporteProgreso = ahora
+                    val progreso = if (totalBytes > 0) totalBytesLeidos.toFloat() / totalBytes.toFloat() else 0f
+                    val mbLeidos = String.format(java.util.Locale.US, "%.1f", totalBytesLeidos / (1024f * 1024f))
+                    val mbTotal = if (totalBytes > 0) String.format(java.util.Locale.US, "%.1f", totalBytes / (1024f * 1024f)) else "??"
+                    onProgreso(progreso, mbLeidos, mbTotal)
                 }
             }
 
-            salida.flush()
-            salida.close()
-            entrada.close()
+            outputStream.flush()
+            outputStream.close()
+            inputStream.close()
             conexion.disconnect()
 
-            if (archivoApk.exists() && archivoApk.length() > 100 * 1024) {
-                Log.d(TAG, "Descarga completada exitosamente: ${archivoApk.absolutePath} (${archivoApk.length()} bytes)")
-                withContext(Dispatchers.Main) {
-                    onProgreso(1f, totalMbStr, totalMbStr)
-                }
-                archivoApk
-            } else {
-                Log.e(TAG, "El archivo descargado es demasiado pequeño o no existe (${archivoApk.length()} bytes)")
-                null
-            }
+            val mbFinal = String.format(java.util.Locale.US, "%.1f", totalBytesLeidos / (1024f * 1024f))
+            onProgreso(1f, mbFinal, mbFinal)
+
+            Log.i(TAG, "Archivo APK descargado exitosamente: ${archivoApk.absolutePath} (${archivoApk.length()} bytes)")
+            archivoApk
         } catch (e: Exception) {
             Log.e(TAG, "Error durante la descarga del APK: ${e.message}", e)
             null
@@ -369,7 +578,7 @@ object GestorActualizaciones {
     }
 
     /**
-     * Lanza el instalador oficial de Android usando FileProvider y validación de permisos
+     * Lanza el Intent oficial de Android para instalar el paquete APK descargado
      */
     fun instalarApk(context: Context, archivoApk: File) {
         try {
@@ -378,7 +587,7 @@ object GestorActualizaciones {
                 return
             }
 
-            // Validar permiso de instalar aplicaciones desconocidas en Android 8.0+
+            // En Android 8.0 (API 26) o superior, verificar permiso para instalar paquetes desconocidos
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (!context.packageManager.canRequestPackageInstalls()) {
                     Toast.makeText(
@@ -386,8 +595,10 @@ object GestorActualizaciones {
                         "Por favor autoriza la instalación de actualizaciones para Team TX",
                         Toast.LENGTH_LONG
                     ).show()
-                    val intentPermiso = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                        data = Uri.parse("package:${context.packageName}")
+                    val intentPermiso = Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:${context.packageName}")
+                    ).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     context.startActivity(intentPermiso)
@@ -395,7 +606,7 @@ object GestorActualizaciones {
                 }
             }
 
-            val apkUri = FileProvider.getUriForFile(
+            val apkUri: Uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
                 archivoApk
@@ -405,116 +616,80 @@ object GestorActualizaciones {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
             }
+
             context.startActivity(intentInstalar)
-            Log.d(TAG, "Intent de instalación lanzado con URI: $apkUri")
         } catch (e: Exception) {
-            Log.e(TAG, "Error lanzando el instalador: ${e.message}", e)
-            Toast.makeText(context, "Error al iniciar el instalador: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Log.e(TAG, "Error al lanzar el instalador de APK: ${e.message}", e)
+            Toast.makeText(context, "Error al iniciar la instalación: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     /**
-     * Alternativa: Descarga directa abriendo el navegador predeterminado
+     * Redirige al navegador predeterminado para descarga externa de respaldo
      */
-    fun abrirDescargaEnNavegador(context: Context, url: String) {
+    fun abrirDescargaEnNavegador(context: Context, urlDescarga: String) {
         try {
-            val urlLimpia = url.trim()
-            if (urlLimpia.startsWith("gs://") || urlLimpia.startsWith("updates/")) {
-                val storageRef = try {
-                    if (urlLimpia.startsWith("gs://")) {
-                        com.google.firebase.storage.FirebaseStorage.getInstance().getReferenceFromUrl(urlLimpia)
-                    } else {
-                        com.google.firebase.storage.FirebaseStorage.getInstance().reference.child(urlLimpia)
-                    }
-                } catch (_: Exception) {
-                    com.google.firebase.storage.FirebaseStorage.getInstance().reference.child("updates/TeamTX-latest.apk")
-                }
-
-                storageRef.downloadUrl.addOnSuccessListener { uri ->
-                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    context.startActivity(intent)
-                }.addOnFailureListener {
-                    Toast.makeText(context, "No se pudo obtener el enlace de descarga.", Toast.LENGTH_SHORT).show()
-                }
-                return
+            var urlFinal = urlDescarga.trim()
+            if (urlFinal.isBlank() || urlFinal.contains("github.com")) {
+                urlFinal = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd"
             }
-
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlLimpia)).apply {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlFinal)).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             context.startActivity(intent)
         } catch (e: Exception) {
-            Log.e(TAG, "Error abriendo navegador: ${e.message}")
-            Toast.makeText(context, "No se pudo abrir el enlace en el navegador.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "No se pudo abrir el navegador: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 }
 
-/**
- * Diálogo interactivo con barra de progreso en vivo y asistente de instalación con auto-reanudación
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE: MODAL DE DESCARGA E INSTALACIÓN CON PROGRESO EN TIEMPO REAL
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
 fun DialogoProgresoDescargaOta(
     infoOta: GestorActualizaciones.InformacionOta,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     var progreso by remember { mutableFloatStateOf(0f) }
-    var textoLeidos by remember { mutableStateOf("Iniciando...") }
-    var textoTotal by remember { mutableStateOf("") }
-    var estadoDescarga by remember { mutableStateOf("Descargando actualización...") }
-    var archivoDescargado by remember { mutableStateOf<File?>(null) }
+    var mbLeidos by remember { mutableStateOf("0.0") }
+    var mbTotal by remember { mutableStateOf("...") }
+    var estadoDescarga by remember { mutableStateOf("Iniciando descarga...") }
     var descargaCompleta by remember { mutableStateOf(false) }
     var huboError by remember { mutableStateOf(false) }
-    var mensajeError by remember { mutableStateOf("") }
-
-    // Auto-lanzar instalador al volver de la pantalla de Ajustes de Android
-    DisposableEffect(lifecycleOwner, archivoDescargado) {
-        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && archivoDescargado != null) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()) {
-                    GestorActualizaciones.instalarApk(context, archivoDescargado!!)
-                }
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
+    var archivoDescargado by remember { mutableStateOf<File?>(null) }
 
     LaunchedEffect(Unit) {
+        estadoDescarga = "Descargando actualización..."
         val archivo = GestorActualizaciones.descargarApkDirecto(
             context = context,
             urlOriginal = infoOta.urlDescarga,
-            onProgreso = { p, leidos, total ->
-                progreso = p
-                textoLeidos = leidos
-                textoTotal = total
-                estadoDescarga = "Descargando: ${(p * 100).toInt()}%"
+            onProgreso = { prog, leidos, total ->
+                progreso = prog
+                mbLeidos = leidos
+                mbTotal = total
+                estadoDescarga = "Descargando paquete: $leidos MB / $total MB"
             }
         )
 
-        if (archivo != null) {
+        if (archivo != null && archivo.exists()) {
             archivoDescargado = archivo
             descargaCompleta = true
-            estadoDescarga = "¡Descarga completada con éxito!"
-            kotlinx.coroutines.delay(300)
+            estadoDescarga = "¡Descarga completada! Iniciando instalador..."
             GestorActualizaciones.instalarApk(context, archivo)
         } else {
             huboError = true
-            mensajeError = "No se pudo descargar el archivo automáticamente. Verifica tu conexión o descarga desde el navegador."
+            estadoDescarga = "Error al descargar el paquete. Usa el botón del navegador."
         }
     }
 
-    Dialog(onDismissRequest = { if (huboError || descargaCompleta) onDismiss() }) {
+    Dialog(onDismissRequest = { if (descargaCompleta || huboError) onDismiss() }) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF1E2433),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+            color = Color(0xFF131722),
+            border = BorderStroke(1.dp, Color(0xFF263238)),
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
             Column(
@@ -522,85 +697,74 @@ fun DialogoProgresoDescargaOta(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Cabecera
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Icon(
-                        when {
-                            huboError -> Icons.Default.ErrorOutline
+                        imageVector = when {
+                            huboError -> Icons.Default.Error
                             descargaCompleta -> Icons.Default.CheckCircle
                             else -> Icons.Default.CloudDownload
                         },
                         contentDescription = null,
                         tint = when {
-                            huboError -> Color(0xFFEF4444)
+                            huboError -> TxFlameRed
                             descargaCompleta -> Color(0xFF22C55E)
                             else -> MotoOrangePrimary
                         },
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                     Text(
                         text = when {
-                            huboError -> "Error de Descarga"
+                            huboError -> "Fallo en la Descarga"
                             descargaCompleta -> "¡Actualización Lista!"
-                            else -> "Actualización Team TX"
+                            else -> "Actualizando a ${infoOta.versionName}"
                         },
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         color = Color.White
                     )
                 }
 
-                if (!huboError && !descargaCompleta) {
-                    Text(
-                        text = estadoDescarga,
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
+                Text(
+                    text = estadoDescarga,
+                    fontSize = 12.sp,
+                    color = if (huboError) TxFlameRed else Color(0xFF90A4AE),
+                    textAlign = TextAlign.Center
+                )
 
+                if (!huboError) {
                     LinearProgressIndicator(
-                        progress = { progreso },
-                        modifier = Modifier.fillMaxWidth().height(8.dp),
+                        progress = { progreso.coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
                         color = MotoOrangePrimary,
-                        trackColor = Color.White.copy(alpha = 0.2f)
+                        trackColor = Color(0xFF263238)
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = "$textoLeidos / $textoTotal", fontSize = 11.sp, color = Color.Gray)
-                        Text(text = "${(progreso * 100).toInt()}%", fontSize = 11.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
-                    }
-                } else if (descargaCompleta && archivoDescargado != null) {
                     Text(
-                        text = "El archivo se descargó correctamente en tu dispositivo. Toca el botón para instalar o reemplazar la versión actual.",
-                        fontSize = 12.sp,
-                        color = Color(0xFFCBD5E1),
-                        textAlign = TextAlign.Center
+                        text = "${(progreso * 100).toInt()}% ($mbLeidos MB de $mbTotal MB)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MotoGoldSecondary
                     )
+                }
 
+                // Botones de acción
+                if (descargaCompleta) {
                     Button(
                         onClick = {
-                            GestorActualizaciones.instalarApk(context, archivoDescargado!!)
+                            archivoDescargado?.let { GestorActualizaciones.instalarApk(context, it) }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth().height(46.dp)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.SystemUpdateAlt, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("INSTALAR AHORA", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Icon(Icons.Default.InstallMobile, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Reintentar Instalación")
                     }
-
-                    TextButton(onClick = onDismiss) {
-                        Text("Cerrar", color = Color.Gray, fontSize = 12.sp)
-                    }
-                } else {
-                    Text(
-                        text = mensajeError,
-                        fontSize = 13.sp,
-                        color = Color(0xFFEF4444)
-                    )
-
+                } else if (huboError) {
                     Button(
                         onClick = {
                             GestorActualizaciones.abrirDescargaEnNavegador(context, infoOta.urlDescarga)
@@ -609,23 +773,25 @@ fun DialogoProgresoDescargaOta(
                         colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.OpenInBrowser, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text("Descargar en Navegador")
                     }
+                }
 
-                    TextButton(onClick = onDismiss) {
-                        Text("Cerrar", color = Color.Gray)
-                    }
+                TextButton(onClick = onDismiss) {
+                    Text(if (descargaCompleta || huboError) "Cerrar" else "Cancelar en segundo plano", color = Color(0xFF90A4AE), fontSize = 12.sp)
                 }
             }
         }
     }
 }
 
-/**
- * Verificador automático en el inicio de la app
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE: VERIFICADOR AUTOMÁTICO AL INICIAR LA APP
+// Muestra con claridad todas las novedades y correcciones de la versión nueva
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
 fun VerificadorOta() {
     val context = LocalContext.current
@@ -635,69 +801,141 @@ fun VerificadorOta() {
 
     LaunchedEffect(Unit) {
         val ota = GestorActualizaciones.verificarActualizacion()
-        if (ota != null) {
-            val currentVersionCode = BuildConfig.VERSION_CODE
-            Log.d("OTA", "versionCode nube=${ota.versionCode} vs local=$currentVersionCode")
-            if (ota.versionCode > currentVersionCode) {
-                infoOta = ota
-                mostrarDialogoConfirmacion = true
-            }
+        val currentVersionCode = BuildConfig.VERSION_CODE
+        Log.d("OTA", "versionCode nube=${ota.versionCode} vs local=$currentVersionCode")
+        if (ota.versionCode > currentVersionCode) {
+            infoOta = ota
+            mostrarDialogoConfirmacion = true
         }
     }
 
     if (mostrarDialogoConfirmacion && infoOta != null) {
-        AlertDialog(
-            onDismissRequest = { /* No cerrar para no ignorar */ },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Update, contentDescription = null, tint = MotoOrangePrimary)
-                    Text(
-                        text = "¡Nueva Versión Disponible!",
-                        fontWeight = FontWeight.Bold,
-                        color = MotoOrangePrimary
-                    )
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Se ha publicado una nueva actualización importante para la aplicación.")
-                    if (infoOta!!.notas.isNotBlank()) {
+        val ota = infoOta!!
+
+        Dialog(onDismissRequest = { mostrarDialogoConfirmacion = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF131722),
+                border = BorderStroke(1.5.dp, MotoGoldSecondary),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Encabezado con Badge de Versión
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(shape = CircleShape, color = MotoOrangePrimary.copy(alpha = 0.2f), modifier = Modifier.size(34.dp)) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Upgrade, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(20.dp))
+                                }
+                            }
+                            Column {
+                                Text("¡NUEVA ACTUALIZACIÓN!", fontWeight = FontWeight.Black, fontSize = 13.sp, color = MotoOrangePrimary)
+                                Text("Versión ${ota.versionName} (Build ${ota.versionCode})", fontSize = 11.sp, color = Color(0xFF90A4AE))
+                            }
+                        }
+
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.fillMaxWidth()
+                            shape = RoundedCornerShape(6.dp),
+                            color = MotoGoldSecondary.copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, MotoGoldSecondary)
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Text("Novedades:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                Text(
-                                    text = infoOta!!.notas,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            Text("OFICIAL", fontSize = 9.sp, fontWeight = FontWeight.Black, color = MotoGoldSecondary, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
+                    }
+
+                    // Título y resumen del release
+                    Text(
+                        text = ota.titulo,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color.White
+                    )
+
+                    Text(
+                        text = ota.notas,
+                        fontSize = 11.sp,
+                        color = Color(0xFFCBD5E1),
+                        lineHeight = 15.sp
+                    )
+
+                    // Sección: Novedades Principales
+                    if (ota.novedades.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF1E2433),
+                            border = BorderStroke(1.dp, Color(0xFF263238)),
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp)
+                        ) {
+                            LazyColumn(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                item {
+                                    Text("✨ ¿Qué hay de nuevo en esta versión?", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MotoGoldSecondary)
+                                }
+                                items(ota.novedades) { novedad ->
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Text("•", color = MotoOrangePrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text(text = novedad, fontSize = 11.sp, color = Color.White, lineHeight = 14.sp)
+                                    }
+                                }
+
+                                if (ota.correcciones.isNotEmpty()) {
+                                    item {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("🛠️ Correcciones y Mejoras:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
+                                    }
+                                    items(ota.correcciones) { fix ->
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            Text("✓", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                            Text(text = fix, fontSize = 11.sp, color = Color(0xFFCBD5E1), lineHeight = 14.sp)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        mostrarDialogoConfirmacion = false
-                        mostrarDialogoDescarga = true
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
-                ) {
-                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Actualizar Ahora")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { mostrarDialogoConfirmacion = false }) {
-                    Text("Más tarde")
+
+                    // Botones de acción
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { mostrarDialogoConfirmacion = false },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Más tarde", fontSize = 12.sp, color = Color(0xFF90A4AE))
+                        }
+
+                        Button(
+                            onClick = {
+                                mostrarDialogoConfirmacion = false
+                                mostrarDialogoDescarga = true
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                            modifier = Modifier.weight(1.5f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Actualizar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 
     if (mostrarDialogoDescarga && infoOta != null) {

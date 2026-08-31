@@ -45,13 +45,29 @@ public class FeedbackHelper {
 
 	public void sendCrashLog(@NonNull File file) {
 		Intent intent = new Intent(Intent.ACTION_SEND);
-		intent.putExtra(Intent.EXTRA_EMAIL, new String[] {"crash@osmand.net"});
+		intent.putExtra(Intent.EXTRA_EMAIL, new String[] {"eduardo.androide.em@gmail.com"});
 		intent.putExtra(Intent.EXTRA_STREAM, AndroidUtils.getUriForFile(app, file));
 		intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-		intent.setType("vnd.android.cursor.dir/email");
-		intent.putExtra(Intent.EXTRA_SUBJECT, "OsmAnd bug");
-		intent.putExtra(Intent.EXTRA_TEXT, getDeviceInfo());
-		Intent chooserIntent = Intent.createChooser(intent, app.getString(R.string.send_report));
+		intent.setType("text/plain");
+		intent.putExtra(Intent.EXTRA_SUBJECT, "Reporte de Error - Mapa TX (Team TX)");
+
+		StringBuilder reportBuilder = new StringBuilder();
+		reportBuilder.append("Reporte de Error Mapa TX - Team Nacional TX Aragua\n\n");
+		reportBuilder.append(getDeviceInfo()).append("\n\n");
+		if (file.exists() && file.length() > 0) {
+			try {
+				java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file));
+				String line;
+				int linesRead = 0;
+				while ((line = br.readLine()) != null && linesRead < 50) {
+					reportBuilder.append(line).append("\n");
+					linesRead++;
+				}
+				br.close();
+			} catch (Exception ignored) {}
+		}
+		intent.putExtra(Intent.EXTRA_TEXT, reportBuilder.toString());
+		Intent chooserIntent = Intent.createChooser(intent, "Enviar reporte al desarrollador");
 		chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		AndroidUtils.startActivityIfSafe(app, intent, chooserIntent);
 	}
@@ -67,8 +83,8 @@ public class FeedbackHelper {
 		}
 		Intent emailIntent = new Intent(Intent.ACTION_SEND)
 				.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-				.putExtra(Intent.EXTRA_EMAIL, new String[] {"support@osmand.net"})
-				.putExtra(Intent.EXTRA_SUBJECT, screenName)
+				.putExtra(Intent.EXTRA_EMAIL, new String[] {"eduardo.androide.em@gmail.com"})
+				.putExtra(Intent.EXTRA_SUBJECT, "Soporte Mapa TX - " + screenName)
 				.putExtra(Intent.EXTRA_TEXT, info);
 		emailIntent.setSelector(new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")));
 		AndroidUtils.startActivityIfSafe(app, emailIntent);
@@ -100,11 +116,8 @@ public class FeedbackHelper {
 	}
 
 	public void saveExceptionSilent(@NonNull Thread thread, @NonNull Throwable throwable) {
-		try {
-			saveException(thread, throwable);
-		} catch (IOException e) {
-			log.error(e);
-		}
+		// Log handled/silent exceptions to logcat without creating false-positive crash flags
+		log.error("Handled exception in thread " + thread.getName(), throwable);
 	}
 
 	public void saveException(@NonNull Thread thread, @NonNull Throwable throwable) throws IOException {

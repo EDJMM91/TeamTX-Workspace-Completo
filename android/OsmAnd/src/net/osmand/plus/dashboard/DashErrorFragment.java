@@ -42,15 +42,29 @@ public class DashErrorFragment extends DashBaseFragment {
 		tvMessage.setText(message);
 
 		ImageView ivErrorIcon = view.findViewById(R.id.error_icon);
-		ivErrorIcon.setImageDrawable(uiUtilities.getThemedIcon(R.drawable.ic_crashlog));
+		ivErrorIcon.setImageResource(R.drawable.logoteam);
 
 		Button errorBtn = view.findViewById(R.id.error_btn);
 		errorBtn.setTypeface(typeface);
-		errorBtn.setOnClickListener(v -> app.getFeedbackHelper().sendCrashLog());
+		errorBtn.setOnClickListener(v -> {
+			app.getFeedbackHelper().sendCrashLog();
+			try {
+				java.io.File file = app.getAppPath(FeedbackHelper.EXCEPTION_PATH);
+				if (file.exists()) {
+					file.delete();
+				}
+			} catch (Exception ignored) {}
+		});
 
 		Button cancelBtn = view.findViewById(R.id.error_cancel);
 		cancelBtn.setTypeface(typeface);
 		cancelBtn.setOnClickListener(v -> {
+			try {
+				java.io.File file = app.getAppPath(FeedbackHelper.EXCEPTION_PATH);
+				if (file.exists()) {
+					file.delete();
+				}
+			} catch (Exception ignored) {}
 			OsmandActionBarActivity dashboardActivity = ((OsmandActionBarActivity) getActivity());
 			if (dashboardActivity != null) {
 				dashboardActivity.getSupportFragmentManager()

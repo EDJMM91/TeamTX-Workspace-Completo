@@ -3347,7 +3347,7 @@ You need to activate the sensor so OsmAnd can find it.</string>
     <string name="default_speed_setting_descr">Change default speed settings</string>
     <string name="new_profile">New profile</string>
     <string name="shared_string_crash">Crash</string>
-    <string name="last_launch_crashed">Last OsmAnd run crashed. Please help us improve OsmAnd by sharing the error message.</string>
+    <string name="last_launch_crashed">Mapa TX closed unexpectedly on the last run. Please help us improve by sharing the error report with the developer.</string>
     <string name="press_again_to_change_the_map_orientation">Tap again to change map orientation</string>
     <string name="process_downloading_service">OsmAnd downloading service</string>
     <string name="shared_string_color_magenta">Magenta</string>
@@ -5411,7 +5411,7 @@ Download tile maps directly, or copy them as SQLite database files to OsmAnd\'s 
     <string name="arrived_at_destination">You have arrived.</string>
     <string name="invalid_locations">Invalid coordinates</string>
     <string name="loading_data">Loading data…</string>
-    <string name="previous_run_crashed">Last OsmAnd run crashed. Log file is at {0}. Please report the issue and attach the log file.</string>
+    <string name="previous_run_crashed">Last Mapa TX run crashed. Log file is at {0}. Please share the report with the developer.</string>
     <string name="saving_gpx_tracks">Saving GPX file…</string>
     <string name="finished_task">Finished</string>
     <string name="data_settings">Data</string>

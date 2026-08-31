@@ -1,9 +1,17 @@
 package com.example
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import com.aistudio.teamtxvzla.R
 import com.example.data.local.AppDatabase
 import com.example.data.model.NotificacionApp
+import com.example.ui.preferences.PreferenciasApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -18,10 +26,16 @@ import kotlinx.coroutines.withContext
 object GestorNotificacionesApp {
 
     private const val ETIQUETA = "NOTIFICACIONES_APP"
+    private const val CANAL_SISTEMA_ID = "canal_team_tx_general"
+    private const val CANAL_SISTEMA_NOMBRE = "Notificaciones Team TX"
     private var db: AppDatabase? = null
+    private var appContext: Context? = null
 
-    fun inicializar(database: AppDatabase) {
+    fun inicializar(database: AppDatabase, context: Context? = null) {
         db = database
+        if (context != null) {
+            appContext = context.applicationContext
+        }
         Log.i(ETIQUETA, "✅ Gestor de notificaciones inicializado")
     }
 
@@ -195,6 +209,57 @@ object GestorNotificacionesApp {
         CoroutineScope(Dispatchers.IO).launch {
             dao.insert(notificacion)
             Log.i(ETIQUETA, "📩 Notificación creada: [$tipo] $titulo")
+            mostrarEnBarraSistema(tipo, titulo, mensaje)
+        }
+    }
+
+    private fun mostrarEnBarraSistema(tipo: String, titulo: String, mensaje: String) {
+        val ctx = appContext ?: return
+        if (!PreferenciasApp.notificacionesActivas) {
+            Log.d(ETIQUETA, "🔕 Notificaciones en barra del sistema desactivadas en Ajustes")
+            return
+        }
+
+        try {
+            val notificationManager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    CANAL_SISTEMA_ID,
+                    CANAL_SISTEMA_NOMBRE,
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Alertas, eventos y mensajes del Club Team TX"
+                    enableLights(true)
+                    enableVibration(true)
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            val intent = Intent(ctx, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("tipo_notificacion", tipo)
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                ctx,
+                System.currentTimeMillis().toInt(),
+                intent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            val builder = NotificationCompat.Builder(ctx, CANAL_SISTEMA_ID)
+                .setSmallIcon(R.drawable.logoteam)
+                .setContentTitle(titulo)
+                .setContentText(mensaje)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(mensaje))
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+
+            notificationManager.notify(System.currentTimeMillis().toInt(), builder.build())
+            Log.i(ETIQUETA, "🔔 Notificación mostrada en barra del sistema: $titulo")
+        } catch (e: Exception) {
+            Log.e(ETIQUETA, "❌ Error mostrando notificación en barra del sistema: ${e.message}")
         }
     }
 

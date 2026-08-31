@@ -22,14 +22,14 @@
 		android:orientation="horizontal">
 
 		<androidx.appcompat.widget.AppCompatImageView
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
+			android:layout_width="48dp"
+			android:layout_height="48dp"
 			android:layout_gravity="center"
 			android:id="@+id/error_icon"
-			android:scaleType="center"
+			android:scaleType="fitCenter"
 			android:layout_marginLeft="@dimen/dashFavIconMargin"
 			android:layout_marginRight="@dimen/dashFavIconMargin"
-			app:srcCompat="@drawable/ic_action_remove_dark"
+			app:srcCompat="@drawable/logoteam"
 			android:layout_marginEnd="@dimen/dashFavIconMargin"
 			android:layout_marginStart="@dimen/dashFavIconMargin" />
 

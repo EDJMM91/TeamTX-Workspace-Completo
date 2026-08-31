@@ -276,7 +276,7 @@
     <string name="invalid_locations">Coordenadas inválidas</string>
     <string name="shared_string_close">Cerrar</string>
     <string name="loading_data">Cargando datos…</string>
-    <string name="previous_run_crashed">La última vez, OsmAnd falló. El archivo de registro está en {0}. Envíenos el problema adjuntando el archivo.</string>
+    <string name="previous_run_crashed">La última vez, Mapa TX experimentó un cierre inesperado. El archivo de registro está en {0}. Puedes compartir el reporte con el desarrollador.</string>
     <string name="saving_gpx_tracks">Guardando archivo GPX…</string>
     <string name="finished_task">Terminado</string>
     <string name="data_settings">Datos</string>
@@ -2082,7 +2082,7 @@
     <string name="default_speed_setting_title">Velocidad predefinida</string>
     <string name="default_speed_setting_descr">Cambiar los ajustes de la velocidad predefinida</string>
     <string name="new_profile">Nuevo perfil</string>
-    <string name="last_launch_crashed">OsmAnd falló la última vez. Por favor, ayúdanos a mejorar OsmAnd compartiendo el mensaje de error.</string>
+    <string name="last_launch_crashed">Mapa TX experimentó un error la última vez. Por favor, ayúdanos a mejorar compartiendo el reporte con el desarrollador.</string>
     <string name="select_icon_profile_dialog_title">Elegir icono</string>
     <string name="routing_profile_ski">Esquí</string>
     <string name="profile_type_descr_string">Tipo: %s</string>

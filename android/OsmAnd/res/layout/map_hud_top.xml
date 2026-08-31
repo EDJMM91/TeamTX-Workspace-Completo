@@ -45,7 +45,7 @@
 		android:layout_width="@dimen/map_button_size"
 		android:layout_height="@dimen/map_button_size"
 		android:layout_gravity="top|end"
-		android:layout_marginTop="8dp"
+		android:layout_marginTop="124dp"
 		android:layout_marginEnd="@dimen/map_button_margin"
 		android:clickable="true"
 		android:focusable="true"

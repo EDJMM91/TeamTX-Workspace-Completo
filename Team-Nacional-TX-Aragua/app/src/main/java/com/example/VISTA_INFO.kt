@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -337,26 +338,51 @@ fun VistaInfoScreen(
 
     // Diálogo si se encuentra una actualización manualmente
     if (mostrarDialogo && infoOta != null) {
+        val ota = infoOta!!
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.Update, contentDescription = null, tint = MotoOrangePrimary)
-                    Text("¡Nueva Versión Encontrada!", fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
+                    Text("¡Versión ${ota.versionName} Disponible!", fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Hay una nueva versión disponible para actualizar tu aplicación.")
-                    if (infoOta!!.notas.isNotBlank()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (ota.titulo.isNotBlank()) {
+                        Text(ota.titulo, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                    }
+                    Text(ota.notas, fontSize = 11.sp, color = Color(0xFFCBD5E1))
+
+                    if (ota.novedades.isNotEmpty()) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.fillMaxWidth()
+                            color = Color(0xFF131722),
+                            border = BorderStroke(1.dp, Color(0xFF263238)),
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
                         ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Text("Novedades:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                Text(infoOta!!.notas, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            LazyColumn(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                item {
+                                    Text("✨ ¿Qué incluye esta versión?", fontWeight = FontWeight.Bold, fontSize = 10.5.sp, color = MotoGoldSecondary)
+                                }
+                                items(ota.novedades) { nov ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
+                                        Text("•", fontSize = 11.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
+                                        Text(nov, fontSize = 10.sp, color = Color.White, lineHeight = 13.sp)
+                                    }
+                                }
+                                if (ota.correcciones.isNotEmpty()) {
+                                    item {
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text("🛠️ Correcciones:", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFF38BDF8))
+                                    }
+                                    items(ota.correcciones) { corr ->
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
+                                            Text("✓", fontSize = 10.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                                            Text(corr, fontSize = 10.sp, color = Color(0xFFCBD5E1), lineHeight = 13.sp)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -886,6 +912,74 @@ fun StorageVersionsHistoryDialog(
                                         }
                                     }
 
+                                    // Título de la versión y notas específicas
+                                    if (apk.titulo.isNotBlank()) {
+                                        Text(
+                                            text = apk.titulo,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MotoGoldSecondary
+                                        )
+                                    }
+
+                                    if (apk.notas.isNotBlank()) {
+                                        Text(
+                                            text = apk.notas,
+                                            fontSize = 10.sp,
+                                            color = Color(0xFFCBD5E1),
+                                            lineHeight = 13.sp
+                                        )
+                                    }
+
+                                    // Sección expandible de novedades detalladas
+                                    if (apk.novedades.isNotEmpty()) {
+                                        var mostrarDetalles by remember { mutableStateOf(false) }
+
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { mostrarDetalles = !mostrarDetalles }
+                                                .padding(vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = if (mostrarDetalles) "Ocultar cambios ▲" else "Ver cambios y novedades (${apk.novedades.size}) ▼",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MotoOrangePrimary
+                                            )
+                                        }
+
+                                        if (mostrarDetalles) {
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = Color(0xFF131722),
+                                                border = BorderStroke(1.dp, Color(0xFF263238)),
+                                                modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                                            ) {
+                                                Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    apk.novedades.forEach { nov ->
+                                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
+                                                            Text("•", fontSize = 10.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
+                                                            Text(nov, fontSize = 9.5.sp, color = Color.White, lineHeight = 13.sp)
+                                                        }
+                                                    }
+                                                    if (apk.correcciones.isNotEmpty()) {
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Text("Correcciones:", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                                                        apk.correcciones.forEach { corr ->
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
+                                                                Text("✓", fontSize = 10.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                                                                Text(corr, fontSize = 9.5.sp, color = Color(0xFFCBD5E1), lineHeight = 13.sp)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -917,9 +1011,14 @@ fun StorageVersionsHistoryDialog(
                                                 onDismiss()
                                                 onDownloadOta(
                                                     GestorActualizaciones.InformacionOta(
-                                                        versionCode = 9999,
+                                                        versionCode = apk.versionCode,
+                                                        versionName = apk.versionName,
+                                                        titulo = apk.titulo,
                                                         urlDescarga = apk.downloadUrl,
-                                                        notas = "Instalando versión: ${apk.fileName}"
+                                                        notas = apk.notas,
+                                                        novedades = apk.novedades,
+                                                        correcciones = apk.correcciones,
+                                                        fechaPublicacion = apk.formattedDate
                                                     )
                                                 )
                                             },

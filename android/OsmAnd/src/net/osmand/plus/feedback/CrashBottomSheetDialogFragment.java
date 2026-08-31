@@ -34,9 +34,31 @@ public class CrashBottomSheetDialogFragment extends MenuBottomSheetDialogFragmen
 	}
 
 	@Override
+	protected int getDismissButtonTextId() {
+		return R.string.shared_string_cancel;
+	}
+
+	@Override
 	protected void onRightBottomButtonClick() {
 		app.getFeedbackHelper().sendCrashLog();
+		try {
+			java.io.File file = app.getAppPath(FeedbackHelper.EXCEPTION_PATH);
+			if (file.exists()) {
+				file.delete();
+			}
+		} catch (Exception ignored) {}
 		dismiss();
+	}
+
+	@Override
+	public void onDismiss(@NonNull android.content.DialogInterface dialog) {
+		super.onDismiss(dialog);
+		try {
+			java.io.File file = app.getAppPath(FeedbackHelper.EXCEPTION_PATH);
+			if (file.exists()) {
+				file.delete();
+			}
+		} catch (Exception ignored) {}
 	}
 
 	public static boolean shouldShow(@Nullable OsmandSettings settings, @NonNull MapActivity activity) {

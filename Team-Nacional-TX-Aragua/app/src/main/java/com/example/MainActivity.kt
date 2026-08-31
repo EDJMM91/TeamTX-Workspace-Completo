@@ -72,6 +72,7 @@ enum class NavigationTab(val label: String, val iconFilled: ImageVector, val ico
     NOTIFICACIONES("Avisos", Icons.Default.Notifications, Icons.Outlined.Notifications, "tab_notificaciones"),
     RANKING("Ranking", Icons.Default.MilitaryTech, Icons.Outlined.MilitaryTech, "tab_ranking"),
     CALENDARIO("Calendario", Icons.Default.CalendarMonth, Icons.Outlined.CalendarMonth, "tab_calendario"),
+    PLAYER("Player TX", Icons.Default.MusicNote, Icons.Outlined.MusicNote, "tab_player"),
     RETOS("Retos", Icons.Default.EmojiEvents, Icons.Outlined.EmojiEvents, "tab_retos"),
     VELOCIMETRO("Velocímetro", Icons.Default.Speed, Icons.Outlined.Speed, "tab_velocimetro"),
     RIDES("Rodadas", Icons.Default.TwoWheeler, Icons.Outlined.TwoWheeler, "tab_rides"),
@@ -219,6 +220,7 @@ fun AppEntryPoint(
 fun MainAppScreen(viewModel: TeamTxViewModel) {
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(NavigationTab.FEED) }
+    var targetCalendarDate by remember { mutableStateOf<String?>(null) }
     val isDirectivaMode by viewModel.isDirectivaMode.collectAsStateWithLifecycle()
     val isLeaderSuperAdmin by viewModel.isLeaderSuperAdmin.collectAsStateWithLifecycle()
     val currentMember by viewModel.currentMember.collectAsStateWithLifecycle()
@@ -330,7 +332,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             }
         },
         bottomBar = {
-            AnimatedVisibility(visible = isBottomNavVisible) {
+            val isCalendarOrFullscreen = selectedTab == NavigationTab.CALENDARIO || selectedTab == NavigationTab.NOTIFICACIONES || selectedTab == NavigationTab.PLAYER
+            AnimatedVisibility(visible = isBottomNavVisible && !isCalendarOrFullscreen) {
                 Surface(
                     color = Color.Transparent,
                     modifier = Modifier.fillMaxWidth().navigationBarsPadding()
@@ -457,8 +460,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onDelete = { viewModel.deletePublication(it) },
                         onUpdatePublication = { pub, uri -> viewModel.updatePublication(pub, uri) },
                         onAddComment = { pubId, content -> viewModel.addNoticeComment(pubId, content) },
-                        onCreatePublication = { title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName ->
-                            viewModel.createPublication(title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName)
+                        onCreatePublication = { title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName, eventDate, eventTime, syncCal ->
+                            viewModel.createPublication(title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName, eventDate, eventTime, syncCal)
                         },
                         onShare = { viewModel.sharePublication(it) },
                         onSave = { viewModel.savePublication(it) },
@@ -466,6 +469,13 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onDismissNotice = { viewModel.dismissNotice(it) },
                         onClearAllNotices = { viewModel.clearAllNoticesFromScreen(it) },
                         onRestoreDismissedNotices = { viewModel.restoreDismissedNotices() },
+                        onNavigateToCalendar = { dateStr ->
+                            targetCalendarDate = dateStr
+                            selectedTab = NavigationTab.CALENDARIO
+                        },
+                        onToggleEventFinished = { pub, isFinished ->
+                            viewModel.togglePublicationEventFinished(pub, isFinished)
+                        },
                         isRefreshing = isRefreshingFeed,
                         onRefresh = { viewModel.refreshFeed() },
                         uploadError = uploadError,
@@ -533,6 +543,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         events = calendarEvents,
                         currentMember = currentMember,
                         isDirectivaMode = isDirectivaMode,
+                        initialSelectedDate = targetCalendarDate,
                         onCreateEvent = { title, desc, cat, vis, date, eTime, dTime, orig, dest, oLat, oLng, dLat, dLng, terrain, diff, weather, capt, tail, remindDays, isOfficial, flyerUri, onComplete ->
                             viewModel.createCalendarEvent(title, desc, cat, vis, date, eTime, dTime, orig, dest, oLat, oLng, dLat, dLng, terrain, diff, weather, capt, tail, remindDays, isOfficial, flyerUri, onComplete)
                         },
@@ -549,6 +560,11 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onPublishToFeed = { event, onComplete ->
                             viewModel.publishCalendarEventToFeed(event, onComplete)
                         },
+                        onBack = { selectedTab = NavigationTab.FEED }
+                    )
+                }
+                NavigationTab.PLAYER -> {
+                    com.example.reproductor.REPRODUCTOR_PRINCIPAL(
                         onBack = { selectedTab = NavigationTab.FEED }
                     )
                 }
@@ -947,6 +963,23 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                 showQuickSosModal = false
                 selectedTab = NavigationTab.SOS
             }
+        )
+    }
+
+    // Burbuja Flotante In-App ("La Nube") del Reproductor TX Pro
+    val configNubeAudio by com.example.reproductor.GESTOR_AUDIO_TX.configuracion.collectAsState()
+    val cancionNubeAudio by com.example.reproductor.GESTOR_AUDIO_TX.cancionActual.collectAsState()
+    val estadoNubeAudio by com.example.reproductor.GESTOR_AUDIO_TX.estado.collectAsState()
+
+    if (selectedTab != NavigationTab.PLAYER && com.example.reproductor.GESTOR_AUDIO_TX.estaActivoOEnPausa()) {
+        com.example.reproductor.NubeAudioFlotante(
+            cancionActual = cancionNubeAudio,
+            estado = estadoNubeAudio,
+            config = configNubeAudio,
+            onAlternarPlayPausa = { com.example.reproductor.GESTOR_AUDIO_TX.alternarPlayPausa() },
+            onSiguiente = { com.example.reproductor.GESTOR_AUDIO_TX.siguienteCancion() },
+            onAbrirReproductor = { selectedTab = NavigationTab.PLAYER },
+            onActualizarPosicion = { x, y -> com.example.reproductor.GESTOR_AUDIO_TX.actualizarPosicionNube(x, y) }
         )
     }
 }

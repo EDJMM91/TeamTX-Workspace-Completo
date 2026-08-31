@@ -2115,7 +2115,7 @@
     <string name="default_speed_setting_descr">Cambiar los ajustes de la velocidad predefinida</string>
     <string name="new_profile">Nuevo perfil</string>
     <string name="shared_string_crash">Error</string>
-    <string name="last_launch_crashed">OsmAnd falló la última vez. Por favor, ayudanos a mejorar OsmAnd compartiendo el mensaje de error.</string>
+    <string name="last_launch_crashed">Mapa TX experimentó un error la última vez. Por favor, ayudanos a mejorar compartiendo el reporte con el desarrollador.</string>
     <string name="app_mode_ufo">Ovni</string>
     <string name="release_3_4">• Perfiles de aplicación: creá un perfil personalizado según tus necesidades, con un ícono y color personalizado\n\n• Ahora podés personalizar las velocidades predefinidas, máximas y mínimas de cualquier perfil\n\n• Se agregó un widget para las coordenadas actuales\n\n• Se agregaron opciones para mostrar la brújula y una regla radial en el mapa\n\n• Se corrigió la grabación de trazas en segundo plano\n\n• Se mejoraron las descargas de mapas en segundo plano\n\n• Se volvió a agregar la opción «Encender pantalla»\n\n• Se corrigió la elección del idioma de Wikipedia\n\n• Se corrigió el comportamiento de los botones de la brújula durante la navegación\n\n• Otras correcciones de errores</string>
     <string name="app_mode_personal_transporter">Transportador personal</string>

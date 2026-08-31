@@ -63,7 +63,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     init {
         val db = AppDatabase.getDatabase(application, viewModelScope)
         repository = TeamTxRepository(db, viewModelScope)
-        GestorNotificacionesApp.inicializar(db)
+        GestorNotificacionesApp.inicializar(db, application)
         // Initialize background jobs
         InvitationCodeCleanupJob(db, viewModelScope)
 
@@ -492,7 +492,10 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         imageUri: Uri? = null,
         allowComments: Boolean = true,
         locationCoordinates: String? = null,
-        locationName: String? = null
+        locationName: String? = null,
+        eventDate: String? = null,
+        eventTime: String? = null,
+        syncWithCalendar: Boolean = false
     ) {
         viewModelScope.launch {
             _isUploadingPublication.value = true
@@ -523,8 +526,45 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
 
                 val author = currentMember.value?.fullName ?: "Directiva Team TX"
                 val role = if (_isDirectivaMode.value) "Directiva Nacional" else "Miembro TX"
+                val pubId = System.currentTimeMillis()
+                var linkedCalId: Long? = null
+
+                // 📅 Sincronización automática con el Calendario Motero si tiene fecha
+                val cleanedEventDate = eventDate?.trim()?.ifBlank { null }
+                val cleanedEventTime = eventTime?.trim()?.ifBlank { "08:00 AM" } ?: "08:00 AM"
+                if (syncWithCalendar && cleanedEventDate != null) {
+                    val calId = pubId + 1
+                    linkedCalId = calId
+                    val calEvent = BikerCalendarEvent(
+                        id = calId,
+                        title = title,
+                        description = content,
+                        category = when (category) {
+                            NoticeCategory.RETO_MOTERO -> "Reto Motero"
+                            NoticeCategory.EMERGENCIA -> "Emergencia / Auxilio"
+                            NoticeCategory.COMUNICADO -> "Comunicado Oficial"
+                            else -> "Ruta Oficial"
+                        },
+                        visibility = "PUBLICO_CLUB",
+                        eventDate = cleanedEventDate,
+                        eventTime = cleanedEventTime,
+                        departureTime = "08:30 AM",
+                        originAddress = locationName?.trim()?.ifBlank { "Punto de concentración oficial" } ?: "Punto de concentración oficial",
+                        destinationAddress = locationName?.trim()?.ifBlank { "" } ?: "",
+                        isOfficialClubEvent = true,
+                        creatorMemberId = currentMember.value?.id ?: 1L,
+                        creatorName = author,
+                        flyerUrl = uploadedImageUrl,
+                        linkedPublicationId = pubId,
+                        isEventFinished = false,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    repository.insertCalendarEvent(calEvent)
+                    Log.i("TeamTxViewModel", "📅 Evento sincronizado en Calendario Motero (ID: $calId, Fecha: $cleanedEventDate)")
+                }
+
                 val pub = Publication(
-                    id = System.currentTimeMillis(),
+                    id = pubId,
                     title = title,
                     content = content,
                     category = category,
@@ -539,11 +579,15 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     allowComments = allowComments,
                     locationCoordinates = locationCoordinates?.trim()?.ifBlank { null },
                     locationName = locationName?.trim()?.ifBlank { null },
+                    eventDate = cleanedEventDate,
+                    eventTime = if (cleanedEventDate != null) cleanedEventTime else null,
+                    isEventFinished = false,
+                    linkedCalendarEventId = linkedCalId,
                     timestamp = System.currentTimeMillis()
                 )
                 repository.insertPublication(pub)
                 _publicationUploadSuccess.value = true
-                Log.i("TeamTxViewModel", "✅ Publicación creada con ubicación: ${pub.locationCoordinates} (imagen: $uploadOrigen)")
+                Log.i("TeamTxViewModel", "✅ Publicación creada con fecha: ${pub.eventDate}, calId: ${pub.linkedCalendarEventId}")
             } catch (e: Exception) {
                 Log.e("TeamTxViewModel", "❌ Error creando publicación", e)
                 _publicationUploadError.value = "Error al publicar: ${e.message}"
@@ -556,6 +600,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     fun updatePublication(
         publication: Publication,
         newImageUri: Uri? = null,
+        syncWithCalendar: Boolean = true,
         onComplete: (Boolean) -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -568,13 +613,70 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     )
                     finalImageUrl = res.url
                 }
-                repository.updatePublication(publication.copy(imageUrl = finalImageUrl))
+
+                var updatedPub = publication.copy(imageUrl = finalImageUrl)
+                val cleanedEventDate = updatedPub.eventDate?.trim()?.ifBlank { null }
+                val cleanedEventTime = updatedPub.eventTime?.trim()?.ifBlank { "08:00 AM" } ?: "08:00 AM"
+
+                // Actualizar o crear evento vinculado en el Calendario Motero
+                if (cleanedEventDate != null && syncWithCalendar) {
+                    val calId = updatedPub.linkedCalendarEventId ?: (System.currentTimeMillis() + 1)
+                    val calEvent = BikerCalendarEvent(
+                        id = calId,
+                        title = updatedPub.title,
+                        description = updatedPub.content,
+                        category = when (updatedPub.category) {
+                            NoticeCategory.RETO_MOTERO -> "Reto Motero"
+                            NoticeCategory.EMERGENCIA -> "Emergencia / Auxilio"
+                            NoticeCategory.COMUNICADO -> "Comunicado Oficial"
+                            else -> "Ruta Oficial"
+                        },
+                        visibility = "PUBLICO_CLUB",
+                        eventDate = cleanedEventDate,
+                        eventTime = cleanedEventTime,
+                        departureTime = "08:30 AM",
+                        originAddress = updatedPub.locationName?.trim()?.ifBlank { "Punto de concentración oficial" } ?: "Punto de concentración oficial",
+                        destinationAddress = updatedPub.locationName?.trim()?.ifBlank { "" } ?: "",
+                        isOfficialClubEvent = true,
+                        creatorMemberId = currentMember.value?.id ?: 1L,
+                        creatorName = updatedPub.authorName,
+                        flyerUrl = finalImageUrl,
+                        linkedPublicationId = updatedPub.id,
+                        isEventFinished = updatedPub.isEventFinished,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    repository.updateCalendarEvent(calEvent)
+                    updatedPub = updatedPub.copy(linkedCalendarEventId = calId)
+                }
+
+                repository.updatePublication(updatedPub)
                 _publicationUploadSuccess.value = true
                 onComplete(true)
             } catch (e: Exception) {
                 Log.e("TeamTxViewModel", "❌ Error actualizando publicación: ${e.message}", e)
                 _publicationUploadError.value = "Error actualizando aviso: ${e.message}"
                 onComplete(false)
+            }
+        }
+    }
+
+    fun togglePublicationEventFinished(pub: Publication, isFinished: Boolean) {
+        viewModelScope.launch {
+            try {
+                val updatedPub = pub.copy(isEventFinished = isFinished)
+                repository.updatePublication(updatedPub)
+
+                // Si tiene evento de calendario vinculado, actualizarlo también
+                if (pub.linkedCalendarEventId != null) {
+                    val allCalEvents = calendarEvents.value
+                    val calEvent = allCalEvents.find { it.id == pub.linkedCalendarEventId || it.linkedPublicationId == pub.id }
+                    if (calEvent != null) {
+                        repository.updateCalendarEvent(calEvent.copy(isEventFinished = isFinished))
+                    }
+                }
+                Log.i("TeamTxViewModel", "✅ Estado de evento en Muro cambiado: isFinished = $isFinished")
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "❌ Error al cambiar estado de finalización: ${e.message}")
             }
         }
     }

@@ -232,8 +232,8 @@
 	<color name="popup_text_color">#FFFFFF</color>
 
 
-	<color name="osmand_orange">#ff8f00</color>
-	<color name="osmand_orange_dark">#e68200</color>
+	<color name="osmand_orange">#FF4B4B</color>
+	<color name="osmand_orange_dark">#E53935</color>
 	<color name="app_mode_icon_color">#33B4E4</color>
 	<color name="recording_color">#F44336</color>
 
@@ -245,10 +245,10 @@
 	<color name="list_item_light_pressed">#b2e6e6e6</color>
 	<color name="list_item_dark_pressed">#cc3b3b3b</color>
 
-	<color name="fab_color">#ff8f00</color>
-	<color name="fab_color_pressed">#e58200</color>
+	<color name="fab_color">#FF4B4B</color>
+	<color name="fab_color_pressed">#E53935</color>
 
-	<color name="map_widget_icon_color">#ff8f00</color>
+	<color name="map_widget_icon_color">#FF4B4B</color>
 	<color name="map_widget_stroke">#4C000000</color>
 	<color name="map_widget_light">#fff</color>
 	<color name="map_widget_dark">#a0000000</color>
@@ -268,9 +268,9 @@
 
 	<color name="tool_bar_color_dark">#CC080B0D</color>
 	<color name="tool_bar_color_light">#CC080B0D</color>
-	<color name="tool_bar_orange_color_light">#b4ff8f00</color>
+	<color name="tool_bar_orange_color_light">#b4FF4B4B</color>
 
-	<color name="download_pressed_light">#8cff8f00</color>
+	<color name="download_pressed_light">#8cFF4B4B</color>
 	<color name="download_pressed_dark">#be39464d</color>
 
 
@@ -385,7 +385,7 @@
 	<color name="spinner_list_background_light">#eeeeee</color>
 	<color name="spinner_list_background_dark">#303030</color>
 
-	<color name="inactive_item_orange">#ffc87f</color>
+	<color name="inactive_item_orange">#FFA4A4</color>
 
 	<!-- DownloadedRegionsLayer -->
 	<color name="region_uptodate">#5532C832</color>
@@ -627,7 +627,7 @@
 
 
 	<!-- Free version banner -->
-	<color name="banner_downloads_remaining_light">#ff8f00</color>
+	<color name="banner_downloads_remaining_light">#FF4B4B</color>
 	<color name="banner_downloads_remaining_dark">#D28521</color>
 	<color name="banner_downloads_used_light">#DEDEE3</color>
 	<color name="banner_downloads_used_dark">#34343C</color>

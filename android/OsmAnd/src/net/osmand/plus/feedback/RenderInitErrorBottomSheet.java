@@ -57,7 +57,7 @@ public class RenderInitErrorBottomSheet extends MenuBottomSheetDialogFragment {
 		if (app.getAppCustomization().isFeatureEnabled(FRAGMENT_RENDER_INIT_ERROR_ID)) {
 			return settings.USE_OPENGL_RENDER.get() && settings.OPENGL_RENDER_FAILED.get() > 3;
 		}
-		return true;
+		return settings.USE_OPENGL_RENDER.get() && settings.OPENGL_RENDER_FAILED.get() > 3;
 	}
 
 	public static void showInstance(@NonNull FragmentManager fragmentManager) {

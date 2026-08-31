@@ -8,7 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -98,7 +101,10 @@ fun FeedScreen(
         imageUri: Uri?,
         allowComments: Boolean,
         locationCoordinates: String?,
-        locationName: String?
+        locationName: String?,
+        eventDate: String?,
+        eventTime: String?,
+        syncWithCalendar: Boolean
     ) -> Unit,
     onShare: (Publication) -> Unit = {},
     onSave: (Publication) -> Unit = {},
@@ -106,6 +112,8 @@ fun FeedScreen(
     onDismissNotice: (Long) -> Unit = {},
     onClearAllNotices: (List<Long>) -> Unit = {},
     onRestoreDismissedNotices: () -> Unit = {},
+    onNavigateToCalendar: (String) -> Unit = {},
+    onToggleEventFinished: (Publication, Boolean) -> Unit = { _, _ -> },
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     uploadError: String? = null,
@@ -528,6 +536,36 @@ fun FeedScreen(
                                 label = "🚨 Emergencias SOS"
                             )
                         }
+                        item {
+                            FeedFilterChip(
+                                selected = selectedCategoryFilter == NoticeCategory.OBRA_BENEFICA,
+                                onClick = {
+                                    selectedCategoryFilter =
+                                        if (selectedCategoryFilter == NoticeCategory.OBRA_BENEFICA) null else NoticeCategory.OBRA_BENEFICA
+                                },
+                                label = "❤️ Obra Benéfica"
+                            )
+                        }
+                        item {
+                            FeedFilterChip(
+                                selected = selectedCategoryFilter == NoticeCategory.MANTENIMIENTO_PREVENTIVO,
+                                onClick = {
+                                    selectedCategoryFilter =
+                                        if (selectedCategoryFilter == NoticeCategory.MANTENIMIENTO_PREVENTIVO) null else NoticeCategory.MANTENIMIENTO_PREVENTIVO
+                                },
+                                label = "🔧 Mantenimiento Preventivo"
+                            )
+                        }
+                        item {
+                            FeedFilterChip(
+                                selected = selectedCategoryFilter == NoticeCategory.LAVADO_FAMILIAR,
+                                onClick = {
+                                    selectedCategoryFilter =
+                                        if (selectedCategoryFilter == NoticeCategory.LAVADO_FAMILIAR) null else NoticeCategory.LAVADO_FAMILIAR
+                                },
+                                label = "🧼 Lavado en Familia"
+                            )
+                        }
                     }
                 }
             }
@@ -579,6 +617,8 @@ fun FeedScreen(
                         onViewFlyer = { viewingFlyerPublication = pub },
                         onOpenShareDialog = { sharingPublication = pub },
                         onDismissNotice = { onDismissNotice(pub.id) },
+                        onNavigateToCalendar = { dateStr -> onNavigateToCalendar(dateStr) },
+                        onToggleEventFinished = { onToggleEventFinished(pub, !pub.isEventFinished) },
                         onQuickSave = {
                             if (!pub.imageUrl.isNullOrBlank()) {
                                 saveFlyerToGallery(context, pub.imageUrl!!, pub) {
@@ -660,8 +700,8 @@ fun FeedScreen(
     if (showCreateDialog) {
         CreateNoticeDialog(
             onDismiss = { showCreateDialog = false },
-            onCreate = { title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName ->
-                onCreatePublication(title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName)
+            onCreate = { title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName, eventDate, eventTime, syncCal ->
+                onCreatePublication(title, content, cat, prio, pinned, km, badge, tg, imageUri, allowComments, locCoords, locName, eventDate, eventTime, syncCal)
                 showCreateDialog = false
             }
         )
@@ -728,6 +768,8 @@ fun NoticeCard(
     onOpenShareDialog: () -> Unit = {},
     onQuickSave: () -> Unit = {},
     onDismissNotice: () -> Unit = {},
+    onNavigateToCalendar: (String) -> Unit = {},
+    onToggleEventFinished: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -836,6 +878,9 @@ fun NoticeCard(
                             NoticeCategory.EMERGENCIA -> if (isDark) Pair(Color(0xFF3E1515), Color(0xFFFF5252)) else Pair(Color(0xFFFFEBEE), Color(0xFFD32F2F))
                             NoticeCategory.NOTICIA_RUTA -> if (isDark) Pair(Color(0xFF1B3322), Color(0xFF81C784)) else Pair(Color(0xFFE8F5E9), Color(0xFF2E7D32))
                             NoticeCategory.CAPACITACION -> if (isDark) Pair(Color(0xFF2C1938), Color(0xFFBA68C8)) else Pair(Color(0xFFF3E5F5), Color(0xFF6A1B9A))
+                            NoticeCategory.OBRA_BENEFICA -> if (isDark) Pair(Color(0xFF3B1528), Color(0xFFF472B6)) else Pair(Color(0xFFFCE7F3), Color(0xFFBE185D))
+                            NoticeCategory.MANTENIMIENTO_PREVENTIVO -> if (isDark) Pair(Color(0xFF0C2A3D), Color(0xFF38BDF8)) else Pair(Color(0xFFE0F2FE), Color(0xFF0369A1))
+                            NoticeCategory.LAVADO_FAMILIAR -> if (isDark) Pair(Color(0xFF0C3030), Color(0xFF2DD4BF)) else Pair(Color(0xFFCCFBF1), Color(0xFF0F766E))
                         }
 
                         Surface(
@@ -1110,6 +1155,19 @@ fun NoticeCard(
                             )
                         }
                     }
+                }
+
+                // 📅 Fecha del Evento y Cuenta Regresiva (con enlace interactivo al Calendario Motero)
+                if (!pub.eventDate.isNullOrBlank()) {
+                    EventDateCountdownBadge(
+                        eventDate = pub.eventDate!!,
+                        eventTime = pub.eventTime,
+                        isFinished = pub.isEventFinished,
+                        onClick = { onNavigateToCalendar(pub.eventDate!!) },
+                        isDark = isDark,
+                        canToggleFinished = canDelete,
+                        onToggleFinished = onToggleEventFinished
+                    )
                 }
 
                 HorizontalDivider(color = if (isDark) Color.White.copy(alpha = 0.06f) else Color(0xFFF1F5F9))
@@ -1428,7 +1486,10 @@ fun CreateNoticeDialog(
         imageUri: Uri?,
         allowComments: Boolean,
         locationCoordinates: String?,
-        locationName: String?
+        locationName: String?,
+        eventDate: String?,
+        eventTime: String?,
+        syncWithCalendar: Boolean
     ) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
@@ -1445,6 +1506,12 @@ fun CreateNoticeDialog(
     var locationCoordinates by remember { mutableStateOf("") }
     var autoDetectedCoordsMsg by remember { mutableStateOf<String?>(null) }
     var estaCapturandoGps by remember { mutableStateOf(false) }
+
+    // 📅 Estados para Fecha del Evento y Sincronización con Calendario Motero
+    var eventDate by remember { mutableStateOf<String?>(null) }
+    var eventTime by remember { mutableStateOf("08:00 AM") }
+    var syncWithCalendar by remember { mutableStateOf(true) }
+    var showDatePickerDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -1472,6 +1539,24 @@ fun CreateNoticeDialog(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedImageUri = uri
+    }
+
+    if (showDatePickerDialog) {
+        EventDatePickerDialog(
+            initialDate = eventDate,
+            initialTime = eventTime,
+            onDismiss = { showDatePickerDialog = false },
+            onConfirmDate = { date, time ->
+                eventDate = date
+                eventTime = time
+                syncWithCalendar = true
+                showDatePickerDialog = false
+            },
+            onClearDate = {
+                eventDate = null
+                showDatePickerDialog = false
+            }
+        )
     }
 
     AlertDialog(
@@ -1511,15 +1596,12 @@ fun CreateNoticeDialog(
                 item {
                     Text("Categoría:", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
                     ) {
-                        listOf(
-                            NoticeCategory.AVISO_OFICIAL,
-                            NoticeCategory.RETO_MOTERO,
-                            NoticeCategory.COMUNICADO,
-                            NoticeCategory.EMERGENCIA
-                        ).forEach { cat ->
+                        NoticeCategory.values().forEach { cat ->
                             FilterChip(
                                 selected = category == cat,
                                 onClick = { category = cat },
@@ -1544,6 +1626,117 @@ fun CreateNoticeDialog(
                             label = { Text("Nombre del Parche / Distintivo") },
                             modifier = Modifier.fillMaxWidth()
                         )
+                    }
+                }
+
+                // 📅 SECCIÓN: FECHA DEL EVENTO Y SINCRONIZACIÓN CON CALENDARIO MOTERO
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, if (!eventDate.isNullOrBlank()) Color(0xFF3B82F6).copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Event,
+                                    contentDescription = null,
+                                    tint = if (!eventDate.isNullOrBlank()) Color(0xFF3B82F6) else MotoOrangePrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Fecha del Evento & Calendario Motero",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            if (!eventDate.isNullOrBlank()) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF3B82F6).copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.4f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(16.dp))
+                                            Column {
+                                                Text(
+                                                    text = "Fecha: $eventDate • $eventTime",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSystemInDarkTheme()) Color(0xFF90CAF9) else Color(0xFF1565C0)
+                                                )
+                                                Text(
+                                                    text = if (syncWithCalendar) "Sincronizado con Calendario Motero" else "Solo visible en aviso",
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                eventDate = null
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = "Quitar fecha", tint = Color.Gray, modifier = Modifier.size(14.dp))
+                                        }
+                                    }
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = { showDatePickerDialog = true },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF3B82F6)),
+                                border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.6f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    if (eventDate.isNullOrBlank()) "📅 Seleccionar Fecha y Hora del Evento" else "✏️ Cambiar Fecha / Hora ($eventDate)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            if (!eventDate.isNullOrBlank()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Sincronizar en Calendario", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("Aparecerá en el calendario de todos los miembros", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Switch(
+                                        checked = syncWithCalendar,
+                                        onCheckedChange = { syncWithCalendar = it },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color(0xFF3B82F6),
+                                            checkedTrackColor = Color(0xFF3B82F6).copy(alpha = 0.5f)
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1639,7 +1832,7 @@ fun CreateNoticeDialog(
                                 OutlinedButton(
                                     onClick = {
                                         coroutineScope.launch {
-                                            estaCapturandoGps = true
+                                             estaCapturandoGps = true
                                             val coords = gestorUbicacion.capturarCoordenadaActual()
                                             estaCapturandoGps = false
                                             if (coords != null) {
@@ -1809,7 +2002,10 @@ fun CreateNoticeDialog(
                             selectedImageUri,
                             allowComments,
                             if (locationCoordinates.isNotBlank()) locationCoordinates.trim() else null,
-                            if (locationName.isNotBlank()) locationName.trim() else null
+                            if (locationName.isNotBlank()) locationName.trim() else null,
+                            eventDate?.trim()?.ifBlank { null },
+                            eventTime?.trim()?.ifBlank { null },
+                            syncWithCalendar
                         )
                     }
                 },
@@ -1848,6 +2044,12 @@ fun EditNoticeDialog(
     var autoDetectedCoordsMsg by remember { mutableStateOf<String?>(null) }
     var estaCapturandoGps by remember { mutableStateOf(false) }
 
+    // 📅 Estados para Fecha del Evento y Sincronización con Calendario Motero
+    var eventDate by remember { mutableStateOf<String?>(pub.eventDate) }
+    var eventTime by remember { mutableStateOf(pub.eventTime?.ifBlank { "08:00 AM" } ?: "08:00 AM") }
+    var syncWithCalendar by remember { mutableStateOf(pub.linkedCalendarEventId != null || !pub.eventDate.isNullOrBlank()) }
+    var showDatePickerDialog by remember { mutableStateOf(false) }
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val gestorUbicacion = remember { GestorUbicacion(context) }
@@ -1874,6 +2076,24 @@ fun EditNoticeDialog(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedImageUri = uri
+    }
+
+    if (showDatePickerDialog) {
+        EventDatePickerDialog(
+            initialDate = eventDate,
+            initialTime = eventTime,
+            onDismiss = { showDatePickerDialog = false },
+            onConfirmDate = { date, time ->
+                eventDate = date
+                eventTime = time
+                syncWithCalendar = true
+                showDatePickerDialog = false
+            },
+            onClearDate = {
+                eventDate = null
+                showDatePickerDialog = false
+            }
+        )
     }
 
     AlertDialog(
@@ -1909,15 +2129,12 @@ fun EditNoticeDialog(
                 item {
                     Text("Categoría:", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
                     ) {
-                        listOf(
-                            NoticeCategory.AVISO_OFICIAL,
-                            NoticeCategory.RETO_MOTERO,
-                            NoticeCategory.COMUNICADO,
-                            NoticeCategory.EMERGENCIA
-                        ).forEach { cat ->
+                        NoticeCategory.values().forEach { cat ->
                             FilterChip(
                                 selected = category == cat,
                                 onClick = { category = cat },
@@ -1942,6 +2159,117 @@ fun EditNoticeDialog(
                             label = { Text("Nombre del Parche / Distintivo") },
                             modifier = Modifier.fillMaxWidth()
                         )
+                    }
+                }
+
+                // 📅 SECCIÓN: FECHA DEL EVENTO Y SINCRONIZACIÓN CON CALENDARIO MOTERO
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        border = BorderStroke(1.dp, if (!eventDate.isNullOrBlank()) Color(0xFF3B82F6).copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Event,
+                                    contentDescription = null,
+                                    tint = if (!eventDate.isNullOrBlank()) Color(0xFF3B82F6) else MotoOrangePrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Fecha del Evento & Calendario Motero",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            if (!eventDate.isNullOrBlank()) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF3B82F6).copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.4f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(16.dp))
+                                            Column {
+                                                Text(
+                                                    text = "Fecha: $eventDate • $eventTime",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSystemInDarkTheme()) Color(0xFF90CAF9) else Color(0xFF1565C0)
+                                                )
+                                                Text(
+                                                    text = if (syncWithCalendar) "Sincronizado con Calendario Motero" else "Solo visible en aviso",
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                eventDate = null
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = "Quitar fecha", tint = Color.Gray, modifier = Modifier.size(14.dp))
+                                        }
+                                    }
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = { showDatePickerDialog = true },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF3B82F6)),
+                                border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.6f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    if (eventDate.isNullOrBlank()) "📅 Seleccionar Fecha y Hora del Evento" else "✏️ Cambiar Fecha / Hora ($eventDate)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            if (!eventDate.isNullOrBlank()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Sincronizar en Calendario", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("Aparecerá en el calendario de todos los miembros", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Switch(
+                                        checked = syncWithCalendar,
+                                        onCheckedChange = { syncWithCalendar = it },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color(0xFF3B82F6),
+                                            checkedTrackColor = Color(0xFF3B82F6).copy(alpha = 0.5f)
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -2216,7 +2544,9 @@ fun EditNoticeDialog(
                             telegramPostUrl = if (telegramUrl.isNotBlank()) telegramUrl else null,
                             allowComments = allowComments,
                             locationCoordinates = if (locationCoordinates.isNotBlank()) locationCoordinates.trim() else null,
-                            locationName = if (locationName.isNotBlank()) locationName.trim() else null
+                            locationName = if (locationName.isNotBlank()) locationName.trim() else null,
+                            eventDate = eventDate?.trim()?.ifBlank { null },
+                            eventTime = eventTime?.trim()?.ifBlank { null }
                         )
                         onConfirmEdit(updated, selectedImageUri)
                     }
@@ -2755,3 +3085,337 @@ fun ShareNoticeDialog(
         }
     )
 }
+
+/**
+ * 📅 Diálogo interactivo con selector mensual y selector de hora para eventos del Muro y Calendario Motero
+ */
+@Composable
+fun EventDatePickerDialog(
+    initialDate: String?,
+    initialTime: String?,
+    onDismiss: () -> Unit,
+    onConfirmDate: (date: String, time: String) -> Unit,
+    onClearDate: () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+    val cal = remember {
+        val c = Calendar.getInstance()
+        if (!initialDate.isNullOrBlank()) {
+            try {
+                val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                val d = sdf.parse(initialDate)
+                if (d != null) c.time = d
+            } catch (ignored: Exception) {}
+        }
+        c
+    }
+
+    var selectedDay by remember { mutableStateOf(cal.get(Calendar.DAY_OF_MONTH)) }
+    var currentMonthCalendar by remember { mutableStateOf(cal.clone() as Calendar) }
+    var selectedTime by remember { mutableStateOf(initialTime?.ifBlank { "08:00 AM" } ?: "08:00 AM") }
+
+    val monthYearFormat = remember { SimpleDateFormat("MMMM yyyy", Locale("es", "ES")) }
+    val dayFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
+
+    // Generar días del mes para la cuadrícula
+    val daysList = remember(currentMonthCalendar) {
+        val c = currentMonthCalendar.clone() as Calendar
+        c.set(Calendar.DAY_OF_MONTH, 1)
+        val firstDayOfWeek = c.get(Calendar.DAY_OF_WEEK) - 1 // 0: Dom, 1: Lun
+        val maxDays = c.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val list = mutableListOf<Int>()
+        for (i in 0 until firstDayOfWeek) list.add(0)
+        for (d in 1..maxDays) list.add(d)
+        list
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MotoOrangePrimary)
+                Text("Seleccionar Fecha del Evento", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Header navegación de mes
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            val newCal = currentMonthCalendar.clone() as Calendar
+                            newCal.add(Calendar.MONTH, -1)
+                            currentMonthCalendar = newCal
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.ChevronLeft, contentDescription = "Mes anterior", tint = MotoOrangePrimary)
+                    }
+
+                    Text(
+                        text = monthYearFormat.format(currentMonthCalendar.time).replaceFirstChar { it.uppercase() },
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    IconButton(
+                        onClick = {
+                            val newCal = currentMonthCalendar.clone() as Calendar
+                            newCal.add(Calendar.MONTH, 1)
+                            currentMonthCalendar = newCal
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.ChevronRight, contentDescription = "Mes siguiente", tint = MotoOrangePrimary)
+                    }
+                }
+
+                // Días de la semana
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    listOf("D", "L", "M", "M", "J", "V", "S").forEach { d ->
+                        Text(d, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                // Cuadrícula de días en filas de 7
+                val chunkedDays = daysList.chunked(7)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    chunkedDays.forEach { week ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                            for (i in 0 until 7) {
+                                val dayNum = week.getOrNull(i) ?: 0
+                                if (dayNum > 0) {
+                                    val isSelected = (dayNum == selectedDay)
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (isSelected) MotoOrangePrimary else Color.Transparent,
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .clickable { selectedDay = dayNum }
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "$dayNum",
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.size(32.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                // Selector de Hora
+                Text("⏰ Hora del Evento:", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("07:00 AM", "08:00 AM", "09:00 AM", "02:00 PM").forEach { timeOption ->
+                        FilterChip(
+                            selected = selectedTime == timeOption,
+                            onClick = { selectedTime = timeOption },
+                            label = { Text(timeOption, fontSize = 10.sp) }
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = selectedTime,
+                    onValueChange = { selectedTime = it },
+                    label = { Text("Hora personalizada (ej. 08:30 AM)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val finalCal = currentMonthCalendar.clone() as Calendar
+                    finalCal.set(Calendar.DAY_OF_MONTH, selectedDay)
+                    val formattedDate = dayFormat.format(finalCal.time)
+                    onConfirmDate(formattedDate, selectedTime)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
+            ) {
+                Text("✅ Guardar Fecha", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (!initialDate.isNullOrBlank()) {
+                    TextButton(onClick = onClearDate) {
+                        Text("Quitar Fecha", color = StatusError)
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Cancelar")
+                }
+            }
+        }
+    )
+}
+
+/**
+ * ⏳ Badge de Fecha de Evento y Cuenta Regresiva de Días
+ */
+@Composable
+fun EventDateCountdownBadge(
+    eventDate: String,
+    eventTime: String?,
+    isFinished: Boolean,
+    onClick: () -> Unit,
+    isDark: Boolean,
+    canToggleFinished: Boolean = false,
+    onToggleFinished: () -> Unit = {}
+) {
+    val daysDiff = remember(eventDate) {
+        try {
+            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            sdf.isLenient = false
+            val parsed = sdf.parse(eventDate.trim())
+            if (parsed != null) {
+                val calTarget = Calendar.getInstance().apply {
+                    time = parsed
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val calToday = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val diffMs = calTarget.timeInMillis - calToday.timeInMillis
+                (diffMs / (24 * 60 * 60 * 1000L)).toInt()
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    val (countdownText, badgeColor, iconColor) = when {
+        isFinished -> Triple("Evento Concluido ✅", if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), Color(0xFF94A3B8))
+        daysDiff == null -> Triple("Fecha Programada 📅", MotoOrangePrimary, MotoOrangePrimary)
+        daysDiff == 0 -> Triple("🏍️ ¡HOY ES EL EVENTO!", TxFlameRed, TxFlameRed)
+        daysDiff == 1 -> Triple("🔥 ¡ES MAÑANA!", MotoOrangePrimary, MotoOrangePrimary)
+        daysDiff in 2..7 -> Triple("⏳ Faltan $daysDiff días", Color(0xFFF59E0B), Color(0xFFF59E0B))
+        daysDiff > 7 -> Triple("📅 En $daysDiff días", Color(0xFF3B82F6), Color(0xFF3B82F6))
+        else -> Triple("🏁 Evento Realizado", Color(0xFF64748B), Color(0xFF64748B))
+    }
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isDark) Color(0xFF1E2433) else Color(0xFFF0F7FF),
+        border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = iconColor.copy(alpha = 0.18f),
+                    modifier = Modifier.size(38.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.Event,
+                            contentDescription = "Fecha del Evento",
+                            tint = iconColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "Fecha: $eventDate" + if (!eventTime.isNullOrBlank()) " • $eventTime" else "",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = if (isDark) Color.White else Color(0xFF1E293B)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = badgeColor.copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                text = countdownText,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = badgeColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Text(
+                            text = "👉 Toca para abrir calendario",
+                            fontSize = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (canToggleFinished) {
+                IconButton(
+                    onClick = onToggleFinished,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        if (isFinished) Icons.Default.RestartAlt else Icons.Default.CheckCircle,
+                        contentDescription = if (isFinished) "Reactivar evento" else "Marcar finalizado",
+                        tint = if (isFinished) MotoGoldSecondary else Color(0xFF22C55E),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
