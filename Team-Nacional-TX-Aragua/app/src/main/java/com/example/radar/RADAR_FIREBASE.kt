@@ -263,6 +263,21 @@ object RadarFirebase {
 
     fun obtenerAvatarCacheado(url: String): Bitmap? = avataresCache[url]
 
+    fun obtenerAvatar(id: String, url: String, context: Context?): Bitmap? {
+        if (url.isNotBlank()) {
+            avataresCache[url]?.let { return it }
+            val disco = cargarAvatarDeDisco(url)
+            if (disco != null) return disco
+        }
+        val local = archivoAvatarLocal(context ?: appContext)
+        if (local != null && local.exists()) {
+            try {
+                return BitmapFactory.decodeFile(local.absolutePath)
+            } catch (_: Exception) {}
+        }
+        return null
+    }
+
     fun limpiarCacheUsuario() {
         avataresCache.clear()
         val local = archivoAvatarLocal(appContext)

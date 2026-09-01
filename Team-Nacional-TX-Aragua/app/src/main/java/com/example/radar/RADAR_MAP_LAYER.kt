@@ -242,19 +242,30 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
                 val dx = point.x - avatarCx
                 val dy = point.y - avatarCy
                 val touchDistSq = dx * dx + dy * dy
-                val radiusSq = (radius * 1.5f) * (radius * 1.5f)
+                val radiusSq = (radius * 2.5f) * (radius * 2.5f)
 
-                if (touchDistSq <= radiusSq || tileBox.isLatLonNearPixel(piloto.lat, piloto.lon, point.x, point.y, radius)) {
+                if (touchDistSq <= radiusSq || tileBox.isLatLonNearPixel(piloto.lat, piloto.lon, point.x, point.y, radius * 2.0f)) {
                     pilotoSeleccionado?.invoke(piloto)
                     result.collect(piloto, this)
                 }
             } else {
-                if (tileBox.isLatLonNearPixel(piloto.lat, piloto.lon, point.x, point.y, radius)) {
+                if (tileBox.isLatLonNearPixel(piloto.lat, piloto.lon, point.x, point.y, radius * 2.0f)) {
                     pilotoSeleccionado?.invoke(piloto)
                     result.collect(piloto, this)
                 }
             }
         }
+    }
+
+    override fun runExclusiveAction(o: Any?, unknownLocation: Boolean): Boolean {
+        if (o is PilotoRadar) {
+            val act = (mapActivity as? android.app.Activity)
+                ?: (application?.osmandMap?.mapView?.context as? android.app.Activity)
+                ?: return false
+            DialogosMapaTx.mostrarPiloto(act, o)
+            return true
+        }
+        return false
     }
 
     override fun getObjectLocation(o: Any?): LatLon? {

@@ -177,13 +177,25 @@ class EventosMapLayer(context: Context) : OsmandMapLayer(context),
         val app = application ?: return
         val point = result.point
         val tileBox = result.tileBox
-        val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER).toFloat()
+        val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER * 1.5f).toFloat()
 
         for (evento in eventos) {
             if (tileBox.isLatLonNearPixel(evento.lat, evento.lon, point.x, point.y, radius)) {
+                eventoSeleccionado?.invoke(evento)
                 result.collect(evento, this)
             }
         }
+    }
+
+    override fun runExclusiveAction(o: Any?, unknownLocation: Boolean): Boolean {
+        if (o is EventoMarcador) {
+            val act = (mapActivity as? android.app.Activity)
+                ?: (application?.osmandMap?.mapView?.context as? android.app.Activity)
+                ?: return false
+            DialogosMapaTx.mostrarEvento(act, o)
+            return true
+        }
+        return false
     }
 
     override fun getObjectLocation(o: Any?): LatLon? {
