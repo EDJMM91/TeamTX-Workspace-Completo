@@ -615,6 +615,9 @@ fun EditProfileDialog(
                     val url = NubeArchivos.subirArchivo(uriToUpload, NubeArchivos.TipoArchivo.IMAGEN, "profile_${member.id}_${System.currentTimeMillis()}.jpg")
                     if (url != null) {
                         profilePhotoUri = url
+                        com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, url)
+                        context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+                            .edit().putString("radar_avatar", url).apply()
                         Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, "Error al subir la foto de perfil", Toast.LENGTH_SHORT).show()
@@ -642,6 +645,9 @@ fun EditProfileDialog(
                 val url = NubeArchivos.subirArchivo(it, NubeArchivos.TipoArchivo.IMAGEN, "profile_${member.id}_${System.currentTimeMillis()}.jpg")
                 if (url != null) {
                     profilePhotoUri = url
+                    com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, url)
+                    context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+                        .edit().putString("radar_avatar", url).apply()
                     Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(context, "Error al subir la imagen", Toast.LENGTH_SHORT).show()
@@ -991,6 +997,11 @@ fun EditProfileDialog(
                         profilePhotoUri = profilePhotoUri,
                         bikePhotoUri = bikePhotoUri
                     )
+                    if (!profilePhotoUri.isNullOrBlank()) {
+                        com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, profilePhotoUri!!)
+                        context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+                            .edit().putString("radar_avatar", profilePhotoUri).apply()
+                    }
                     onSave(updated)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),

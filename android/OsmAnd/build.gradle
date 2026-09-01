@@ -137,7 +137,7 @@ tasks.named("preBuild") {
 dependencies {
     coreLibraryDesugaring libs.desugar.jdk.libs
 
-    implementation project(path: ':OsmAnd-java', configuration: 'android')
+    api project(path: ':OsmAnd-java', configuration: 'android')
     implementation project(':OsmAnd-api')
     implementation project(':OsmAnd-shared')
 

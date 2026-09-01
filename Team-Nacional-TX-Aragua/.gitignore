@@ -22,3 +22,4 @@ my-upload-key.jks
 .idea/
 !apk/*.apk
 apks/
+graphify-out/

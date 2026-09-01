@@ -175,8 +175,20 @@ public class EditorIconController extends BaseDialogController {
 						JSONArray iconJsonArray = categoryJson.getJSONArray("icons");
 
 						List<String> iconKeys = new ArrayList<>();
+						android.content.SharedPreferences radarPrefs = app.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE);
+						boolean esDirectivo = radarPrefs.getBoolean("es_directivo_o_admin", false);
+						if (!esDirectivo) {
+							String rango = radarPrefs.getString("radar_rango", "");
+							if (rango != null && (rango.toLowerCase().contains("directiva") || rango.toLowerCase().contains("presidente") || rango.toLowerCase().contains("administrador") || rango.toLowerCase().contains("desarrollador") || rango.toLowerCase().contains("capitán") || rango.toLowerCase().contains("capitan"))) {
+								esDirectivo = true;
+							}
+						}
 						for (int j = 0; j < iconJsonArray.length(); j++) {
-							iconKeys.add(iconJsonArray.getString(j));
+							String iconKey = iconJsonArray.getString(j);
+							if ("directiva".equals(iconKey) && !esDirectivo) {
+								continue;
+							}
+							iconKeys.add(iconKey);
 						}
 						if (!Algorithms.isEmpty(iconKeys)) {
 							String translatedName = AndroidUtils.getIconStringPropertyName(app, categoryKey);

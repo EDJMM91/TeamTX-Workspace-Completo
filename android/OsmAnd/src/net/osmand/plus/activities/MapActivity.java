@@ -127,6 +127,10 @@ import net.osmand.plus.utils.InsetsUtils.InsetSide;
 import net.osmand.plus.utils.UiUtilities;
 import net.osmand.plus.views.AddGpxPointBottomSheetHelper;
 import net.osmand.plus.views.AddGpxPointBottomSheetHelper.NewGpxPoint;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import net.osmand.plus.views.AnimateDraggingMapThread;
 import net.osmand.plus.views.MapLayers;
 import net.osmand.plus.views.MapViewWithLayers;
@@ -252,6 +256,18 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 			btnTeamTx.setOnClickListener(v -> finish());
 		}
 
+		View btnBuscarTx = findViewById(R.id.btn_team_tx_buscar_map);
+		if (btnBuscarTx != null) {
+			btnBuscarTx.setOnClickListener(v -> {
+				try {
+					Class<?> buscadorClass = Class.forName("com.example.radar.BuscadorSitiosTx");
+					buscadorClass.getMethod("mostrar", android.app.Activity.class).invoke(null, MapActivity.this);
+				} catch (Exception e) {
+					android.util.Log.w("MAPA_TX", "Error al abrir buscador: " + e.getMessage());
+				}
+			});
+		}
+
 		// Navigation Drawer
 		AndroidUtils.addStatusBarPadding21v(this, findViewById(R.id.menuItems));
 
@@ -340,6 +356,81 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 			mapViewWithLayers.onCreate(savedInstanceState);
 		}
 		extendedMapActivity.onCreate(this, savedInstanceState);
+
+		// ─── FAB Radar Táctico ──────────────────────────────────────────────
+		agregarFabRadar();
+	}
+
+	private void agregarFabRadar() {
+		try {
+			View mapView = findViewById(R.id.map_view_with_layers);
+			if (mapView == null) return;
+			ViewGroup container = (ViewGroup) mapView.getParent();
+			if (container == null) return;
+
+			ImageButton fab = new ImageButton(this);
+			fab.setId(View.generateViewId());
+			fab.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
+			fab.setPadding(0, 0, 0, 0);
+
+			GradientDrawable bg = new GradientDrawable();
+			bg.setShape(GradientDrawable.OVAL);
+			boolean activo = false;
+			try {
+				Class<?> telClass = Class.forName("com.example.radar.TelemetriaGps");
+				activo = (Boolean) telClass.getMethod("estaActivo", Context.class).invoke(null, this);
+			} catch (Exception ignored) {}
+			bg.setColor(activo ? Color.parseColor("#4CAF50") : Color.parseColor("#808080"));
+			fab.setBackground(bg);
+
+			int iconRes = getResources().getIdentifier("ic_menu_mylocation", "drawable", "android");
+			if (iconRes != 0) {
+				fab.setImageResource(iconRes);
+			}
+
+			int density = (int) getResources().getDisplayMetrics().density;
+			int size = 48 * density;
+			FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size);
+			params.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.END;
+			params.setMargins(0, 0, 16 * density, 80 * density);
+			fab.setLayoutParams(params);
+
+			final boolean[] estado = {activo};
+			fab.setOnClickListener(v -> {
+				try {
+					estado[0] = !estado[0];
+					bg.setColor(estado[0] ? Color.parseColor("#4CAF50") : Color.parseColor("#808080"));
+					fab.setBackground(bg);
+
+					Class<?> authClass = Class.forName("com.google.firebase.auth.FirebaseAuth");
+					Object authInstance = authClass.getMethod("getInstance").invoke(null);
+					String uid = (String) authInstance.getClass().getMethod("getUid").invoke(authInstance);
+					if (uid == null || uid.isEmpty()) return;
+
+					Class<?> telClass = Class.forName("com.example.radar.TelemetriaGps");
+					Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
+
+					if (estado[0]) {
+						android.content.SharedPreferences prefs = getSharedPreferences("prefs_radar_tx", MODE_PRIVATE);
+						String nombre = prefs.getString("radar_nombre", "Piloto TX");
+						String rango = prefs.getString("radar_rango", "");
+						String avatar = prefs.getString("radar_avatar", "");
+						telClass.getMethod("activar", Context.class, String.class, String.class, String.class, String.class)
+							.invoke(null, this, uid, nombre, rango, avatar);
+						net.osmand.plus.OsmandApplication osmApp = (net.osmand.plus.OsmandApplication) getApplication();
+						gestorClass.getMethod("iniciar",
+							Class.forName("net.osmand.plus.OsmandApplication"),
+							String.class, String.class, String.class, String.class)
+							.invoke(null, osmApp, uid, nombre, rango, avatar);
+					} else {
+						telClass.getMethod("desactivar", Context.class).invoke(null, this);
+						gestorClass.getMethod("detener").invoke(null);
+					}
+				} catch (Exception ignored) {}
+			});
+
+			container.addView(fab);
+		} catch (Exception ignored) {}
 	}
 
 	public void setMapViewPaddings(int left, int top, int right, int bottom) {

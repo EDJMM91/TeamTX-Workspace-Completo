@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.ui.preferences.PreferenciasApp
 import com.example.ui.theme.*
+import kotlinx.coroutines.launch
 
 // ─── Pantalla Principal de Configuraciones ────────────────────────────────────
 
@@ -93,6 +94,9 @@ fun ConfiguracionesScreen(
     // Velocímetro & Odómetro
     var odometroGlobal by remember { mutableStateOf(PreferenciasApp.odometroGlobalActivo) }
     var velocidadMphConfig by remember { mutableStateOf(PreferenciasApp.velocidadEnMph) }
+
+    // Radar Táctico
+    var radarActivo by remember { mutableStateOf(com.example.radar.TelemetriaGps.estaActivo(context)) }
 
     LazyColumn(
         modifier = Modifier
@@ -505,6 +509,38 @@ fun ConfiguracionesScreen(
                     onCheckedChange = {
                         velocidadMphConfig = it
                         PreferenciasApp.velocidadEnMph = it
+                    }
+                )
+            }
+        }
+
+        // ── Módulo 12: Radar Táctico ──────────────────────────────────────
+        item {
+            SeccionConfiguraciones(
+                titulo = "Radar Táctico",
+                icono = Icons.Default.MyLocation,
+            ) {
+                ItemToggle(
+                    label = "Compartir mi ubicación",
+                    descripcion = "Comparte tu posición GPS en tiempo real con los demás pilotos del capítulo",
+                    icono = Icons.Default.ShareLocation,
+                    checked = radarActivo,
+                    onCheckedChange = {
+                        radarActivo = it
+                        if (it) {
+                            val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                            if (uid != null) {
+                                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    val perfil = com.example.data.remote.PerfilNube.descargarPerfil(uid)
+                                    val nombre = perfil?.fullName?.ifBlank { "Piloto TX" } ?: "Piloto TX"
+                                    val rango = perfil?.role?.displayName ?: ""
+                                    val avatar = perfil?.profilePhotoUri ?: ""
+                                    com.example.radar.TelemetriaGps.activar(context, uid, nombre, rango, avatar)
+                                }
+                            }
+                        } else {
+                            com.example.radar.TelemetriaGps.desactivar(context)
+                        }
                     }
                 )
             }

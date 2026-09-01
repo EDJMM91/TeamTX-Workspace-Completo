@@ -20,6 +20,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.MotoOrangePrimary
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @Composable
 fun TxMapLauncher(
@@ -31,13 +33,63 @@ fun TxMapLauncher(
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { _ ->
-        // Cuando MapActivity hace finish() (botón logo TX o back), vuelve al Dashboard
+        // Cuando MapActivity hace finish(), limpiar radar y eventos
+        com.example.radar.GestorRadar.limpiarEventosDelMapa()
+        com.example.radar.GestorRadar.detener()
         onBackClick()
     }
 
     LaunchedEffect(Unit) {
         if (!launched) {
             launched = true
+            val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            val app = context.applicationContext as? net.osmand.plus.OsmandApplication
+
+            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                if (uid != null) {
+                    val perfil = com.example.data.remote.PerfilNube.descargarPerfil(uid)
+                    val nombre = perfil?.fullName?.ifBlank { "Piloto TX" } ?: "Piloto TX"
+                    val rango = perfil?.role?.displayName ?: ""
+                    val avatar = perfil?.profilePhotoUri ?: ""
+                    val esDirectivo = perfil?.isDirectiva == true || perfil?.role?.canManageApp == true || 
+                                     perfil?.role == com.example.data.model.MemberRole.PRESIDENTE || 
+                                     perfil?.role == com.example.data.model.MemberRole.DIRECTIVA
+
+                    val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+                    prefs.edit()
+                        .putBoolean("es_directivo_o_admin", esDirectivo)
+                        .putString("radar_user_id", uid)
+                        .putString("radar_nombre", nombre)
+                        .putString("radar_rango", rango)
+                        .putString("radar_avatar", avatar)
+                        .apply()
+
+                    if (avatar.isNotBlank()) {
+                        com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, avatar)
+                    }
+
+                    if (com.example.radar.TelemetriaGps.estaActivo(context)) {
+                        com.example.radar.TelemetriaGps.activar(context, uid, nombre, rango, avatar)
+                    }
+
+                    if (app != null) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            com.example.radar.GestorRadar.iniciar(app, uid, nombre, rango, avatar)
+                        }
+                    }
+                }
+
+                // Sincronizar eventos publicados en el mapa
+                try {
+                    val db = com.example.data.local.AppDatabase.getDatabase(context, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
+                    val pubs = db.publicationDao().getAllPublications().first()
+                    val events = db.calendarDao().getAllEvents().first()
+                    com.example.radar.GestorRadar.sincronizarEventosEnMapa(pubs, events)
+                } catch (e: Exception) {
+                    android.util.Log.w("MAPA_TX", "Error sincronizando eventos: ${e.message}")
+                }
+            }
+
             // Intent directo y tipado al MapActivity de OsmAnd integrado en el mismo APK
             val intent = Intent(context, net.osmand.plus.activities.MapActivity::class.java)
             launcher.launch(intent)

@@ -3,7 +3,7 @@
 ## Estado Actual: En desarrollo iterativo modulo por modulo
 
 ---
-
+ESTA ES UNA GUIA PASO A PASO DE 
 ## Módulo 1: MURAL / FEED (Wall)
 
 ### Estado: **PLANIFICACIÓN INICIAL**
@@ -231,3 +231,31 @@ Código completo de ACTUALIZADOR.kt (con comentarios de uso).
 Código completo de NOTIFICACIONES.kt (con comentarios de uso).
 
 Las dependencias necesarias para el archivo build.gradle.kts (como permisos de internet, instalación de paquetes y WorkManager).
+
+---
+
+## Módulo 8: MAPA TX & RADAR TÁCTICO & BÚSQUEDA INTERACTIVA
+
+### Estado: **COMPLETADO E INTEGRADO**
+
+### Funcionalidades Implementadas y Verificadas:
+- [x] **Radar Táctico en Tiempo Real**: Telemetría GPS con subida a Firestore (`TELEMETRIA_GPS.kt`) y renderizado táctico en OsmAnd (`RADAR_MAP_LAYER.kt`).
+- [x] **Avatar Propio y Cache Persistente**:
+  - Posición dinámica desplazada detrás de la flecha de navegación para evitar obstrucción visual.
+  - Línea líder punteada del color del rango del piloto hacia las coordenadas exactas.
+  - Cache persistente en disco (`avatar_local_permanente.jpg` y carpeta interna `radar_avatars`).
+  - Actualización inmediata del cache al editar foto en Carnet TX (`ProfileAndAdminScreen.kt`).
+- [x] **Selector de Iconos de Favoritos Personalizados**:
+  - Añadidos iconos en `poi-icons-vector`: `mx_logoteamposicion`, `mx_logoteam`, `mx_iconomarcador`, `mx_iconoposicion`, `mx_bandera`, `mx_directiva`.
+  - `mx_directiva` condicionado por rol (`es_directivo_o_admin` / rango directivo en `EditorIconController.java`).
+- [x] **Unificación de Marcadores en el Mapa**:
+  - Publicaciones del Muro y Eventos de Calendario renderizan uniformemente con el logotipo oficial `logoteam.png`.
+- [x] **Buscador Interactivo de Sitios Team TX (`buscar.png`)**:
+  - Botón posicionado en el HUD superior derecho (`map_hud_top.xml`), debajo del botón de retorno a la app.
+  - Invocación decoupled vía reflexión (`MapActivity.java` -> `BuscadorSitiosTx.mostrar(this)`).
+  - Menú modal inferior con diseño motero que consolida avisos del muro, eventos de calendario y puntos favoritos.
+  - Filtro de búsqueda en tiempo real y navegación/centrado inmediato de cámara con zoom en el mapa.
+
+### Componentes Relacionados:
+- `BUSCADOR_SITIOS_TX.kt`, `EVENTOS_MAP_LAYER.kt`, `RADAR_MAP_LAYER.kt`, `RADAR_FIREBASE.kt`, `GESTOR_RADAR.kt`, `TELEMETRIA_GPS.kt`
+- `map_hud_top.xml`, `MapActivity.java`, `EditorIconController.java`, `poi_categories.json`

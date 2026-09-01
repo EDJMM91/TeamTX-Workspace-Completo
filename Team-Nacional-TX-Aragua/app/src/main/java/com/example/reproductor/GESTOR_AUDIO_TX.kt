@@ -354,6 +354,7 @@ object GESTOR_AUDIO_TX {
         solicitarFocoAudio()
 
         val uriAudio = if (cancion.uriStr.isNotBlank()) Uri.parse(cancion.uriStr) else Uri.fromFile(File(cancion.rutaArchivo))
+        val rutaFisica = cancion.rutaArchivo
 
         errorEnCurso = false
         logDiagnostico("▶ reproducirCancion [error=$intentosErrorConsecutivos auto=$autoSkipsConsecutivos]: ${cancion.titulo} | $uriAudio")
@@ -366,7 +367,21 @@ object GESTOR_AUDIO_TX {
                         .setUsage(AudioAttributes.USAGE_MEDIA)
                         .build()
                 )
-                setDataSource(ctx, uriAudio)
+                // Intento 1: URI content:// (estándar)
+                // Intento 2 (fallback Honor/EMUI): ruta física del archivo
+                try {
+                    setDataSource(ctx, uriAudio)
+                    logDiagnostico("setDataSource OK vía URI: $uriAudio")
+                } catch (e: Exception) {
+                    logDiagnostico("setDataSource URI falló (${e.message}) — reintentando con ruta física: $rutaFisica")
+                    if (rutaFisica.isNotBlank() && File(rutaFisica).exists()) {
+                        reset()
+                        setDataSource(rutaFisica)
+                        logDiagnostico("setDataSource OK vía ruta física")
+                    } else {
+                        throw e // No hay fallback disponible
+                    }
+                }
                 setOnPreparedListener { mp ->
                     logDiagnostico("ON_PREPARED: ${cancion.titulo} dur=${mp.duration}ms session=${mp.audioSessionId} errCount=$intentosErrorConsecutivos autoCount=$autoSkipsConsecutivos")
                     if (errorEnCurso) {

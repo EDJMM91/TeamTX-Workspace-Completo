@@ -60,4 +60,24 @@
 			android:contentDescription="Volver al Dashboard Team TX" />
 	</FrameLayout>
 
+	<FrameLayout
+		android:id="@+id/btn_team_tx_buscar_map"
+		android:layout_width="@dimen/map_button_size"
+		android:layout_height="@dimen/map_button_size"
+		android:layout_gravity="top|end"
+		android:layout_marginTop="184dp"
+		android:layout_marginEnd="@dimen/map_button_margin"
+		android:clickable="true"
+		android:focusable="true"
+		android:elevation="8dp"
+		android:background="@drawable/btn_circle">
+
+		<androidx.appcompat.widget.AppCompatImageView
+			android:layout_width="32dp"
+			android:layout_height="32dp"
+			android:layout_gravity="center"
+			android:src="@drawable/buscar"
+			android:contentDescription="Buscar Sitios y Direcciones Team TX" />
+	</FrameLayout>
+
 </FrameLayout>
