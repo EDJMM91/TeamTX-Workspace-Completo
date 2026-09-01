@@ -67,6 +67,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
 enum class NavigationTab(val label: String, val iconFilled: ImageVector, val iconOutlined: ImageVector, val tag: String) {
+    DASHBOARD("Inicio", Icons.Default.Dashboard, Icons.Outlined.Dashboard, "tab_dashboard"),
     FEED("Muro", Icons.Default.Campaign, Icons.Outlined.Campaign, "tab_feed"),
     CHAT("Chat", Icons.Default.Forum, Icons.Outlined.Forum, "tab_chat"),
     NOTIFICACIONES("Avisos", Icons.Default.Notifications, Icons.Outlined.Notifications, "tab_notificaciones"),
@@ -115,6 +116,9 @@ class MainActivity : ComponentActivity() {
         
         // Inicializar preferencias persistentes de la app
         PreferenciasApp.init(applicationContext)
+
+        // 🎨 Inicializar fondo configurable del Dashboard
+        com.example.dashboard.DashboardFondoConfig.inicializar(applicationContext)
 
         // 📁 Inicializar estructura organizada de carpetas locales en Español
         com.example.util.GestorCarpetasApp.inicializarCarpetas(applicationContext)
@@ -219,7 +223,7 @@ fun AppEntryPoint(
 @Composable
 fun MainAppScreen(viewModel: TeamTxViewModel) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableStateOf(NavigationTab.FEED) }
+    var selectedTab by remember { mutableStateOf(NavigationTab.DASHBOARD) }
     var targetCalendarDate by remember { mutableStateOf<String?>(null) }
     val isDirectivaMode by viewModel.isDirectivaMode.collectAsStateWithLifecycle()
     val isLeaderSuperAdmin by viewModel.isLeaderSuperAdmin.collectAsStateWithLifecycle()
@@ -445,6 +449,19 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             modifier = Modifier.padding(innerPadding)
         ) { tab ->
             when (tab) {
+                NavigationTab.DASHBOARD -> {
+                    com.example.dashboard.DashboardScreen(
+                        currentMember = currentMember,
+                        publications = publications,
+                        calendarEvents = calendarEvents,
+                        emergencyAlerts = emergencyAlerts,
+                        unreadChatCount = unreadPublicChatCount,
+                        notificacionesNoLeidasCount = notificacionesNoLeidas,
+                        isDirectivaMode = isDirectivaMode,
+                        onNavigateToTab = { selectedTab = it },
+                        onOpenSosModal = { showQuickSosModal = true }
+                    )
+                }
                 NavigationTab.FEED -> {
                     val uploadError by viewModel.publicationUploadError.collectAsStateWithLifecycle()
                     val uploadSuccess by viewModel.publicationUploadSuccess.collectAsStateWithLifecycle()
@@ -512,7 +529,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onMarkMessageAsRead = { viewModel.markMessageAsRead(it) },
                         onMarkChannelAsRead = { viewModel.markChannelMessagesAsRead(it) },
                         onToggleBottomNav = { isBottomNavVisible = !isBottomNavVisible },
-                        onBack = { selectedTab = NavigationTab.FEED },
+                        onBack = { selectedTab = NavigationTab.DASHBOARD },
                         privateGroups = myPrivateGroups,
                         allMembers = allMembers,
                         myCreatedGroupsCount = myCreatedGroupsCount,
@@ -535,7 +552,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                 }
                 NavigationTab.NOTIFICACIONES -> {
                     VistaNotificaciones(
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.CALENDARIO -> {
@@ -560,12 +577,12 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onPublishToFeed = { event, onComplete ->
                             viewModel.publishCalendarEventToFeed(event, onComplete)
                         },
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.PLAYER -> {
                     com.example.reproductor.REPRODUCTOR_PRINCIPAL(
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.RETOS -> {
@@ -585,7 +602,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             viewModel.saveChallengeProgress(prog, photoUri, onComplete)
                         },
                         onDeleteProgress = { viewModel.deleteChallengeProgress(it) },
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.RANKING -> {
@@ -601,7 +618,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                             }
                         },
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.VELOCIMETRO -> {
@@ -609,7 +626,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         currentMember = currentMember,
                         onAccumulateKm = { viewModel.accumulateMemberKilometers(it) },
                         onUpdateTopSpeed = { viewModel.updateMemberTopSpeed(it) },
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.MERCADO -> {
@@ -624,7 +641,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             viewModel.updateMarketplaceItemStatus(item, status)
                         },
                         onDeleteItem = { viewModel.deleteMarketplaceItem(it) },
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.BITACORA -> {
@@ -636,7 +653,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             viewModel.createMaintenanceLog(odo, type, brand, cost, workshop, date, nextKm, notes)
                         },
                         onDeleteLog = { viewModel.deleteMaintenanceLog(it) },
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.DIRECTORIO -> {
@@ -647,7 +664,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             viewModel.createWorkshop(name, type, state, city, addr, ph, wa, rat, notes, lat, lng)
                         },
                         onDeleteWorkshop = { viewModel.deleteWorkshop(it) },
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.PASAPORTE -> {
@@ -659,7 +676,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             viewModel.stampPassportDestination(dest, uri, date, onComplete)
                         },
                         onDeleteStamp = { viewModel.deletePassportStamp(it) },
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.RIDES -> {
@@ -889,7 +906,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onRequestDirectivaAccess = { viewModel.submitAccessRequest("", "", "", "", "", "", "", "", "SOLICITUD_DIRECTIVA") },
                         onUnlockWithMasterCode = { code -> viewModel.loginWithCode(code) },
                         onToggleDirectiva = { viewModel.toggleDirectivaMode() },
-                        onBack = { selectedTab = NavigationTab.FEED },
+                        onBack = { selectedTab = NavigationTab.DASHBOARD },
                         roleConfigs = roleConfigs,
                         onUpdateRoleConfig = { roleKey, title, duties -> viewModel.updateRoleConfig(roleKey, title, duties) },
                         isChatEnabled = isChatEnabled,
@@ -916,7 +933,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     )
                 }
                 NavigationTab.MAPA -> {
-                    TxMapLauncher(onBackClick = { selectedTab = NavigationTab.FEED })
+                    TxMapLauncher(onBackClick = { selectedTab = NavigationTab.DASHBOARD })
                 }
                 NavigationTab.INFO -> {
                     VistaInfoScreen(
@@ -936,7 +953,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             viewModel.selectChatChannel(dmChannel)
                             selectedTab = NavigationTab.CHAT
                         },
-                        onBack = { selectedTab = NavigationTab.FEED }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.CONFIGURACIONES -> {

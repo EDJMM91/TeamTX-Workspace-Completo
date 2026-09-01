@@ -1,0 +1,361 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Mi Panel - TEAM NACIONAL</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "tertiary-container": "#ffe16d",
+                "tertiary-fixed-dim": "#c9a900",
+                "on-primary-fixed-variant": "#690006",
+                "surface-container-highest": "#e2e2e2",
+                "on-tertiary-fixed": "#221b00",
+                "on-error": "#ffffff",
+                "on-secondary-fixed-variant": "#313030",
+                "on-secondary-fixed": "#1c1b1b",
+                "inverse-on-surface": "#f0f1f1",
+                "tertiary": "#6e5d00",
+                "on-tertiary": "#ffffff",
+                "primary": "#93000d",
+                "secondary": "#5f5e5d",
+                "surface-variant": "#e2e2e2",
+                "secondary-fixed": "#e5e2e1",
+                "surface": "#fafafa",
+                "error": "#ba1a1a",
+                "primary-container": "#ffdad6",
+                "error-container": "#ffdad6",
+                "on-tertiary-fixed-variant": "#544600",
+                "primary-fixed": "#ffdad6",
+                "outline-variant": "#d8c2bf",
+                "surface-dim": "#dadbdc",
+                "outline": "#857371",
+                "on-secondary-container": "#1c1b1b",
+                "surface-container-lowest": "#ffffff",
+                "secondary-container": "#e5e2e1",
+                "surface-container-high": "#e8eaeb",
+                "on-surface": "#1a1c1c",
+                "on-primary-fixed": "#410002",
+                "surface-bright": "#fafafa",
+                "surface-tint": "#c00014",
+                "on-primary": "#ffffff",
+                "on-primary-container": "#410002",
+                "surface-container": "#f2f4f4",
+                "inverse-primary": "#ffb4ab",
+                "primary-fixed-dim": "#ffb4ab",
+                "background": "#fafafa",
+                "tertiary-fixed": "#ffe16d",
+                "on-background": "#1a1c1c",
+                "on-surface-variant": "#534341",
+                "on-tertiary-container": "#221b00",
+                "secondary-fixed-dim": "#c8c6c5",
+                "on-error-container": "#410002",
+                "inverse-surface": "#2f3131",
+                "surface-container-low": "#f8fafa",
+                "on-secondary": "#ffffff"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "xs": "4px",
+                "sm": "8px",
+                "md": "16px",
+                "lg": "24px",
+                "xl": "32px",
+                "margin-mobile": "16px",
+                "margin-desktop": "48px",
+                "gutter": "16px",
+                "base": "4px"
+        },
+        "fontFamily": {
+                "body-md": [
+                        "Hanken Grotesk"
+                ],
+                "headline-lg-mobile": [
+                        "Anybody"
+                ],
+                "headline-lg": [
+                        "Anybody"
+                ],
+                "headline-md": [
+                        "Anybody"
+                ],
+                "label-md": [
+                        "Hanken Grotesk"
+                ],
+                "body-lg": [
+                        "Hanken Grotesk"
+                ],
+                "label-sm": [
+                        "Hanken Grotesk"
+                ]
+        },
+        "fontSize": {
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg-mobile": [
+                        "24px",
+                        {
+                                "lineHeight": "1.1",
+                                "fontWeight": "800"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "800"
+                        }
+                ],
+                "headline-md": [
+                        "20px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "700"
+                        }
+                ],
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "500"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            background-color: #fafafa;
+            color: #1a1c1c;
+        }
+        .card-border {
+            border: 1px solid #e2e2e2;
+        }
+        
+        .bento-card {
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+        .bento-card:active {
+            transform: scale(0.98);
+        }
+        
+        .nav-button.active {
+            color: #c00014;
+        }
+        
+        /* Hide scrollbar for clean look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+</head>
+<body class="font-body-md min-h-screen flex flex-col pb-[88px] bg-background">
+<!-- Header -->
+<header class="bg-surface text-primary border-b border-surface-variant sticky top-0 z-40 shadow-sm">
+<div class="flex justify-between items-center w-full px-margin-mobile h-16 max-w-3xl mx-auto">
+<div class="flex items-center gap-sm">
+<img alt="LOGOTEAM.PNG" class="w-10 h-10 rounded-full object-cover card-border" src="LOGOTEAM.PNG">
+<h1 class="text-headline-md font-headline-md font-extrabold text-primary tracking-tight">Team Nacional TX Aragua</h1>
+</div>
+<button class="w-10 h-10 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center hover:bg-surface-bright transition-colors card-border"><img alt="CARNET TX" class="w-full h-full rounded-full object-cover" src="CARNET TX"></button>
+</div>
+</header>
+<main class="flex-grow px-margin-mobile md:px-margin-desktop py-lg max-w-3xl mx-auto w-full">
+<div class="mb-lg">
+<h2 class="text-headline-lg-mobile md:text-headline-lg font-headline-lg-mobile md:font-headline-lg mb-xs">Mi Panel</h2>
+<p class="text-body-md text-on-surface-variant">Acceso rápido a tus módulos principales.</p>
+</div>
+<!-- Bento Grid - Active Modules -->
+<div class="grid grid-cols-2 gap-sm mb-xl">
+<!-- Large Bento Item 1 -->
+<div class="col-span-2 bg-surface-container rounded-xl p-md card-border flex flex-col justify-between relative overflow-hidden bento-card cursor-pointer h-32 group">
+<div class="absolute -right-4 -top-4 opacity-10 text-primary group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined" style="font-size: 120px;">campaign</span>
+</div>
+<div class="flex items-center gap-sm relative z-10">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined">campaign</span>
+</div>
+<h3 class="text-headline-md font-headline-md text-on-surface">Muro</h3>
+</div>
+<p class="text-label-md text-on-surface-variant relative z-10 mt-2">Últimas noticias y actualizaciones</p>
+</div>
+<!-- Medium Bento Item 1 -->
+<div class="bg-surface-container rounded-xl p-md card-border flex flex-col items-start gap-sm bento-card cursor-pointer h-28 hover:bg-surface-container-highest">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface flex items-center justify-center mb-xs">
+<span class="material-symbols-outlined text-primary">chat_bubble</span>
+</div>
+<h3 class="text-label-md font-label-md text-on-surface">Chat</h3>
+<span class="text-label-sm text-on-surface-variant">2 nuevos mensajes</span>
+</div>
+<!-- Medium Bento Item 2 -->
+<div class="bg-surface-container rounded-xl p-md card-border flex flex-col items-start gap-sm bento-card cursor-pointer h-28 hover:bg-surface-container-highest">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface flex items-center justify-center mb-xs relative">
+<span class="material-symbols-outlined text-primary">notifications</span>
+<div class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></div>
+</div>
+<h3 class="text-label-md font-label-md text-on-surface">Avisos</h3>
+<span class="text-label-sm text-error">Importantes</span>
+</div>
+<!-- Medium Bento Item 3 -->
+<div class="bg-surface-container rounded-xl p-md card-border flex flex-col items-start gap-sm bento-card cursor-pointer h-28 hover:bg-surface-container-highest">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface flex items-center justify-center mb-xs">
+<span class="material-symbols-outlined text-tertiary">military_tech</span>
+</div>
+<h3 class="text-label-md font-label-md text-on-surface">Ranking</h3>
+<span class="text-label-sm text-tertiary">Top 10 Nacional</span>
+</div>
+<!-- Medium Bento Item 4 -->
+<div class="bg-surface-container rounded-xl p-md card-border flex flex-col items-start gap-sm bento-card cursor-pointer h-28 hover:bg-surface-container-highest">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface flex items-center justify-center mb-xs">
+<span class="material-symbols-outlined text-primary">calendar_today</span>
+</div>
+<h3 class="text-label-md font-label-md text-on-surface">Calendario</h3>
+<span class="text-label-sm text-on-surface-variant">Próximo evento mañana</span>
+</div>
+</div>
+<!-- Vertical Scroll - All Modules -->
+<div>
+<div class="flex justify-between items-end mb-md">
+<h3 class="text-headline-md font-headline-md text-on-surface">Todos los Módulos</h3>
+<button class="text-label-md text-primary font-label-md">Ver todo</button>
+</div>
+<div class="flex flex-col gap-sm">
+<!-- List Item 1 -->
+<div class="bg-surface-container rounded-lg p-md card-border flex items-center justify-between cursor-pointer hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">build</span>
+</div>
+<div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface">Mecánica</h4>
+<p class="text-label-sm text-on-surface-variant">Manuales y tutoriales</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- List Item 2 -->
+<div class="bg-surface-container rounded-lg p-md card-border flex items-center justify-between cursor-pointer hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">sports_score</span>
+</div>
+<div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface">Retos TX</h4>
+<p class="text-label-sm text-on-surface-variant">Desafíos actuales</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- List Item 3 -->
+<div class="bg-surface-container rounded-lg p-md card-border flex items-center justify-between cursor-pointer hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">photo_library</span>
+</div>
+<div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface">Galería</h4>
+<p class="text-label-sm text-on-surface-variant">Fotos y videos del equipo</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- List Item 4 -->
+<div class="bg-surface-container rounded-lg p-md card-border flex items-center justify-between cursor-pointer hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">group</span>
+</div>
+<div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface">Miembros</h4>
+<p class="text-label-sm text-on-surface-variant">Directorio del equipo</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- List Item 5 -->
+<div class="bg-surface-container rounded-lg p-md card-border flex items-center justify-between cursor-pointer hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined">share</span>
+</div>
+<div>
+<h4 class="text-body-md font-body-md font-bold text-on-surface">Redes</h4>
+<p class="text-label-sm text-on-surface-variant">Conecta con nosotros</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full bg-surface-container border-t border-surface-variant pb-safe z-50">
+<div class="max-w-3xl mx-auto flex justify-between items-center h-[72px] px-sm relative">
+<!-- Left Side Icons -->
+<button class="nav-button flex flex-col items-center justify-center w-16 gap-1 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 0;">military_tech</span>
+<span class="text-[10px] font-label-sm">Ranking</span>
+</button>
+<button class="nav-button flex flex-col items-center justify-center w-16 gap-1 text-on-surface-variant hover:text-primary transition-colors active">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">campaign</span>
+<span class="text-[10px] font-label-sm text-primary">Muro</span>
+</button>
+<!-- Center FAB (Ruta) -->
+<div class="relative -top-6 flex flex-col items-center">
+<button class="w-14 h-14 bg-primary-container text-on-primary-container rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform border-4 border-surface">
+<span class="material-symbols-outlined text-3xl">add_location_alt</span>
+</button>
+<span class="text-[10px] font-label-sm text-primary mt-1 font-bold">Ruta</span>
+</div>
+<!-- Right Side Icons -->
+<button class="nav-button flex flex-col items-center justify-center w-16 gap-1 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 0;">calendar_today</span>
+<span class="text-[10px] font-label-sm">Calendario</span>
+</button>
+<button class="nav-button flex flex-col items-center justify-center w-16 gap-1 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 0;">chat_bubble</span>
+<span class="text-[10px] font-label-sm">Chat</span>
+</button>
+</div>
+</nav>
+
+
+</body></html>
