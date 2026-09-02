@@ -7,6 +7,7 @@ import com.example.data.model.Publication
 import com.example.data.model.WorkshopDirectoryItem
 import com.example.data.remote.PerfilNube
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import net.osmand.plus.OsmandApplication
 
 object GestorRadar {
@@ -285,6 +286,36 @@ object GestorRadar {
     fun limpiarDirectorioDelMapa() {
         directorioLayer?.limpiarDirectorios()
         Log.d(ETIQUETA, "Directorios limpiados del mapa")
+    }
+
+    @JvmStatic
+    fun alternarDirectorio(context: android.content.Context): Boolean {
+        val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+        val actual = prefs.getBoolean("mostrar_directorio_en_mapa", true)
+        val nuevo = !actual
+        prefs.edit().putBoolean("mostrar_directorio_en_mapa", nuevo).apply()
+
+        alcance.launch(Dispatchers.IO) {
+            try {
+                val db = com.example.data.local.AppDatabase.getDatabase(context, CoroutineScope(Dispatchers.IO))
+                val workshops = db.workshopDirectoryDao().getAllWorkshops().first()
+                val list = if (workshops.isEmpty()) com.example.data.local.AppDatabase.INITIAL_WORKSHOPS else workshops
+                withContext(Dispatchers.Main) {
+                    sincronizarDirectorioEnMapa(list, nuevo)
+                }
+            } catch (_: Exception) {
+                withContext(Dispatchers.Main) {
+                    sincronizarDirectorioEnMapa(com.example.data.local.AppDatabase.INITIAL_WORKSHOPS, nuevo)
+                }
+            }
+        }
+        return nuevo
+    }
+
+    @JvmStatic
+    fun estaDirectorioVisible(context: android.content.Context): Boolean {
+        val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+        return prefs.getBoolean("mostrar_directorio_en_mapa", true)
     }
 
     fun liberar() {

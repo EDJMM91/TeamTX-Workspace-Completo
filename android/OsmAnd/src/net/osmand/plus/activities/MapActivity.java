@@ -25,6 +25,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
@@ -251,22 +252,7 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 		setContentView(R.layout.main);
 		enterToFullScreen();
 
-		View btnTeamTx = findViewById(R.id.btn_team_tx_logo_map);
-		if (btnTeamTx != null) {
-			btnTeamTx.setOnClickListener(v -> finish());
-		}
-
-		View btnBuscarTx = findViewById(R.id.btn_team_tx_buscar_map);
-		if (btnBuscarTx != null) {
-			btnBuscarTx.setOnClickListener(v -> {
-				try {
-					Class<?> buscadorClass = Class.forName("com.example.radar.BuscadorSitiosTx");
-					buscadorClass.getMethod("mostrar", android.app.Activity.class).invoke(null, MapActivity.this);
-				} catch (Exception e) {
-					android.util.Log.w("MAPA_TX", "Error al abrir buscador: " + e.getMessage());
-				}
-			});
-		}
+		configurarBotonesTeamTx();
 
 		// Navigation Drawer
 		AndroidUtils.addStatusBarPadding21v(this, findViewById(R.id.menuItems));
@@ -356,80 +342,107 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 			mapViewWithLayers.onCreate(savedInstanceState);
 		}
 		extendedMapActivity.onCreate(this, savedInstanceState);
-
-		// ─── FAB Radar Táctico ──────────────────────────────────────────────
-		agregarFabRadar();
 	}
 
-	private void agregarFabRadar() {
+	private void configurarBotonesTeamTx() {
 		try {
-			View mapView = findViewById(R.id.map_view_with_layers);
-			if (mapView == null) return;
-			ViewGroup container = (ViewGroup) mapView.getParent();
-			if (container == null) return;
-
-			ImageButton fab = new ImageButton(this);
-			fab.setId(View.generateViewId());
-			fab.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
-			fab.setPadding(0, 0, 0, 0);
-
-			GradientDrawable bg = new GradientDrawable();
-			bg.setShape(GradientDrawable.OVAL);
-			boolean activo = false;
-			try {
-				Class<?> telClass = Class.forName("com.example.radar.TelemetriaGps");
-				activo = (Boolean) telClass.getMethod("estaActivo", Context.class).invoke(null, this);
-			} catch (Exception ignored) {}
-			bg.setColor(activo ? Color.parseColor("#4CAF50") : Color.parseColor("#808080"));
-			fab.setBackground(bg);
-
-			int iconRes = getResources().getIdentifier("ic_menu_mylocation", "drawable", "android");
-			if (iconRes != 0) {
-				fab.setImageResource(iconRes);
+			// 1. Botón Volver al Dashboard
+			View btnTeamTx = findViewById(R.id.btn_team_tx_logo_map);
+			if (btnTeamTx != null) {
+				btnTeamTx.setOnClickListener(v -> finish());
 			}
 
-			int density = (int) getResources().getDisplayMetrics().density;
-			int size = 48 * density;
-			FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size);
-			params.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.END;
-			params.setMargins(0, 0, 16 * density, 80 * density);
-			fab.setLayoutParams(params);
+			// 2. Botón Buscador de Sitios y Direcciones Team TX
+			View btnBuscarTx = findViewById(R.id.btn_team_tx_buscar_map);
+			if (btnBuscarTx != null) {
+				btnBuscarTx.setOnClickListener(v -> {
+					try {
+						Class<?> buscadorClass = Class.forName("com.example.radar.BuscadorSitiosTx");
+						buscadorClass.getMethod("mostrar", android.app.Activity.class).invoke(null, MapActivity.this);
+					} catch (Exception e) {
+						android.util.Log.w("MAPA_TX", "Error al abrir buscador: " + e.getMessage());
+					}
+				});
+			}
 
-			final boolean[] estado = {activo};
-			fab.setOnClickListener(v -> {
+			// 3. Botón Mostrar / Ocultar Directorio de Comercios en el Mapa
+			View btnDirectorio = findViewById(R.id.btn_team_tx_toggle_directorio);
+			final ImageView imgDirectorio = findViewById(R.id.img_team_tx_toggle_directorio);
+			if (btnDirectorio != null) {
 				try {
-					estado[0] = !estado[0];
-					bg.setColor(estado[0] ? Color.parseColor("#4CAF50") : Color.parseColor("#808080"));
-					fab.setBackground(bg);
-
-					Class<?> authClass = Class.forName("com.google.firebase.auth.FirebaseAuth");
-					Object authInstance = authClass.getMethod("getInstance").invoke(null);
-					String uid = (String) authInstance.getClass().getMethod("getUid").invoke(authInstance);
-					if (uid == null || uid.isEmpty()) return;
-
-					Class<?> telClass = Class.forName("com.example.radar.TelemetriaGps");
-					Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
-
-					if (estado[0]) {
-						android.content.SharedPreferences prefs = getSharedPreferences("prefs_radar_tx", MODE_PRIVATE);
-						String nombre = prefs.getString("radar_nombre", "Piloto TX");
-						String rango = prefs.getString("radar_rango", "");
-						String avatar = prefs.getString("radar_avatar", "");
-						telClass.getMethod("activar", Context.class, String.class, String.class, String.class, String.class)
-							.invoke(null, this, uid, nombre, rango, avatar);
-						net.osmand.plus.OsmandApplication osmApp = (net.osmand.plus.OsmandApplication) getApplication();
-						gestorClass.getMethod("iniciar",
-							Class.forName("net.osmand.plus.OsmandApplication"),
-							String.class, String.class, String.class, String.class)
-							.invoke(null, osmApp, uid, nombre, rango, avatar);
-					} else {
-						telClass.getMethod("desactivar", Context.class).invoke(null, this);
-						gestorClass.getMethod("detener").invoke(null);
+					android.content.SharedPreferences prefs = getSharedPreferences("prefs_radar_tx", MODE_PRIVATE);
+					boolean visible = prefs.getBoolean("mostrar_directorio_en_mapa", true);
+					if (imgDirectorio != null) {
+						imgDirectorio.setAlpha(visible ? 1.0f : 0.35f);
 					}
 				} catch (Exception ignored) {}
-			});
 
-			container.addView(fab);
+				btnDirectorio.setOnClickListener(v -> {
+					try {
+						Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
+						boolean nuevoEstado = (Boolean) gestorClass.getMethod("alternarDirectorio", Context.class).invoke(null, MapActivity.this);
+						if (imgDirectorio != null) {
+							imgDirectorio.setAlpha(nuevoEstado ? 1.0f : 0.35f);
+						}
+						String msg = nuevoEstado ? "🏪 Directorio en mapa: VISIBLE" : "🏪 Directorio en mapa: OCULTO";
+						android.widget.Toast.makeText(MapActivity.this, msg, android.widget.Toast.LENGTH_SHORT).show();
+					} catch (Exception e) {
+						android.util.Log.w("MAPA_TX", "Error al alternar directorio: " + e.getMessage());
+					}
+				});
+			}
+
+			// 4. Botón Radar Táctico (Alineado en columna derecha sin tapar zoom)
+			View btnRadar = findViewById(R.id.btn_team_tx_radar);
+			if (btnRadar != null) {
+				final GradientDrawable bgRadar = new GradientDrawable();
+				bgRadar.setShape(GradientDrawable.OVAL);
+				boolean radarActivo = false;
+				try {
+					Class<?> telClass = Class.forName("com.example.radar.TelemetriaGps");
+					radarActivo = (Boolean) telClass.getMethod("estaActivo", Context.class).invoke(null, this);
+				} catch (Exception ignored) {}
+				bgRadar.setColor(radarActivo ? Color.parseColor("#4CAF50") : Color.parseColor("#616161"));
+				btnRadar.setBackground(bgRadar);
+
+				final boolean[] estadoRadar = {radarActivo};
+				btnRadar.setOnClickListener(v -> {
+					try {
+						estadoRadar[0] = !estadoRadar[0];
+						bgRadar.setColor(estadoRadar[0] ? Color.parseColor("#4CAF50") : Color.parseColor("#616161"));
+						btnRadar.setBackground(bgRadar);
+
+						Class<?> authClass = Class.forName("com.google.firebase.auth.FirebaseAuth");
+						Object authInstance = authClass.getMethod("getInstance").invoke(null);
+						String uid = (String) authInstance.getClass().getMethod("getUid").invoke(authInstance);
+						if (uid == null || uid.isEmpty()) return;
+
+						Class<?> telClass = Class.forName("com.example.radar.TelemetriaGps");
+						Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
+
+						if (estadoRadar[0]) {
+							android.content.SharedPreferences prefs = getSharedPreferences("prefs_radar_tx", MODE_PRIVATE);
+							String nombre = prefs.getString("radar_nombre", "Piloto TX");
+							String rango = prefs.getString("radar_rango", "");
+							String avatar = prefs.getString("radar_avatar", "");
+							telClass.getMethod("activar", Context.class, String.class, String.class, String.class, String.class)
+								.invoke(null, MapActivity.this, uid, nombre, rango, avatar);
+							net.osmand.plus.OsmandApplication osmApp = (net.osmand.plus.OsmandApplication) getApplication();
+							gestorClass.getMethod("iniciar",
+								Class.forName("net.osmand.plus.OsmandApplication"),
+								String.class, String.class, String.class, String.class)
+								.invoke(null, osmApp, uid, nombre, rango, avatar);
+							android.widget.Toast.makeText(MapActivity.this, "📡 Radar Táctico: ACTIVADO", android.widget.Toast.LENGTH_SHORT).show();
+						} else {
+							telClass.getMethod("desactivar", Context.class).invoke(null, MapActivity.this);
+							gestorClass.getMethod("detener").invoke(null);
+							android.widget.Toast.makeText(MapActivity.this, "📡 Radar Táctico: DESACTIVADO", android.widget.Toast.LENGTH_SHORT).show();
+						}
+					} catch (Exception e) {
+						android.util.Log.w("MAPA_TX", "Error al alternar radar: " + e.getMessage());
+					}
+				});
+			}
 		} catch (Exception ignored) {}
 	}
 
