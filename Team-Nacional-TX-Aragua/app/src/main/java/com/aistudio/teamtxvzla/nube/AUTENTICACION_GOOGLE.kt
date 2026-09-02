@@ -332,11 +332,15 @@ object AutenticacionGoogle {
         private val launcher: ActivityResultLauncher<Intent>
     ) {
         /**
-         * Abre el selector de cuentas de Google.
+         * Abre el selector de cuentas de Google (forzando la aparición del selector y evitando login automático silencioso).
          * Llamar desde el onClick del botón "Vincular con Google".
          */
         fun abrirSelector() {
-            lanzarSelector(cliente, launcher)
+            cliente.signOut().addOnCompleteListener {
+                cliente.revokeAccess().addOnCompleteListener {
+                    lanzarSelector(cliente, launcher)
+                }
+            }
         }
     }
 }

@@ -1,0 +1,3 @@
+- [x] Forzar selector de cuentas de Google en `AUTENTICACION_GOOGLE.kt` mediante `signOut()` y `revokeAccess()`
+- [x] Adaptar `PassportScreen.kt` y `FeedScreen.kt` al tema claro del Dashboard (`DashboardFondoConfig`)
+- [x] Compilar y verificar el proyecto (`:app:assembleDebug`)

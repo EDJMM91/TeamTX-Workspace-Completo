@@ -57,6 +57,8 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import com.example.data.model.*
+import com.example.dashboard.DashboardFondoConfig
+import com.example.dashboard.TipoFondoDashboard
 import com.example.ui.components.openUrl
 import com.example.ui.theme.*
 import com.example.mapa.PuenteMapa
@@ -127,8 +129,12 @@ fun FeedScreen(
     var viewingFlyerPublication by remember { mutableStateOf<Publication?>(null) }
     var sharingPublication by remember { mutableStateOf<Publication?>(null) }
     val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
-    val screenBg = if (isDark) Color(0xFF121212) else Color(0xFFF2F4F7)
+    val isLight = DashboardFondoConfig.tipoFondo == TipoFondoDashboard.TEMA_CLARO_ESTANDAR
+    val isDark = !isLight
+    val screenBg = if (isLight) DashboardFondoConfig.ColorFondoClaro else Color(0xFF121212)
+    val cardBg = if (isLight) DashboardFondoConfig.ColorTarjetaClara else TxCarbonDark
+    val textColorPrimary = if (isLight) DashboardFondoConfig.ColorTextoPrimario else Color.White
+    val textColorSecondary = if (isLight) DashboardFondoConfig.ColorTextoSecundario else TxSteelSilver
 
     // Auto-dismiss upload status banner after 4 seconds
     LaunchedEffect(uploadError, uploadSuccess) {
@@ -247,7 +253,7 @@ fun FeedScreen(
                         shape = RoundedCornerShape(12.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isDark) Color(0xFF261908) else Color(0xFFFFF8E1)
+                            containerColor = if (!isLight) Color(0xFF261908) else Color(0xFFFFF8E1)
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -261,7 +267,7 @@ fun FeedScreen(
                                 Text(
                                     "FICHA DE PERFIL INCOMPLETA",
                                     fontWeight = FontWeight.Black,
-                                    color = if (isDark) TxGoldLight else Color(0xFFB45309),
+                                    color = if (!isLight) TxGoldLight else Color(0xFFB45309),
                                     fontSize = 13.sp
                                 )
                                 Text(
