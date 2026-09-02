@@ -55,7 +55,7 @@ public class InAppPurchaseUtils {
 	}
 
 	public static boolean isFullVersionAvailable(@NonNull OsmandApplication app, boolean checkDevBuild) {
-		return isFullVersionPurchased(app) || checkDeveloperBuildIfNeeded(app, checkDevBuild);
+		return true;
 	}
 
 	public static boolean isMapsPlusAvailable(@NonNull OsmandApplication app) {
@@ -63,7 +63,7 @@ public class InAppPurchaseUtils {
 	}
 
 	public static boolean isMapsPlusAvailable(@NonNull OsmandApplication app, boolean checkDevBuild) {
-		return isMapsPlusPurchased(app) || checkDeveloperBuildIfNeeded(app, checkDevBuild);
+		return true;
 	}
 
 	public static boolean isOsmAndProAvailable(@NonNull OsmandApplication app) {
@@ -71,7 +71,7 @@ public class InAppPurchaseUtils {
 	}
 
 	public static boolean isOsmAndProAvailable(@NonNull OsmandApplication app, boolean checkDevBuild) {
-		return isOsmAndProPurchased(app) || isPromoSubscribed(app) || checkDeveloperBuildIfNeeded(app, checkDevBuild);
+		return true;
 	}
 
 	private static boolean checkDeveloperBuildIfNeeded(@NonNull OsmandApplication app, boolean shouldCheck) {

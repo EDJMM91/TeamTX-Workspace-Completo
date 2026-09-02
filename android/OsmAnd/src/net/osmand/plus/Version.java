@@ -159,12 +159,7 @@ public class Version {
 	}
 
 	public static boolean isPaidVersion(@NonNull OsmandApplication app) {
-		return !isFreeVersion(app)
-				|| InAppPurchaseUtils.isFullVersionAvailable(app)
-				|| InAppPurchaseUtils.isLiveUpdatesAvailable(app)
-				|| InAppPurchaseUtils.isMapsPlusAvailable(app)
-				|| InAppPurchaseUtils.isOsmAndProAvailable(app)
-				|| InAppPurchaseUtils.isBrandPromoAvailable(app);
+		return true;
 	}
 
 	public static boolean isDeveloperVersion(@NonNull OsmandApplication app) {

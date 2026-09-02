@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.aistudio.teamtxvzla.R
 import com.example.data.local.AppDatabase
 import com.example.data.model.MemberProfile
@@ -83,6 +84,7 @@ fun WorkshopDirectoryScreen(
     var workshopToEdit by remember { mutableStateOf<WorkshopDirectoryItem?>(null) }
     var workshopToDelete by remember { mutableStateOf<WorkshopDirectoryItem?>(null) }
     var workshopForCreditInfo by remember { mutableStateOf<WorkshopDirectoryItem?>(null) }
+    var workshopToRate by remember { mutableStateOf<WorkshopDirectoryItem?>(null) }
 
     // Auto-sembrado y sincronización local inmediata en Room
     LaunchedEffect(Unit) {
@@ -405,6 +407,7 @@ fun WorkshopDirectoryScreen(
                             onEdit = { workshopToEdit = workshop },
                             onDelete = { workshopToDelete = workshop },
                             onShowCreditInfo = { workshopForCreditInfo = workshop },
+                            onRate = { workshopToRate = workshop },
                             onNavigateToMap = onNavigateToMap,
                             context = context
                         )
@@ -434,6 +437,20 @@ fun WorkshopDirectoryScreen(
                 onUpdateWorkshop(updated)
                 workshopToEdit = null
                 Toast.makeText(context, "Establecimiento actualizado ✓", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    // Modal para Calificar Establecimiento
+    workshopToRate?.let { item ->
+        RateCommercialServiceDialog(
+            workshop = item,
+            onDismiss = { workshopToRate = null },
+            onConfirm = { newRating ->
+                val updated = item.copy(rating = newRating)
+                onUpdateWorkshop(updated)
+                workshopToRate = null
+                Toast.makeText(context, "¡Calificación de ${String.format(java.util.Locale.US, "%.1f", newRating)} ⭐ guardada con éxito! ✓", Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -485,15 +502,22 @@ fun CommercialServiceCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onShowCreditInfo: () -> Unit,
+    onRate: () -> Unit,
     onNavigateToMap: ((latitude: Double, longitude: Double, title: String) -> Unit)?,
     context: Context
 ) {
     val hasCredit = workshop.hasCredit || workshop.creditPlatforms.isNotBlank()
+    val isTopRated = workshop.rating >= 4.5
 
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = Color(0xFF161B26),
-        border = BorderStroke(1.dp, if (hasCredit) Color(0xFF2E7D32).copy(alpha = 0.6f) else Color(0xFF263238)),
+        border = BorderStroke(
+            1.2.dp,
+            if (isTopRated) Color(0xFFFFD700).copy(alpha = 0.8f)
+            else if (hasCredit) Color(0xFF2E7D32).copy(alpha = 0.6f)
+            else Color(0xFF263238)
+        ),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -504,12 +528,18 @@ fun CommercialServiceCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = workshop.name,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 15.sp,
-                        color = Color.White
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = workshop.name,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 15.sp,
+                            color = Color.White
+                        )
+                        if (isTopRated) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("⭐", fontSize = 13.sp)
+                        }
+                    }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "📍 ${workshop.state} • ${workshop.city}",
@@ -519,22 +549,31 @@ fun CommercialServiceCard(
                     )
                 }
 
+                // Badge de Calificación (Clicable para calificar)
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MotoGoldSecondary.copy(alpha = 0.15f),
-                    border = BorderStroke(0.5.dp, MotoGoldSecondary)
+                    color = if (isTopRated) Color(0xFF332600) else MotoGoldSecondary.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, if (isTopRated) Color(0xFFFFD700) else MotoGoldSecondary),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onRate() }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Star, contentDescription = null, tint = MotoGoldSecondary, modifier = Modifier.size(13.dp))
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = "Calificación",
+                            tint = if (isTopRated) Color(0xFFFFD700) else MotoGoldSecondary,
+                            modifier = Modifier.size(13.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = String.format(java.util.Locale.US, "%.1f", workshop.rating),
+                            text = "${String.format(java.util.Locale.US, "%.1f", workshop.rating)} ${if (isTopRated) "• TOP" else ""}",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MotoGoldSecondary
+                            color = if (isTopRated) Color(0xFFFFD700) else MotoGoldSecondary
                         )
                     }
                 }
@@ -542,19 +581,40 @@ fun CommercialServiceCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Fila de Tipo de Negocio
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color(0xFF10141D),
-                border = BorderStroke(0.5.dp, Color(0xFF2A3644))
+            // Fila de Etiquetas: Tipo de Negocio y Recomendación Top
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "🏷️ ${workshop.type}",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFECEFF1),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                )
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF10141D),
+                    border = BorderStroke(0.5.dp, Color(0xFF2A3644))
+                ) {
+                    Text(
+                        text = "🏷️ ${workshop.type}",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFECEFF1),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+
+                if (isTopRated) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF2A2000),
+                        border = BorderStroke(0.8.dp, Color(0xFFFFD700))
+                    ) {
+                        Text(
+                            text = "🏆 RECOMENDADO TEAM TX",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFFFFD700),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
             }
 
             // APARTADO DESTACADO: FINANCIAMIENTO / CRÉDITO
@@ -739,6 +799,14 @@ fun CommercialServiceCard(
                         }
                     }
 
+                    // Botón Calificar Establecimiento
+                    IconButton(
+                        onClick = onRate,
+                        modifier = Modifier.size(34.dp).background(Color(0xFF332600), RoundedCornerShape(8.dp))
+                    ) {
+                        Icon(Icons.Default.Star, contentDescription = "Calificar Establecimiento", tint = Color(0xFFFFD700), modifier = Modifier.size(17.dp))
+                    }
+
                     // Compartir
                     IconButton(
                         onClick = {
@@ -752,7 +820,7 @@ fun CommercialServiceCard(
                     // Copiar Datos
                     IconButton(
                         onClick = {
-                            val textToCopy = "${workshop.name}\n${workshop.type}\nUbicación: ${workshop.address}, ${workshop.city}, ${workshop.state}\nTlf: ${workshop.phone}\nWhatsApp: ${workshop.whatsapp}\nCrédito: ${if (hasCredit) workshop.creditPlatforms else "Contado"}\nEspecialidad: ${workshop.notes}"
+                            val textToCopy = "${workshop.name}\n${workshop.type}\nUbicación: ${workshop.address}, ${workshop.city}, ${workshop.state}\nTlf: ${workshop.phone}\nWhatsApp: ${workshop.whatsapp}\nCalificación: ${workshop.rating} ⭐\nCrédito: ${if (hasCredit) workshop.creditPlatforms else "Contado"}\nEspecialidad: ${workshop.notes}"
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText("Datos Comercio TX", textToCopy))
                             Toast.makeText(context, "Datos copiados al portapapeles ✓", Toast.LENGTH_SHORT).show()
@@ -778,6 +846,140 @@ fun CommercialServiceCard(
                         ) {
                             Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = StatusError, modifier = Modifier.size(16.dp))
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DIÁLOGO: CALIFICAR COMERCIO / ESTABLECIMIENTO
+// ═══════════════════════════════════════════════════════════════════════
+@Composable
+fun RateCommercialServiceDialog(
+    workshop: WorkshopDirectoryItem,
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit
+) {
+    var selectedStars by remember { mutableStateOf(workshop.rating.toInt().coerceIn(1, 5)) }
+
+    val feedbackText = when (selectedStars) {
+        5 -> "⭐⭐⭐⭐⭐ ¡Excelente! Comercio 100% Recomendado por Pilotos TX"
+        4 -> "⭐⭐⭐⭐ Muy Bueno, Gran Atención y Confianza"
+        3 -> "⭐⭐⭐ Bueno y Aceptable"
+        2 -> "⭐⭐ Regular / Atención Mejorable"
+        else -> "⭐ No Recomendado"
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFF161B26),
+            border = BorderStroke(1.2.dp, Color(0xFFFFD700)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF332600),
+                    border = BorderStroke(1.dp, Color(0xFFFFD700)),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("⭐", fontSize = 24.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "Calificar Establecimiento",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 17.sp,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = workshop.name,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MotoOrangePrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Tu puntuación ayuda a toda la comunidad del Team TX a encontrar los mejores servicios y repuestos.",
+                    fontSize = 11.sp,
+                    color = Color(0xFF90A4AE),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Selector de 5 estrellas interactivas
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    for (i in 1..5) {
+                        IconButton(
+                            onClick = { selectedStars = i },
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = "$i Estrellas",
+                                tint = if (i <= selectedStars) Color(0xFFFFD700) else Color(0xFF455A64),
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF10141D),
+                    border = BorderStroke(0.5.dp, Color(0xFF2A3644)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = feedbackText,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (selectedStars >= 4) Color(0xFFFFD700) else Color(0xFFECEFF1),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 10.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, Color(0xFF455A64))
+                    ) {
+                        Text("Cancelar", color = Color(0xFFB0BEC5), fontSize = 12.sp)
+                    }
+
+                    Button(
+                        onClick = { onConfirm(selectedStars.toDouble()) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300))
+                    ) {
+                        Text("Guardar ⭐", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
@@ -1244,6 +1446,7 @@ fun EditCommercialServiceDialog(
     var hasCredit by remember { mutableStateOf(item.hasCredit || item.creditPlatforms.isNotBlank()) }
     var creditPlatforms by remember { mutableStateOf(item.creditPlatforms) }
     var googleMapsUrl by remember { mutableStateOf(item.googleMapsUrl) }
+    var rating by remember { mutableStateOf(item.rating) }
     var latStr by remember { mutableStateOf(item.latitude.toString()) }
     var lngStr by remember { mutableStateOf(item.longitude.toString()) }
 
@@ -1514,6 +1717,7 @@ fun EditCommercialServiceDialog(
                             notes = notes,
                             latitude = lat,
                             longitude = lng,
+                            rating = rating,
                             hasCredit = hasCredit,
                             creditPlatforms = if (hasCredit) creditPlatforms else "",
                             googleMapsUrl = googleMapsUrl,

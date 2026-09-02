@@ -27,6 +27,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,7 +79,7 @@ fun DashboardHeader(
                     letterSpacing = (-0.3).sp
                 )
                 Text(
-                    text = "Capítulo Aragua • Dashboard",
+                    text = "Capítulo Aragua",
                     color = DashboardFondoConfig.ColorRojoCarrera,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
@@ -186,22 +187,31 @@ fun PilotStatusCard(
                             text = "\"${currentMember?.nickname}\"",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = DashboardFondoConfig.ColorRojoCarrera
+                            color = DashboardFondoConfig.ColorRojoCarrera,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = roleColor.copy(alpha = 0.15f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, roleColor.copy(alpha = 0.5f))
+                    border = androidx.compose.foundation.BorderStroke(1.dp, roleColor.copy(alpha = 0.5f)),
+                    modifier = Modifier.widthIn(max = 145.dp)
                 ) {
                     Text(
                         text = currentMember?.role?.displayName ?: "Aspirante",
                         color = roleColor,
-                        fontSize = 12.sp,
+                        fontSize = 10.sp,
+                        lineHeight = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -357,9 +367,10 @@ fun BentoGridCard(
                     )
                     Text(
                         text = subtitulo,
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
                         color = DashboardFondoConfig.ColorTextoSecundario,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -419,7 +430,7 @@ fun ModuleListRow(
                     )
                 }
 
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = titulo,
                         fontSize = 15.sp,

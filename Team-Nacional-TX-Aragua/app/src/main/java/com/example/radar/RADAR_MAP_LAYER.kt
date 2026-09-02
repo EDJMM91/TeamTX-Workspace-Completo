@@ -228,42 +228,39 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         val app = application ?: return
         val point = result.point
         val tileBox = result.tileBox
-        val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER).toFloat()
+        val density = tileBox.density
+        val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER * 2.2f).toFloat()
 
         for (piloto in pilotos) {
             val esLocal = piloto.id == miUserId && miUserId.isNotBlank()
-            if (esLocal) {
-                val density = tileBox.density
-                val offsetX = OFFSET_LOCAL_X_DP * density
-                val offsetY = OFFSET_LOCAL_Y_DP * density
-                val avatarCx = tileBox.getPixXFromLatLon(piloto.lat, piloto.lon) + offsetX
-                val avatarCy = tileBox.getPixYFromLatLon(piloto.lat, piloto.lon) + offsetY
+            val px = tileBox.getPixXFromLatLon(piloto.lat, piloto.lon)
+            val py = tileBox.getPixYFromLatLon(piloto.lat, piloto.lon)
 
-                val dx = point.x - avatarCx
-                val dy = point.y - avatarCy
-                val touchDistSq = dx * dx + dy * dy
-                val avatarRadius = RADIO_ICONO_PX.toFloat() * TOUCH_RADIUS_MULTIPLIER
-                val radiusSq = (avatarRadius * 2.5f) * (avatarRadius * 2.5f)
+            val avatarCx = if (esLocal) px + OFFSET_LOCAL_X_DP * density else px
+            val avatarCy = if (esLocal) py + OFFSET_LOCAL_Y_DP * density else py
 
-                if (touchDistSq <= radiusSq || tileBox.isLatLonNearPixel(piloto.lat, piloto.lon, point.x, point.y, avatarRadius * 2.0f)) {
-                    pilotoSeleccionado?.invoke(piloto)
-                    result.collect(piloto, this)
-                }
-            } else {
-                if (tileBox.isLatLonNearPixel(piloto.lat, piloto.lon, point.x, point.y, radius * 2.0f)) {
-                    pilotoSeleccionado?.invoke(piloto)
-                    result.collect(piloto, this)
-                }
+            val dx = point.x - avatarCx
+            val dy = point.y - avatarCy
+            val touchDistSq = dx * dx + dy * dy
+            val isNearAvatar = touchDistSq <= (radius * radius * 1.5f)
+            val isNearBase = tileBox.isLatLonNearPixel(piloto.lat, piloto.lon, point.x, point.y, radius)
+
+            if (isNearAvatar || isNearBase) {
+                pilotoSeleccionado?.invoke(piloto)
+                result.collect(piloto, this)
             }
         }
     }
 
     override fun runExclusiveAction(o: Any?, unknownLocation: Boolean): Boolean {
         if (o is PilotoRadar) {
-            val act = (mapActivity as? android.app.Activity)
+            val act: android.app.Activity = (mapActivity as? android.app.Activity)
+                ?: (GestorRadar.obtenerMapActivity() as? android.app.Activity)
                 ?: (application?.osmandMap?.mapView?.context as? android.app.Activity)
                 ?: return false
-            DialogosMapaTx.mostrarPiloto(act, o)
+            act.runOnUiThread {
+                DialogosMapaTx.mostrarPiloto(act, o)
+            }
             return true
         }
         return false

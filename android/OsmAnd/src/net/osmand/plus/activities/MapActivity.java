@@ -252,6 +252,11 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 		setContentView(R.layout.main);
 		enterToFullScreen();
 
+		try {
+			Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
+			gestorClass.getMethod("registrarMapActivity", net.osmand.plus.activities.MapActivity.class).invoke(null, this);
+		} catch (Exception ignored) {}
+
 		configurarBotonesTeamTx();
 
 		// Navigation Drawer
@@ -916,6 +921,11 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 
 		extendedMapActivity.onResume(this);
 
+		try {
+			Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
+			gestorClass.getMethod("registrarMapActivity", net.osmand.plus.activities.MapActivity.class).invoke(null, this);
+		} catch (Exception ignored) {}
+
 		getMapView().getAnimatedDraggingThread().toggleAnimations();
 	}
 
@@ -1157,6 +1167,11 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 		lockHelper.setLockUIAdapter(null);
 		keyEventHelper.setMapActivity(null);
 		extendedMapActivity.onDestroy(this);
+
+		try {
+			Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
+			gestorClass.getMethod("registrarMapActivity", net.osmand.plus.activities.MapActivity.class).invoke(null, (Object) null);
+		} catch (Exception ignored) {}
 
 		mIsDestroyed = true;
 

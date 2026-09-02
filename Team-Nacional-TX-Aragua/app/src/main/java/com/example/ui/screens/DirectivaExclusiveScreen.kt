@@ -327,6 +327,18 @@ fun DirectivaExclusiveScreen(
                                     )
                                 }
 
+                                Button(
+                                    onClick = onBack,
+                                    colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(30.dp).testTag("btn_exit_directiva")
+                                ) {
+                                    Icon(Icons.Default.ArrowBack, contentDescription = "Salir al Menú Principal", tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Salir", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+
                                 if (onToggleBottomNav != null) {
                                     IconButton(
                                         onClick = onToggleBottomNav,
@@ -973,6 +985,410 @@ fun DirectivaExclusiveScreen(
             containerColor = LightCardBg
         )
     }
+
+    // 🏆 Diálogo: Asignar Cargo / Rol Institucional a Piloto
+    if (showAssignRoleDialog) {
+        var memberSearch by remember { mutableStateOf("") }
+        var targetMember by remember { mutableStateOf<MemberProfile?>(selectedMemberForAction) }
+        var selectedRole by remember { mutableStateOf(targetMember?.role ?: MemberRole.MIEMBRO_ACTIVO) }
+
+        val candidateMembers = remember(allMembers, memberSearch) {
+            if (memberSearch.isBlank()) allMembers
+            else allMembers.filter {
+                it.fullName.contains(memberSearch, ignoreCase = true) ||
+                it.nickname.contains(memberSearch, ignoreCase = true) ||
+                it.memberNumber.contains(memberSearch, ignoreCase = true) ||
+                it.bikePlate.contains(memberSearch, ignoreCase = true)
+            }
+        }
+
+        Dialog(onDismissRequest = {
+            showAssignRoleDialog = false
+            selectedMemberForAction = null
+        }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = LightCardBg,
+                border = BorderStroke(1.dp, DirectivaGoldPrimary),
+                shadowElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(18.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = DirectivaGoldPrimary)
+                            Text("Asignar Cargo a Piloto", fontWeight = FontWeight.Black, fontSize = 16.sp, color = LightTextPrimary)
+                        }
+                        IconButton(onClick = {
+                            showAssignRoleDialog = false
+                            selectedMemberForAction = null
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = LightTextMuted)
+                        }
+                    }
+
+                    // Paso 1: Seleccionar Piloto
+                    Text("1. Selecciona el Piloto:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    if (targetMember == null) {
+                        OutlinedTextField(
+                            value = memberSearch,
+                            onValueChange = { memberSearch = it },
+                            placeholder = { Text("Buscar por nombre, apodo, carnet o placa...", fontSize = 11.sp) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = LightTextMuted, modifier = Modifier.size(18.dp)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = LightCardSubtle,
+                            border = BorderStroke(1.dp, LightBorder),
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 140.dp)
+                        ) {
+                            LazyColumn(modifier = Modifier.padding(4.dp)) {
+                                items(candidateMembers) { m ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                targetMember = m
+                                                selectedRole = m.role
+                                            }
+                                            .padding(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column {
+                                            Text(m.fullName, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                                            Text("${m.memberNumber} • ${m.nickname.ifBlank { "Sin apodo" }}", fontSize = 10.sp, color = LightTextMuted)
+                                        }
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = Color(m.role.badgeColorHex).copy(alpha = 0.15f),
+                                            border = BorderStroke(0.5.dp, Color(m.role.badgeColorHex))
+                                        ) {
+                                            Text(m.role.displayName, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(m.role.badgeColorHex), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = DirectivaGoldBg,
+                            border = BorderStroke(1.dp, DirectivaGoldPrimary),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    PilotAvatar(member = targetMember!!, size = 36.dp)
+                                    Column {
+                                        Text(targetMember!!.fullName, fontWeight = FontWeight.Black, fontSize = 13.sp, color = LightTextPrimary)
+                                        Text("Carnet: ${targetMember!!.memberNumber} • Cargo actual: ${targetMember!!.role.displayName}", fontSize = 10.sp, color = LightTextSecondary)
+                                    }
+                                }
+                                TextButton(onClick = { targetMember = null }) {
+                                    Text("Cambiar", fontSize = 11.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    // Paso 2: Seleccionar Nuevo Rol
+                    Text("2. Selecciona el Nuevo Cargo / Rol:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        MemberRole.values().forEach { role ->
+                            val isSelected = selectedRole == role
+                            val roleColor = Color(role.badgeColorHex)
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSelected) roleColor.copy(alpha = 0.15f) else LightCardSubtle,
+                                border = BorderStroke(if (isSelected) 1.5.dp else 0.5.dp, if (isSelected) roleColor else LightBorder),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedRole = role }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        RadioButton(
+                                            selected = isSelected,
+                                            onClick = { selectedRole = role },
+                                            colors = RadioButtonDefaults.colors(selectedColor = roleColor)
+                                        )
+                                        Column {
+                                            Text(role.displayName, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = LightTextPrimary)
+                                            Text(role.roleDuties, fontSize = 10.sp, color = LightTextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            if (targetMember != null) {
+                                onAssignRole(targetMember!!, selectedRole)
+                                showAssignRoleDialog = false
+                                selectedMemberForAction = null
+                                Toast.makeText(context, "Cargo de '${selectedRole.displayName}' asignado a ${targetMember!!.fullName}", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Selecciona un piloto primero", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        enabled = targetMember != null,
+                        colors = ButtonDefaults.buttonColors(containerColor = DirectivaGoldPrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth().height(46.dp)
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Confirmar Asignación de Cargo", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+
+    // 🔄 Diálogo: Transferir Cargo Institucional
+    if (showTransferCargoDialog && selectedMemberForAction != null) {
+        val targetMember = selectedMemberForAction!!
+        var selectedCargo by remember { mutableStateOf(targetMember.role) }
+
+        AlertDialog(
+            onDismissRequest = {
+                showTransferCargoDialog = false
+                selectedMemberForAction = null
+            },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.SwapHoriz, contentDescription = null, tint = DirectivaGoldPrimary)
+                    Text("Transferir Cargo Institucional", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LightTextPrimary)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "¿Deseas transferir oficialmente un cargo de la Junta Directiva o Ruta a ${targetMember.fullName} (${targetMember.nickname})?",
+                        fontSize = 13.sp,
+                        color = LightTextSecondary
+                    )
+
+                    Text("Selecciona el Cargo a Transferir:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    listOf(
+                        MemberRole.VICEPRESIDENTE,
+                        MemberRole.SECRETARIO,
+                        MemberRole.TESORERO,
+                        MemberRole.CAPITAN_RUTA,
+                        MemberRole.SEGURIDAD_VIAL,
+                        MemberRole.MECANICO_OFICIAL,
+                        MemberRole.MEDICO_CLUB,
+                        MemberRole.DISCIPLINARIO
+                    ).forEach { role ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { selectedCargo = role }
+                                .padding(vertical = 2.dp)
+                        ) {
+                            RadioButton(selected = selectedCargo == role, onClick = { selectedCargo = role })
+                            Text(role.displayName, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val sender = currentMember ?: targetMember
+                        onTransferCargo(sender, targetMember, selectedCargo)
+                        showTransferCargoDialog = false
+                        selectedMemberForAction = null
+                        Toast.makeText(context, "Cargo transferido oficialmente a ${targetMember.fullName}", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = DirectivaGoldPrimary)
+                ) {
+                    Text("Confirmar Transferencia", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showTransferCargoDialog = false
+                    selectedMemberForAction = null
+                }) {
+                    Text("Cancelar", color = LightTextMuted)
+                }
+            },
+            containerColor = LightCardBg
+        )
+    }
+
+    // ⚠️ Diálogo: Entregar / Poner Cargo a Disposición
+    if (showAbandonConfirmDialog && selectedMemberForAction != null) {
+        val member = selectedMemberForAction!!
+        AlertDialog(
+            onDismissRequest = {
+                showAbandonConfirmDialog = false
+                selectedMemberForAction = null
+            },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = TxFlameRed)
+                    Text("Poner Cargo a Disposición", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LightTextPrimary)
+                }
+            },
+            text = {
+                Text(
+                    "¿Estás seguro de que deseas que ${member.fullName} entregue su cargo de '${member.role.displayName}'?\n\nEl cargo pasará a estar vacante y el piloto retornará a Miembro Activo.",
+                    fontSize = 13.sp,
+                    color = LightTextSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onAbandonCargo(member)
+                        showAbandonConfirmDialog = false
+                        selectedMemberForAction = null
+                        Toast.makeText(context, "Cargo puesto a disposición", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed)
+                ) {
+                    Text("Entregar Cargo", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAbandonConfirmDialog = false
+                    selectedMemberForAction = null
+                }) {
+                    Text("Cancelar", color = LightTextMuted)
+                }
+            },
+            containerColor = LightCardBg
+        )
+    }
+
+    // 🔇 Diálogo: Silenciar Piloto en Chat
+    if (memberToMute != null) {
+        val member = memberToMute!!
+        AlertDialog(
+            onDismissRequest = { memberToMute = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.VolumeOff, contentDescription = null, tint = DirectivaGoldDark)
+                    Text("Silenciar en Chat", fontWeight = FontWeight.Bold, color = LightTextPrimary, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Silenciar a ${member.fullName} (${member.nickname}) en todos los canales del club.", fontSize = 13.sp, color = LightTextSecondary)
+                    OutlinedTextField(
+                        value = muteReasonInput,
+                        onValueChange = { muteReasonInput = it },
+                        label = { Text("Motivo del Silencio") },
+                        placeholder = { Text("Ej. Llamado de atención por la Directiva") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onToggleChatMute(member, true, muteReasonInput.ifBlank { "Llamado de atención por la Directiva" })
+                        memberToMute = null
+                        Toast.makeText(context, "Piloto silenciado en el chat", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = DirectivaGoldPrimary)
+                ) {
+                    Text("Silenciar", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { memberToMute = null }) {
+                    Text("Cancelar", color = LightTextMuted)
+                }
+            },
+            containerColor = LightCardBg
+        )
+    }
+
+    // ⛔ Diálogo: Suspender Miembro
+    if (memberToSuspend != null) {
+        val member = memberToSuspend!!
+        AlertDialog(
+            onDismissRequest = { memberToSuspend = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Gavel, contentDescription = null, tint = StatusError)
+                    Text("Suspender Miembro", fontWeight = FontWeight.Bold, color = StatusError, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Aplicar medida disciplinaria a ${member.fullName} (${member.nickname}). Su acceso a la app quedará inhabilitado.", fontSize = 13.sp, color = LightTextSecondary)
+                    OutlinedTextField(
+                        value = suspendReasonInput,
+                        onValueChange = { suspendReasonInput = it },
+                        label = { Text("Motivo de la Suspensión") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = suspendDaysInput,
+                        onValueChange = { suspendDaysInput = it.filter { c -> c.isDigit() } },
+                        label = { Text("Días de Suspensión (0 = Indefinido)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val days = suspendDaysInput.toIntOrNull() ?: 7
+                        onSuspendMember(member, suspendReasonInput.ifBlank { "Medida disciplinaria de la Directiva" }, days)
+                        memberToSuspend = null
+                        Toast.makeText(context, "Sanción disciplinaria aplicada", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusError)
+                ) {
+                    Text("Aplicar Sanción", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { memberToSuspend = null }) {
+                    Text("Cancelar", color = LightTextMuted)
+                }
+            },
+            containerColor = LightCardBg
+        )
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -989,11 +1405,12 @@ private fun DirectivaCodigosSection(
 ) {
     val now = System.currentTimeMillis()
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
+    var selectedCodeForDetail by remember { mutableStateOf<InvitationCode?>(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
             // Botón Principal Generar Código con texto flexible
@@ -1212,32 +1629,61 @@ private fun DirectivaCodigosSection(
                 val remainingHours = ((code.expiresAt - now) / (1000 * 60 * 60)).coerceAtLeast(0)
                 val remainingMins = (((code.expiresAt - now) / (1000 * 60)) % 60).coerceAtLeast(0)
 
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                // 🏷️ Tarjeta Compacta (Fila Resumida)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = LightCardBg,
                     border = BorderStroke(
                         1.dp,
-                        if (code.isUsed) StatusSuccess
-                        else if (isExpired) StatusError
-                        else MotoOrangePrimary
+                        if (code.isUsed) StatusSuccess.copy(alpha = 0.6f)
+                        else if (isExpired) StatusError.copy(alpha = 0.5f)
+                        else MotoOrangePrimary.copy(alpha = 0.6f)
                     ),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(2.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    shadowElevation = 1.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedCodeForDetail = code }
                 ) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Text(
-                                text = code.code,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 16.sp,
-                                color = if (isExpired) LightTextMuted else LightTextPrimary,
-                                fontFamily = FontFamily.Monospace
+                            Icon(
+                                imageVector = if (code.isSpecialGuest) Icons.Default.VpnKey else Icons.Default.Key,
+                                contentDescription = null,
+                                tint = if (code.isUsed) StatusSuccess else if (isExpired) LightTextMuted else MotoOrangePrimary,
+                                modifier = Modifier.size(18.dp)
                             )
+                            Column {
+                                Text(
+                                    text = code.code,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 15.sp,
+                                    color = if (isExpired) LightTextMuted else LightTextPrimary,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                Text(
+                                    text = if (code.note.isNotBlank()) code.note else "Rol: ${code.targetRole.displayName}",
+                                    fontSize = 11.sp,
+                                    color = LightTextSecondary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
 
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = if (code.isUsed) StatusSuccess.copy(alpha = 0.12f)
@@ -1249,64 +1695,163 @@ private fun DirectivaCodigosSection(
                                 )
                             ) {
                                 Text(
-                                    text = if (code.isUsed) "UTILIZADO" else if (isExpired) "EXPIRADO" else "ACTIVO: ${remainingHours}h ${remainingMins}m",
+                                    text = if (code.isUsed) "UTILIZADO" else if (isExpired) "EXPIRADO" else "ACTIVO (${remainingHours}h ${remainingMins}m)",
                                     color = if (code.isUsed) StatusSuccess else if (isExpired) StatusError else DirectivaGoldDark,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
-                        }
 
-                        Text(
-                            text = "Rol asignado: ${code.targetRole.displayName} • Creador: ${code.createdBy}",
-                            fontSize = 11.sp,
-                            color = LightTextSecondary
-                        )
-                        if (code.note.isNotBlank()) {
-                            Text(text = "Nota: ${code.note}", fontSize = 11.sp, color = DirectivaGoldDark, fontWeight = FontWeight.Medium)
-                        }
-
-                        // Acciones: Copiar, Compartir WhatsApp, Eliminar
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("Código TX", code.code))
-                                    Toast.makeText(context, "Código copiado al portapapeles", Toast.LENGTH_SHORT).show()
-                                }
-                            ) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", tint = LightTextSecondary)
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    val sendIntent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(
-                                            Intent.EXTRA_TEXT,
-                                            "🏍️ Invitación a Team Nacional TX Venezuela: Usa tu código de acceso: ${code.code} (Válido por 24 horas)."
-                                        )
-                                        type = "text/plain"
-                                    }
-                                    context.startActivity(Intent.createChooser(sendIntent, "Enviar código por WhatsApp"))
-                                }
-                            ) {
-                                Icon(Icons.Default.Share, contentDescription = "Compartir", tint = WhatsAppGreen)
-                            }
-
-                            IconButton(onClick = { onDeleteCode(code) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = StatusError)
-                            }
+                            Icon(Icons.Default.ChevronRight, contentDescription = "Ver Detalle", tint = LightTextMuted, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
             }
         }
+    }
+
+    // 📋 Diálogo / Modal de Detalle Completo del Código
+    if (selectedCodeForDetail != null) {
+        val code = selectedCodeForDetail!!
+        val isExpired = code.expiresAt < now
+        val remainingHours = ((code.expiresAt - now) / (1000 * 60 * 60)).coerceAtLeast(0)
+        val remainingMins = (((code.expiresAt - now) / (1000 * 60)) % 60).coerceAtLeast(0)
+
+        AlertDialog(
+            onDismissRequest = { selectedCodeForDetail = null },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.Key, contentDescription = null, tint = MotoOrangePrimary)
+                        Text(
+                            text = code.code,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp,
+                            color = LightTextPrimary,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (code.isUsed) StatusSuccess.copy(alpha = 0.12f)
+                        else if (isExpired) StatusError.copy(alpha = 0.12f)
+                        else DirectivaGoldBg,
+                        border = BorderStroke(
+                            1.dp,
+                            if (code.isUsed) StatusSuccess else if (isExpired) StatusError else DirectivaGoldPrimary
+                        )
+                    ) {
+                        Text(
+                            text = if (code.isUsed) "UTILIZADO" else if (isExpired) "EXPIRADO" else "ACTIVO: ${remainingHours}h ${remainingMins}m",
+                            color = if (code.isUsed) StatusSuccess else if (isExpired) StatusError else DirectivaGoldDark,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Estado de Uso & Usuario que lo Activó
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = LightCardSubtle,
+                        border = BorderStroke(1.dp, LightBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("ESTADO DE USO & REGISTRO:", fontSize = 10.sp, fontWeight = FontWeight.Black, color = LightTextMuted)
+                            if (code.isUsed) {
+                                Text(" Usado por: ${code.usedByName ?: "Piloto Registrado"}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = StatusSuccess)
+                                if (!code.usedByPhone.isNullOrBlank()) {
+                                    Text(" Teléfono: ${code.usedByPhone}", fontSize = 11.sp, color = LightTextSecondary)
+                                }
+                            } else if (isExpired) {
+                                Text(" Expirado sin utilizar", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = StatusError)
+                            } else {
+                                Text(" Disponible para ingresar - Código Activo", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DirectivaGoldDark)
+                            }
+                        }
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Rol Otorgado: ${code.targetRole.displayName}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                        Text("Creador: ${code.createdBy}", fontSize = 11.sp, color = LightTextSecondary)
+                        Text("Fecha Creación: ${dateFormat.format(Date(code.createdAt))}", fontSize = 10.sp, color = LightTextMuted)
+                        Text("Fecha Expiración: ${dateFormat.format(Date(code.expiresAt))}", fontSize = 10.sp, color = LightTextMuted)
+                        if (code.note.isNotBlank()) {
+                            Text("Nota / Destinatario: \"${code.note}\"", fontSize = 11.sp, color = DirectivaGoldDark, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Código TX", code.code))
+                                Toast.makeText(context, "Código copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Copiar", fontSize = 11.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(
+                                        Intent.EXTRA_TEXT,
+                                        "🏍️ Invitación a Team Nacional TX Venezuela: Usa tu código de acceso: ${code.code} (Válido por 24 horas)."
+                                    )
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, "Enviar código por WhatsApp"))
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("WhatsApp", fontSize = 11.sp, color = Color.White)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteCode(code)
+                        selectedCodeForDetail = null
+                        Toast.makeText(context, "Código eliminado / cancelado", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusError)
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Eliminar Código", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedCodeForDetail = null }) {
+                    Text("Cerrar", color = LightTextMuted)
+                }
+            },
+            containerColor = LightCardBg
+        )
     }
 }
 

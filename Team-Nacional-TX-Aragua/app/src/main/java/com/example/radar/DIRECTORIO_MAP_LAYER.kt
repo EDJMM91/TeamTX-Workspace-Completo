@@ -36,6 +36,7 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
         val whatsapp: String,
         val tieneCashea: Boolean,
         val plataformasCredito: String,
+        val rating: Double = 5.0,
         val notas: String,
         val googleMapsUrl: String
     )
@@ -66,6 +67,33 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
         strokeWidth = 2f
         color = Color.parseColor("#00E676")
     }
+
+    // Estilos para comercios destacados / bien calificados (Rating >= 4.5)
+    private val paintGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#45FFD700")
+        style = Paint.Style.FILL
+    }
+    private val paintGlowBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        color = Color.parseColor("#FFD700")
+    }
+    private val paintStarFondo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#1A1A1A")
+        style = Paint.Style.FILL
+    }
+    private val paintStarBorde = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1.8f
+        color = Color.parseColor("#FFD700")
+    }
+    private val paintStarEmoji = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#FFD700")
+        textSize = 22f
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
+
     private val paintTexto = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textSize = 24f
@@ -76,6 +104,11 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
     private val paintFondoTexto = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.argb(200, 15, 20, 30)
         style = Paint.Style.FILL
+    }
+    private val paintBordeTextoRecomendado = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1.5f
+        color = Color.parseColor("#FFD700")
     }
 
     private var iconoBandera: Bitmap? = null
@@ -159,6 +192,21 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
         for (item in directorios) {
             val x = tileBox.getPixXFromLatLon(item.lat, item.lon)
             val y = tileBox.getPixYFromLatLon(item.lat, item.lon)
+            val esRecomendado = item.rating >= 4.5
+
+            // 0. SI ESTÁ BIEN CALIFICADO (>=4.5): RESALTAR CON HALO DORADO Y ESTRELLA TOP
+            if (esRecomendado) {
+                // Halo brillante dorado de fondo
+                canvas.drawCircle(x, y - tamBandera / 2f, tamBandera / 1.4f, paintGlow)
+                canvas.drawCircle(x, y - tamBandera / 2f, tamBandera / 1.6f, paintGlowBorder)
+
+                // Insignia de Estrella Dorada ⭐ flotando encima de la bandera
+                val starY = y - tamBandera - 7 * density
+                val starRadius = 8.5f * density
+                canvas.drawCircle(x, starY, starRadius, paintStarFondo)
+                canvas.drawCircle(x, starY, starRadius, paintStarBorde)
+                canvas.drawText("⭐", x, starY + 4f * density, paintStarEmoji)
+            }
 
             // 1. DIBUJAR ÍCONO DE BANDERA EN EL PUNTO PRINCIPAL
             val bandera = iconoBandera
@@ -171,7 +219,7 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
                 )
                 canvas.drawBitmap(bandera, null, rectTemporal, paintBitmap)
             } else {
-                paintBorde.color = Color.parseColor("#FF9800")
+                paintBorde.color = if (esRecomendado) Color.parseColor("#FFD700") else Color.parseColor("#FF9800")
                 paintBorde.style = Paint.Style.FILL
                 canvas.drawCircle(x, y - tamBandera / 2f, 14f * density, paintBorde)
             }
@@ -204,7 +252,9 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
             }
 
             // 3. ETIQUETA INFORMATIVA CON NOMBRE
-            val textoCorto = if (item.nombre.length > 15) item.nombre.take(15) + ".." else item.nombre
+            val prefijo = if (esRecomendado) "⭐ " else ""
+            val baseNombre = if (item.nombre.length > 13) item.nombre.take(13) + ".." else item.nombre
+            val textoCorto = prefijo + baseNombre
             val labelY = y + 12 * density
             val anchoTexto = paintTexto.measureText(textoCorto)
             val altoTexto = (paintTexto.descent() - paintTexto.ascent()).toInt()
@@ -216,6 +266,9 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
             val right = x + anchoTexto / 2 + padding
             val bottom = labelY + altoTexto / 2 + padding
             canvas.drawRoundRect(left, top, right, bottom, radioFondo, radioFondo, paintFondoTexto)
+            if (esRecomendado) {
+                canvas.drawRoundRect(left, top, right, bottom, radioFondo, radioFondo, paintBordeTextoRecomendado)
+            }
             canvas.drawText(textoCorto, x, labelY + altoTexto / 4, paintTexto)
         }
 
@@ -232,20 +285,31 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
         val app = application ?: return
         val point = result.point
         val tileBox = result.tileBox
-        val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER * 1.6f).toFloat()
+        val density = tileBox.density
+        val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER * 2.2f).toFloat()
+        val tamBandera = (38 * density).toInt()
 
         for (item in directorios) {
+            val px = tileBox.getPixXFromLatLon(item.lat, item.lon)
+            val py = tileBox.getPixYFromLatLon(item.lat, item.lon)
+
+            val flagCx = px
+            val flagCy = py - tamBandera / 2f
+            val dxFlag = point.x - flagCx
+            val dyFlag = point.y - flagCy
+            val isNearFlag = (dxFlag * dxFlag + dyFlag * dyFlag) <= (radius * radius * 1.5f)
+
             val isNearBase = tileBox.isLatLonNearPixel(item.lat, item.lon, point.x, point.y, radius)
+
             val isNearCashea = if (item.tieneCashea) {
-                val density = tileBox.density
-                val cxCashea = tileBox.getPixXFromLatLon(item.lat, item.lon) + OFFSET_CASHEA_X_DP * density
-                val cyCashea = tileBox.getPixYFromLatLon(item.lat, item.lon) + OFFSET_CASHEA_Y_DP * density
+                val cxCashea = px + OFFSET_CASHEA_X_DP * density
+                val cyCashea = py + OFFSET_CASHEA_Y_DP * density
                 val dx = point.x - cxCashea
                 val dy = point.y - cyCashea
-                (dx * dx + dy * dy) <= (radius * radius)
+                (dx * dx + dy * dy) <= (radius * radius * 1.5f)
             } else false
 
-            if (isNearBase || isNearCashea) {
+            if (isNearFlag || isNearBase || isNearCashea) {
                 directorioSeleccionado?.invoke(item)
                 result.collect(item, this)
             }
@@ -254,10 +318,13 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
 
     override fun runExclusiveAction(o: Any?, unknownLocation: Boolean): Boolean {
         if (o is DirectorioMarcador) {
-            val act = (mapActivity as? android.app.Activity)
+            val act: android.app.Activity = (mapActivity as? android.app.Activity)
+                ?: (GestorRadar.obtenerMapActivity() as? android.app.Activity)
                 ?: (application?.osmandMap?.mapView?.context as? android.app.Activity)
                 ?: return false
-            DialogosMapaTx.mostrarDirectorio(act, o)
+            act.runOnUiThread {
+                DialogosMapaTx.mostrarDirectorio(act, o)
+            }
             return true
         }
         return false

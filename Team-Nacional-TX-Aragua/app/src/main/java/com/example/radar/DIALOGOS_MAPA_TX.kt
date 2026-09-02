@@ -642,6 +642,52 @@ object DialogosMapaTx {
         }
         rootLayout.addView(infoCard)
 
+        // Tarjeta de Calificación y Recomendación Táctica
+        val esTop = item.rating >= 4.5
+        val ratingCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(if (esTop) Color.parseColor("#261E08") else Color.parseColor("#1A2130"))
+                setStroke((1 * density).toInt(), if (esTop) Color.parseColor("#FFD700") else Color.parseColor("#2C3B50"))
+            }
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val tvStar = TextView(activity).apply {
+            text = if (esTop) "🏆" else "⭐"
+            textSize = 18f
+            setPadding(0, 0, (8 * density).toInt(), 0)
+        }
+        ratingCard.addView(tvStar)
+
+        val ratingTextCol = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val tvRatingScore = TextView(activity).apply {
+            text = "Calificación: ${String.format(java.util.Locale.US, "%.1f", item.rating)} / 5.0 ⭐"
+            setTextColor(if (esTop) Color.parseColor("#FFD700") else Color.WHITE)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        ratingTextCol.addView(tvRatingScore)
+
+        val tvRatingLabel = TextView(activity).apply {
+            text = if (esTop) "🌟 Comercio Top Recomendado por el Team TX" else "Verificado por la Comunidad Motera"
+            setTextColor(if (esTop) Color.parseColor("#FFE082") else Color.parseColor("#90A4AE"))
+            textSize = 10f
+        }
+        ratingTextCol.addView(tvRatingLabel)
+        ratingCard.addView(ratingTextCol)
+        rootLayout.addView(ratingCard)
+
         // SECCIÓN DESTACADA: CASHEA / FINANCIAMIENTO
         if (tieneCashea || item.plataformasCredito.isNotBlank()) {
             val casheaCard = LinearLayout(activity).apply {

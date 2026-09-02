@@ -21,12 +21,27 @@ object GestorRadar {
     private var mapaLayer: RadarMapLayer? = null
     private var eventosLayer: EventosMapLayer? = null
     private var directorioLayer: DirectorioMapLayer? = null
+    private var mapaActivityRef: java.lang.ref.WeakReference<net.osmand.plus.activities.MapActivity>? = null
     private val alcance = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var escuchando = false
     private var miUserId: String = ""
     private var miNombre: String = ""
     private var miRango: String = ""
     private var miAvatarUrl: String = ""
+
+    @JvmStatic
+    fun registrarMapActivity(activity: net.osmand.plus.activities.MapActivity?) {
+        mapaActivityRef = if (activity != null) java.lang.ref.WeakReference(activity) else null
+        mapaLayer?.setMapActivity(activity)
+        eventosLayer?.setMapActivity(activity)
+        directorioLayer?.setMapActivity(activity)
+        Log.d(ETIQUETA, "MapActivity registrada en GestorRadar: ${activity != null}")
+    }
+
+    @JvmStatic
+    fun obtenerMapActivity(): net.osmand.plus.activities.MapActivity? {
+        return mapaActivityRef?.get()
+    }
 
     var pilotoSeleccionadoPerfil: MemberProfile? = null
         private set
@@ -59,6 +74,7 @@ object GestorRadar {
         }
 
         val layer = RadarMapLayer(app)
+        mapaActivityRef?.get()?.let { layer.setMapActivity(it) }
         mapaLayer = layer
         layer.setMiUserId(miUserId)
 
@@ -174,6 +190,7 @@ object GestorRadar {
 
         val layer = eventosLayer ?: if (app != null) {
             EventosMapLayer(app).also {
+                mapaActivityRef?.get()?.let { act -> it.setMapActivity(act) }
                 eventosLayer = it
                 try {
                     val mapView = app.osmandMap.mapView
@@ -241,6 +258,7 @@ object GestorRadar {
 
         val layer = directorioLayer ?: if (app != null) {
             DirectorioMapLayer(app).also {
+                mapaActivityRef?.get()?.let { act -> it.setMapActivity(act) }
                 directorioLayer = it
                 try {
                     val mapView = app.osmandMap.mapView
@@ -273,6 +291,7 @@ object GestorRadar {
                     whatsapp = w.whatsapp,
                     tieneCashea = hasCashea,
                     plataformasCredito = w.creditPlatforms,
+                    rating = w.rating,
                     notas = w.notes,
                     googleMapsUrl = w.googleMapsUrl
                 )

@@ -527,6 +527,75 @@ fun VelocimetroScreen(
                     }
                 }
 
+                // 🛡️ BANDA DE IDENTIFICACIÓN DE PILOTO (Carnet TX Sincronizado)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF121620),
+                    border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 3.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Badge,
+                                contentDescription = "Carnet TX",
+                                tint = MotoOrangePrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Piloto:",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TxSteelSilver
+                            )
+                            Text(
+                                text = currentMember?.fullName?.ifBlank { "Piloto Oficial TX" } ?: "Piloto Oficial TX",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (!currentMember?.nickname.isNullOrBlank()) {
+                                Text(
+                                    text = "(\"${currentMember?.nickname}\")",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MotoOrangePrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MotoOrangePrimary.copy(alpha = 0.15f),
+                            border = BorderStroke(0.5.dp, MotoOrangePrimary)
+                        ) {
+                            Text(
+                                text = currentMember?.memberNumber?.ifBlank { "TX-CARNET" } ?: "TX-CARNET",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MotoOrangePrimary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
                 // ═══════════════════════════════════════════════
                 // VELOCÍMETRO PRINCIPAL SEGÚN MODO
                 // ═══════════════════════════════════════════════

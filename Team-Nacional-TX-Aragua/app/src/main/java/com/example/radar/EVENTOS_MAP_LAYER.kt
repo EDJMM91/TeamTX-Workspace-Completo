@@ -177,10 +177,21 @@ class EventosMapLayer(context: Context) : OsmandMapLayer(context),
         val app = application ?: return
         val point = result.point
         val tileBox = result.tileBox
-        val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER * 1.5f).toFloat()
+        val density = tileBox.density
+        val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER * 2.2f).toFloat()
+        val tamIcono = (50 * density).toInt()
 
         for (evento in eventos) {
-            if (tileBox.isLatLonNearPixel(evento.lat, evento.lon, point.x, point.y, radius)) {
+            val px = tileBox.getPixXFromLatLon(evento.lat, evento.lon)
+            val py = tileBox.getPixYFromLatLon(evento.lat, evento.lon)
+            val iconCy = py - tamIcono / 2f
+
+            val dx = point.x - px
+            val dy = point.y - iconCy
+            val isNearIcon = (dx * dx + dy * dy) <= (radius * radius * 1.5f)
+            val isNearBase = tileBox.isLatLonNearPixel(evento.lat, evento.lon, point.x, point.y, radius)
+
+            if (isNearIcon || isNearBase) {
                 eventoSeleccionado?.invoke(evento)
                 result.collect(evento, this)
             }
@@ -189,10 +200,13 @@ class EventosMapLayer(context: Context) : OsmandMapLayer(context),
 
     override fun runExclusiveAction(o: Any?, unknownLocation: Boolean): Boolean {
         if (o is EventoMarcador) {
-            val act = (mapActivity as? android.app.Activity)
+            val act: android.app.Activity = (mapActivity as? android.app.Activity)
+                ?: (GestorRadar.obtenerMapActivity() as? android.app.Activity)
                 ?: (application?.osmandMap?.mapView?.context as? android.app.Activity)
                 ?: return false
-            DialogosMapaTx.mostrarEvento(act, o)
+            act.runOnUiThread {
+                DialogosMapaTx.mostrarEvento(act, o)
+            }
             return true
         }
         return false

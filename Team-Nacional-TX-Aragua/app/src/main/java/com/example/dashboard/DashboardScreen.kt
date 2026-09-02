@@ -138,7 +138,7 @@ fun DashboardScreen(
                         onClick = { onNavigateToTab(NavigationTab.FEED) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(125.dp)
+                            .height(138.dp)
                     )
 
                     // Bento Fila 1: Chat y Avisos
@@ -157,7 +157,7 @@ fun DashboardScreen(
                             onClick = { onNavigateToTab(NavigationTab.CHAT) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(115.dp)
+                                .height(128.dp)
                         )
 
                         BentoGridCard(
@@ -171,7 +171,7 @@ fun DashboardScreen(
                             onClick = { onNavigateToTab(NavigationTab.NOTIFICACIONES) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(115.dp)
+                                .height(128.dp)
                         )
                     }
 
@@ -191,13 +191,13 @@ fun DashboardScreen(
                             onClick = { onNavigateToTab(NavigationTab.RANKING) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(115.dp)
+                                .height(128.dp)
                         )
 
                         val proxEvento = calendarEvents.firstOrNull()
                         BentoGridCard(
                             titulo = "Calendario",
-                            subtitulo = proxEvento?.title?.take(16) ?: "Rodadas y eventos",
+                            subtitulo = proxEvento?.title?.take(24) ?: "Rodadas y eventos",
                             icono = Icons.Default.CalendarMonth,
                             colorIcono = Color(0xFF43A047),
                             colorFondoIcono = DashboardFondoConfig.ColorContenedorVerde,
@@ -206,7 +206,7 @@ fun DashboardScreen(
                             onClick = { onNavigateToTab(NavigationTab.CALENDARIO) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(115.dp)
+                                .height(128.dp)
                         )
                     }
 
@@ -226,7 +226,7 @@ fun DashboardScreen(
                             onClick = { onNavigateToTab(NavigationTab.MAPA) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(115.dp)
+                                .height(128.dp)
                         )
 
                         BentoGridCard(
@@ -240,7 +240,7 @@ fun DashboardScreen(
                             onClick = { onNavigateToTab(NavigationTab.VELOCIMETRO) },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(115.dp)
+                                .height(128.dp)
                         )
                     }
                 }
