@@ -148,6 +148,7 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 
 dependencies {
     implementation(libs.androidx.multidex)
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     // Generacion de codigo QR para el Carnet TX
     implementation("com.google.zxing:core:3.5.3")
 
