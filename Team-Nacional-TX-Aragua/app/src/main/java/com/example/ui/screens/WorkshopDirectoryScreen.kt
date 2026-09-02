@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,11 +35,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aistudio.teamtxvzla.R
+import com.example.data.local.AppDatabase
 import com.example.data.model.MemberProfile
 import com.example.data.model.MemberRole
 import com.example.data.model.WorkshopDirectoryItem
 import com.example.radar.GestorRadar
 import com.example.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,9 +84,28 @@ fun WorkshopDirectoryScreen(
     var workshopToDelete by remember { mutableStateOf<WorkshopDirectoryItem?>(null) }
     var workshopForCreditInfo by remember { mutableStateOf<WorkshopDirectoryItem?>(null) }
 
+    // Auto-sembrado y sincronización local inmediata en Room
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                val db = AppDatabase.getDatabase(context, kotlinx.coroutines.CoroutineScope(Dispatchers.IO))
+                db.workshopDirectoryDao().upsertWorkshops(AppDatabase.INITIAL_WORKSHOPS)
+            } catch (_: Exception) {}
+        }
+    }
+
+    // Combinar siempre la lista inicial oficial de Excel con cualquier taller añadido manualmente por el usuario
+    val combinedWorkshops = remember(workshops) {
+        val map = AppDatabase.INITIAL_WORKSHOPS.associateBy { it.id }.toMutableMap()
+        for (w in workshops) {
+            map[w.id] = w
+        }
+        map.values.toList().sortedBy { it.id }
+    }
+
     // Sincronizar con el mapa cada vez que cambie la lista o el switch
-    LaunchedEffect(workshops, mostrarEnMapa) {
-        GestorRadar.sincronizarDirectorioEnMapa(workshops, mostrarEnMapa)
+    LaunchedEffect(combinedWorkshops, mostrarEnMapa) {
+        GestorRadar.sincronizarDirectorioEnMapa(combinedWorkshops, mostrarEnMapa)
     }
 
     val isAuthorizedAdmin = currentMember?.isDirectiva == true ||
@@ -107,8 +131,8 @@ fun WorkshopDirectoryScreen(
         "Auxilio Vial 24H"
     )
 
-    val filteredWorkshops = remember(workshops, selectedState, selectedType, onlyCreditFilter, searchQuery) {
-        workshops.filter { w ->
+    val filteredWorkshops = remember(combinedWorkshops, selectedState, selectedType, onlyCreditFilter, searchQuery) {
+        combinedWorkshops.filter { w ->
             val matchState = selectedState == "TODOS" || w.state.equals(selectedState, ignoreCase = true)
             val matchType = selectedType == "TODOS" || w.type.equals(selectedType, ignoreCase = true)
             val matchCredit = !onlyCreditFilter || (w.hasCredit || w.creditPlatforms.isNotBlank())
@@ -927,6 +951,21 @@ fun CreateCommercialServiceDialog(
     var latStr by remember { mutableStateOf("10.2469") }
     var lngStr by remember { mutableStateOf("-67.5958") }
 
+    val mapLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        try {
+            val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val text = clip.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+            val coords = extraerCoordenadasDeTexto(text)
+            if (coords != null) {
+                latStr = coords.first.toString()
+                lngStr = coords.second.toString()
+                Toast.makeText(context, "📍 Coordenada tomada del mapa: ${coords.first}, ${coords.second} ✓", Toast.LENGTH_LONG).show()
+            }
+        } catch (_: Exception) {}
+    }
+
     val states = listOf(
         "Aragua", "Carabobo", "Distrito Capital", "Miranda", "Lara", "Falcón", "Zulia",
         "Táchira", "Mérida", "Guárico", "Anzoátegui", "Bolívar", "Yaracuy", "Portuguesa", "Barinas"
@@ -944,7 +983,7 @@ fun CreateCommercialServiceDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Registrar Negocio / Taller", fontWeight = FontWeight.Black, color = Color.White) },
+        title = { Text("🏪 Registrar Negocio en Directorio", fontWeight = FontWeight.Black, color = Color.White) },
         text = {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -954,45 +993,39 @@ fun CreateCommercialServiceDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Nombre del Local / Negocio") },
-                        placeholder = { Text("Ej: Repuestos & Taller Moto Power") },
+                        label = { Text("Nombre del Local / Taller *") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
 
                 item {
                     Text("Tipo de Servicio:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(types) { t ->
                             FilterChip(
                                 selected = type == t,
                                 onClick = { type = t },
-                                label = { Text(t, fontSize = 10.sp) }
+                                label = { Text(t, fontSize = 11.sp) }
                             )
                         }
                     }
                 }
 
                 item {
-                    Text("Estado:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(states) { s ->
-                            FilterChip(
-                                selected = state == s,
-                                onClick = { state = s },
-                                label = { Text(s, fontSize = 10.sp) }
-                            )
-                        }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = state,
+                            onValueChange = { state = it },
+                            label = { Text("Estado") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = city,
+                            onValueChange = { city = it },
+                            label = { Text("Ciudad / Municipio") },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
-                }
-
-                item {
-                    OutlinedTextField(
-                        value = city,
-                        onValueChange = { city = it },
-                        label = { Text("Ciudad / Municipio") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
 
                 item {
@@ -1000,6 +1033,7 @@ fun CreateCommercialServiceDialog(
                         value = address,
                         onValueChange = { address = it },
                         label = { Text("Dirección Exacta") },
+                        placeholder = { Text("Av. Principal, Sector, etc.") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1010,43 +1044,46 @@ fun CreateCommercialServiceDialog(
                             value = phone,
                             onValueChange = { phone = it },
                             label = { Text("Teléfono") },
+                            placeholder = { Text("0412-...") },
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = whatsapp,
                             onValueChange = { whatsapp = it },
                             label = { Text("WhatsApp") },
+                            placeholder = { Text("0412...") },
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
 
                 item {
-                    // Opciones de crédito
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF131722),
-                        border = BorderStroke(1.dp, Color(0xFF263238)),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C2230)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.CreditCard, contentDescription = null, tint = MotoGoldSecondary)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("¿Acepta Crédito? (Cashea, etc.)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                                Switch(
                                     checked = hasCredit,
-                                    onCheckedChange = { 
-                                        hasCredit = it
-                                        if (it && creditPlatforms.isBlank()) {
-                                            creditPlatforms = "Cashea"
-                                        }
-                                    }
+                                    onCheckedChange = { hasCredit = it }
                                 )
-                                Text("¿Tiene Financiamiento / Crédito?", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
                             }
                             if (hasCredit) {
                                 OutlinedTextField(
                                     value = creditPlatforms,
                                     onValueChange = { creditPlatforms = it },
-                                    label = { Text("Plataformas (Ej: Cashea / Rapikom / Convenio)") },
+                                    label = { Text("Plataformas / Convenios") },
+                                    placeholder = { Text("Cashea / Rapikom / Convenio Team TX") },
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
                                 )
                             }
@@ -1078,8 +1115,22 @@ fun CreateCommercialServiceDialog(
                     Text("📍 Ubicación Geográfica en Mapa TX:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        OutlinedButton(
+                            onClick = {
+                                val intent = Intent(context, net.osmand.plus.activities.MapActivity::class.java)
+                                Toast.makeText(context, "🗺️ Toca un punto en el mapa y copia sus coordenadas", Toast.LENGTH_LONG).show()
+                                mapLauncher.launch(intent)
+                            },
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(14.dp), tint = MotoOrangePrimary)
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("🗺️ Mapa TX", fontSize = 10.sp)
+                        }
+
                         OutlinedButton(
                             onClick = {
                                 val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -1101,11 +1152,11 @@ fun CreateCommercialServiceDialog(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("📋 Pegar Link/GPS", fontSize = 10.sp)
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("📋 Pegar GPS", fontSize = 10.sp)
                         }
 
                         OutlinedButton(
@@ -1120,7 +1171,6 @@ fun CreateCommercialServiceDialog(
                                 } else {
                                     latStr = "10.2469"
                                     lngStr = "-67.5958"
-                                    Toast.makeText(context, "📍 Coordenadas por defecto (Maracay) fijadas", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -1197,6 +1247,21 @@ fun EditCommercialServiceDialog(
     var latStr by remember { mutableStateOf(item.latitude.toString()) }
     var lngStr by remember { mutableStateOf(item.longitude.toString()) }
 
+    val mapLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        try {
+            val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val text = clip.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+            val coords = extraerCoordenadasDeTexto(text)
+            if (coords != null) {
+                latStr = coords.first.toString()
+                lngStr = coords.second.toString()
+                Toast.makeText(context, "📍 Coordenada tomada del mapa: ${coords.first}, ${coords.second} ✓", Toast.LENGTH_LONG).show()
+            }
+        } catch (_: Exception) {}
+    }
+
     val states = listOf(
         "Aragua", "Carabobo", "Distrito Capital", "Miranda", "Lara", "Falcón", "Zulia",
         "Táchira", "Mérida", "Guárico", "Anzoátegui", "Bolívar", "Yaracuy", "Portuguesa", "Barinas"
@@ -1224,44 +1289,39 @@ fun EditCommercialServiceDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Nombre del Local / Negocio") },
+                        label = { Text("Nombre del Local / Taller *") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
 
                 item {
                     Text("Tipo de Servicio:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(types) { t ->
                             FilterChip(
                                 selected = type == t,
                                 onClick = { type = t },
-                                label = { Text(t, fontSize = 10.sp) }
+                                label = { Text(t, fontSize = 11.sp) }
                             )
                         }
                     }
                 }
 
                 item {
-                    Text("Estado:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(states) { s ->
-                            FilterChip(
-                                selected = state == s,
-                                onClick = { state = s },
-                                label = { Text(s, fontSize = 10.sp) }
-                            )
-                        }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = state,
+                            onValueChange = { state = it },
+                            label = { Text("Estado") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = city,
+                            onValueChange = { city = it },
+                            label = { Text("Ciudad / Municipio") },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
-                }
-
-                item {
-                    OutlinedTextField(
-                        value = city,
-                        onValueChange = { city = it },
-                        label = { Text("Ciudad / Municipio") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
 
                 item {
@@ -1269,6 +1329,7 @@ fun EditCommercialServiceDialog(
                         value = address,
                         onValueChange = { address = it },
                         label = { Text("Dirección Exacta") },
+                        placeholder = { Text("Av. Principal, Sector, etc.") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1279,43 +1340,46 @@ fun EditCommercialServiceDialog(
                             value = phone,
                             onValueChange = { phone = it },
                             label = { Text("Teléfono") },
+                            placeholder = { Text("0412-...") },
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = whatsapp,
                             onValueChange = { whatsapp = it },
                             label = { Text("WhatsApp") },
+                            placeholder = { Text("0412...") },
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
 
                 item {
-                    // Opciones de crédito
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF131722),
-                        border = BorderStroke(1.dp, Color(0xFF263238)),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C2230)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.CreditCard, contentDescription = null, tint = MotoGoldSecondary)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("¿Acepta Crédito? (Cashea, etc.)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                                Switch(
                                     checked = hasCredit,
-                                    onCheckedChange = { 
-                                        hasCredit = it
-                                        if (it && creditPlatforms.isBlank()) {
-                                            creditPlatforms = "Cashea"
-                                        }
-                                    }
+                                    onCheckedChange = { hasCredit = it }
                                 )
-                                Text("¿Tiene Financiamiento / Crédito?", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
                             }
                             if (hasCredit) {
                                 OutlinedTextField(
                                     value = creditPlatforms,
                                     onValueChange = { creditPlatforms = it },
-                                    label = { Text("Plataformas (Ej: Cashea / Rapikom / Convenio)") },
+                                    label = { Text("Plataformas / Convenios") },
+                                    placeholder = { Text("Cashea / Rapikom / Convenio Team TX") },
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
                                 )
                             }
@@ -1328,6 +1392,7 @@ fun EditCommercialServiceDialog(
                         value = googleMapsUrl,
                         onValueChange = { googleMapsUrl = it },
                         label = { Text("Link de Google Maps") },
+                        placeholder = { Text("https://maps.app.goo.gl/...") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1337,6 +1402,7 @@ fun EditCommercialServiceDialog(
                         value = notes,
                         onValueChange = { notes = it },
                         label = { Text("Repuestos disponibles / Especialidad") },
+                        placeholder = { Text("Ej: Kits de arrastre, cauchos, rectificación...") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1345,8 +1411,22 @@ fun EditCommercialServiceDialog(
                     Text("📍 Ubicación Geográfica en Mapa TX:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
+                        OutlinedButton(
+                            onClick = {
+                                val intent = Intent(context, net.osmand.plus.activities.MapActivity::class.java)
+                                Toast.makeText(context, "🗺️ Toca un punto en el mapa y copia sus coordenadas", Toast.LENGTH_LONG).show()
+                                mapLauncher.launch(intent)
+                            },
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(14.dp), tint = MotoOrangePrimary)
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("🗺️ Mapa TX", fontSize = 10.sp)
+                        }
+
                         OutlinedButton(
                             onClick = {
                                 val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -1368,11 +1448,11 @@ fun EditCommercialServiceDialog(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("📋 Pegar Link/GPS", fontSize = 10.sp)
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("📋 Pegar GPS", fontSize = 10.sp)
                         }
 
                         OutlinedButton(
@@ -1390,10 +1470,10 @@ fun EditCommercialServiceDialog(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                         ) {
                             Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text("📍 Mi GPS", fontSize = 10.sp)
                         }
                     }
