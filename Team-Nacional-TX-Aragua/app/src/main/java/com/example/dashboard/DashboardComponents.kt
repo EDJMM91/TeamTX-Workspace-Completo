@@ -72,7 +72,7 @@ fun DashboardHeader(
             )
             Column {
                 Text(
-                    text = "Team Nacional TX",
+                    text = "Team Nacional TX VZLA",
                     color = DashboardFondoConfig.ColorTextoPrimario,
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Black,

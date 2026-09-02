@@ -25,6 +25,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import com.example.dashboard.DashboardFondoConfig
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
@@ -270,6 +275,20 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
     var showQuickSosModal by remember { mutableStateOf(false) }
     var isBottomNavVisible by remember { mutableStateOf(true) }
 
+    // 🎛️ Estado para los 5 accesos rápidos principales de la barra inferior (personalizables por long-press)
+    var bottomTabs by remember {
+        mutableStateOf(
+            listOf(
+                NavigationTab.DASHBOARD,
+                NavigationTab.MAPA,
+                NavigationTab.CHAT,
+                NavigationTab.SOS,
+                NavigationTab.NOTIFICACIONES
+            )
+        )
+    }
+    var slotToEditIndex by remember { mutableStateOf<Int?>(null) }
+
     // Auto-hide bottom nav when entering chat, directiva, or velocímetro
     LaunchedEffect(selectedTab) {
         if (selectedTab == NavigationTab.CHAT || selectedTab == NavigationTab.DIRECTIVA || selectedTab == NavigationTab.VELOCIMETRO) {
@@ -339,101 +358,88 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             val isCalendarOrFullscreen = selectedTab == NavigationTab.CALENDARIO || selectedTab == NavigationTab.NOTIFICACIONES || selectedTab == NavigationTab.PLAYER || selectedTab == NavigationTab.DIRECTORIO
             AnimatedVisibility(visible = isBottomNavVisible && !isCalendarOrFullscreen) {
                 Surface(
-                    color = Color.Transparent,
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                    color = DashboardFondoConfig.ColorTarjetaClara,
+                    border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                    shadowElevation = 8.dp,
                     modifier = Modifier.fillMaxWidth().navigationBarsPadding()
                 ) {
-                    LazyRow(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 4.dp, bottom = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        items(NavigationTab.values()) { tab ->
+                        bottomTabs.forEachIndexed { index, tab ->
                             val isSelected = selectedTab == tab
                             val isSos = tab == NavigationTab.SOS
                             val isNotificaciones = tab == NavigationTab.NOTIFICACIONES
                             val isChat = tab == NavigationTab.CHAT
-                            val isDirectiva = tab == NavigationTab.DIRECTIVA
-                            val hasDirectivaAccess = isDirectivaMode || isLeaderSuperAdmin || (currentMember?.isDirectiva == true) || (currentMember?.role?.canManageApp == true)
-                            val pendingRequestsCount = accessRequests.count { it.status == "PENDIENTE" }
-                            val directivaBadgeCount = if (hasDirectivaAccess) unreadDirectivaChatCount + pendingRequestsCount else 0
-                            
+
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
-                                    .clickable { selectedTab = tab }
-                                    .padding(vertical = 4.dp, horizontal = 2.dp)
-                                    .widthIn(min = 66.dp)
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onTap = { selectedTab = tab },
+                                            onLongPress = { slotToEditIndex = index }
+                                        )
+                                    }
+                                    .padding(vertical = 4.dp, horizontal = 6.dp)
                                     .testTag(tab.tag)
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color.Transparent,
-                                    modifier = Modifier.size(44.dp)
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.size(40.dp)
                                 ) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier.fillMaxSize()
-                                    ) {
-                                        BadgedBox(
-                                            badge = {
-                                                if (isSos && emergencyAlerts.any { it.status == com.example.data.model.EmergencyStatus.ACTIVA }) {
-                                                    Badge(containerColor = StatusError)
-                                                } else if (isNotificaciones && notificacionesNoLeidas > 0) {
-                                                    Badge(containerColor = StatusError) {
-                                                        Text(
-                                                            text = if (notificacionesNoLeidas > 99) "99+" else "$notificacionesNoLeidas",
-                                                            fontSize = 9.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = Color.White
-                                                        )
-                                                    }
-                                                } else if (isChat && unreadPublicChatCount > 0) {
-                                                    Badge(containerColor = StatusError) {
-                                                        Text(
-                                                            text = if (unreadPublicChatCount > 99) "99+" else "$unreadPublicChatCount",
-                                                            fontSize = 9.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = Color.White
-                                                        )
-                                                    }
-                                                } else if (isDirectiva && directivaBadgeCount > 0) {
-                                                    Badge(containerColor = StatusError) {
-                                                        Text(
-                                                            text = if (directivaBadgeCount > 99) "99+" else "$directivaBadgeCount",
-                                                            fontSize = 9.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = Color.White
-                                                        )
-                                                    }
+                                    BadgedBox(
+                                        badge = {
+                                            if (isSos && emergencyAlerts.any { it.status == com.example.data.model.EmergencyStatus.ACTIVA }) {
+                                                Badge(containerColor = StatusError)
+                                            } else if (isNotificaciones && notificacionesNoLeidas > 0) {
+                                                Badge(containerColor = StatusError) {
+                                                    Text(
+                                                        text = if (notificacionesNoLeidas > 99) "99+" else "$notificacionesNoLeidas",
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
+                                                }
+                                            } else if (isChat && unreadPublicChatCount > 0) {
+                                                Badge(containerColor = StatusError) {
+                                                    Text(
+                                                        text = if (unreadPublicChatCount > 99) "99+" else "$unreadPublicChatCount",
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
                                                 }
                                             }
-                                        ) {
-                                            Icon(
-                                                imageVector = if (isSelected) tab.iconFilled else tab.iconOutlined,
-                                                contentDescription = tab.label,
-                                                tint = when {
-                                                    isSos -> StatusError
-                                                    isSelected -> TxFlameRed
-                                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                                },
-                                                modifier = Modifier.size(24.dp)
-                                            )
                                         }
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isSelected) tab.iconFilled else tab.iconOutlined,
+                                            contentDescription = tab.label,
+                                            tint = when {
+                                                isSos -> StatusError
+                                                isSelected -> TxFlameRed
+                                                else -> DashboardFondoConfig.ColorTextoSecundario
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = tab.label,
-                                    fontSize = 9.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
                                     color = when {
                                         isSos && isSelected -> StatusError
                                         isSos -> StatusError.copy(alpha = 0.8f)
                                         isSelected -> TxFlameRed
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        else -> DashboardFondoConfig.ColorTextoSecundario
                                     },
                                     textAlign = TextAlign.Center
                                 )
@@ -441,6 +447,66 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         }
                     }
                 }
+            }
+
+            // ⚙️ Diálogo para editar el slot de la barra inferior al dejar presionado
+            if (slotToEditIndex != null) {
+                val idx = slotToEditIndex!!
+                AlertDialog(
+                    onDismissRequest = { slotToEditIndex = null },
+                    title = {
+                        Text(
+                            "Personalizar Acceso Rápido",
+                            fontWeight = FontWeight.Bold,
+                            color = DashboardFondoConfig.ColorTextoPrimario,
+                            fontSize = 16.sp
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 350.dp)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                "Mantén presionado cualquier icono inferior para cambiarlo. Selecciona el módulo deseado para este espacio:",
+                                fontSize = 12.sp,
+                                color = DashboardFondoConfig.ColorTextoSecundario
+                            )
+                            NavigationTab.values().forEach { candidateTab ->
+                                Surface(
+                                    color = DashboardFondoConfig.ColorContenedorAzul,
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val updated = bottomTabs.toMutableList()
+                                            updated[idx] = candidateTab
+                                            bottomTabs = updated
+                                            slotToEditIndex = null
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Icon(candidateTab.iconFilled, contentDescription = null, tint = TxFlameRed, modifier = Modifier.size(20.dp))
+                                        Text(candidateTab.label, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = DashboardFondoConfig.ColorTextoPrimario)
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { slotToEditIndex = null }) {
+                            Text("Cancelar", color = DashboardFondoConfig.ColorTextoSecundario)
+                        }
+                    },
+                    containerColor = DashboardFondoConfig.ColorTarjetaClara
+                )
             }
         }
     ) { innerPadding ->
