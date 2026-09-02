@@ -25,7 +25,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun TxMapLauncher(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onNavigateToDirectory: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     var launched by remember { mutableStateOf(false) }
@@ -33,10 +34,19 @@ fun TxMapLauncher(
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { _ ->
-        // Cuando MapActivity hace finish(), limpiar radar y eventos
+        // Cuando MapActivity hace finish(), limpiar radar, eventos y directorio
         com.example.radar.GestorRadar.limpiarEventosDelMapa()
+        com.example.radar.GestorRadar.limpiarDirectorioDelMapa()
         com.example.radar.GestorRadar.detener()
-        onBackClick()
+
+        val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+        val targetWorkshop = prefs.getString("target_workshop_name", null)
+        if (!targetWorkshop.isNullOrBlank()) {
+            prefs.edit().remove("target_workshop_name").apply()
+            onNavigateToDirectory?.invoke() ?: onBackClick()
+        } else {
+            onBackClick()
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -87,6 +97,37 @@ fun TxMapLauncher(
                     com.example.radar.GestorRadar.sincronizarEventosEnMapa(pubs, events)
                 } catch (e: Exception) {
                     android.util.Log.w("MAPA_TX", "Error sincronizando eventos: ${e.message}")
+                }
+
+                // Sincronizar directorio de servicios y repuestos en el mapa
+                try {
+                    val db = com.example.data.local.AppDatabase.getDatabase(context, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
+                    val workshops = db.workshopDirectoryDao().getAllWorkshops().first()
+                    val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+                    val mostrarDirectorio = prefs.getBoolean("mostrar_directorio_en_mapa", true)
+                    com.example.radar.GestorRadar.sincronizarDirectorioEnMapa(workshops, mostrarDirectorio)
+                } catch (e: Exception) {
+                    android.util.Log.w("MAPA_TX", "Error sincronizando directorio: ${e.message}")
+                }
+
+                // Centrar en destino específico si viene desde la Guía de Servicios o Calendario
+                val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+                val targetLat = prefs.getString("target_dest_lat", null)?.toDoubleOrNull()
+                val targetLon = prefs.getString("target_dest_lon", null)?.toDoubleOrNull()
+                val targetName = prefs.getString("target_dest_name", null)
+
+                if (targetLat != null && targetLon != null && targetLat != 0.0 && app != null) {
+                    prefs.edit().remove("target_dest_lat").remove("target_dest_lon").remove("target_dest_name").apply()
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        try {
+                            val mapView = app.osmandMap?.mapView
+                            mapView?.setLatLon(targetLat, targetLon)
+                            if ((mapView?.zoom ?: 0) < 15) {
+                                mapView?.setIntZoom(16)
+                            }
+                            mapView?.refreshMap(true)
+                        } catch (_: Exception) {}
+                    }
                 }
             }
 

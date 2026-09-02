@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.data.model.MemberProfile
 import com.example.data.model.BikerCalendarEvent
 import com.example.data.model.Publication
+import com.example.data.model.WorkshopDirectoryItem
 import com.example.data.remote.PerfilNube
 import kotlinx.coroutines.*
 import net.osmand.plus.OsmandApplication
@@ -13,10 +14,12 @@ object GestorRadar {
     private const val ETIQUETA = "GESTOR_RADAR"
     private const val Z_RADAR = 7.4f
     private const val Z_EVENTOS = 7.0f
+    private const val Z_DIRECTORIO = 7.1f
 
     private var application: OsmandApplication? = null
     private var mapaLayer: RadarMapLayer? = null
     private var eventosLayer: EventosMapLayer? = null
+    private var directorioLayer: DirectorioMapLayer? = null
     private val alcance = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var escuchando = false
     private var miUserId: String = ""
@@ -145,6 +148,16 @@ object GestorRadar {
         } catch (_: Exception) {}
     }
 
+    fun intentarRegistrarCapaDirectorio() {
+        val app = application ?: return
+        val layer = directorioLayer ?: return
+        try {
+            val mapView = app.osmandMap.mapView ?: return
+            mapView.addLayer(layer, Z_DIRECTORIO)
+            Log.d(ETIQUETA, "Capa directorio registrada (post-map init)")
+        } catch (_: Exception) {}
+    }
+
     fun detener() {
         RadarFirebase.detenerEscucha()
         mapaLayer?.limpiarPilotos()
@@ -219,11 +232,67 @@ object GestorRadar {
         Log.d(ETIQUETA, "Eventos limpiados del mapa")
     }
 
+    fun sincronizarDirectorioEnMapa(
+        workshops: List<WorkshopDirectoryItem>,
+        mostrar: Boolean = true
+    ) {
+        val app = application
+
+        val layer = directorioLayer ?: if (app != null) {
+            DirectorioMapLayer(app).also {
+                directorioLayer = it
+                try {
+                    val mapView = app.osmandMap.mapView
+                    mapView?.addLayer(it, Z_DIRECTORIO)
+                } catch (_: Exception) {}
+            }
+        } else return
+
+        if (!mostrar) {
+            layer.limpiarDirectorios()
+            Log.d(ETIQUETA, "Capa directorio ocultada")
+            return
+        }
+
+        val marcadores = mutableListOf<DirectorioMapLayer.DirectorioMarcador>()
+        for (w in workshops) {
+            if (w.latitude == 0.0 && w.longitude == 0.0) continue
+            val hasCashea = (w.hasCredit || w.creditPlatforms.isNotBlank()) && w.creditPlatforms.contains("Cashea", ignoreCase = true)
+            marcadores.add(
+                DirectorioMapLayer.DirectorioMarcador(
+                    id = w.id,
+                    lat = w.latitude,
+                    lon = w.longitude,
+                    nombre = w.name,
+                    tipo = w.type,
+                    direccion = w.address,
+                    ciudad = w.city,
+                    estado = w.state,
+                    telefono = w.phone,
+                    whatsapp = w.whatsapp,
+                    tieneCashea = hasCashea,
+                    plataformasCredito = w.creditPlatforms,
+                    notas = w.notes,
+                    googleMapsUrl = w.googleMapsUrl
+                )
+            )
+        }
+
+        layer.actualizarDirectorios(marcadores)
+        Log.d(ETIQUETA, "Directorios sincronizados en mapa: ${marcadores.size}")
+    }
+
+    fun limpiarDirectorioDelMapa() {
+        directorioLayer?.limpiarDirectorios()
+        Log.d(ETIQUETA, "Directorios limpiados del mapa")
+    }
+
     fun liberar() {
         detener()
         alcance.cancel()
         application = null
         mapaLayer = null
         eventosLayer = null
+        directorioLayer = null
     }
 }

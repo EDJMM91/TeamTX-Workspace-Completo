@@ -40,7 +40,7 @@ import kotlinx.coroutines.launch
         UserChallengeProgress::class,
         BikerCalendarEvent::class
     ],
-    version = 28, // 🛡️ Módulos: Fecha de Eventos en Muro, Sincronización Calendario Motero y Cuenta Regresiva
+    version = 29, // 🛡️ Módulos: Guía de Servicios & Repuestos con Tiendas Aragua, Financiamiento/Crédito y Mapa TX
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -577,6 +577,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_28_29 = object : Migration(28, 29) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                try {
+                    db.execSQL("ALTER TABLE `workshops_directory` ADD COLUMN `hasCredit` INTEGER NOT NULL DEFAULT 0")
+                } catch (e: Exception) {}
+                try {
+                    db.execSQL("ALTER TABLE `workshops_directory` ADD COLUMN `creditPlatforms` TEXT NOT NULL DEFAULT ''")
+                } catch (e: Exception) {}
+                try {
+                    db.execSQL("ALTER TABLE `workshops_directory` ADD COLUMN `googleMapsUrl` TEXT NOT NULL DEFAULT ''")
+                } catch (e: Exception) {}
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -584,7 +598,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "team_tx_venezuela_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29)
                 .fallbackToDestructiveMigration(dropAllTables = true) // 🛡️ Fuerza la limpieza total para evitar conflicto de IDs
                 .addCallback(DatabaseCallback(scope))
                 .build()
@@ -837,53 +851,404 @@ abstract class AppDatabase : RoomDatabase() {
             )
             passportDao.upsertDestinations(destinations)
 
-            // Seed Initial Workshops
+            // Seed Initial Workshops (Tiendas y Talleres Aragua)
             val workshopDao = db.workshopDirectoryDao()
             val workshops = listOf(
                 WorkshopDirectoryItem(
                     id = 1L,
-                    name = "Taller Moto TX Performance",
-                    type = "Taller Mecánico",
+                    name = "Moto Repuestos San Onofre",
+                    type = "Venta de Repuestos TX",
                     state = "Aragua",
                     city = "Maracay",
-                    address = "Av. Bolívar Este, sector La Romana",
-                    phone = "0414-1234567",
-                    whatsapp = "04141234567",
+                    address = "Sector San Onofre, Maracay",
+                    phone = "0412-7839728",
+                    whatsapp = "04127839728",
                     rating = 4.9,
-                    recommendedBy = "Carlos Mendoza (Presidente)",
-                    notes = "Especialistas en motor y electricidad de Empire TX 200.",
-                    latitude = 10.2469,
-                    longitude = -67.5958
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Venta de repuestos, lubricantes y accesorios para TX",
+                    latitude = 10.2427886,
+                    longitude = -67.5965123,
+                    hasCredit = true,
+                    creditPlatforms = "Cashea / Rapikom",
+                    googleMapsUrl = "https://maps.app.goo.gl/WCas6HVW1xZxW1th8"
                 ),
                 WorkshopDirectoryItem(
                     id = 2L,
-                    name = "Repuestos y Accesorios El Motero",
+                    name = "Novod Speed C.A",
                     type = "Venta de Repuestos TX",
                     state = "Aragua",
-                    city = "Cagua",
-                    address = "Calle Sucre c/c Independencia",
-                    phone = "0424-7654321",
-                    whatsapp = "04247654321",
+                    city = "Maracay",
+                    address = "Av. Principal, Maracay",
+                    phone = "0424-3377209",
+                    whatsapp = "04243377209",
                     rating = 4.8,
-                    recommendedBy = "Directiva TX Aragua",
-                    notes = "Kits de arrastre reforzados, bujías NGK y filtros originales.",
-                    latitude = 10.1856,
-                    longitude = -67.4589
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Repuestos, cauchos y accesorios moteros de alta calidad",
+                    latitude = 10.2454563,
+                    longitude = -67.6007084,
+                    hasCredit = true,
+                    creditPlatforms = "Cashea / Rapikom",
+                    googleMapsUrl = "https://maps.app.goo.gl/jUFsPteuLofYkC7T8"
                 ),
                 WorkshopDirectoryItem(
                     id = 3L,
-                    name = "Cauchera & Vulcanizadora 24H El Eje",
-                    type = "Cauchera",
-                    state = "Carabobo",
-                    city = "Valencia",
-                    address = "Autopista Regional del Centro, Distribuidor San Blas",
-                    phone = "0412-9988776",
-                    whatsapp = "04129988776",
+                    name = "Moto Central",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Sector Central, Maracay",
+                    phone = "0412-8699791",
+                    whatsapp = "04128699791",
                     rating = 4.7,
-                    recommendedBy = "Capitán de Ruta",
-                    notes = "Reparación de tripas, parchos vulcanizados y venta de cauchos para TX.",
-                    latitude = 10.1800,
-                    longitude = -67.9900
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Repuestos, kits de arrastre, bujías y mantenimiento",
+                    latitude = 10.2529454,
+                    longitude = -67.6082767,
+                    hasCredit = true,
+                    creditPlatforms = "Cashea",
+                    googleMapsUrl = "https://maps.app.goo.gl/cQQ1MbzMhto2rDnu9"
+                ),
+                WorkshopDirectoryItem(
+                    id = 4L,
+                    name = "MOTO REPUESTOS MJC CARS MILENIUM",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Intercomunal / Sector Milenium, Maracay",
+                    phone = "0412-4122699",
+                    whatsapp = "04124122699",
+                    rating = 4.8,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Repuestos para motos, baterías y consumibles",
+                    latitude = 10.2052125,
+                    longitude = -67.5678244,
+                    hasCredit = true,
+                    creditPlatforms = "Cashea",
+                    googleMapsUrl = "https://maps.app.goo.gl/Jm7h3fKrewUKmX43A"
+                ),
+                WorkshopDirectoryItem(
+                    id = 5L,
+                    name = "GG Motors",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Constitución Este, Maracay",
+                    phone = "0414-2967696",
+                    whatsapp = "04142967696",
+                    rating = 4.8,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Venta de repuestos, lubricantes y servicio rápido",
+                    latitude = 10.2303945,
+                    longitude = -67.5905278,
+                    hasCredit = true,
+                    creditPlatforms = "Cashea",
+                    googleMapsUrl = "https://maps.app.goo.gl/yz1N5J6q3Pv8bUcS6"
+                ),
+                WorkshopDirectoryItem(
+                    id = 6L,
+                    name = "Egrob",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Sector La Romana / Bolívar Este, Maracay",
+                    phone = "0412-4292720",
+                    whatsapp = "04124292720",
+                    rating = 4.7,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Repuestos y accesorios para motocicletas",
+                    latitude = 10.2469,
+                    longitude = -67.5958,
+                    hasCredit = true,
+                    creditPlatforms = "Cashea",
+                    googleMapsUrl = "https://maps.app.goo.gl/bsFmcyob4nQCSZFP7"
+                ),
+                WorkshopDirectoryItem(
+                    id = 7L,
+                    name = "LE TOUR BIKE CAFÉ (Suzuki Bolívar)",
+                    type = "Tienda de Accesorios",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Bolívar Oeste, Maracay",
+                    phone = "0414-3928552",
+                    whatsapp = "04143928552",
+                    rating = 5.0,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Accesorios moteros premium, cascos, repuestos y cafetería",
+                    latitude = 10.2540368,
+                    longitude = -67.6111177,
+                    hasCredit = true,
+                    creditPlatforms = "Cashea",
+                    googleMapsUrl = "https://maps.app.goo.gl/ZaooMHVa5kJGzm399"
+                ),
+                WorkshopDirectoryItem(
+                    id = 8L,
+                    name = "Moto Repuestos Milano C.A",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Calle Milano c/c Av. Bolívar, Maracay",
+                    phone = "0414-4656424",
+                    whatsapp = "04144656424",
+                    rating = 4.8,
+                    recommendedBy = "Directiva TX Aragua",
+                    notes = "Repuestos de motor, frenos y kits de arrastre para TX",
+                    latitude = 10.2419038,
+                    longitude = -67.6032231,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/vH5BbTJyRjayjB8u8"
+                ),
+                WorkshopDirectoryItem(
+                    id = 9L,
+                    name = "Los Mangos Repuestos",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Sector Los Mangos, Maracay",
+                    phone = "0412-8440636",
+                    whatsapp = "04128440636",
+                    rating = 4.7,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Repuestos generales, guayas, cables y consumibles",
+                    latitude = 10.2469,
+                    longitude = -67.5958,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/VkxNhEgfgfMCj6Za6"
+                ),
+                WorkshopDirectoryItem(
+                    id = 10L,
+                    name = "Almendrones Moto Partes",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Sector Los Almendrones, Maracay",
+                    phone = "0414-5891290",
+                    whatsapp = "04145891290",
+                    rating = 4.7,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Filtros de aire, pastillas de freno y repuestos eléctricos",
+                    latitude = 10.2469,
+                    longitude = -67.5958,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/jRYas65HcMV5C9FW8"
+                ),
+                WorkshopDirectoryItem(
+                    id = 11L,
+                    name = "Asdrúbal Moto",
+                    type = "Taller Mecánico",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Sector 23 de Enero / La Romana, Maracay",
+                    phone = "0414-4517108",
+                    whatsapp = "04144517108",
+                    rating = 4.8,
+                    recommendedBy = "Directiva TX Aragua",
+                    notes = "Taller de mecánica general, entonación y repuestos",
+                    latitude = 10.2456393,
+                    longitude = -67.6096241,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/w84JQenmrrt9f4nD7"
+                ),
+                WorkshopDirectoryItem(
+                    id = 12L,
+                    name = "Moto Repuestos Alex 2006 C.A",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Miranda c/c Calle Mariño, Maracay",
+                    phone = "0412-7480661",
+                    whatsapp = "04127480661",
+                    rating = 4.9,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Amplio stock de repuestos para TX 200, coronas y piñones",
+                    latitude = 10.239389,
+                    longitude = -67.6022268,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/etjBnukj9cKMEuJj9"
+                ),
+                WorkshopDirectoryItem(
+                    id = 13L,
+                    name = "Nicomoto Aragua",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Bolívar Oeste c/c Santos Michelena, Maracay",
+                    phone = "0412-4975654",
+                    whatsapp = "04124975654",
+                    rating = 4.8,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Venta de repuestos, accesorios, luces LED y baterías",
+                    latitude = 10.2509257,
+                    longitude = -67.6076853,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/5u2JdjVB9VNi5hdKA"
+                ),
+                WorkshopDirectoryItem(
+                    id = 14L,
+                    name = "MOTO ELITE 3000 MARACAY",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Casanova Godoy, sector El Bosque, Maracay",
+                    phone = "0412-9060180",
+                    whatsapp = "04129060180",
+                    rating = 4.9,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Repuestos de gama alta, cauchos y accesorios",
+                    latitude = 10.2558151,
+                    longitude = -67.6185126,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/4jb1NnAKFZYWJUns8"
+                ),
+                WorkshopDirectoryItem(
+                    id = 15L,
+                    name = "Motorepuestos RG",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Sector Santa Rosa / Av. Fuerzas Aéreas, Maracay",
+                    phone = "0412-8722621",
+                    whatsapp = "04128722621",
+                    rating = 4.8,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Cadenas reforzadas, bandas de freno y repuestos TX",
+                    latitude = 10.2360582,
+                    longitude = -67.6010938,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/WfXh64n1rXTbVrh19"
+                ),
+                WorkshopDirectoryItem(
+                    id = 16L,
+                    name = "Moto Repuestos Latino",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Las Delicias, sector El Toro, Maracay",
+                    phone = "0424-3078879",
+                    whatsapp = "04243078879",
+                    rating = 4.7,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Venta de repuestos, bujías Iridium y aceites 4T",
+                    latitude = 10.2469,
+                    longitude = -67.5958,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/B8EuDtPQvwGLzH4a7"
+                ),
+                WorkshopDirectoryItem(
+                    id = 17L,
+                    name = "Motorcar Repuestos",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Calle Boyacá c/c Libertad, Maracay",
+                    phone = "0412-4579955",
+                    whatsapp = "04124579955",
+                    rating = 4.7,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Repuestos mecánicos, eléctricos y suspensión",
+                    latitude = 10.2469,
+                    longitude = -67.5958,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/iNPvcZ9w4gN4DtbTA"
+                ),
+                WorkshopDirectoryItem(
+                    id = 18L,
+                    name = "Inversiones Pereira 2020",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Bolívar Oeste, sector La Julia, Maracay",
+                    phone = "0412-4773617",
+                    whatsapp = "04124773617",
+                    rating = 4.8,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Repuestos y consumibles para motos Empire TX",
+                    latitude = 10.2507339,
+                    longitude = -67.617933,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/VpKLfDU8hUPLt1xy8"
+                ),
+                WorkshopDirectoryItem(
+                    id = 19L,
+                    name = "PARADISE MARACAY, CA (Empire Keeway)",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Sucre c/c Av. Casanova Godoy, Maracay",
+                    phone = "0424-3457013",
+                    whatsapp = "04243457013",
+                    rating = 5.0,
+                    recommendedBy = "Presidente Nacional TX",
+                    notes = "Concesionario oficial Empire Keeway, repuestos originales y servicio",
+                    latitude = 10.2511258,
+                    longitude = -67.597661,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/kqZDq4rgAEVAZv9p9"
+                ),
+                WorkshopDirectoryItem(
+                    id = 20L,
+                    name = "SUPER MOTOS EL SHADDAI C.A (Empire)",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Sector 9no Inning, Av. Intercomunal, Maracay",
+                    phone = "0414-5880424",
+                    whatsapp = "04145880424",
+                    rating = 4.9,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Repuestos originales Empire Keeway, servicio técnico y repuestos",
+                    latitude = 10.2144251,
+                    longitude = -67.5761185,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/EJuYw4TzoSM77ErQ6"
+                ),
+                WorkshopDirectoryItem(
+                    id = 21L,
+                    name = "Empire Keeway Papi Moto",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Aragua c/c Av. Fuerzas Aéreas, Maracay",
+                    phone = "0412-5120029",
+                    whatsapp = "04125120029",
+                    rating = 4.8,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Venta de motos, repuestos originales Empire, cauchos y aceite",
+                    latitude = 10.2336375,
+                    longitude = -67.6006529,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/vECLjzKnC81qWUdv8"
+                ),
+                WorkshopDirectoryItem(
+                    id = 22L,
+                    name = "EMPIRE KEEWAY Paradise Motors Parts",
+                    type = "Venta de Repuestos TX",
+                    state = "Aragua",
+                    city = "Maracay",
+                    address = "Av. Constitución Oeste c/c Calle Mariño, Maracay",
+                    phone = "0424-3190583",
+                    whatsapp = "04243190583",
+                    rating = 5.0,
+                    recommendedBy = "Team TX Aragua",
+                    notes = "Concesionario y repuestos genuinos Empire Keeway, servicio y accesorios",
+                    latitude = 10.2453587,
+                    longitude = -67.6001947,
+                    hasCredit = false,
+                    creditPlatforms = "",
+                    googleMapsUrl = "https://maps.app.goo.gl/1h9NqscNq6rkrGBh8"
                 )
             )
             workshopDao.upsertWorkshops(workshops)

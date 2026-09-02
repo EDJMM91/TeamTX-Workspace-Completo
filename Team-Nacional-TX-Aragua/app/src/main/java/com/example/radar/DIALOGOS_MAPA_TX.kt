@@ -477,6 +477,315 @@ object DialogosMapaTx {
         dialog.show()
     }
 
+    /**
+     * Muestra el detalle táctico al tocar cualquier marcador de taller o repuestos en el mapa.
+     */
+    @JvmStatic
+    fun mostrarDirectorio(activity: Activity, item: DirectorioMapLayer.DirectorioMarcador) {
+        val app = activity.application as? OsmandApplication ?: return
+        val dialog = Dialog(activity)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val density = activity.resources.displayMetrics.density
+        val tieneCashea = item.tieneCashea || item.plataformasCredito.contains("Cashea", ignoreCase = true)
+        val colorTemaHex = if (tieneCashea) "#00E676" else "#FF9800"
+        val colorTemaInt = Color.parseColor(colorTemaHex)
+
+        val rootLayout = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadii = floatArrayOf(
+                    20 * density, 20 * density,
+                    20 * density, 20 * density,
+                    0f, 0f, 0f, 0f
+                )
+                setColor(Color.parseColor("#141822"))
+            }
+            setPadding((18 * density).toInt(), (12 * density).toInt(), (18 * density).toInt(), (24 * density).toInt())
+        }
+
+        // Handle superior
+        val handlePill = View(activity).apply {
+            layoutParams = LinearLayout.LayoutParams((44 * density).toInt(), (4 * density).toInt()).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = (14 * density).toInt()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 4 * density
+                setColor(Color.parseColor("#555555"))
+            }
+        }
+        rootLayout.addView(handlePill)
+
+        // Cabecera: Tipo e icono cerrar
+        val headerRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val tvHeader = TextView(activity).apply {
+            text = "🏪 COMERCIO RECOMENDADO TEAM TX"
+            setTextColor(colorTemaInt)
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        headerRow.addView(tvHeader)
+
+        val btnCerrar = TextView(activity).apply {
+            text = "✕"
+            setTextColor(Color.parseColor("#AAAAAA"))
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding((10 * density).toInt(), (4 * density).toInt(), (10 * density).toInt(), (4 * density).toInt())
+            setOnClickListener { dialog.dismiss() }
+        }
+        headerRow.addView(btnCerrar)
+        rootLayout.addView(headerRow)
+
+        // Fila de Título con Logo de Bandera o Team TX
+        val titleRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+        }
+
+        val logoContainer = FrameLayout(activity).apply {
+            layoutParams = LinearLayout.LayoutParams((44 * density).toInt(), (44 * density).toInt()).apply {
+                marginEnd = (12 * density).toInt()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#1C2331"))
+                setStroke((2 * density).toInt(), colorTemaInt)
+            }
+        }
+
+        val logoImg = ImageView(activity).apply {
+            layoutParams = FrameLayout.LayoutParams((32 * density).toInt(), (32 * density).toInt(), Gravity.CENTER)
+            val resId = activity.resources.getIdentifier("bandera", "drawable", activity.packageName)
+            if (resId != 0) {
+                setImageResource(resId)
+            } else {
+                val altRes = activity.resources.getIdentifier("logoteam", "drawable", activity.packageName)
+                if (altRes != 0) setImageResource(altRes)
+            }
+        }
+        logoContainer.addView(logoImg)
+        titleRow.addView(logoContainer)
+
+        val titleCol = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val tvNombre = TextView(activity).apply {
+            text = item.nombre
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            typeface = Typeface.DEFAULT_BOLD
+            maxLines = 2
+        }
+        titleCol.addView(tvNombre)
+
+        val tvTipo = TextView(activity).apply {
+            text = "🏷️ ${item.tipo}"
+            setTextColor(Color.parseColor("#FFB74D"))
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (2 * density).toInt()
+            }
+        }
+        titleCol.addView(tvTipo)
+        titleRow.addView(titleCol)
+        rootLayout.addView(titleRow)
+
+        // Tarjeta de Dirección y Ubicación
+        val infoCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#1A2130"))
+                setStroke((1 * density).toInt(), Color.parseColor("#2C3B50"))
+            }
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val tvDir = TextView(activity).apply {
+            text = "📍 ${item.direccion}, ${item.ciudad}, Edo. ${item.estado}"
+            setTextColor(Color.parseColor("#E0E0E0"))
+            textSize = 12f
+        }
+        infoCard.addView(tvDir)
+
+        if (item.notas.isNotBlank()) {
+            val tvNotas = TextView(activity).apply {
+                text = "🔧 ${item.notas}"
+                setTextColor(Color.parseColor("#90CAF9"))
+                textSize = 11f
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    topMargin = (6 * density).toInt()
+                }
+            }
+            infoCard.addView(tvNotas)
+        }
+        rootLayout.addView(infoCard)
+
+        // SECCIÓN DESTACADA: CASHEA / FINANCIAMIENTO
+        if (tieneCashea || item.plataformasCredito.isNotBlank()) {
+            val casheaCard = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 10 * density
+                    setColor(Color.parseColor("#0F2B1D"))
+                    setStroke((1 * density).toInt(), Color.parseColor("#00E676"))
+                }
+                setPadding((10 * density).toInt(), (8 * density).toInt(), (10 * density).toInt(), (8 * density).toInt())
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    bottomMargin = (12 * density).toInt()
+                }
+            }
+
+            val casheaImg = ImageView(activity).apply {
+                layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (32 * density).toInt()).apply {
+                    marginEnd = (10 * density).toInt()
+                }
+                val resCashea = activity.resources.getIdentifier("logocashea", "drawable", activity.packageName)
+                if (resCashea != 0) setImageResource(resCashea)
+            }
+            casheaCard.addView(casheaImg)
+
+            val casheaTextCol = LinearLayout(activity).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+
+            val tvCasheaTitle = TextView(activity).apply {
+                text = "💳 ACEPTA FINANCIAMIENTO"
+                setTextColor(Color.parseColor("#69F0AE"))
+                textSize = 12f
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            casheaTextCol.addView(tvCasheaTitle)
+
+            val tvCasheaPlat = TextView(activity).apply {
+                text = item.plataformasCredito.ifBlank { "Cashea / Rapikom / Convenio" }
+                setTextColor(Color.parseColor("#B9F6CA"))
+                textSize = 11f
+            }
+            casheaTextCol.addView(tvCasheaPlat)
+            casheaCard.addView(casheaTextCol)
+            rootLayout.addView(casheaCard)
+        }
+
+        // Fila de Botones: Llamar y WhatsApp
+        val commRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (8 * density).toInt()
+            }
+        }
+
+        if (item.telefono.isNotBlank()) {
+            val btnLlamar = Button(activity).apply {
+                text = "📞 Llamar"
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 8 * density
+                    setColor(Color.parseColor("#1565C0"))
+                }
+                layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                    marginEnd = if (item.whatsapp.isNotBlank()) (6 * density).toInt() else 0
+                }
+                setOnClickListener {
+                    try {
+                        val intent = Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:${item.telefono.replace(Regex("[^0-9+]"), "")}"))
+                        activity.startActivity(intent)
+                    } catch (_: Exception) {
+                        Toast.makeText(activity, "No se pudo abrir el marcador telefónico", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            commRow.addView(btnLlamar)
+        }
+
+        if (item.whatsapp.isNotBlank()) {
+            val btnWa = Button(activity).apply {
+                text = "💬 WhatsApp"
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                typeface = Typeface.DEFAULT_BOLD
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 8 * density
+                    setColor(Color.parseColor("#2E7D32"))
+                }
+                layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                    marginStart = if (item.telefono.isNotBlank()) (6 * density).toInt() else 0
+                }
+                setOnClickListener {
+                    try {
+                        val num = item.whatsapp.replace(Regex("[^0-9]"), "")
+                        val uri = android.net.Uri.parse("https://wa.me/$num")
+                        activity.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    } catch (_: Exception) {
+                        Toast.makeText(activity, "No se pudo abrir WhatsApp", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            commRow.addView(btnWa)
+        }
+        if (item.telefono.isNotBlank() || item.whatsapp.isNotBlank()) {
+            rootLayout.addView(commRow)
+        }
+
+        // Botón: Ir a Guía de Servicios y Repuestos
+        val btnDirectorio = Button(activity).apply {
+            text = "🏍️ Abrir en Guía de Servicios y Repuestos"
+            setTextColor(Color.BLACK)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#FF9800"))
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (42 * density).toInt()).apply {
+                bottomMargin = (6 * density).toInt()
+            }
+            setOnClickListener {
+                dialog.dismiss()
+                val prefs = activity.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
+                prefs.edit().putString("target_workshop_name", item.nombre).apply()
+                activity.finish()
+            }
+        }
+        rootLayout.addView(btnDirectorio)
+
+        dialog.setContentView(rootLayout)
+        dialog.window?.let { w ->
+            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            w.setGravity(Gravity.BOTTOM)
+            w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+        dialog.show()
+    }
+
     private fun obtenerColorRangoHex(rango: String): String {
         return when {
             rango.contains("Capitán", true) || rango.contains("Capitan", true) -> "#E53935"

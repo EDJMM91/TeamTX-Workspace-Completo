@@ -336,7 +336,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             }
         },
         bottomBar = {
-            val isCalendarOrFullscreen = selectedTab == NavigationTab.CALENDARIO || selectedTab == NavigationTab.NOTIFICACIONES || selectedTab == NavigationTab.PLAYER
+            val isCalendarOrFullscreen = selectedTab == NavigationTab.CALENDARIO || selectedTab == NavigationTab.NOTIFICACIONES || selectedTab == NavigationTab.PLAYER || selectedTab == NavigationTab.DIRECTORIO
             AnimatedVisibility(visible = isBottomNavVisible && !isCalendarOrFullscreen) {
                 Surface(
                     color = Color.Transparent,
@@ -660,10 +660,22 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     WorkshopDirectoryScreen(
                         workshops = allWorkshops,
                         currentMember = currentMember,
-                        onCreateWorkshop = { name, type, state, city, addr, ph, wa, rat, notes, lat, lng ->
-                            viewModel.createWorkshop(name, type, state, city, addr, ph, wa, rat, notes, lat, lng)
+                        onCreateWorkshop = { name, type, state, city, addr, ph, wa, rat, notes, lat, lng, hasCredit, creditPlatforms, gMapsUrl ->
+                            viewModel.createWorkshop(name, type, state, city, addr, ph, wa, rat, notes, lat, lng, hasCredit, creditPlatforms, gMapsUrl)
+                        },
+                        onUpdateWorkshop = { updatedItem ->
+                            viewModel.updateWorkshop(updatedItem)
                         },
                         onDeleteWorkshop = { viewModel.deleteWorkshop(it) },
+                        onNavigateToMap = { lat, lng, title ->
+                            val prefs = context.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
+                            prefs.edit()
+                                .putString("target_dest_lat", lat.toString())
+                                .putString("target_dest_lon", lng.toString())
+                                .putString("target_dest_name", title)
+                                .apply()
+                            selectedTab = NavigationTab.MAPA
+                        },
                         onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
@@ -933,7 +945,10 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     )
                 }
                 NavigationTab.MAPA -> {
-                    TxMapLauncher(onBackClick = { selectedTab = NavigationTab.DASHBOARD })
+                    TxMapLauncher(
+                        onBackClick = { selectedTab = NavigationTab.DASHBOARD },
+                        onNavigateToDirectory = { selectedTab = NavigationTab.DIRECTORIO }
+                    )
                 }
                 NavigationTab.INFO -> {
                     VistaInfoScreen(

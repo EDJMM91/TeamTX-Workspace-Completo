@@ -24,6 +24,7 @@ import net.osmand.plus.OsmandApplication
 enum class TipoSitioTx(val etiqueta: String, val colorHex: String, val iconoEmoji: String) {
     AVISO_MURO("Aviso Muro", "#FF9800", "📢"),
     CALENDARIO("Calendario", "#E53935", "🗓️"),
+    TALLER_REPUESTO("Taller / Repuesto TX", "#00E5FF", "🏪"),
     FAVORITO("Favorito", "#FDD835", "⭐"),
     MARCADOR_MAPA("Punto Mapa", "#4CAF50", "📍")
 }
@@ -238,6 +239,29 @@ object BuscadorSitiosTx {
                                     lat = lat,
                                     lon = lon,
                                     timestamp = 0L
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // Talleres y Venta de Repuestos TX
+                val workshops = db.workshopDirectoryDao().getAllWorkshops().first()
+                for (w in workshops) {
+                    if (w.latitude != 0.0 && w.longitude != 0.0) {
+                        val existe = listaSitios.any { it.lat == w.latitude && it.lon == w.longitude }
+                        if (!existe) {
+                            val credInfo = if (w.hasCredit || w.creditPlatforms.isNotBlank()) " | 💳 Crédito: ${w.creditPlatforms}" else ""
+                            listaSitios.add(
+                                SitioMapaTx(
+                                    id = "ws_${w.id}",
+                                    titulo = w.name,
+                                    descripcion = "${w.type} - ${w.notes}$credInfo",
+                                    direccion = if (w.address.isNotBlank()) "${w.address}, ${w.city}" else "${w.city}, ${w.state}",
+                                    tipo = TipoSitioTx.TALLER_REPUESTO,
+                                    lat = w.latitude,
+                                    lon = w.longitude,
+                                    timestamp = w.timestamp
                                 )
                             )
                         }

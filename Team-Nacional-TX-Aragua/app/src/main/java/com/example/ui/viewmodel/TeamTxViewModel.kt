@@ -3041,7 +3041,10 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         rating: Double,
         notes: String,
         latitude: Double = 0.0,
-        longitude: Double = 0.0
+        longitude: Double = 0.0,
+        hasCredit: Boolean = false,
+        creditPlatforms: String = "",
+        googleMapsUrl: String = ""
     ) {
         viewModelScope.launch {
             val current = currentMember.value
@@ -3059,9 +3062,18 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 notes = notes,
                 latitude = latitude,
                 longitude = longitude,
+                hasCredit = hasCredit,
+                creditPlatforms = creditPlatforms,
+                googleMapsUrl = googleMapsUrl,
                 timestamp = System.currentTimeMillis()
             )
             repository.insertWorkshop(item)
+        }
+    }
+
+    fun updateWorkshop(item: WorkshopDirectoryItem) {
+        viewModelScope.launch {
+            repository.updateWorkshop(item.copy(timestamp = System.currentTimeMillis()))
         }
     }
 

@@ -886,7 +886,7 @@ data class MaintenanceLog(
 data class WorkshopDirectoryItem(
     @PrimaryKey var id: Long = 0L,
     var name: String = "",
-    var type: String = "Taller Mecánico", // Taller Mecánico, Venta de Repuestos TX, Cauchera, Electricidad, Tornería / Soldadura
+    var type: String = "Taller Mecánico", // Taller Mecánico, Venta de Repuestos TX, Cauchera, Electricidad, Tornería / Soldadura, Tienda de Accesorios
     var state: String = "Aragua",
     var city: String = "",
     var address: String = "",
@@ -897,6 +897,9 @@ data class WorkshopDirectoryItem(
     var notes: String = "",
     var latitude: Double = 0.0,
     var longitude: Double = 0.0,
+    var hasCredit: Boolean = false,
+    var creditPlatforms: String = "", // Cashea, Rapikom, Convenio con el Dueño y el Team TX, etc.
+    var googleMapsUrl: String = "",
     var timestamp: Long = System.currentTimeMillis()
 )
 
