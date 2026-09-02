@@ -119,8 +119,8 @@ abstract class BaseFirestoreSync<T : Any>(
                         dbUpsertAll(toUpsert)
                     }
 
-                    // 3. 🛡️ Reconciliación de snapshot: si no hay escrituras pendientes, limpiar elementos locales que no existen en Firestore
-                    if (!snapshot.metadata.hasPendingWrites()) {
+                    // 3. 🛡️ Reconciliación de snapshot: si no hay escrituras pendientes y hay documentos remotos, limpiar elementos locales que no existen en Firestore
+                    if (!snapshot.metadata.hasPendingWrites() && snapshot.documents.isNotEmpty()) {
                         try {
                             val remoteIds = snapshot.documents.mapNotNull { it.id.toLongOrNull() ?: it.getLong("id") }.toSet()
                             val localItems = dbGetAll().first()

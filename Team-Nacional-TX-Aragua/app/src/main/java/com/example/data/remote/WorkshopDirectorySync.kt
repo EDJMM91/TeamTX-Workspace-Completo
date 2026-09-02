@@ -1,9 +1,14 @@
 package com.example.data.remote
 
+import android.util.Log
 import com.example.data.local.AppDatabase
 import com.example.data.model.WorkshopDirectoryItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class WorkshopDirectorySync(
     database: AppDatabase,
@@ -22,4 +27,41 @@ class WorkshopDirectorySync(
     override fun getId(item: WorkshopDirectoryItem): Long = item.id
     override fun setId(item: WorkshopDirectoryItem, id: Long): WorkshopDirectoryItem = item.copy(id = id)
     override fun getTimestamp(item: WorkshopDirectoryItem): Long = item.timestamp
+
+    init {
+        scope.launch(Dispatchers.IO) {
+            verificarYSembrarDirectorio()
+        }
+    }
+
+    private suspend fun verificarYSembrarDirectorio() {
+        try {
+            // 1. Asegurar primero que la base de datos local tenga las tiendas de inmediato
+            val locales = database.workshopDirectoryDao().getAllWorkshops().first()
+            if (locales.isEmpty()) {
+                Log.i("FIREBASE_SYNC", "📦 Cargando tiendas iniciales en Room...")
+                database.workshopDirectoryDao().upsertWorkshops(AppDatabase.INITIAL_WORKSHOPS)
+            }
+
+            // 2. Consultar Firestore para sembrar en la nube si está vacía
+            val snapshot = db.collection(collectionName).get().await()
+            if (snapshot.isEmpty) {
+                Log.i("FIREBASE_SYNC", "🌱 Sembrando ${AppDatabase.INITIAL_WORKSHOPS.size} tiendas en Firestore...")
+                for (item in AppDatabase.INITIAL_WORKSHOPS) {
+                    insertOrUpdate(item)
+                }
+            } else {
+                val remotos = snapshot.documents.mapNotNull { it.toObject(WorkshopDirectoryItem::class.java) }
+                if (remotos.isNotEmpty()) {
+                    database.workshopDirectoryDao().upsertWorkshops(remotos)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("FIREBASE_SYNC", "Aviso en sync de directorio: ${e.message}")
+            try {
+                database.workshopDirectoryDao().upsertWorkshops(AppDatabase.INITIAL_WORKSHOPS)
+            } catch (_: Exception) {}
+        }
+    }
 }
+

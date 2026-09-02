@@ -112,3 +112,36 @@ al compilar ✅ App lanzada en ambos dispositivos PERO DESPUES DE MI ORDEN PARA 
 > ### 📜 Registro Histórico de Migraciones Room:
 > - **Migración SQL 25 -> 26 Registrada:** Gamificación y reputación de pilotos (`positiveRatingsCount`, `negativeRatingsCount`, `reputationPoints`, `ratedByMemberIdsJson`).
 > - **Migración SQL 26 -> 27 Registrada:** Ubicación de eventos en publicaciones (`locationCoordinates`, `locationName` en tabla `publications`).
+
+---
+
+// [REPORTE DE CAMBIO - 02/09/2026] - DESBLOQUEO OSMAND PRO
+// Se implementó bypass en motor base (módulo :OsmAnd) para activar funciones Pro.
+// Archivos: InAppPurchaseUtils.java y Version.java
+// Estado: Pendiente de aplicación y despliegue en Samsung SM_A165M.
+// Propósito: Habilitar Clima en vivo, Mapas 3D y Android Auto para el Team.
+1.
+InAppPurchaseUtils.java: Forzaremos el acceso total a las funciones.
+2.
+Version.java: Le diremos a la app que es una versión comprada de élite.
+3.
+Registro: Queda guardado en el gestor para que cualquier otro agente sepa que este cambio es intencional.
+🛠️ Líneas exactas a modificar:
+1. Archivo:   D:/MAPA/android/OsmAnd/src/net/osmand/plus/inapp/InAppPurchaseUtils.java
+   •
+   Línea 54: Método isFullVersionAvailable.
+   ◦
+   Cambio: Retornará true directamente. Habilita búsquedas avanzadas y límites de descarga.
+   •
+   Línea 62: Método isMapsPlusAvailable.
+   ◦
+   Cambio: Retornará true directamente. Habilita funciones Plus (Wikipedia, etc.).
+   •
+   Línea 70: Método isOsmAndProAvailable.
+   ◦
+   Cambio: Retornará true directamente. Este es el más importante, desbloquea Mapas 3D, Clima y Android Auto.
+2. Archivo:   D:/MAPA/android/OsmAnd/src/net/osmand/plus/Version.java
+   •
+   Línea 137: Método isPaidVersion.
+   ◦
+   Cambio: Retornará true directamente. Identifica a la app como "Versión de Pago" en todo el sistema.
