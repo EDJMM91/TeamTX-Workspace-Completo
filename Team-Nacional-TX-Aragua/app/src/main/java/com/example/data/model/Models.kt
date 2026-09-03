@@ -721,6 +721,12 @@ data class ChatMessage(
     var audioDurationSeconds: Int = 0,
     var audioUrl: String? = null,
 
+    // Sistema de Encuestas Interactivas
+    var isPoll: Boolean = false,
+    var pollQuestion: String = "",
+    var pollOptionsJson: String = "",
+    var pollVotesJson: String = "",
+
     // Enfoque Offline-First / Cola Local
     var syncStatus: String = "SENT", // "PENDING", "SENDING", "SENT", "DELIVERED", "READ"
     var localMediaPath: String? = null
@@ -730,6 +736,48 @@ data class ChatMessage(
 
     val isSticker: Boolean
         get() = messageType == MessageType.STICKER && (stickerFileName != null || stickerFilePath != null)
+
+    fun getPollOptions(): List<String> {
+        if (pollOptionsJson.isBlank()) return emptyList()
+        try {
+            val arr = org.json.JSONArray(pollOptionsJson)
+            val list = mutableListOf<String>()
+            for (i in 0 until arr.length()) list.add(arr.getString(i))
+            return list
+        } catch (_: Exception) { return emptyList() }
+    }
+
+    fun getPollVotesMap(): Map<Int, List<Long>> {
+        if (pollVotesJson.isBlank()) return emptyMap()
+        try {
+            val result = mutableMapOf<Int, List<Long>>()
+            val obj = org.json.JSONObject(pollVotesJson)
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val keyStr = keys.next()
+                val optIdx = keyStr.toIntOrNull() ?: continue
+                val arr = obj.getJSONArray(keyStr)
+                val ids = mutableListOf<Long>()
+                for (i in 0 until arr.length()) ids.add(arr.getLong(i))
+                result[optIdx] = ids
+            }
+            return result
+        } catch (_: Exception) { return emptyMap() }
+    }
+
+    fun votePoll(optionIndex: Int, memberId: Long): String {
+        val map = getPollVotesMap().mapValues { it.value.toMutableList() }.toMutableMap()
+        map.forEach { (_, ids) -> ids.remove(memberId) }
+        map.entries.removeAll { it.value.isEmpty() }
+        
+        map.getOrPut(optionIndex) { mutableListOf() }.add(memberId)
+
+        val jsonObj = org.json.JSONObject()
+        map.forEach { (k, v) ->
+            jsonObj.put(k.toString(), org.json.JSONArray(v))
+        }
+        return jsonObj.toString()
+    }
 
     fun getReactionsMap(): Map<String, List<Long>> {
         if (reactions.isBlank()) return emptyMap()
@@ -768,7 +816,8 @@ enum class MessageType {
     STICKER,
     IMAGE,
     AUDIO,
-    LOCATION
+    LOCATION,
+    POLL
 }
 
 @Entity(tableName = "invitation_codes")

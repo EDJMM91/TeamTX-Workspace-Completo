@@ -1,3 +1,4 @@
-- [x] Forzar selector de cuentas de Google en `AUTENTICACION_GOOGLE.kt` mediante `signOut()` y `revokeAccess()`
-- [x] Adaptar `PassportScreen.kt` y `FeedScreen.kt` al tema claro del Dashboard (`DashboardFondoConfig`)
-- [x] Compilar y verificar el proyecto (`:app:assembleDebug`)
+- [x] Añadir soporte de Encuestas en `Models.kt` (`MessageType.POLL` y campos JSON, métodos de votación)
+- [x] Implementar `CreatePollDialog` y Tarjeta Interactiva de Encuesta en `ClubChatScreen.kt` con tema claro del Dashboard y contraste garantizado (sin texto blanco en fondo blanco)
+- [x] Implementar métodos `sendPollMessage` y `votePoll` en `TeamTxViewModel.kt`
+- [ ] Esperar orden de compilación e instalación del usuario (según directiva "NO COMPILES ESPERA MSAS ORDENES")

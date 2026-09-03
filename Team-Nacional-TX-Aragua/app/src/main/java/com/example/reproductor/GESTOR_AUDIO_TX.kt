@@ -124,6 +124,7 @@ object GESTOR_AUDIO_TX {
     private const val MAX_AUTO_SKIPS = 5
     private const val MIN_DURACION_VALIDA_MS = 2000L
     private var errorEnCurso = false
+    private val isTransitioning = java.util.concurrent.atomic.AtomicBoolean(false)
     private var logFile: File? = null
     private var timestampsSkips = mutableListOf<Long>()
 
@@ -531,6 +532,11 @@ object GESTOR_AUDIO_TX {
             return
         }
 
+        intentosErrorConsecutivos = 0
+        autoSkipsConsecutivos = 0
+        errorEnCurso = false
+        isTransitioning.set(false)
+
         logDiagnostico("⏭ siguienteCancion: indiceActual=$indiceColaActual tamañoCola=${cola.size}")
 
         if (_modoAleatorio.value && cola.size > 1) {
@@ -569,6 +575,11 @@ object GESTOR_AUDIO_TX {
 
         val cola = _colaReproduccion.value
         if (cola.isEmpty()) return
+
+        intentosErrorConsecutivos = 0
+        autoSkipsConsecutivos = 0
+        errorEnCurso = false
+        isTransitioning.set(false)
 
         var anteriorIndice = indiceColaActual - 1
         if (anteriorIndice < 0) {

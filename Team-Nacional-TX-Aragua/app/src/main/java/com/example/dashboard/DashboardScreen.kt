@@ -380,8 +380,8 @@ fun DashboardScreen(
 
             item {
                 ModuleListRow(
-                    titulo = "Directorio de Talleres",
-                    descripcion = "Talleres mecánicos recomendados y especialistas TX",
+                    titulo = "Directorio Comercial & Servicios",
+                    descripcion = "Talleres, repuestos, autolavados y servicios para moteros",
                     icono = Icons.Default.Storefront,
                     colorIcono = Color(0xFF00897B),
                     onClick = { onNavigateToTab(NavigationTab.DIRECTORIO) }

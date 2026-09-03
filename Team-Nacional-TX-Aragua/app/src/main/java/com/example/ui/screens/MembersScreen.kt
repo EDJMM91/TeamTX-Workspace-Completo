@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dashboard.DashboardFondoConfig
 import com.example.data.model.MemberProfile
 import com.example.data.model.MemberRole
 import com.example.ui.components.*
@@ -81,6 +82,7 @@ fun MembersScreen(
     onReactivateMember: (member: MemberProfile) -> Unit = {},
     onSelectMemberAsActive: (Long) -> Unit,
     onRateMember: (MemberProfile, Boolean, String, Int, String) -> Unit = { _, _, _, _, _ -> },
+    onOpenPrivateChat: (MemberProfile) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -132,390 +134,409 @@ fun MembersScreen(
         }
     }
 
-    Scaffold(
-        floatingActionButton = {
-            if (isDirectivaMode) {
-                FloatingActionButton(
-                    onClick = { showRegisterDialog = true },
-                    containerColor = TxFlameRed,
-                    contentColor = Color.White,
-                    modifier = Modifier.testTag("fab_register_member")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(DashboardFondoConfig.ColorFondoClaro)
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            floatingActionButton = {
+                if (isDirectivaMode) {
+                    FloatingActionButton(
+                        onClick = { showRegisterDialog = true },
+                        containerColor = DashboardFondoConfig.ColorRojoCarrera,
+                        contentColor = Color.White,
+                        modifier = Modifier.testTag("fab_register_member")
                     ) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = "Nuevo Piloto")
-                        Text("Nuevo Piloto", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        },
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        LazyColumn(
-            contentPadding = PaddingValues(
-                top = innerPadding.calculateTopPadding() + 12.dp,
-                bottom = innerPadding.calculateBottomPadding() + 84.dp,
-                start = 16.dp,
-                end = 16.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Header Banner: Official Title & Directiva stats
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF141822)
-                    ),
-                    border = BorderStroke(
-                        1.5.dp,
-                        Brush.horizontalGradient(
-                            listOf(TxGoldBrass, TxFlameRed, TxChromeSilver)
-                        )
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("members_header_banner")
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        VenezuelanFlagRibbon()
-
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            OfficialClubEmblemBadge(
-                                size = 68.dp,
-                                showSubtext = false
-                            )
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = TxFlameRed.copy(alpha = 0.2f),
-                                    border = BorderStroke(0.8.dp, TxFlameRed)
-                                ) {
-                                    Text(
-                                        text = "REGISTRO Y DISCIPLINA NACIONAL",
-                                        color = TxFlameRed,
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Black,
-                                        letterSpacing = 0.8.sp,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(3.dp))
-                                Text(
-                                    text = "Directorio de Pilotos TX",
-                                    color = Color.White,
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                                Text(
-                                    text = "Gestión de estado, solvencias, sanciones y rangos del club",
-                                    color = TxSteelSilver,
-                                    fontSize = 11.sp,
-                                    lineHeight = 14.sp
-                                )
-                            }
-                        }
-
-                        // Status Statistics Bar
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF0C0E14))
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            StatMiniItem(label = "Total", value = "${members.size}", color = TxChromeSilver)
-                            VerticalDivider(modifier = Modifier.height(20.dp), color = Color(0xFF232A38))
-                            StatMiniItem(label = "Activos", value = "$activeCount", color = StatusSuccess)
-                            VerticalDivider(modifier = Modifier.height(20.dp), color = Color(0xFF232A38))
-                            StatMiniItem(label = "Suspendidos", value = "$suspendedCount", color = StatusError)
-                            VerticalDivider(modifier = Modifier.height(20.dp), color = Color(0xFF232A38))
-                            StatMiniItem(label = "Directiva", value = "$directivaCount", color = TxGoldBrass)
+                            Icon(Icons.Default.PersonAdd, contentDescription = "Nuevo Piloto")
+                            Text("Nuevo Piloto", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
-            }
-
-            // Search Bar
-            item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Buscar por nombre, alias, N° TX, placa o estado...", fontSize = 13.sp) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = "Buscar",
-                            tint = TxGoldBrass
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Limpiar")
-                            }
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = TxFlameRed,
-                        unfocusedBorderColor = AsphaltDarkBorder,
-                        focusedContainerColor = AsphaltDarkSurface,
-                        unfocusedContainerColor = AsphaltDarkSurface
-                    ),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_search_member")
-                )
-            }
-
-            // Status Filter Tabs (Todos / Activos / Suspendidos / Directiva)
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MemberStatusFilter.values().forEach { filter ->
-                        val isSelected = selectedStatusFilter == filter
-                        val filterColor = when (filter) {
-                            MemberStatusFilter.TODOS -> TxSteelSilver
-                            MemberStatusFilter.ACTIVOS -> StatusSuccess
-                            MemberStatusFilter.SUSPENDIDOS -> StatusError
-                            MemberStatusFilter.DIRECTIVA -> TxGoldBrass
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) filterColor.copy(alpha = 0.2f) else AsphaltDarkSurface,
-                            border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, if (isSelected) filterColor else AsphaltDarkBorder),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { selectedStatusFilter = filter }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = filter.icon,
-                                    contentDescription = null,
-                                    tint = if (isSelected) filterColor else Color(0xFF8C9BAE),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = filter.label,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) filterColor else Color(0xFF8C9BAE)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Chapter Filters Horizontal List
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "FILTRAR POR CAPÍTULO / ESTADO",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TxGoldBrass,
-                        letterSpacing = 0.5.sp
-                    )
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(chapters) { chapter ->
-                            val isSelected = selectedChapter == chapter
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { selectedChapter = chapter },
-                                label = {
-                                    Text(
-                                        text = chapter,
-                                        fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = TxFlameRed,
-                                    selectedLabelColor = Color.White,
-                                    containerColor = AsphaltDarkSurface,
-                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Role Filters Horizontal List
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "FILTRAR POR JERARQUÍA / RANGO",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TxSteelSilver,
-                        letterSpacing = 0.5.sp
-                    )
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        item {
-                            FilterChip(
-                                selected = selectedRole == null,
-                                onClick = { selectedRole = null },
-                                label = { Text("Todos los Rangos", fontSize = 11.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = TxGoldBrass,
-                                    selectedLabelColor = Color.Black
-                                )
-                            )
-                        }
-                        items(MemberRole.values()) { role ->
-                            val isSelected = selectedRole == role
-                            val roleColor = Color(role.badgeColorHex)
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { selectedRole = if (isSelected) null else role },
-                                label = {
-                                    Text(
-                                        text = role.displayName,
-                                        fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                leadingIcon = {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(roleColor)
-                                    )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = roleColor.copy(alpha = 0.3f),
-                                    selectedLabelColor = roleColor
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Members Counter & Solvency Filter Toggle
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Mostrando ${filteredMembers.size} miembros",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.clickable { filterOnlySolvent = !filterOnlySolvent }
-                    ) {
-                        Checkbox(
-                            checked = filterOnlySolvent,
-                            onCheckedChange = { filterOnlySolvent = it },
-                            colors = CheckboxDefaults.colors(checkedColor = StatusSuccess)
-                        )
-                        Text(
-                            text = "Solo Solventes",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (filterOnlySolvent) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Empty State
-            if (filteredMembers.isEmpty()) {
+            },
+            modifier = Modifier.fillMaxSize()
+        ) { innerPadding ->
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    top = innerPadding.calculateTopPadding() + 12.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 84.dp,
+                    start = 16.dp,
+                    end = 16.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Header Banner: Official Title & Directiva stats (Dashboard Light Theme)
                 item {
                     Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = AsphaltDarkSurface),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = DashboardFondoConfig.ColorTarjetaClara
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            DashboardFondoConfig.ColorBordeClaro
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 24.dp)
+                            .testTag("members_header_banner")
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            VenezuelanFlagRibbon()
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                OfficialClubEmblemBadge(
+                                    size = 68.dp,
+                                    showSubtext = false
+                                )
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.12f),
+                                        border = BorderStroke(0.8.dp, DashboardFondoConfig.ColorRojoCarrera)
+                                    ) {
+                                        Text(
+                                            text = "REGISTRO Y DISCIPLINA NACIONAL",
+                                            color = DashboardFondoConfig.ColorRojoCarrera,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            letterSpacing = 0.8.sp,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(
+                                        text = "Directorio de Pilotos TX",
+                                        color = DashboardFondoConfig.ColorTextoPrimario,
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                    Text(
+                                        text = "Gestión de estado, solvencias, sanciones y rangos del club",
+                                        color = DashboardFondoConfig.ColorTextoSecundario,
+                                        fontSize = 11.sp,
+                                        lineHeight = 14.sp
+                                    )
+                                }
+                            }
+
+                            // Status Statistics Bar
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF8FAFC))
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                StatMiniItem(label = "Total", value = "${members.size}", color = DashboardFondoConfig.ColorTextoPrimario)
+                                VerticalDivider(modifier = Modifier.height(20.dp), color = DashboardFondoConfig.ColorBordeClaro)
+                                StatMiniItem(label = "Activos", value = "$activeCount", color = StatusSuccess)
+                                VerticalDivider(modifier = Modifier.height(20.dp), color = DashboardFondoConfig.ColorBordeClaro)
+                                StatMiniItem(label = "Suspendidos", value = "$suspendedCount", color = StatusError)
+                                VerticalDivider(modifier = Modifier.height(20.dp), color = DashboardFondoConfig.ColorBordeClaro)
+                                StatMiniItem(label = "Directiva", value = "$directivaCount", color = DashboardFondoConfig.ColorDoradoOro)
+                            }
+                        }
+                    }
+                }
+
+                // Search Bar
+                item {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Buscar por nombre, alias, N° TX, placa o estado...", fontSize = 13.sp, color = DashboardFondoConfig.ColorTextoSecundario) },
+                        leadingIcon = {
                             Icon(
-                                Icons.Default.SearchOff,
-                                contentDescription = null,
-                                tint = TxGoldBrass,
-                                modifier = Modifier.size(40.dp)
+                                Icons.Default.Search,
+                                contentDescription = "Buscar",
+                                tint = DashboardFondoConfig.ColorDoradoOro
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = DashboardFondoConfig.ColorTextoSecundario)
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DashboardFondoConfig.ColorRojoCarrera,
+                            unfocusedBorderColor = DashboardFondoConfig.ColorBordeClaro,
+                            focusedContainerColor = DashboardFondoConfig.ColorTarjetaClara,
+                            unfocusedContainerColor = DashboardFondoConfig.ColorTarjetaClara,
+                            focusedTextColor = DashboardFondoConfig.ColorTextoPrimario,
+                            unfocusedTextColor = DashboardFondoConfig.ColorTextoPrimario
+                        ),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("input_search_member")
+                    )
+                }
+
+                // Status Filter Tabs (Todos / Activos / Suspendidos / Directiva) - Optimized size
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        MemberStatusFilter.values().forEach { filter ->
+                            val isSelected = selectedStatusFilter == filter
+                            val filterColor = when (filter) {
+                                MemberStatusFilter.TODOS -> DashboardFondoConfig.ColorTextoSecundario
+                                MemberStatusFilter.ACTIVOS -> StatusSuccess
+                                MemberStatusFilter.SUSPENDIDOS -> StatusError
+                                MemberStatusFilter.DIRECTIVA -> DashboardFondoConfig.ColorDoradoOro
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSelected) filterColor.copy(alpha = 0.15f) else DashboardFondoConfig.ColorTarjetaClara,
+                                border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, if (isSelected) filterColor else DashboardFondoConfig.ColorBordeClaro),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { selectedStatusFilter = filter }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = filter.icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) filterColor else DashboardFondoConfig.ColorTextoSecundario,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = filter.label,
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) filterColor else DashboardFondoConfig.ColorTextoSecundario,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Chapter Filters Horizontal List
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "FILTRAR POR CAPÍTULO / ESTADO",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DashboardFondoConfig.ColorDoradoOro,
+                            letterSpacing = 0.5.sp
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(chapters) { chapter ->
+                                val isSelected = selectedChapter == chapter
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedChapter = chapter },
+                                    label = {
+                                        Text(
+                                            text = chapter,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = DashboardFondoConfig.ColorRojoCarrera,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = DashboardFondoConfig.ColorTarjetaClara,
+                                        labelColor = DashboardFondoConfig.ColorTextoSecundario
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Role Filters Horizontal List
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "FILTRAR POR JERARQUÍA / RANGO",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DashboardFondoConfig.ColorTextoSecundario,
+                            letterSpacing = 0.5.sp
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            item {
+                                FilterChip(
+                                    selected = selectedRole == null,
+                                    onClick = { selectedRole = null },
+                                    label = { Text("Todos los Rangos", fontSize = 11.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = DashboardFondoConfig.ColorDoradoOro,
+                                        selectedLabelColor = Color.Black,
+                                        containerColor = DashboardFondoConfig.ColorTarjetaClara,
+                                        labelColor = DashboardFondoConfig.ColorTextoSecundario
+                                    )
+                                )
+                            }
+                            items(MemberRole.values()) { role ->
+                                val isSelected = selectedRole == role
+                                val roleColor = Color(role.badgeColorHex)
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedRole = if (isSelected) null else role },
+                                    label = {
+                                        Text(
+                                            text = role.displayName,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(roleColor)
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = roleColor.copy(alpha = 0.2f),
+                                        selectedLabelColor = roleColor,
+                                        containerColor = DashboardFondoConfig.ColorTarjetaClara,
+                                        labelColor = DashboardFondoConfig.ColorTextoSecundario
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Members Counter & Solvency Filter Toggle
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Mostrando ${filteredMembers.size} miembros",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DashboardFondoConfig.ColorTextoSecundario
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.clickable { filterOnlySolvent = !filterOnlySolvent }
+                        ) {
+                            Checkbox(
+                                checked = filterOnlySolvent,
+                                onCheckedChange = { filterOnlySolvent = it },
+                                colors = CheckboxDefaults.colors(checkedColor = StatusSuccess)
                             )
                             Text(
-                                text = "No se encontraron miembros",
+                                text = "Solo Solventes",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = "Intenta cambiar el criterio de búsqueda o los filtros de estado/capítulo.",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
+                                color = if (filterOnlySolvent) StatusSuccess else DashboardFondoConfig.ColorTextoSecundario
                             )
                         }
                     }
                 }
-            }
 
-            // Members Cards List
-            items(filteredMembers, key = { it.id }) { member ->
-                MemberCardItem(
-                    member = member,
-                    isCurrentActive = currentMember?.id == member.id,
-                    isDirectivaMode = isDirectivaMode,
-                    onClickDetail = { selectedMemberForDetail = member },
-                    onDirectWhatsApp = {
-                        val msg = "¡Saludos Hermano Motero ${member.nickname}! Te escribo desde la App Oficial Team TX Venezuela 🏍️."
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                data = Uri.parse("https://api.whatsapp.com/send?phone=${member.phone.replace("+", "").replace(" ", "")}&text=${Uri.encode(msg)}")
+                // Empty State
+                if (filteredMembers.isEmpty()) {
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+                            border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.SearchOff,
+                                    contentDescription = null,
+                                    tint = DashboardFondoConfig.ColorDoradoOro,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Text(
+                                    text = "No se encontraron miembros",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = DashboardFondoConfig.ColorTextoPrimario
+                                )
+                                Text(
+                                    text = "Intenta cambiar el criterio de búsqueda o los filtros de estado/capítulo.",
+                                    fontSize = 12.sp,
+                                    color = DashboardFondoConfig.ColorTextoSecundario,
+                                    textAlign = TextAlign.Center
+                                )
                             }
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "WhatsApp: ${member.phone}", Toast.LENGTH_SHORT).show()
                         }
-                    },
-                    onDirectCall = {
-                        dialPhoneNumber(context, member.phone)
                     }
-                )
+                }
+
+                // Members Cards List
+                items(filteredMembers, key = { it.id }) { member ->
+                    MemberCardItem(
+                        member = member,
+                        isCurrentActive = currentMember?.id == member.id,
+                        isDirectivaMode = isDirectivaMode,
+                        onClickDetail = { selectedMemberForDetail = member },
+                        onDirectWhatsApp = {
+                            val msg = "¡Saludos Hermano Motero ${member.nickname}! Te escribo desde la App Oficial Team TX Venezuela 🏍️."
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    data = Uri.parse("https://api.whatsapp.com/send?phone=${member.phone.replace("+", "").replace(" ", "")}&text=${Uri.encode(msg)}")
+                                }
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "WhatsApp: ${member.phone}", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onDirectCall = {
+                            dialPhoneNumber(context, member.phone)
+                        },
+                        onOpenPrivateChat = {
+                            onOpenPrivateChat(member)
+                        }
+                    )
+                }
             }
         }
     }
@@ -611,7 +632,7 @@ fun MembersScreen(
 fun StatMiniItem(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = value, fontSize = 14.sp, fontWeight = FontWeight.Black, color = color)
-        Text(text = label, fontSize = 10.sp, color = Color(0xFF8C9BAE), fontWeight = FontWeight.SemiBold)
+        Text(text = label, fontSize = 10.sp, color = DashboardFondoConfig.ColorTextoSecundario, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -623,6 +644,7 @@ fun MemberCardItem(
     onClickDetail: () -> Unit,
     onDirectWhatsApp: () -> Unit,
     onDirectCall: () -> Unit,
+    onOpenPrivateChat: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -631,12 +653,13 @@ fun MemberCardItem(
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (member.isSuspended) Color(0xFF1E1315) else if (isCurrentActive) Color(0xFF1B2230) else AsphaltDarkSurface
+            containerColor = if (member.isSuspended) Color(0xFFFFF5F5) else if (isCurrentActive) Color(0xFFF0F4FF) else DashboardFondoConfig.ColorTarjetaClara
         ),
         border = BorderStroke(
             if (member.isSuspended) 1.5.dp else if (isCurrentActive) 1.5.dp else 1.dp,
-            if (member.isSuspended) StatusError else if (isCurrentActive) TxFlameRed else AsphaltDarkBorder
+            if (member.isSuspended) StatusError else if (isCurrentActive) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorBordeClaro
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = modifier
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded }
@@ -656,7 +679,7 @@ fun MemberCardItem(
                 if (member.isSuspended) {
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = StatusError.copy(alpha = 0.25f),
+                        color = StatusError.copy(alpha = 0.15f),
                         border = BorderStroke(1.dp, StatusError)
                     ) {
                         Row(
@@ -676,12 +699,12 @@ fun MemberCardItem(
                 } else {
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = rankColor.copy(alpha = 0.2f),
+                        color = rankColor.copy(alpha = 0.15f),
                         border = BorderStroke(1.dp, rankColor)
                     ) {
                         Text(
                             text = member.role.displayName.uppercase(),
-                            color = rankColor,
+                            color = roleColorTextColor(rankColor),
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 10.sp,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -696,7 +719,7 @@ fun MemberCardItem(
                     if (isCurrentActive) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = TxFlameRed
+                            color = DashboardFondoConfig.ColorRojoCarrera
                         ) {
                             Text(
                                 text = "TÚ",
@@ -710,12 +733,12 @@ fun MemberCardItem(
 
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = Color(0xFF0F1218),
-                        border = BorderStroke(1.dp, if (member.isSuspended) StatusError.copy(alpha = 0.5f) else TxSteelDark.copy(alpha = 0.5f))
+                        color = Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
                     ) {
                         Text(
                             text = member.memberNumber,
-                            color = if (member.isSuspended) StatusError else TxGoldLight,
+                            color = if (member.isSuspended) StatusError else DashboardFondoConfig.ColorDoradoOro,
                             fontWeight = FontWeight.Black,
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
@@ -730,7 +753,7 @@ fun MemberCardItem(
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = StatusError.copy(alpha = 0.12f),
+                    color = StatusError.copy(alpha = 0.08f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -741,7 +764,7 @@ fun MemberCardItem(
                         Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError, modifier = Modifier.size(13.dp))
                         Text(
                             text = "Motivo: ${member.suspensionReason.ifBlank { "Sanción directiva" }}",
-                            color = Color(0xFFFFCDD2),
+                            color = StatusError,
                             fontSize = 10.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -752,7 +775,7 @@ fun MemberCardItem(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Pilot Core Info: Names + Chapter + Avatar
+            // Pilot Core Info: Names + Chapter + Avatar with Connection LED
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -763,13 +786,13 @@ fun MemberCardItem(
                         text = member.fullName,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = DashboardFondoConfig.ColorTextoPrimario,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "Alias: \"${member.nickname}\"",
-                        color = if (member.isSuspended) StatusError else TxGoldBrass,
+                        color = if (member.isSuspended) StatusError else DashboardFondoConfig.ColorDoradoOro,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 13.sp
                     )
@@ -781,195 +804,209 @@ fun MemberCardItem(
                         Icon(
                             Icons.Default.LocationOn,
                             contentDescription = null,
-                            tint = TxFlameRed,
+                            tint = DashboardFondoConfig.ColorRojoCarrera,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
                             text = member.chapterState,
                             fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = DashboardFondoConfig.ColorTextoSecundario
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
+                // Avatar with Connection Status LED
                 Box(contentAlignment = Alignment.BottomEnd) {
                     PilotAvatar(
                         member = member,
                         size = 56.dp,
                         showRankGlow = true
                     )
-                    if (isCurrentActive && member.profilePhotoUri.isNullOrEmpty()) {
-                        Surface(
-                            shape = CircleShape,
-                            color = TxFlameRed,
-                            border = BorderStroke(1.dp, Color.Black),
-                            modifier = Modifier.size(18.dp).offset(x = 4.dp, y = 4.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = "Añadir foto",
-                                tint = Color.White,
-                                modifier = Modifier.padding(2.dp)
-                            )
-                        }
-                    }
+                    // Connection Status LED
+                    val isConnected = member.isOnline
+                    val ledColor = if (isConnected) Color(0xFF00E676) else Color(0xFF9E9E9E)
+                    Box(
+                        modifier = Modifier
+                            .size(13.dp)
+                            .clip(CircleShape)
+                            .background(ledColor)
+                            .border(2.dp, Color.White, CircleShape)
+                    )
                 }
-            }
-
             }
 
             AnimatedVisibility(visible = isExpanded) {
                 Column {
                     Spacer(modifier = Modifier.height(10.dp))
-                    HorizontalDivider(color = Color(0xFF262D3D))
+                    HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Motorcycle Specs Card inside member card
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF131822),
-                border = BorderStroke(0.8.dp, Color(0xFF242C3D)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(0.8.dp, DashboardFondoConfig.ColorBordeClaro),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(13.dp))
-                            Text(
-                                text = "${member.bikeBrand} ${member.bikeModel}",
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(13.dp))
+                                    Text(
+                                        text = "${member.bikeBrand} ${member.bikeModel}",
+                                        color = DashboardFondoConfig.ColorTextoPrimario,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Text(
+                                    text = member.bikeDisplacementCc,
+                                    color = DashboardFondoConfig.ColorDoradoOro,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "🎨 ${member.bikeColor} • ⛽ ${member.bikeTankCapacityLiters} • 📅 ${member.bikeYear}",
+                                    color = DashboardFondoConfig.ColorTextoSecundario,
+                                    fontSize = 10.sp
+                                )
+                                Text(
+                                    text = "Placa: ${member.bikePlate}",
+                                    color = DashboardFondoConfig.ColorTextoPrimario,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
-                        Text(
-                            text = member.bikeDisplacementCc,
-                            color = TxGoldLight,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
 
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Specs Row: Blood Type, Solvency, Phone preview
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = StatusError.copy(alpha = 0.15f),
+                                border = BorderStroke(0.8.dp, StatusError)
+                            ) {
+                                Text(
+                                    text = "🩸 ${member.bloodType}",
+                                    color = StatusError,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = if (member.isSuspended) StatusError.copy(alpha = 0.15f) else if (member.solvencyStatus) StatusSuccess.copy(alpha = 0.15f) else StatusWarning.copy(alpha = 0.15f),
+                                border = BorderStroke(0.8.dp, if (member.isSuspended) StatusError else if (member.solvencyStatus) StatusSuccess else StatusWarning)
+                            ) {
+                                Text(
+                                    text = if (member.isSuspended) "Inhabilitado" else if (member.solvencyStatus) "Solvente ✓" else "Pendiente",
+                                    color = if (member.isSuspended) StatusError else if (member.solvencyStatus) StatusSuccess else StatusWarning,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
                         Text(
-                            text = "🎨 ${member.bikeColor} • ⛽ ${member.bikeTankCapacityLiters} • 📅 ${member.bikeYear}",
-                            color = Color(0xFF8C9BAE),
-                            fontSize = 10.sp
-                        )
-                        Text(
-                            text = "Placa: ${member.bikePlate}",
-                            color = TxSteelSilver,
+                            text = "📞 ${member.phone}",
+                            color = DashboardFondoConfig.ColorTextoSecundario,
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontFamily = FontFamily.Monospace
                         )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Action Buttons: WhatsApp, Chat Privado In-App, Llamar, Ver Ficha
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
+                            onClick = onDirectWhatsApp,
+                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("WhatsApp", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = onOpenPrivateChat,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Forum, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Chat App", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = onDirectCall,
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(0.8f)
+                        ) {
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = DashboardFondoConfig.ColorTextoPrimario, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Llamar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
+                        }
+
+                        Button(
+                            onClick = onClickDetail,
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1.1f)
+                        ) {
+                            Icon(Icons.Default.Badge, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Ficha", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorDoradoOro)
+                        }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Specs Row: Blood Type, Solvency, Phone preview
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = StatusError.copy(alpha = 0.15f),
-                        border = BorderStroke(0.8.dp, StatusError)
-                    ) {
-                        Text(
-                            text = "🩸 ${member.bloodType}",
-                            color = StatusError,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = if (member.isSuspended) StatusError.copy(alpha = 0.15f) else if (member.solvencyStatus) StatusSuccess.copy(alpha = 0.15f) else StatusWarning.copy(alpha = 0.15f),
-                        border = BorderStroke(0.8.dp, if (member.isSuspended) StatusError else if (member.solvencyStatus) StatusSuccess else StatusWarning)
-                    ) {
-                        Text(
-                            text = if (member.isSuspended) "Inhabilitado" else if (member.solvencyStatus) "Solvente ✓" else "Pendiente",
-                            color = if (member.isSuspended) StatusError else if (member.solvencyStatus) StatusSuccess else StatusWarning,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-
-                Text(
-                    text = "📞 ${member.phone}",
-                    color = Color(0xFFA0ADC0),
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Action Buttons: WhatsApp, Call, Ficha
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onDirectWhatsApp,
-                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("WhatsApp", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-
-                OutlinedButton(
-                    onClick = onDirectCall,
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    modifier = Modifier.weight(0.9f)
-                ) {
-                    Icon(Icons.Default.Phone, contentDescription = null, tint = TxChromeSilver, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Llamar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-
-                Button(
-                    onClick = onClickDetail,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF263346)),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    modifier = Modifier.weight(1.1f)
-                ) {
-                    Icon(Icons.Default.Badge, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Ver Ficha", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TxGoldBrass)
-                }
-                }
-            } // End of AnimatedVisibility
         }
     }
+}
+
+// Helper to ensure rank badge color is readable
+@Composable
+fun roleColorTextColor(rankColor: Color): Color {
+    // If rankColor is too light, return dark text, else rankColor
+    return if (rankColor.red * 0.299 + rankColor.green * 0.587 + rankColor.blue * 0.114 > 180) Color.Black else rankColor
 }
 
 @Composable
@@ -994,7 +1031,7 @@ fun MemberDetailDossierDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed)
+                colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera)
             ) {
                 Text("Cerrar Ficha", fontWeight = FontWeight.Bold)
             }
@@ -1011,7 +1048,7 @@ fun MemberDetailDossierDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.Badge, contentDescription = null, tint = TxGoldBrass)
+                Icon(Icons.Default.Badge, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro)
                 Text(
                     text = "Ficha de Piloto - ${member.memberNumber}",
                     fontWeight = FontWeight.Black,
@@ -1036,7 +1073,7 @@ fun MemberDetailDossierDialog(
                     item {
                         Card(
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, TxGoldBrass.copy(alpha = 0.5f)),
+                            border = BorderStroke(1.dp, DashboardFondoConfig.ColorDoradoOro.copy(alpha = 0.5f)),
                             modifier = Modifier.fillMaxWidth().height(200.dp)
                         ) {
                             AsyncImage(
@@ -1053,8 +1090,8 @@ fun MemberDetailDossierDialog(
                 item {
                     Card(
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF141822)),
-                        border = BorderStroke(1.dp, AsphaltDarkBorder),
+                        colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -1067,15 +1104,15 @@ fun MemberDetailDossierDialog(
                                 text = "DATOS DE CONTACTO Y ASISTENCIA",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TxGoldBrass
+                                color = DashboardFondoConfig.ColorDoradoOro
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column {
-                                    Text("Teléfono Piloto:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(member.phone, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("Teléfono Piloto:", fontSize = 10.sp, color = DashboardFondoConfig.ColorTextoSecundario)
+                                    Text(member.phone, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
                                 }
                                 IconButton(
                                     onClick = { dialPhoneNumber(context, member.phone) },
@@ -1085,16 +1122,16 @@ fun MemberDetailDossierDialog(
                                 }
                             }
 
-                            HorizontalDivider(color = Color(0xFF262D3D))
+                            HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro)
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column {
-                                    Text("Contacto de Emergencia:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(member.emergencyContactName, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                    Text(member.emergencyContactPhone, fontSize = 11.sp, color = TxGoldLight)
+                                    Text("Contacto de Emergencia:", fontSize = 10.sp, color = DashboardFondoConfig.ColorTextoSecundario)
+                                    Text(member.emergencyContactName, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
+                                    Text(member.emergencyContactPhone, fontSize = 11.sp, color = DashboardFondoConfig.ColorDoradoOro)
                                 }
                                 IconButton(
                                     onClick = { dialPhoneNumber(context, member.emergencyContactPhone) },
@@ -1113,7 +1150,7 @@ fun MemberDetailDossierDialog(
                         Card(
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F2C)),
-                            border = BorderStroke(1.dp, TxFlameRed.copy(alpha = 0.6f)),
+                            border = BorderStroke(1.dp, DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.6f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -1126,8 +1163,8 @@ fun MemberDetailDossierDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = TxFlameRed, modifier = Modifier.size(16.dp))
-                                    Text("ACCIONES DIRECTIVAS & DISCIPLINA", fontSize = 11.sp, fontWeight = FontWeight.Black, color = TxFlameRed)
+                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = DashboardFondoConfig.ColorRojoCarrera, modifier = Modifier.size(16.dp))
+                                    Text("ACCIONES DIRECTIVAS & DISCIPLINA", fontSize = 11.sp, fontWeight = FontWeight.Black, color = DashboardFondoConfig.ColorRojoCarrera)
                                 }
 
                                 // Solvency toggle
@@ -1136,7 +1173,7 @@ fun MemberDetailDossierDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Estado de Solvencia:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("Estado de Solvencia:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                                     Button(
                                         onClick = onToggleSolvency,
                                         colors = ButtonDefaults.buttonColors(
@@ -1177,8 +1214,8 @@ fun MemberDetailDossierDialog(
                                                 fontSize = 11.sp
                                             )
                                             Text(
-                                                text = "Tiempo: ${member.suspensionDurationDays} días (${member.suspensionStartDate} a ${member.suspensionEndDate})",
-                                                color = TxGoldSecondary,
+                                                text = "Tiempo: ${member.suspensionDurationDays} días",
+                                                color = DashboardFondoConfig.ColorDoradoOro,
                                                 fontSize = 10.sp
                                             )
 
@@ -1193,14 +1230,14 @@ fun MemberDetailDossierDialog(
                                                 ) {
                                                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
                                                     Spacer(modifier = Modifier.width(4.dp))
-                                                    Text("Reactivar Piloto", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                    Text("Reactivar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                                 }
 
                                                 OutlinedButton(
                                                     onClick = onOpenSuspendDialog,
                                                     modifier = Modifier.weight(1f)
                                                 ) {
-                                                    Text("Modificar Sanción", fontSize = 11.sp)
+                                                    Text("Modificar", fontSize = 11.sp, color = Color.White)
                                                 }
                                             }
                                         }
@@ -1223,9 +1260,9 @@ fun MemberDetailDossierDialog(
                                         onClick = { showRoleMenu = true },
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = TxGoldBrass)
+                                        Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro)
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Cambiar Rango: ${member.role.displayName}", fontSize = 12.sp)
+                                        Text("Cambiar Rango: ${member.role.displayName}", fontSize = 12.sp, color = Color.White)
                                     }
 
                                     DropdownMenu(
@@ -1299,9 +1336,9 @@ fun SuspendMemberDialog(
             ) {
                 item {
                     Text(
-                        text = "La suspensión inhabilitará al miembro para inscribirse en rodadas y marcará su carnet con estatus sancionado.",
+                        text = "La suspensión inhabilitará al piloto para inscribirse en rodadas y marcará su carnet con estatus sancionado.",
                         fontSize = 11.sp,
-                        color = Color(0xFFFFCDD2)
+                        color = DashboardFondoConfig.ColorTextoSecundario
                     )
                 }
 
@@ -1310,7 +1347,7 @@ fun SuspendMemberDialog(
                         text = "TIEMPO DE SUSPENSIÓN",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TxGoldBrass
+                        color = DashboardFondoConfig.ColorDoradoOro
                     )
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1336,7 +1373,7 @@ fun SuspendMemberDialog(
                         text = "MOTIVO DE LA SANCIÓN",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TxGoldBrass
+                        color = DashboardFondoConfig.ColorDoradoOro
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         presetReasons.forEach { preReason ->
@@ -1352,7 +1389,7 @@ fun SuspendMemberDialog(
                                     onClick = { reason = preReason },
                                     colors = RadioButtonDefaults.colors(selectedColor = StatusError)
                                 )
-                                Text(text = preReason, fontSize = 11.sp, color = Color.White)
+                                Text(text = preReason, fontSize = 11.sp, color = DashboardFondoConfig.ColorTextoPrimario)
                             }
                         }
                     }
@@ -1374,8 +1411,8 @@ fun SuspendMemberDialog(
                 item {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF141822),
-                        border = BorderStroke(1.dp, AsphaltDarkBorder),
+                        color = DashboardFondoConfig.ColorTarjetaClara,
+                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -1383,11 +1420,11 @@ fun SuspendMemberDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(Icons.Default.Shield, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Shield, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(16.dp))
                             Text(
                                 text = "Autorizado por: $adminName",
                                 fontSize = 11.sp,
-                                color = TxSteelSilver,
+                                color = DashboardFondoConfig.ColorTextoSecundario,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -1487,7 +1524,7 @@ fun RegisterMemberDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.PersonAdd, contentDescription = null, tint = TxFlameRed)
+                Icon(Icons.Default.PersonAdd, contentDescription = null, tint = DashboardFondoConfig.ColorRojoCarrera)
                 Text("Registrar Nuevo Piloto TX", fontWeight = FontWeight.Bold)
             }
         },
@@ -1496,13 +1533,12 @@ fun RegisterMemberDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Section: Personal Data
                 item {
                     Text(
                         text = "1. DATOS PERSONALES DEL PILOTO",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
-                        color = TxGoldBrass
+                        color = DashboardFondoConfig.ColorDoradoOro
                     )
                 }
                 item {
@@ -1616,7 +1652,7 @@ fun RegisterMemberDialog(
                         text = "2. DATOS DE LA MOTO",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
-                        color = TxGoldBrass
+                        color = DashboardFondoConfig.ColorDoradoOro
                     )
                 }
                 item {
@@ -1812,7 +1848,7 @@ fun RegisterMemberDialog(
                     }
                 },
                 enabled = fullName.isNotBlank() && memberNumber.isNotBlank() && bikePlate.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed)
+                colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera)
             ) {
                 Text("Registrar Piloto", fontWeight = FontWeight.Bold)
             }

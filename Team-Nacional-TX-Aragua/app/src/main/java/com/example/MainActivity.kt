@@ -853,6 +853,17 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             viewModel.ratePilotMember(target.id, isPos, cat, pts, comm) { _, msg ->
                                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                             }
+                        },
+                        onOpenPrivateChat = { member ->
+                            val activeMember = currentMember
+                            val dmChannel = if (activeMember != null) {
+                                val ids = listOf(activeMember.id, member.id).sorted()
+                                "DM_${ids[0]}_${ids[1]}"
+                            } else {
+                                "DM_${member.id}"
+                            }
+                            viewModel.selectChatChannel(dmChannel)
+                            selectedTab = NavigationTab.CHAT
                         }
                     )
                 }

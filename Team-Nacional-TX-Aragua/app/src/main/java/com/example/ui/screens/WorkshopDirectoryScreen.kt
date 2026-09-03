@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.aistudio.teamtxvzla.R
+import com.example.dashboard.DashboardFondoConfig
 import com.example.data.local.AppDatabase
 import com.example.data.model.MemberProfile
 import com.example.data.model.MemberRole
@@ -166,14 +167,14 @@ fun WorkshopDirectoryScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Guía de Servicios & Repuestos", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White)
-                            Text("Talleres, Repuestos TX, Créditos y Auxilio Vial", fontSize = 11.sp, color = MotoGoldSecondary)
+                            Text("Directorio Comercial & Servicios", fontWeight = FontWeight.Black, fontSize = 16.sp, color = DashboardFondoConfig.ColorTextoPrimario)
+                            Text("Talleres, Repuestos, Autolavados y Auxilio Vial", fontSize = 11.sp, color = DashboardFondoConfig.ColorTextoSecundario)
                         }
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar al Dashboard", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar al Dashboard", tint = DashboardFondoConfig.ColorTextoPrimario)
                     }
                 },
                 actions = {
@@ -183,7 +184,7 @@ fun WorkshopDirectoryScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF131722))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DashboardFondoConfig.ColorTarjetaClara)
             )
         },
         floatingActionButton = {
@@ -197,7 +198,7 @@ fun WorkshopDirectoryScreen(
                 )
             }
         },
-        containerColor = Color(0xFF0D1017)
+        containerColor = DashboardFondoConfig.ColorFondoClaro
     ) { padding ->
         Column(
             modifier = Modifier
@@ -509,15 +510,16 @@ fun CommercialServiceCard(
     val hasCredit = workshop.hasCredit || workshop.creditPlatforms.isNotBlank()
     val isTopRated = workshop.rating >= 4.5
 
-    Surface(
+    Card(
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF161B26),
+        colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
         border = BorderStroke(
             1.2.dp,
-            if (isTopRated) Color(0xFFFFD700).copy(alpha = 0.8f)
-            else if (hasCredit) Color(0xFF2E7D32).copy(alpha = 0.6f)
-            else Color(0xFF263238)
+            if (isTopRated) Color(0xFFFFB300)
+            else if (hasCredit) Color(0xFF2E7D32)
+            else DashboardFondoConfig.ColorBordeClaro
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -533,7 +535,7 @@ fun CommercialServiceCard(
                             text = workshop.name,
                             fontWeight = FontWeight.Black,
                             fontSize = 15.sp,
-                            color = Color.White
+                            color = DashboardFondoConfig.ColorTextoPrimario
                         )
                         if (isTopRated) {
                             Spacer(modifier = Modifier.width(6.dp))
@@ -545,15 +547,15 @@ fun CommercialServiceCard(
                         text = "📍 ${workshop.state} • ${workshop.city}",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MotoOrangePrimary
+                        color = DashboardFondoConfig.ColorRojoCarrera
                     )
                 }
 
                 // Badge de Calificación (Clicable para calificar)
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isTopRated) Color(0xFF332600) else MotoGoldSecondary.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, if (isTopRated) Color(0xFFFFD700) else MotoGoldSecondary),
+                    color = if (isTopRated) Color(0xFFFFF8E1) else Color(0xFFF1F5F9),
+                    border = BorderStroke(1.dp, if (isTopRated) Color(0xFFFFB300) else DashboardFondoConfig.ColorBordeClaro),
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .clickable { onRate() }
@@ -565,7 +567,7 @@ fun CommercialServiceCard(
                         Icon(
                             Icons.Default.Star,
                             contentDescription = "Calificación",
-                            tint = if (isTopRated) Color(0xFFFFD700) else MotoGoldSecondary,
+                            tint = Color(0xFFFFB300),
                             modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -573,7 +575,7 @@ fun CommercialServiceCard(
                             text = "${String.format(java.util.Locale.US, "%.1f", workshop.rating)} ${if (isTopRated) "• TOP" else ""}",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isTopRated) Color(0xFFFFD700) else MotoGoldSecondary
+                            color = DashboardFondoConfig.ColorTextoPrimario
                         )
                     }
                 }
@@ -588,14 +590,14 @@ fun CommercialServiceCard(
             ) {
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFF10141D),
-                    border = BorderStroke(0.5.dp, Color(0xFF2A3644))
+                    color = Color(0xFFF1F5F9),
+                    border = BorderStroke(0.5.dp, DashboardFondoConfig.ColorBordeClaro)
                 ) {
                     Text(
                         text = "🏷️ ${workshop.type}",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFECEFF1),
+                        color = DashboardFondoConfig.ColorTextoPrimario,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -603,14 +605,14 @@ fun CommercialServiceCard(
                 if (isTopRated) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF2A2000),
-                        border = BorderStroke(0.8.dp, Color(0xFFFFD700))
+                        color = Color(0xFFFFF8E1),
+                        border = BorderStroke(0.8.dp, Color(0xFFFFB300))
                     ) {
                         Text(
                             text = "🏆 RECOMENDADO TEAM TX",
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color(0xFFFFD700),
+                            color = Color(0xFFB28704),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
@@ -623,7 +625,7 @@ fun CommercialServiceCard(
                 val tieneCashea = workshop.creditPlatforms.contains("Cashea", ignoreCase = true)
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF0E2515),
+                    color = Color(0xFFE8F5E9),
                     border = BorderStroke(1.dp, Color(0xFF2E7D32)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -656,21 +658,21 @@ fun CommercialServiceCard(
                                     text = "Crédito: ${workshop.creditPlatforms.ifBlank { "Cashea / Rapikom" }}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = Color(0xFF81C784),
+                                    color = Color(0xFF1B5E20),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "Toca para ver plataformas y condiciones",
                                     fontSize = 9.sp,
-                                    color = Color(0xFFA5D6A7)
+                                    color = Color(0xFF2E7D32)
                                 )
                             }
                         }
                         Icon(
                             Icons.Default.Info,
                             contentDescription = "Ver detalles de crédito",
-                            tint = Color(0xFF81C784),
+                            tint = Color(0xFF2E7D32),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -680,12 +682,12 @@ fun CommercialServiceCard(
             if (workshop.address.isNotBlank()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF90A4AE), modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = DashboardFondoConfig.ColorTextoSecundario, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = workshop.address,
                         fontSize = 12.sp,
-                        color = Color(0xFFCFD8DC)
+                        color = DashboardFondoConfig.ColorTextoPrimario
                     )
                 }
             }
@@ -695,7 +697,7 @@ fun CommercialServiceCard(
                 Text(
                     text = "🔧 Especialidad / Stock: ${workshop.notes}",
                     fontSize = 11.sp,
-                    color = Color(0xFFB0BEC5)
+                    color = DashboardFondoConfig.ColorTextoSecundario
                 )
             }
 
@@ -704,7 +706,7 @@ fun CommercialServiceCard(
                 Text(
                     text = "⭐ Recomendado por: ${workshop.recommendedBy}",
                     fontSize = 10.sp,
-                    color = Color(0xFF81C784)
+                    color = Color(0xFF2E7D32)
                 )
             }
 
