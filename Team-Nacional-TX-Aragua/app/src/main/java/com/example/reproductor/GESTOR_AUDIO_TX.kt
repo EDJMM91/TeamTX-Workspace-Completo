@@ -537,68 +537,90 @@ object GESTOR_AUDIO_TX {
     }
 
     fun siguienteCancion() {
-        val cola = _colaReproduccion.value
-        if (cola.isEmpty()) {
-            logDiagnostico("⏭ siguienteCancion: cola vacía")
+        if (!isTransitioning.compareAndSet(false, true)) {
+            logDiagnostico("⏭ siguienteCancion ignorado: transición en curso")
             return
         }
 
-        intentosErrorConsecutivos = 0
-        autoSkipsConsecutivos = 0
-        errorEnCurso = false
-        isTransitioning.set(false)
-
-        logDiagnostico("⏭ siguienteCancion: indiceActual=$indiceColaActual tamañoCola=${cola.size}")
-
-        if (_modoAleatorio.value && cola.size > 1) {
-            var nuevoIndice = (cola.indices).random()
-            if (nuevoIndice == indiceColaActual) {
-                nuevoIndice = (nuevoIndice + 1) % cola.size
-            }
-            indiceColaActual = nuevoIndice
-            logDiagnostico("🎲 Aleatorio: nuevoIndice=$nuevoIndice -> ${cola[nuevoIndice].titulo}")
-            reproducirCancion(cola[indiceColaActual])
-            return
-        }
-
-        var siguienteIndice = indiceColaActual + 1
-        if (siguienteIndice >= cola.size) {
-            if (_modoBucle.value == ModoBucle.SIN_BUCLE) {
-                logDiagnostico("⏹ Fin de cola, deteniendo")
-                detener()
+        try {
+            val cola = _colaReproduccion.value
+            if (cola.isEmpty()) {
+                logDiagnostico("⏭ siguienteCancion: cola vacía")
                 return
             }
-            siguienteIndice = 0
-        }
 
-        indiceColaActual = siguienteIndice
-        logDiagnostico("▶ Siguiente: indice=$siguienteIndice -> ${cola[siguienteIndice].titulo}")
-        reproducirCancion(cola[indiceColaActual])
+            intentosErrorConsecutivos = 0
+            autoSkipsConsecutivos = 0
+            errorEnCurso = false
+
+            logDiagnostico("⏭ siguienteCancion: indiceActual=$indiceColaActual tamañoCola=${cola.size}")
+
+            if (_modoAleatorio.value && cola.size > 1) {
+                var nuevoIndice = (cola.indices).random()
+                if (nuevoIndice == indiceColaActual) {
+                    nuevoIndice = (nuevoIndice + 1) % cola.size
+                }
+                indiceColaActual = nuevoIndice
+                logDiagnostico("🎲 Aleatorio: nuevoIndice=$nuevoIndice -> ${cola[nuevoIndice].titulo}")
+                reproducirCancion(cola[indiceColaActual])
+                return
+            }
+
+            var siguienteIndice = indiceColaActual + 1
+            if (siguienteIndice >= cola.size) {
+                if (_modoBucle.value == ModoBucle.SIN_BUCLE) {
+                    logDiagnostico("⏹ Fin de cola, deteniendo")
+                    detener()
+                    return
+                }
+                siguienteIndice = 0
+            }
+
+            indiceColaActual = siguienteIndice
+            logDiagnostico("▶ Siguiente: indice=$siguienteIndice -> ${cola[siguienteIndice].titulo}")
+            reproducirCancion(cola[indiceColaActual])
+        } finally {
+            scopeCoroutine.launch {
+                delay(250)
+                isTransitioning.set(false)
+            }
+        }
     }
 
     fun anteriorCancion() {
-        val mp = mediaPlayer
-        if (mp != null && mp.currentPosition > 3000) {
-            // Si ya pasaron más de 3 segundos, reiniciar la pista actual
-            buscarPosicion(0L)
+        if (!isTransitioning.compareAndSet(false, true)) {
+            logDiagnostico("⏮ anteriorCancion ignorado: transición en curso")
             return
         }
 
-        val cola = _colaReproduccion.value
-        if (cola.isEmpty()) return
+        try {
+            val mp = mediaPlayer
+            if (mp != null && try { mp.currentPosition > 3000 } catch (_: Exception) { false }) {
+                // Si ya pasaron más de 3 segundos, reiniciar la pista actual
+                buscarPosicion(0L)
+                return
+            }
 
-        intentosErrorConsecutivos = 0
-        autoSkipsConsecutivos = 0
-        errorEnCurso = false
-        isTransitioning.set(false)
+            val cola = _colaReproduccion.value
+            if (cola.isEmpty()) return
 
-        var anteriorIndice = indiceColaActual - 1
-        if (anteriorIndice < 0) {
-            anteriorIndice = cola.size - 1
+            intentosErrorConsecutivos = 0
+            autoSkipsConsecutivos = 0
+            errorEnCurso = false
+
+            var anteriorIndice = indiceColaActual - 1
+            if (anteriorIndice < 0) {
+                anteriorIndice = cola.size - 1
+            }
+
+            indiceColaActual = anteriorIndice
+            reproducirCancion(cola[indiceColaActual])
+        } finally {
+            scopeCoroutine.launch {
+                delay(250)
+                isTransitioning.set(false)
+            }
         }
-
-        indiceColaActual = anteriorIndice
-        reproducirCancion(cola[indiceColaActual])
     }
 
     /**
