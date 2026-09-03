@@ -44,10 +44,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chat.NubeArchivos
+import com.example.dashboard.DashboardFondoConfig
 import com.example.data.model.*
 import com.example.ui.components.DigitalCredentialCard
 import com.example.ui.components.openUrl
+import com.example.ui.preferences.PreferenciasApp
 import com.example.ui.theme.*
+import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.launch
@@ -72,6 +75,7 @@ fun ProfileAndAdminScreen(
     var showMemberSelectorDialog by remember { mutableStateOf(false) }
     var ratingTargetMember by remember { mutableStateOf<MemberProfile?>(null) }
     var isGoogleAuthLoading by remember { mutableStateOf(false) }
+    var tipoFotoSeleccionada by remember { mutableStateOf(PreferenciasApp.carnetTipoFoto) }
     val context = LocalContext.current
 
     // ═══════════════════════════════════════════════
@@ -80,6 +84,9 @@ fun ProfileAndAdminScreen(
     val googleHelper = com.aistudio.teamtxvzla.nube.AutenticacionGoogle.recordarLauncherGoogle(
         onExito = { datos ->
             isGoogleAuthLoading = false
+            if (!datos.fotoUrl.isNullOrBlank()) {
+                PreferenciasApp.carnetGooglePhotoUrl = datos.fotoUrl
+            }
             onVincularGoogle(datos.uid, datos.correo, datos.fotoUrl)
         },
         onError = { mensaje ->
@@ -88,8 +95,16 @@ fun ProfileAndAdminScreen(
         }
     )
 
+    val googlePhoto = PreferenciasApp.carnetGooglePhotoUrl ?: FirebaseAuth.getInstance().currentUser?.photoUrl?.toString()
+    val fotoCarnetActiva = if (tipoFotoSeleccionada == "CORREO" && !googlePhoto.isNullOrBlank()) {
+        googlePhoto
+    } else {
+        currentMember?.profilePhotoUri
+    }
+
     Scaffold(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
+        containerColor = DashboardFondoConfig.ColorFondoClaro
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
@@ -99,7 +114,9 @@ fun ProfileAndAdminScreen(
                 end = 16.dp
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DashboardFondoConfig.ColorFondoClaro)
         ) {
             // Member Digital Credential Card
             item {
@@ -107,8 +124,262 @@ fun ProfileAndAdminScreen(
                     DigitalCredentialCard(
                         member = currentMember,
                         currentLoggedInMemberId = currentMember.id,
-                        onRateMember = { ratingTargetMember = it }
+                        onRateMember = { ratingTargetMember = it },
+                        isLightTheme = true,
+                        photoUrlOverride = fotoCarnetActiva
                     )
+                }
+            }
+
+            // ─── SELECTOR INTERACTIVO DE FOTO PARA EL CARNET TX ──────────────
+            item {
+                val tieneGoogle = !currentMember?.firebaseUid.isNullOrBlank() || !googlePhoto.isNullOrBlank()
+
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+                    border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.AccountCircle,
+                                    contentDescription = null,
+                                    tint = DashboardFondoConfig.ColorRojoCarrera,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "FOTO EN TU CARNET DIGITAL",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp,
+                                    color = DashboardFondoConfig.ColorTextoPrimario,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = DashboardFondoConfig.ColorContenedorDorado
+                            ) {
+                                Text(
+                                    text = if (tipoFotoSeleccionada == "CORREO") "USANDO CORREO" else "USANDO PERFIL",
+                                    color = Color(0xFFB45309),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "Elige cuál imagen mostrar oficialmente en tu carnet de piloto:",
+                            fontSize = 11.sp,
+                            color = DashboardFondoConfig.ColorTextoSecundario
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Opción 1: Foto de Perfil
+                            val esPerfilActivo = tipoFotoSeleccionada == "PERFIL"
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (esPerfilActivo) DashboardFondoConfig.ColorContenedorRojo.copy(alpha = 0.4f) else Color(0xFFF8FAFC)
+                                ),
+                                border = BorderStroke(
+                                    if (esPerfilActivo) 2.dp else 1.dp,
+                                    if (esPerfilActivo) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorBordeClaro
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        tipoFotoSeleccionada = "PERFIL"
+                                        PreferenciasApp.carnetTipoFoto = "PERFIL"
+                                        Toast.makeText(context, "Mostrando Foto de Perfil en carnet", Toast.LENGTH_SHORT).show()
+                                    }
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFE2E8F0))
+                                            .border(
+                                                2.dp,
+                                                if (esPerfilActivo) DashboardFondoConfig.ColorRojoCarrera else Color(0xFFCBD5E1),
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (!currentMember?.profilePhotoUri.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = currentMember?.profilePhotoUri,
+                                                contentDescription = "Foto Perfil",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        } else {
+                                            Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(24.dp))
+                                        }
+                                    }
+
+                                    Text(
+                                        text = "Foto de Perfil",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = DashboardFondoConfig.ColorTextoPrimario
+                                    )
+
+                                    Text(
+                                        text = if (currentMember?.profilePhotoUri.isNullOrBlank()) "Sin imagen" else "Subida al team",
+                                        fontSize = 9.sp,
+                                        color = DashboardFondoConfig.ColorTextoSecundario
+                                    )
+
+                                    if (esPerfilActivo) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = DashboardFondoConfig.ColorRojoCarrera
+                                        ) {
+                                            Text(
+                                                text = "EN USO",
+                                                color = Color.White,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Black,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    } else {
+                                        Text(
+                                            text = "Toca para elegir",
+                                            fontSize = 9.sp,
+                                            color = DashboardFondoConfig.ColorTextoSecundario
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Opción 2: Foto de Correo Google
+                            val esCorreoActivo = tipoFotoSeleccionada == "CORREO"
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (esCorreoActivo) DashboardFondoConfig.ColorContenedorAzul.copy(alpha = 0.4f) else Color(0xFFF8FAFC)
+                                ),
+                                border = BorderStroke(
+                                    if (esCorreoActivo) 2.dp else 1.dp,
+                                    if (esCorreoActivo) Color(0xFF2563EB) else DashboardFondoConfig.ColorBordeClaro
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        if (!googlePhoto.isNullOrBlank()) {
+                                            tipoFotoSeleccionada = "CORREO"
+                                            PreferenciasApp.carnetTipoFoto = "CORREO"
+                                            Toast.makeText(context, "Mostrando Foto del Correo en carnet", Toast.LENGTH_SHORT).show()
+                                        } else if (!tieneGoogle) {
+                                            Toast.makeText(context, "Vincula tu cuenta Google para usar su foto", Toast.LENGTH_LONG).show()
+                                            isGoogleAuthLoading = true
+                                            googleHelper.abrirSelector()
+                                        } else {
+                                            tipoFotoSeleccionada = "CORREO"
+                                            PreferenciasApp.carnetTipoFoto = "CORREO"
+                                            Toast.makeText(context, "Mostrando imagen de cuenta Google vinculada", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFE2E8F0))
+                                            .border(
+                                                2.dp,
+                                                if (esCorreoActivo) Color(0xFF2563EB) else Color(0xFFCBD5E1),
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (!googlePhoto.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = googlePhoto,
+                                                contentDescription = "Foto Google",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        } else {
+                                            Icon(Icons.Default.Mail, contentDescription = null, tint = Color(0xFF2563EB), modifier = Modifier.size(24.dp))
+                                        }
+                                    }
+
+                                    Text(
+                                        text = "Foto del Correo",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = DashboardFondoConfig.ColorTextoPrimario
+                                    )
+
+                                    Text(
+                                        text = if (!googlePhoto.isNullOrBlank()) "Cuenta Google" else if (tieneGoogle) "Sin foto en correo" else "Sin vincular",
+                                        fontSize = 9.sp,
+                                        color = DashboardFondoConfig.ColorTextoSecundario
+                                    )
+
+                                    if (esCorreoActivo) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = Color(0xFF2563EB)
+                                        ) {
+                                            Text(
+                                                text = "EN USO",
+                                                color = Color.White,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Black,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    } else {
+                                        Text(
+                                            text = if (!tieneGoogle) "Toca para vincular" else "Toca para elegir",
+                                            fontSize = 9.sp,
+                                            color = if (!tieneGoogle) Color(0xFF2563EB) else DashboardFondoConfig.ColorTextoSecundario,
+                                            fontWeight = if (!tieneGoogle) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -117,8 +388,8 @@ fun ProfileAndAdminScreen(
                 item {
                     Card(
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF261908)),
-                        border = BorderStroke(1.5.dp, MotoOrangePrimary),
+                        colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorContenedorDorado),
+                        border = BorderStroke(1.5.dp, Color(0xFFF59E0B)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -126,18 +397,18 @@ fun ProfileAndAdminScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(28.dp))
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(28.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("FICHA DE PERFIL INCOMPLETA", fontWeight = FontWeight.Black, color = TxGoldLight, fontSize = 13.sp)
-                                Text("Por favor actualiza tus datos personales, ficha médica SOS y fotos.", color = Color.White, fontSize = 11.sp)
+                                Text("FICHA DE PERFIL INCOMPLETA", fontWeight = FontWeight.Black, color = Color(0xFF92400E), fontSize = 13.sp)
+                                Text("Por favor actualiza tus datos personales, ficha médica SOS y fotos.", color = DashboardFondoConfig.ColorTextoPrimario, fontSize = 11.sp)
                             }
                             Button(
                                 onClick = { showEditProfileDialog = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                                colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text("EDITAR", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text("EDITAR", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                     }
@@ -152,7 +423,7 @@ fun ProfileAndAdminScreen(
                 ) {
                     Button(
                         onClick = { showEditProfileDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed),
+                        colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
                             .weight(1f)
@@ -166,13 +437,15 @@ fun ProfileAndAdminScreen(
                     OutlinedButton(
                         onClick = { showMemberSelectorDialog = true },
                         shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
                         modifier = Modifier
                             .weight(1f)
                             .testTag("btn_switch_member")
                     ) {
-                        Icon(Icons.Default.SwitchAccount, contentDescription = null, modifier = Modifier.size(16.dp), tint = TxGoldBrass)
+                        Icon(Icons.Default.SwitchAccount, contentDescription = null, modifier = Modifier.size(16.dp), tint = DashboardFondoConfig.ColorDoradoOro)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Cambiar Piloto", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Cambiar Piloto", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
                     }
                 }
             }
@@ -182,9 +455,10 @@ fun ProfileAndAdminScreen(
                 item {
                     val yaVinculada = !currentMember.firebaseUid.isNullOrBlank()
                     Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, if (yaVinculada) StatusSuccess.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+                        border = BorderStroke(1.dp, if (yaVinculada) Color(0xFF16A34A).copy(alpha = 0.4f) else DashboardFondoConfig.ColorBordeClaro),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -196,14 +470,14 @@ fun ProfileAndAdminScreen(
                         ) {
                             Surface(
                                 shape = CircleShape,
-                                color = if (yaVinculada) StatusSuccess.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                                color = if (yaVinculada) DashboardFondoConfig.ColorContenedorVerde else DashboardFondoConfig.ColorContenedorAzul,
                                 modifier = Modifier.size(42.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Default.Cloud,
                                         contentDescription = null,
-                                        tint = if (yaVinculada) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = if (yaVinculada) Color(0xFF15803D) else Color(0xFF2563EB),
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
@@ -214,7 +488,7 @@ fun ProfileAndAdminScreen(
                                     text = if (yaVinculada) "Google Vinculado" else "Sincronizar con la Nube",
                                     fontWeight = FontWeight.Black,
                                     fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = DashboardFondoConfig.ColorTextoPrimario
                                 )
                                 Text(
                                     text = if (yaVinculada) {
@@ -222,7 +496,7 @@ fun ProfileAndAdminScreen(
                                         if (correo.isNotBlank()) "Cuenta: $correo" else "Sincronizado y respaldado automáticamente"
                                     } else "Vincula tu cuenta Google para backup y acceso desde cualquier dispositivo",
                                     fontSize = 10.sp,
-                                    color = if (yaVinculada) StatusSuccess else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (yaVinculada) Color(0xFF15803D) else DashboardFondoConfig.ColorTextoSecundario,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -277,6 +551,7 @@ fun ProfileAndAdminScreen(
                                         },
                                         enabled = !isGoogleAuthLoading,
                                         shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                         modifier = Modifier.height(32.dp)
                                     ) {
@@ -292,7 +567,7 @@ fun ProfileAndAdminScreen(
                                             Text("Cambiar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4285F4))
                                         }
                                     }
-                                    Icon(Icons.Default.CheckCircle, contentDescription = "Vinculado", tint = StatusSuccess, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.CheckCircle, contentDescription = "Vinculado", tint = Color(0xFF15803D), modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
@@ -305,8 +580,9 @@ fun ProfileAndAdminScreen(
             item {
                 Card(
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF141822)),
-                    border = BorderStroke(1.dp, AsphaltDarkBorder),
+                    colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+                    border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -319,12 +595,12 @@ fun ProfileAndAdminScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Speed, contentDescription = null, tint = TxGoldBrass)
+                            Icon(Icons.Default.Speed, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro)
                             Text(
                                 text = "HISTORIAL Y ESTADÍSTICAS DEL PILOTO",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 12.sp,
-                                color = Color.White,
+                                color = DashboardFondoConfig.ColorTextoPrimario,
                                 letterSpacing = 0.5.sp
                             )
                         }
@@ -335,43 +611,46 @@ fun ProfileAndAdminScreen(
                         ) {
                             Card(
                                 shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2230)),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                                 modifier = Modifier.weight(1f).padding(end = 4.dp)
                             ) {
                                 Column(
                                     modifier = Modifier.padding(8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text("KM RECORRIDOS", fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                                    Text("${currentMember?.totalKmRidden?.toInt() ?: 0} KM", fontSize = 13.sp, fontWeight = FontWeight.Black, color = TxGoldLight)
+                                    Text("KM RECORRIDOS", fontSize = 8.sp, color = DashboardFondoConfig.ColorTextoSecundario, fontWeight = FontWeight.Bold)
+                                    Text("${currentMember?.totalKmRidden?.toInt() ?: 0} KM", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color(0xFFB45309))
                                 }
                             }
 
                             Card(
                                 shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2230)),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                                 modifier = Modifier.weight(1f).padding(horizontal = 2.dp)
                             ) {
                                 Column(
                                     modifier = Modifier.padding(8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text("TOP VELOCIDAD", fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                                    Text("${currentMember?.topSpeedRecordKmh?.toInt() ?: 0} KM/H", fontSize = 13.sp, fontWeight = FontWeight.Black, color = MotoOrangePrimary)
+                                    Text("TOP VELOCIDAD", fontSize = 8.sp, color = DashboardFondoConfig.ColorTextoSecundario, fontWeight = FontWeight.Bold)
+                                    Text("${currentMember?.topSpeedRecordKmh?.toInt() ?: 0} KM/H", fontSize = 13.sp, fontWeight = FontWeight.Black, color = DashboardFondoConfig.ColorRojoCarrera)
                                 }
                             }
 
                             Card(
                                 shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B2230)),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                                 modifier = Modifier.weight(1f).padding(start = 4.dp)
                             ) {
                                 Column(
                                     modifier = Modifier.padding(8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text("PUNTOS MÉRITO", fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                                    Text("${currentMember?.meritPoints ?: 0} PTS", fontSize = 13.sp, fontWeight = FontWeight.Black, color = StatusSuccess)
+                                    Text("PUNTOS MÉRITO", fontSize = 8.sp, color = DashboardFondoConfig.ColorTextoSecundario, fontWeight = FontWeight.Bold)
+                                    Text("${currentMember?.meritPoints ?: 0} PTS", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color(0xFF15803D))
                                 }
                             }
                         }
@@ -399,8 +678,9 @@ fun ProfileAndAdminScreen(
 
                         Card(
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = BorderStroke(1.dp, if (docsCount > 0) TxGoldSecondary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                            colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+                            border = BorderStroke(1.dp, if (docsCount > 0) DashboardFondoConfig.ColorDoradoOro.copy(alpha = 0.5f) else DashboardFondoConfig.ColorBordeClaro),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
@@ -415,20 +695,20 @@ fun ProfileAndAdminScreen(
                             ) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = TxGoldSecondary.copy(alpha = 0.12f),
+                                    color = DashboardFondoConfig.ColorContenedorDorado,
                                     modifier = Modifier.size(44.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Folder, contentDescription = null, tint = TxGoldSecondary, modifier = Modifier.size(24.dp))
+                                        Icon(Icons.Default.Folder, contentDescription = null, tint = Color(0xFFB45309), modifier = Modifier.size(24.dp))
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(10.dp))
-                                Text("Guantera\nDigital", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center, fontSize = 13.sp)
+                                Text("Guantera\nDigital", fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario, textAlign = TextAlign.Center, fontSize = 13.sp)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     if (docsCount > 0) "$docsCount/4 Docs" else "Sin documentos",
                                     fontSize = 10.sp,
-                                    color = if (docsCount > 0) TxGoldSecondary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (docsCount > 0) Color(0xFFB45309) else DashboardFondoConfig.ColorTextoSecundario
                                 )
                             }
                         }
@@ -438,8 +718,9 @@ fun ProfileAndAdminScreen(
 
                         Card(
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = BorderStroke(1.dp, if (tieneCopiloto) TxFlameRed.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                            colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+                            border = BorderStroke(1.dp, if (tieneCopiloto) DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.5f) else DashboardFondoConfig.ColorBordeClaro),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
@@ -454,20 +735,20 @@ fun ProfileAndAdminScreen(
                             ) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = TxFlameRed.copy(alpha = 0.12f),
+                                    color = DashboardFondoConfig.ColorContenedorRojo,
                                     modifier = Modifier.size(44.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.People, contentDescription = null, tint = TxFlameRed, modifier = Modifier.size(24.dp))
+                                        Icon(Icons.Default.People, contentDescription = null, tint = DashboardFondoConfig.ColorRojoCarrera, modifier = Modifier.size(24.dp))
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(10.dp))
-                                Text("Copiloto\nOficial", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center, fontSize = 13.sp)
+                                Text("Copiloto\nOficial", fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario, textAlign = TextAlign.Center, fontSize = 13.sp)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     if (tieneCopiloto) currentMember.copilotName!!.take(12) else "Sin asignar",
                                     fontSize = 10.sp,
-                                    color = if (tieneCopiloto) TxFlameRed else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (tieneCopiloto) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTextoSecundario
                                 )
                             }
                         }
@@ -508,17 +789,19 @@ fun ProfileAndAdminScreen(
     if (showMemberSelectorDialog) {
         AlertDialog(
             onDismissRequest = { showMemberSelectorDialog = false },
-            title = { Text("Seleccionar Miembro (Demo)", fontWeight = FontWeight.Bold) },
+            containerColor = DashboardFondoConfig.ColorTarjetaClara,
+            title = { Text("Seleccionar Miembro (Demo)", fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario) },
             text = {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     items(allMembers) { mem ->
+                        val isSelected = mem.id == currentMember?.id
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (mem.id == currentMember?.id) MotoOrangePrimary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
-                            border = if (mem.id == currentMember?.id) BorderStroke(1.dp, MotoOrangePrimary) else null,
+                            color = if (isSelected) DashboardFondoConfig.ColorContenedorRojo else Color(0xFFF8FAFC),
+                            border = BorderStroke(1.dp, if (isSelected) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorBordeClaro),
                             onClick = {
                                 onSelectMember(mem.id)
                                 showMemberSelectorDialog = false
@@ -536,16 +819,17 @@ fun ProfileAndAdminScreen(
                                     Text(
                                         text = "${mem.fullName} (${mem.memberNumber})",
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
+                                        fontSize = 13.sp,
+                                        color = DashboardFondoConfig.ColorTextoPrimario
                                     )
                                     Text(
                                         text = "${mem.role.displayName} • ${mem.bikeModel}",
                                         fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = DashboardFondoConfig.ColorTextoSecundario
                                     )
                                 }
-                                if (mem.id == currentMember?.id) {
-                                    Icon(Icons.Default.Check, contentDescription = null, tint = MotoOrangePrimary)
+                                if (isSelected) {
+                                    Icon(Icons.Default.Check, contentDescription = null, tint = DashboardFondoConfig.ColorRojoCarrera)
                                 }
                             }
                         }
@@ -554,7 +838,7 @@ fun ProfileAndAdminScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showMemberSelectorDialog = false }) {
-                    Text("Cerrar")
+                    Text("Cerrar", color = DashboardFondoConfig.ColorTextoSecundario)
                 }
             }
         )
@@ -694,13 +978,14 @@ fun EditProfileDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = DashboardFondoConfig.ColorTarjetaClara,
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.Badge, contentDescription = null, tint = TxFlameRed)
-                Text("Editar Ficha y Perfil de Piloto", fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.Badge, contentDescription = null, tint = DashboardFondoConfig.ColorRojoCarrera)
+                Text("Editar Ficha y Perfil de Piloto", fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
             }
         },
         text = {
@@ -718,13 +1003,13 @@ fun EditProfileDialog(
                             modifier = Modifier
                                 .size(100.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF1E2430))
-                                .border(2.dp, TxGoldBrass, CircleShape)
+                                .background(Color(0xFFF1F5F9))
+                                .border(2.dp, DashboardFondoConfig.ColorDoradoOro, CircleShape)
                                 .clickable { showProfileImageSourceDialog = true },
                             contentAlignment = Alignment.Center
                         ) {
                             if (isUploadingProfile) {
-                                CircularProgressIndicator(color = TxGoldBrass, modifier = Modifier.size(24.dp))
+                                CircularProgressIndicator(color = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(24.dp))
                             } else if (profilePhotoUri != null) {
                                 AsyncImage(
                                     model = profilePhotoUri,
@@ -733,11 +1018,11 @@ fun EditProfileDialog(
                                     modifier = Modifier.fillMaxSize()
                                 )
                             } else {
-                                Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = TxChromeSilver, modifier = Modifier.size(32.dp))
+                                Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = DashboardFondoConfig.ColorTextoSecundario, modifier = Modifier.size(32.dp))
                             }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Toca para cambiar foto de perfil", fontSize = 10.sp, color = Color.Gray)
+                        Text("Toca para cambiar foto de perfil", fontSize = 10.sp, color = DashboardFondoConfig.ColorTextoSecundario)
                     }
                 }
                 item {
@@ -745,7 +1030,7 @@ fun EditProfileDialog(
                         text = "DATOS PERSONALES",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
-                        color = TxGoldBrass
+                        color = DashboardFondoConfig.ColorDoradoOro
                     )
                 }
                 item {
@@ -798,7 +1083,7 @@ fun EditProfileDialog(
                         text = "DATOS DE LA MOTO",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
-                        color = TxGoldBrass
+                        color = DashboardFondoConfig.ColorDoradoOro
                     )
                 }
                 
@@ -813,13 +1098,13 @@ fun EditProfileDialog(
                                 .fillMaxWidth()
                                 .height(180.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF1E2430))
-                                .border(1.dp, TxGoldBrass.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .background(Color(0xFFF1F5F9))
+                                .border(1.dp, DashboardFondoConfig.ColorBordeClaro, RoundedCornerShape(8.dp))
                                 .clickable { showBikeImageSourceDialog = true },
                             contentAlignment = Alignment.Center
                         ) {
                             if (isUploadingBike) {
-                                CircularProgressIndicator(color = TxGoldBrass, modifier = Modifier.size(32.dp))
+                                CircularProgressIndicator(color = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(32.dp))
                             } else if (bikePhotoUri != null) {
                                 AsyncImage(
                                     model = bikePhotoUri,
@@ -829,13 +1114,13 @@ fun EditProfileDialog(
                                 )
                             } else {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = TxChromeSilver, modifier = Modifier.size(48.dp))
-                                    Text("Añadir foto de la moto", color = TxChromeSilver, fontSize = 14.sp)
+                                    Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = DashboardFondoConfig.ColorTextoSecundario, modifier = Modifier.size(48.dp))
+                                    Text("Añadir foto de la moto", color = DashboardFondoConfig.ColorTextoSecundario, fontSize = 14.sp)
                                 }
                             }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Toca para cambiar foto de la moto", fontSize = 10.sp, color = Color.Gray)
+                        Text("Toca para cambiar foto de la moto", fontSize = 10.sp, color = DashboardFondoConfig.ColorTextoSecundario)
                     }
                 }
                 item {
@@ -843,14 +1128,14 @@ fun EditProfileDialog(
                         OutlinedTextField(
                             value = bikeBrand,
                             onValueChange = { bikeBrand = it },
-                            label = { Text("Marca (ej: Keeway)") },
+                            label = { Text("Marca") },
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = bikeModel,
                             onValueChange = { bikeModel = it },
-                            label = { Text("Modelo (ej: TX 200 SM)") },
-                            modifier = Modifier.weight(1.2f)
+                            label = { Text("Modelo") },
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -900,7 +1185,7 @@ fun EditProfileDialog(
                         text = "FICHA MÉDICA Y CONTACTO SOS",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
-                        color = TxGoldBrass
+                        color = DashboardFondoConfig.ColorDoradoOro
                     )
                 }
                 item {
@@ -911,12 +1196,13 @@ fun EditProfileDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF1E2430))
+                            .background(Color(0xFFF1F5F9))
+                            .border(1.dp, DashboardFondoConfig.ColorBordeClaro, RoundedCornerShape(8.dp))
                             .clickable { showBloodMenu = true }
                             .padding(12.dp)
                     ) {
-                        Text("Tipo de Sangre:", color = Color.White, fontWeight = FontWeight.Bold)
-                        Text(bloodType, color = TxFlameRed, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        Text("Tipo de Sangre:", color = DashboardFondoConfig.ColorTextoPrimario, fontWeight = FontWeight.Bold)
+                        Text(bloodType, color = DashboardFondoConfig.ColorRojoCarrera, fontWeight = FontWeight.Black, fontSize = 16.sp)
                         DropdownMenu(
                             expanded = showBloodMenu,
                             onDismissRequest = { showBloodMenu = false }
@@ -1004,25 +1290,30 @@ fun EditProfileDialog(
                     }
                     onSave(updated)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera),
                 modifier = Modifier.testTag("btn_confirm_save_profile")
             ) {
-                Text("Guardar Ficha")
+                Text("Guardar Ficha", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = DashboardFondoConfig.ColorTextoSecundario)
+            }
+        }
     )
 
     // Modal: Selector de Fuente para Foto de Perfil (Cámara / Galería)
     if (showProfileImageSourceDialog) {
         AlertDialog(
             onDismissRequest = { showProfileImageSourceDialog = false },
+            containerColor = DashboardFondoConfig.ColorTarjetaClara,
             title = {
-                Text("Foto de Perfil de Piloto", fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Foto de Perfil de Piloto", fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Selecciona el origen de la foto:", fontSize = 12.sp, color = TxSteelSilver)
+                    Text("Selecciona el origen de la foto:", fontSize = 12.sp, color = DashboardFondoConfig.ColorTextoSecundario)
                     
                     Button(
                         onClick = {
@@ -1036,13 +1327,13 @@ fun EditProfileDialog(
                                 Toast.makeText(context, "Error al abrir la cámara: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                        Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Tomar Foto con Cámara", fontWeight = FontWeight.Bold)
+                        Text("Tomar Foto con Cámara", fontWeight = FontWeight.Bold, color = Color.White)
                     }
 
                     OutlinedButton(
@@ -1052,21 +1343,20 @@ fun EditProfileDialog(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, TxGoldBrass)
+                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
                     ) {
-                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = TxGoldBrass)
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Elegir de Galería", color = TxGoldBrass, fontWeight = FontWeight.Bold)
+                        Text("Elegir de Galería", color = DashboardFondoConfig.ColorTextoPrimario, fontWeight = FontWeight.Bold)
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showProfileImageSourceDialog = false }) {
-                    Text("Cancelar", color = TxSteelSilver)
+                    Text("Cancelar", color = DashboardFondoConfig.ColorTextoSecundario)
                 }
-            },
-            containerColor = Color(0xFF1B2230)
+            }
         )
     }
 
@@ -1074,12 +1364,13 @@ fun EditProfileDialog(
     if (showBikeImageSourceDialog) {
         AlertDialog(
             onDismissRequest = { showBikeImageSourceDialog = false },
+            containerColor = DashboardFondoConfig.ColorTarjetaClara,
             title = {
-                Text("Foto de la Moto Keeway TX", fontWeight = FontWeight.Bold, color = Color.White)
+                Text("Foto de la Moto Keeway TX", fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Selecciona el origen de la foto:", fontSize = 12.sp, color = TxSteelSilver)
+                    Text("Selecciona el origen de la foto:", fontSize = 12.sp, color = DashboardFondoConfig.ColorTextoSecundario)
                     
                     Button(
                         onClick = {
@@ -1093,13 +1384,13 @@ fun EditProfileDialog(
                                 Toast.makeText(context, "Error al abrir la cámara: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                        Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Tomar Foto con Cámara", fontWeight = FontWeight.Bold)
+                        Text("Tomar Foto con Cámara", fontWeight = FontWeight.Bold, color = Color.White)
                     }
 
                     OutlinedButton(
@@ -1109,21 +1400,20 @@ fun EditProfileDialog(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, TxGoldBrass)
+                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
                     ) {
-                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = TxGoldBrass)
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Elegir de Galería", color = TxGoldBrass, fontWeight = FontWeight.Bold)
+                        Text("Elegir de Galería", color = DashboardFondoConfig.ColorTextoPrimario, fontWeight = FontWeight.Bold)
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showBikeImageSourceDialog = false }) {
-                    Text("Cancelar", color = TxSteelSilver)
+                    Text("Cancelar", color = DashboardFondoConfig.ColorTextoSecundario)
                 }
-            },
-            containerColor = Color(0xFF1B2230)
+            }
         )
     }
 }

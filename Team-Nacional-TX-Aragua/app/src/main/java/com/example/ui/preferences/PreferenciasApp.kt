@@ -155,6 +155,16 @@ object PreferenciasApp {
         get() = prefs.getBoolean("carnet_mostrar_qr", true)
         set(value) = prefs.edit().putBoolean("carnet_mostrar_qr", value).apply()
 
+    /** Tipo de imagen a mostrar en Carnet TX: "PERFIL" (foto subida de perfil) o "CORREO" (foto cuenta Google) */
+    var carnetTipoFoto: String
+        get() = prefs.getString("carnet_tipo_foto", "PERFIL") ?: "PERFIL"
+        set(value) = prefs.edit().putString("carnet_tipo_foto", value).apply()
+
+    /** URL de la foto de la cuenta Google vinculada */
+    var carnetGooglePhotoUrl: String?
+        get() = prefs.getString("carnet_google_photo_url", null)
+        set(value) = prefs.edit().putString("carnet_google_photo_url", value).apply()
+
     // ─── MÓDULO 11: VELOCÍMETRO & TELEMETRÍA ──────────────────────────────────
 
     /** Récord de velocidad máxima histórica alcanzada (en KM/H) */

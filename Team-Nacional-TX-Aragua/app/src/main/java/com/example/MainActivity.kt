@@ -955,6 +955,9 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             onSelectMember = { viewModel.selectMember(it) },
                             onUpdateProfile = { viewModel.updateProfile(it) },
                             onVincularGoogle = { uid, email, photo ->
+                                if (!photo.isNullOrBlank()) {
+                                    PreferenciasApp.carnetGooglePhotoUrl = photo
+                                }
                                 kotlinx.coroutines.MainScope().launch {
                                     val (exito, mensaje) = viewModel.vincularGoogle(uid, email, photo)
                                     Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()

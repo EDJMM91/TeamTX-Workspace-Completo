@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
+import com.example.dashboard.DashboardFondoConfig
 import com.example.ui.preferences.PreferenciasApp
 import com.example.ui.theme.*
 import android.graphics.Bitmap
@@ -473,21 +474,32 @@ fun DigitalCredentialCard(
     member: MemberProfile,
     currentLoggedInMemberId: Long = 0L,
     onRateMember: (MemberProfile) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isLightTheme: Boolean = true,
+    photoUrlOverride: String? = null
 ) {
+    val effectivePhotoUrl = photoUrlOverride ?: member.profilePhotoUri
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (member.isSuspended) Color(0xFF1A1012) else Color(0xFF121620)
+            containerColor = if (member.isSuspended) {
+                if (isLightTheme) Color(0xFFFFF1F2) else Color(0xFF1A1012)
+            } else {
+                if (isLightTheme) DashboardFondoConfig.ColorTarjetaClara else Color(0xFF121620)
+            }
         ),
         border = BorderStroke(
             1.8.dp,
-            if (member.isSuspended)
-                Brush.linearGradient(listOf(StatusError, TxGoldBrass, StatusError))
-            else
+            if (member.isSuspended) {
+                Brush.linearGradient(listOf(StatusError, DashboardFondoConfig.ColorDoradoOro, StatusError))
+            } else if (isLightTheme) {
+                Brush.linearGradient(listOf(DashboardFondoConfig.ColorDoradoOro, DashboardFondoConfig.ColorRojoCarrera, Color(0xFF94A3B8), DashboardFondoConfig.ColorDoradoOro))
+            } else {
                 Brush.linearGradient(listOf(TxGoldBrass, TxFlameRed, TxChromeSilver, TxGoldBrass))
+            }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isLightTheme) 4.dp else 8.dp),
         modifier = modifier
             .fillMaxWidth()
             .testTag("digital_credential_card")
@@ -513,10 +525,10 @@ fun DigitalCredentialCard(
                             .clip(CircleShape)
                             .background(
                                 Brush.linearGradient(
-                                    if (member.isSuspended) listOf(StatusError, Color(0xFF7F1D1D)) else listOf(TxFlameRed, TxRedDark)
+                                    if (member.isSuspended) listOf(StatusError, Color(0xFF7F1D1D)) else listOf(DashboardFondoConfig.ColorRojoCarrera, TxRedDark)
                                 )
                             )
-                            .border(1.dp, TxGoldBrass, CircleShape),
+                            .border(1.dp, DashboardFondoConfig.ColorDoradoOro, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -529,14 +541,14 @@ fun DigitalCredentialCard(
                     Column {
                         Text(
                             text = "TEAM NACIONAL TX VZLA",
-                            color = Color.White,
+                            color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White,
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp,
                             letterSpacing = 0.5.sp
                         )
                         Text(
                             text = if (member.isSuspended) "ESTATUS: MIEMBRO SUSPENDIDO" else "CREDENCIAL OFICIAL DE PILOTO",
-                            color = if (member.isSuspended) StatusError else TxGoldBrass,
+                            color = if (member.isSuspended) StatusError else if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldBrass,
                             fontWeight = FontWeight.Bold,
                             fontSize = 9.sp,
                             letterSpacing = 0.5.sp
@@ -545,12 +557,21 @@ fun DigitalCredentialCard(
                 }
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (member.isSuspended) StatusError.copy(alpha = 0.25f) else TxFlameRed.copy(alpha = 0.2f),
-                    border = BorderStroke(1.dp, if (member.isSuspended) StatusError else TxFlameRed)
+                    color = if (member.isSuspended) {
+                        StatusError.copy(alpha = 0.25f)
+                    } else if (isLightTheme) {
+                        DashboardFondoConfig.ColorContenedorRojo
+                    } else {
+                        TxFlameRed.copy(alpha = 0.2f)
+                    },
+                    border = BorderStroke(
+                        1.dp,
+                        if (member.isSuspended) StatusError else if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.5f) else TxFlameRed
+                    )
                 ) {
                     Text(
                         text = member.memberNumber,
-                        color = if (member.isSuspended) StatusError else TxGoldLight,
+                        color = if (member.isSuspended) StatusError else if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera else TxGoldLight,
                         fontWeight = FontWeight.Black,
                         fontSize = 13.sp,
                         fontFamily = FontFamily.Monospace,
@@ -563,7 +584,7 @@ fun DigitalCredentialCard(
                 Spacer(modifier = Modifier.height(10.dp))
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = StatusError.copy(alpha = 0.15f),
+                    color = if (isLightTheme) Color(0xFFFFECEE) else StatusError.copy(alpha = 0.15f),
                     border = BorderStroke(1.dp, StatusError.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -574,8 +595,17 @@ fun DigitalCredentialCard(
                     ) {
                         Icon(Icons.Default.Gavel, contentDescription = null, tint = StatusError, modifier = Modifier.size(18.dp))
                         Column {
-                            Text("MOTIVO: ${member.suspensionReason}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            Text("Vence: ${member.suspensionEndDate}", color = TxGoldLight, fontSize = 10.sp)
+                            Text(
+                                text = "MOTIVO: ${member.suspensionReason}",
+                                color = if (isLightTheme) Color(0xFF991B1B) else Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Vence: ${member.suspensionEndDate}",
+                                color = if (isLightTheme) Color(0xFFB45309) else TxGoldLight,
+                                fontSize = 10.sp
+                            )
                         }
                     }
                 }
@@ -594,24 +624,23 @@ fun DigitalCredentialCard(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF1E2638))
+                        .background(if (isLightTheme) Color(0xFFF1F5F9) else Color(0xFF1E2638))
                         .border(
                             2.dp,
-                            if (member.isSuspended) StatusError else if (member.isDirectiva) TxGoldBrass else TxSteelSilver,
+                            if (member.isSuspended) StatusError else if (member.isDirectiva) DashboardFondoConfig.ColorDoradoOro else if (isLightTheme) DashboardFondoConfig.ColorBordeClaro else TxSteelSilver,
                             RoundedCornerShape(12.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (!member.profilePhotoUri.isNullOrBlank()) {
-                        val photoUrl = member.profilePhotoUri
-                        LaunchedEffect(photoUrl) {
-                            android.util.Log.d("TEAM_TX_IMAGES", "📸 Cargando Foto Perfil: ${member.fullName} | URL: $photoUrl")
+                    if (!effectivePhotoUrl.isNullOrBlank()) {
+                        LaunchedEffect(effectivePhotoUrl) {
+                            android.util.Log.d("TEAM_TX_IMAGES", "📸 Cargando Foto Carnet: ${member.fullName} | URL: $effectivePhotoUrl")
                         }
                         AsyncImage(
-                            model = photoUrl,
-                            contentDescription = "Foto de perfil",
-                            onSuccess = { android.util.Log.i("TEAM_TX_IMAGES", "✅ Foto Perfil cargada: ${member.fullName}") },
-                            onError = { e -> android.util.Log.e("TEAM_TX_IMAGES", "❌ Error Foto Perfil: ${member.fullName} | ${e.result.throwable.message}") },
+                            model = effectivePhotoUrl,
+                            contentDescription = "Foto de carnet",
+                            onSuccess = { android.util.Log.i("TEAM_TX_IMAGES", "✅ Foto Carnet cargada: ${member.fullName}") },
+                            onError = { e -> android.util.Log.e("TEAM_TX_IMAGES", "❌ Error Foto Carnet: ${member.fullName} | ${e.result.throwable.message}") },
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -620,7 +649,7 @@ fun DigitalCredentialCard(
                             text = member.avatarInitials,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color.White
+                            color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White
                         )
                     }
                 }
@@ -630,14 +659,14 @@ fun DigitalCredentialCard(
                         text = member.fullName.uppercase(),
                         fontWeight = FontWeight.Black,
                         fontSize = 15.sp,
-                        color = Color.White,
+                        color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                     if (member.nickname.isNotBlank()) {
                         Text(
                             text = "\"${member.nickname}\"",
-                            color = TxGoldLight,
+                            color = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldLight,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
@@ -650,12 +679,23 @@ fun DigitalCredentialCard(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = if (member.isDirectiva) TxGoldBrass.copy(alpha = 0.2f) else Color(0xFF2A3447),
-                            border = BorderStroke(1.dp, if (member.isDirectiva) TxGoldBrass else Color(0xFF3E4C66))
+                            color = if (member.isDirectiva) {
+                                if (isLightTheme) DashboardFondoConfig.ColorContenedorDorado else TxGoldBrass.copy(alpha = 0.2f)
+                            } else {
+                                if (isLightTheme) Color(0xFFF1F5F9) else Color(0xFF2A3447)
+                            },
+                            border = BorderStroke(
+                                1.dp,
+                                if (member.isDirectiva) DashboardFondoConfig.ColorDoradoOro else if (isLightTheme) DashboardFondoConfig.ColorBordeClaro else Color(0xFF3E4C66)
+                            )
                         ) {
                             Text(
                                 text = member.role.displayName.uppercase(),
-                                color = if (member.isDirectiva) TxGoldLight else Color.White,
+                                color = if (member.isDirectiva) {
+                                    if (isLightTheme) Color(0xFFB45309) else TxGoldLight
+                                } else {
+                                    if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White
+                                },
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Black,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -663,7 +703,7 @@ fun DigitalCredentialCard(
                         }
                         Text(
                             text = member.chapterState,
-                            color = Color(0xFFA0ADC0),
+                            color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFFA0ADC0),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -676,8 +716,8 @@ fun DigitalCredentialCard(
             // Ficha Técnica de la Moto
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = Color(0xFF171D28),
-                border = BorderStroke(1.dp, Color(0xFF283244)),
+                color = if (isLightTheme) Color(0xFFF8FAFC) else Color(0xFF171D28),
+                border = BorderStroke(1.dp, if (isLightTheme) DashboardFondoConfig.ColorBordeClaro else Color(0xFF283244)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -705,12 +745,17 @@ fun DigitalCredentialCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.TwoWheeler,
+                            contentDescription = null,
+                            tint = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldBrass,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Text(
                             text = "FICHA TÉCNICA DE LA MOTO",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
-                            color = TxGoldBrass,
+                            color = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldBrass,
                             letterSpacing = 0.5.sp
                         )
                     }
@@ -720,19 +765,62 @@ fun DigitalCredentialCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1.2f)) {
-                            Text("MOTO Y MODELO", color = Color(0xFF8C9BAE), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("${member.bikeBrand} ${member.bikeModel}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("Color: ${member.bikeColor}", color = TxGoldLight, fontSize = 10.sp)
+                            Text(
+                                "MOTO Y MODELO",
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFF8C9BAE),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "${member.bikeBrand} ${member.bikeModel}",
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Color: ${member.bikeColor}",
+                                color = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldLight,
+                                fontSize = 10.sp
+                            )
                         }
                         Column(modifier = Modifier.weight(0.8f)) {
-                            Text("CILINDRADA", color = Color(0xFF8C9BAE), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text(member.bikeDisplacementCc, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("Año: ${member.bikeYear}", color = Color(0xFFA0ADC0), fontSize = 10.sp)
+                            Text(
+                                "CILINDRADA",
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFF8C9BAE),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                member.bikeDisplacementCc,
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Año: ${member.bikeYear}",
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFFA0ADC0),
+                                fontSize = 10.sp
+                            )
                         }
                         Column(modifier = Modifier.weight(0.9f)) {
-                            Text("TANQUE / PLACA", color = Color(0xFF8C9BAE), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("⛽ ${member.bikeTankCapacityLiters}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("Placa: ${member.bikePlate}", color = TxSteelSilver, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                "TANQUE / PLACA",
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFF8C9BAE),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "⛽ ${member.bikeTankCapacityLiters}",
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Placa: ${member.bikePlate}",
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else TxSteelSilver,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 
@@ -741,8 +829,11 @@ fun DigitalCredentialCard(
                         Spacer(modifier = Modifier.height(6.dp))
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = MotoOrangePrimary.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.4f)),
+                            color = if (isLightTheme) DashboardFondoConfig.ColorContenedorRojo else MotoOrangePrimary.copy(alpha = 0.15f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.3f) else MotoOrangePrimary.copy(alpha = 0.4f)
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -751,13 +842,28 @@ fun DigitalCredentialCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Speed, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(13.dp))
+                                    Icon(
+                                        Icons.Default.Speed,
+                                        contentDescription = null,
+                                        tint = if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera else MotoOrangePrimary,
+                                        modifier = Modifier.size(13.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("RÉCORD TOP SPEED:", fontSize = 9.sp, fontWeight = FontWeight.Black, color = MotoOrangePrimary)
+                                    Text(
+                                        "RÉCORD TOP SPEED:",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera else MotoOrangePrimary
+                                    )
                                 }
                                 val topKmh = PreferenciasApp.topSpeedRecordKmh.toInt()
                                 val topMph = (PreferenciasApp.topSpeedRecordKmh * 0.621371f).toInt()
-                                Text("$topKmh KM/H ($topMph MPH)", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                Text(
+                                    "$topKmh KM/H ($topMph MPH)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White
+                                )
                             }
                         }
                     }
@@ -810,8 +916,8 @@ fun DigitalCredentialCard(
                 if (qrImage != null) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF171D28),
-                        border = BorderStroke(1.dp, Color(0xFF283244)),
+                        color = if (isLightTheme) Color(0xFFF8FAFC) else Color(0xFF171D28),
+                        border = BorderStroke(1.dp, if (isLightTheme) DashboardFondoConfig.ColorBordeClaro else Color(0xFF283244)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -827,10 +933,24 @@ fun DigitalCredentialCard(
                                     .clip(RoundedCornerShape(6.dp))
                             )
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("QR DE VERIFICACIÓN OFICIAL", color = TxGoldBrass, fontSize = 10.sp, fontWeight = FontWeight.Black)
-                                Text("Escaneable para verificar autenticidad de la credencial en rodadas y puntos de control.", color = Color(0xFF8C9BAE), fontSize = 9.sp)
+                                Text(
+                                    "QR DE VERIFICACIÓN OFICIAL",
+                                    color = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldBrass,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Text(
+                                    "Escaneable para verificar autenticidad de la credencial en rodadas y puntos de control.",
+                                    color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFF8C9BAE),
+                                    fontSize = 9.sp
+                                )
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Text("TEAMTX-OK-2026", color = Color(0xFF5A6E85), fontSize = 8.sp, fontFamily = FontFamily.Monospace)
+                                Text(
+                                    "TEAMTX-OK-2026",
+                                    color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario.copy(alpha = 0.8f) else Color(0xFF5A6E85),
+                                    fontSize = 8.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
                             }
                         }
                     }
@@ -847,8 +967,8 @@ fun DigitalCredentialCard(
                 // Sangre & Alergias
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = StatusError.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, StatusError.copy(alpha = 0.4f)),
+                    color = if (isLightTheme) DashboardFondoConfig.ColorContenedorRojo else StatusError.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, if (isLightTheme) StatusError.copy(alpha = 0.3f) else StatusError.copy(alpha = 0.4f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(
@@ -867,7 +987,7 @@ fun DigitalCredentialCard(
                         )
                         Text(
                             text = member.medicalNotes,
-                            color = Color(0xFFE2E8F0),
+                            color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFFE2E8F0),
                             fontSize = 9.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -878,8 +998,8 @@ fun DigitalCredentialCard(
                 // Contacto SOS
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF1B2230),
-                    border = BorderStroke(1.dp, Color(0xFF2E384D)),
+                    color = if (isLightTheme) Color(0xFFF8FAFC) else Color(0xFF1B2230),
+                    border = BorderStroke(1.dp, if (isLightTheme) DashboardFondoConfig.ColorBordeClaro else Color(0xFF2E384D)),
                     modifier = Modifier.weight(1.3f)
                 ) {
                     Column(
@@ -887,12 +1007,22 @@ fun DigitalCredentialCard(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Default.Emergency, contentDescription = null, tint = TxFlameRed, modifier = Modifier.size(12.dp))
-                            Text("CONTACTO SOS", fontSize = 9.sp, color = TxGoldLight, fontWeight = FontWeight.Black)
+                            Icon(
+                                Icons.Default.Emergency,
+                                contentDescription = null,
+                                tint = if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera else TxFlameRed,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                "CONTACTO SOS",
+                                fontSize = 9.sp,
+                                color = if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera else TxGoldLight,
+                                fontWeight = FontWeight.Black
+                            )
                         }
                         Text(
                             text = member.emergencyContactName,
-                            color = Color.White,
+                            color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
@@ -900,7 +1030,7 @@ fun DigitalCredentialCard(
                         )
                         Text(
                             text = "📞 ${member.emergencyContactPhone} (${member.emergencyContactRelation})",
-                            color = Color(0xFFA0ADC0),
+                            color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFFA0ADC0),
                             fontSize = 9.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -919,8 +1049,8 @@ fun DigitalCredentialCard(
                 if (!member.copilotName.isNullOrBlank()) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF1A2234),
-                        border = BorderStroke(1.dp, Color(0xFF2A3A55)),
+                        color = if (isLightTheme) Color(0xFFF8FAFC) else Color(0xFF1A2234),
+                        border = BorderStroke(1.dp, if (isLightTheme) DashboardFondoConfig.ColorBordeClaro else Color(0xFF2A3A55)),
                         modifier = Modifier.weight(1f)
                     ) {
                         Column(
@@ -928,12 +1058,22 @@ fun DigitalCredentialCard(
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Icon(Icons.Default.AirlineSeatReclineNormal, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(12.dp))
-                                Text("COPILOTO OFICIAL", fontSize = 9.sp, color = TxGoldBrass, fontWeight = FontWeight.Black)
+                                Icon(
+                                    Icons.Default.AirlineSeatReclineNormal,
+                                    contentDescription = null,
+                                    tint = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldBrass,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    "COPILOTO OFICIAL",
+                                    fontSize = 9.sp,
+                                    color = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldBrass,
+                                    fontWeight = FontWeight.Black
+                                )
                             }
                             Text(
                                 text = member.copilotName ?: "",
-                                color = Color.White,
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
@@ -941,7 +1081,7 @@ fun DigitalCredentialCard(
                             )
                             Text(
                                 text = "Parentesco: ${member.copilotRelation ?: "Familiar"}",
-                                color = Color(0xFFA0ADC0),
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFFA0ADC0),
                                 fontSize = 9.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -952,8 +1092,8 @@ fun DigitalCredentialCard(
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF1B2230),
-                    border = BorderStroke(1.dp, Color(0xFF2E384D)),
+                    color = if (isLightTheme) Color(0xFFF8FAFC) else Color(0xFF1B2230),
+                    border = BorderStroke(1.dp, if (isLightTheme) DashboardFondoConfig.ColorBordeClaro else Color(0xFF2E384D)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(
@@ -961,18 +1101,28 @@ fun DigitalCredentialCard(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = TxSteelSilver, modifier = Modifier.size(12.dp))
-                            Text("TELÉFONO & DNI", fontSize = 9.sp, color = Color(0xFF8C9BAE), fontWeight = FontWeight.Bold)
+                            Icon(
+                                Icons.Default.Phone,
+                                contentDescription = null,
+                                tint = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else TxSteelSilver,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                "TELÉFONO & DNI",
+                                fontSize = 9.sp,
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFF8C9BAE),
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                         Text(
                             text = member.phone,
-                            color = Color.White,
+                            color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "C.I. ${member.cedulaDni} • ${member.chapterState}",
-                            color = Color(0xFFA0ADC0),
+                            color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFFA0ADC0),
                             fontSize = 9.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -986,8 +1136,8 @@ fun DigitalCredentialCard(
             // ─── REPUTACIÓN, GAMIFICACIÓN Y CALIFICACIONES ─────────────
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = Color(0xFF161F2C),
-                border = BorderStroke(1.dp, TxGoldBrass.copy(alpha = 0.4f)),
+                color = if (isLightTheme) DashboardFondoConfig.ColorContenedorDorado else Color(0xFF161F2C),
+                border = BorderStroke(1.dp, if (isLightTheme) DashboardFondoConfig.ColorDoradoOro.copy(alpha = 0.4f) else TxGoldBrass.copy(alpha = 0.4f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -1000,12 +1150,17 @@ fun DigitalCredentialCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(Icons.Default.Stars, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Stars,
+                                contentDescription = null,
+                                tint = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldBrass,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Text(
                                 text = "REPUTACIÓN & GAMIFICACIÓN",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Black,
-                                color = TxGoldBrass,
+                                color = if (isLightTheme) Color(0xFFB45309) else TxGoldBrass,
                                 letterSpacing = 0.5.sp
                             )
                         }
@@ -1042,10 +1197,10 @@ fun DigitalCredentialCard(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.ThumbUp, contentDescription = null, tint = Color(0xFF22C55E), modifier = Modifier.size(12.dp))
+                                    Icon(Icons.Default.ThumbUp, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(12.dp))
                                     Text(
                                         text = "${member.positiveRatingsCount} Likes",
-                                        color = Color(0xFF22C55E),
+                                        color = if (isLightTheme) Color(0xFF15803D) else Color(0xFF22C55E),
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -1062,10 +1217,10 @@ fun DigitalCredentialCard(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.ThumbDown, contentDescription = null, tint = TxFlameRed, modifier = Modifier.size(12.dp))
+                                    Icon(Icons.Default.ThumbDown, contentDescription = null, tint = DashboardFondoConfig.ColorRojoCarrera, modifier = Modifier.size(12.dp))
                                     Text(
                                         text = "${member.negativeRatingsCount} Dislikes",
-                                        color = TxFlameRed,
+                                        color = if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera else TxFlameRed,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -1075,7 +1230,7 @@ fun DigitalCredentialCard(
 
                         Text(
                             text = "${com.example.ui.screens.calculateMemberMeritPoints(member)} PTS",
-                            color = TxGoldLight,
+                            color = if (isLightTheme) Color(0xFFB45309) else TxGoldLight,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Black
                         )
@@ -1084,7 +1239,7 @@ fun DigitalCredentialCard(
                     if (currentLoggedInMemberId > 0L && member.id != currentLoggedInMemberId) {
                         Button(
                             onClick = { onRateMember(member) },
-                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera else MotoOrangePrimary),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                             modifier = Modifier.fillMaxWidth().height(34.dp)
@@ -1109,7 +1264,7 @@ fun DigitalCredentialCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFF1B222E))
+                    .background(if (isLightTheme) Color(0xFFF1F5F9) else Color(0xFF1B222E))
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -1123,14 +1278,14 @@ fun DigitalCredentialCard(
                     )
                     Text(
                         text = if (member.isSuspended) "INHABILITADO PARA RODADAS" else if (member.solvencyStatus) "SOLVENTE 2026" else "CUOTA PENDIENTE",
-                        color = if (member.isSuspended) StatusError else if (member.solvencyStatus) StatusSuccess else StatusWarning,
+                        color = if (member.isSuspended) StatusError else if (member.solvencyStatus) (if (isLightTheme) Color(0xFF15803D) else StatusSuccess) else StatusWarning,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Text(
                     text = "DESDE ${member.joinYear}",
-                    color = Color(0xFFA0ADC0),
+                    color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFFA0ADC0),
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace
                 )
