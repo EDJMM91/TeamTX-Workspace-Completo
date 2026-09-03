@@ -55,6 +55,8 @@ object GESTOR_AUDIO_TX {
     private var notificationManager: NotificationManager? = null
     private var contextoApp: Context? = null
     private var prefs: SharedPreferences? = null
+    private var activoPfd: android.os.ParcelFileDescriptor? = null
+    private var activoFis: java.io.FileInputStream? = null
 
     private val scopeCoroutine = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var jobProgreso: Job? = null
@@ -274,8 +276,8 @@ object GESTOR_AUDIO_TX {
                         // Si ya procesamos esta ruta física, evitar duplicar
                         if (path.isNotBlank() && !rutasExistentes.add(path)) continue
 
-                        // Filtro de duración: solo si la duración ya fue calculada y es menor al umbral
-                        if (cfg.excluirAudiosCortos && dur in 1 until duracionMinMs) {
+                        // Filtro de duración: solo si la duración ya fue calculada y el usuario configuró una duración mínima mayor a 0
+                        if (cfg.excluirAudiosCortos && duracionMinMs > 0 && dur in 1 until duracionMinMs) {
                             continue
                         }
 
@@ -414,8 +416,7 @@ object GESTOR_AUDIO_TX {
         _estado.value = EstadoReproductor.CARGANDO
 
         errorEnCurso = false
-        // NOTA CRÍTICA: No resetear aquí intentosErrorConsecutivos ni autoSkipsConsecutivos
-        // para permitir que el límite de errores corte efectivamente cualquier bucle si fallan pistas seguidas
+        tiempoInicioReproduccionMs = 0L // Resetear marca de tiempo para que no herede la duración de la canción anterior
 
         guardarUltimaCancion(cancion.id)
         cargarCaratulaParaCancion(cancion)
@@ -437,48 +438,49 @@ object GESTOR_AUDIO_TX {
                 )
 
                 // ═══════════════════════════════════════════════════════════════════
-                // PIPELINE MULTI-ETAPA UNIVERSAL DE ORIGEN DE DATOS
-                // Compatible con Android 7 a 15, Scoped Storage y todos los decoders
+                // PIPELINE UNIVERSAL DE ORIGEN DE DATOS SIN CIERRE PREMATURO DE FD
                 // ═══════════════════════════════════════════════════════════════════
                 var fuenteConfigurada = false
 
-                // Etapa 1: FileDescriptor vía ContentResolver (para URIs content://)
-                if (cancion.uriStr.isNotBlank() && cancion.uriStr.startsWith("content://")) {
-                    try {
-                        ctx.contentResolver.openFileDescriptor(Uri.parse(cancion.uriStr), "r")?.use { pfd ->
-                            setDataSource(pfd.fileDescriptor)
-                            fuenteConfigurada = true
-                            logDiagnostico("setDataSource OK vía ContentResolver PFD")
-                        }
-                    } catch (e: Exception) {
-                        logDiagnostico("Etapa 1 PFD falló (${e.message}) — probando etapa 2...")
-                    }
-                }
-
-                // Etapa 2: FileDescriptor vía FileInputStream (máxima compatibilidad Scoped Storage)
-                if (!fuenteConfigurada && rutaFisica.isNotBlank()) {
-                    val f = File(rutaFisica)
-                    if (f.exists() && f.canRead() && f.length() > 0) {
-                        try {
-                            java.io.FileInputStream(f).use { fis ->
-                                setDataSource(fis.fd)
-                                fuenteConfigurada = true
-                                logDiagnostico("setDataSource OK vía FileInputStream FD: $rutaFisica")
-                            }
-                        } catch (e: Exception) {
-                            logDiagnostico("Etapa 2 FIS falló (${e.message}) — probando etapa 3...")
-                        }
-                    }
-                }
-
-                // Etapa 3: Apertura estándar por Context + Uri
-                if (!fuenteConfigurada && cancion.uriStr.isNotBlank()) {
+                // Etapa 1: Apertura oficial por Context + Uri (mantiene descriptor abierto internamente)
+                if (cancion.uriStr.isNotBlank()) {
                     try {
                         setDataSource(ctx, uriAudio)
                         fuenteConfigurada = true
                         logDiagnostico("setDataSource OK vía Context + URI")
                     } catch (e: Exception) {
-                        logDiagnostico("Etapa 3 Context URI falló (${e.message}) — probando etapa 4...")
+                        logDiagnostico("Etapa 1 Context URI falló (${e.message}) — probando etapa 2...")
+                    }
+                }
+
+                // Etapa 2: FileDescriptor persistente vía ContentResolver (sin .use para que no se cierre)
+                if (!fuenteConfigurada && cancion.uriStr.isNotBlank() && cancion.uriStr.startsWith("content://")) {
+                    try {
+                        val pfd = ctx.contentResolver.openFileDescriptor(Uri.parse(cancion.uriStr), "r")
+                        if (pfd != null) {
+                            activoPfd = pfd
+                            setDataSource(pfd.fileDescriptor)
+                            fuenteConfigurada = true
+                            logDiagnostico("setDataSource OK vía ContentResolver PFD persistente")
+                        }
+                    } catch (e: Exception) {
+                        logDiagnostico("Etapa 2 PFD falló (${e.message}) — probando etapa 3...")
+                    }
+                }
+
+                // Etapa 3: FileDescriptor persistente vía FileInputStream (sin .use para que no se cierre)
+                if (!fuenteConfigurada && rutaFisica.isNotBlank()) {
+                    val f = File(rutaFisica)
+                    if (f.exists() && f.canRead() && f.length() > 0) {
+                        try {
+                            val fis = java.io.FileInputStream(f)
+                            activoFis = fis
+                            setDataSource(fis.fd)
+                            fuenteConfigurada = true
+                            logDiagnostico("setDataSource OK vía FileInputStream FD persistente: $rutaFisica")
+                        } catch (e: Exception) {
+                            logDiagnostico("Etapa 3 FIS falló (${e.message}) — probando etapa 4...")
+                        }
                     }
                 }
 
@@ -623,21 +625,28 @@ object GESTOR_AUDIO_TX {
     }
 
     /**
-     * Libera el MediaPlayer de forma segura y desvincula efectos de hardware.
+     * Libera el MediaPlayer de forma segura, cerrando descriptores y desvinculando efectos de hardware.
      */
     private fun liberarMediaPlayer() {
         try {
-            mediaPlayer?.setOnPreparedListener(null)
-            mediaPlayer?.setOnCompletionListener(null)
-            mediaPlayer?.setOnErrorListener(null)
-            mediaPlayer?.setOnInfoListener(null)
-            mediaPlayer?.setOnSeekCompleteListener(null)
-            mediaPlayer?.reset()
-        } catch (_: Exception) {}
-        try {
-            mediaPlayer?.release()
+            mediaPlayer?.apply {
+                if (isPlaying) {
+                    try { stop() } catch (_: Exception) {}
+                }
+                setOnPreparedListener(null)
+                setOnCompletionListener(null)
+                setOnErrorListener(null)
+                setOnInfoListener(null)
+                setOnSeekCompleteListener(null)
+                reset()
+                release()
+            }
         } catch (_: Exception) {}
         mediaPlayer = null
+        try { activoPfd?.close() } catch (_: Exception) {}
+        activoPfd = null
+        try { activoFis?.close() } catch (_: Exception) {}
+        activoFis = null
         try {
             MOTOR_AUDIO_NATIVO.liberarEfectos()
         } catch (_: Exception) {}
@@ -805,20 +814,21 @@ object GESTOR_AUDIO_TX {
     }
 
     private fun alCompletarCancion() {
-        val tiempoTranscurrido = System.currentTimeMillis() - tiempoInicioReproduccionMs
+        val tiempoTranscurrido = if (tiempoInicioReproduccionMs > 0) System.currentTimeMillis() - tiempoInicioReproduccionMs else 0L
         logDiagnostico("🎵 alCompletarCancion: '${_cancionActual.value?.titulo}' tiempo=${tiempoTranscurrido}ms modoBucle=${_modoBucle.value}")
 
-        val esCompletionInmediato = tiempoTranscurrido < MIN_DURACION_VALIDA_MS && tiempoInicioReproduccionMs > 0
+        // Si nunca inició (0L) o terminó en menos de 2000ms, es un fallo prematuro o descriptor cerrado
+        val esFalloPrematuro = tiempoInicioReproduccionMs == 0L || tiempoTranscurrido < MIN_DURACION_VALIDA_MS
 
-        if (esCompletionInmediato) {
+        if (esFalloPrematuro) {
             autoSkipsConsecutivos++
-            logDiagnostico("⚠️ COMPLETION INMEDIATO [auto=$autoSkipsConsecutivos/$MAX_AUTO_SKIPS]")
+            logDiagnostico("⚠️ FALLO PREMATURO / COMPLETION INMEDIATO [auto=$autoSkipsConsecutivos/$MAX_AUTO_SKIPS]")
 
             val cola = _colaReproduccion.value
             val maxPermitido = kotlin.math.min(MAX_AUTO_SKIPS, if (cola.isNotEmpty()) cola.size else MAX_AUTO_SKIPS)
 
             if (autoSkipsConsecutivos >= maxPermitido) {
-                logDiagnostico("🛑 DEMASIADOS AUTO-SKIPS por completion inmediato. Deteniendo.")
+                logDiagnostico("🛑 DEMASIADOS AUTO-SKIPS por fallo prematuro. Deteniendo reproducción.")
                 autoSkipsConsecutivos = 0
                 detener()
                 val ctx = contextoApp
@@ -826,6 +836,12 @@ object GESTOR_AUDIO_TX {
                     scopeCoroutine.launch(Dispatchers.Main) {
                         android.widget.Toast.makeText(ctx, "Reproducción detenida: varios audios consecutivos no pudieron reproducirse.", android.widget.Toast.LENGTH_SHORT).show()
                     }
+                }
+                return
+            } else {
+                scopeCoroutine.launch {
+                    delay(350)
+                    siguienteCancion(esAutoSkip = true)
                 }
                 return
             }
@@ -839,7 +855,7 @@ object GESTOR_AUDIO_TX {
                 if (actual != null) reproducirCancion(actual)
             }
             ModoBucle.BUCLE_TODAS, ModoBucle.SIN_BUCLE -> {
-                siguienteCancion(esAutoSkip = esCompletionInmediato)
+                siguienteCancion(esAutoSkip = false)
             }
         }
     }
@@ -1204,14 +1220,14 @@ object GESTOR_AUDIO_TX {
             posicionNubeX = p.getFloat("nube_x", 40f),
             posicionNubeY = p.getFloat("nube_y", 250f),
             autoOcultarNube = p.getBoolean("nube_auto_ocultar", true),
-            duracionMinimaSegundos = p.getInt("duracion_min_seg", 30),
+            duracionMinimaSegundos = p.getInt("duracion_min_seg", 0),
             ultraVolumenNivel = p.getFloat("ultra_vol", 1.0f),
             superBassNivel = p.getFloat("super_bass", 0.4f),
             espacialidadNivel = p.getFloat("espacialidad", 0.2f),
             bandasEcualizador = bandas,
             presetActual = p.getString("preset_actual", "Rock Motero") ?: "Rock Motero",
-            excluirCarpetasWhatsApp = p.getBoolean("excluir_whatsapp", true),
-            excluirAudiosCortos = p.getBoolean("excluir_audios_cortos", true),
+            excluirCarpetasWhatsApp = p.getBoolean("excluir_whatsapp", false),
+            excluirAudiosCortos = p.getBoolean("excluir_audios_cortos", false),
             descargaCaratulasModo = modoCaratulas
         )
     }

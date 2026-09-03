@@ -122,13 +122,13 @@ data class ConfiguracionReproductor(
     val posicionNubeX: Float = 40f,
     val posicionNubeY: Float = 250f,
     val autoOcultarNube: Boolean = true,
-    val duracionMinimaSegundos: Int = 30, // Excluir notas de voz cortas
+    val duracionMinimaSegundos: Int = 0, // 0 = Permitir todos los audios sin exclusión por duración
     val ultraVolumenNivel: Float = 1.0f,   // 1.0f (Normal 100%) a 3.0f (300%)
     val superBassNivel: Float = 0.4f,      // 0.0f a 1.0f
     val espacialidadNivel: Float = 0.2f,   // 0.0f a 1.0f
     val bandasEcualizador: FloatArray = floatArrayOf(2.0f, 1.0f, 0.0f, 2.0f, 3.0f),
     val presetActual: String = "Rock Motero",
-    val excluirCarpetasWhatsApp: Boolean = true,
-    val excluirAudiosCortos: Boolean = true,
+    val excluirCarpetasWhatsApp: Boolean = false, // Permitir carpetas de audio recibidas
+    val excluirAudiosCortos: Boolean = false, // No excluir audios cortos por defecto
     val descargaCaratulasModo: ModoDescargaCaratulas = ModoDescargaCaratulas.WIFI_Y_DATOS
 )

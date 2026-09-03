@@ -104,13 +104,23 @@ fun VistaAjustesReproductor(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Excluir audios cortos (< ${config.duracionMinimaSegundos}s)", fontSize = 12.sp, color = Color.White)
-                        Text("${config.duracionMinimaSegundos} seg", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
+                        Text(
+                            if (config.duracionMinimaSegundos == 0) "Excluir audios cortos (Desactivado)" else "Excluir audios cortos (< ${config.duracionMinimaSegundos}s)",
+                            fontSize = 12.sp,
+                            color = Color.White
+                        )
+                        Text(
+                            if (config.duracionMinimaSegundos == 0) "Todos" else "${config.duracionMinimaSegundos} seg",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MotoGoldSecondary
+                        )
                     }
                     Slider(
                         value = config.duracionMinimaSegundos.toFloat(),
                         onValueChange = { nuevoSeg ->
-                            onActualizarConfig(config.copy(duracionMinimaSegundos = nuevoSeg.toInt()))
+                            val seg = nuevoSeg.toInt()
+                            onActualizarConfig(config.copy(duracionMinimaSegundos = seg, excluirAudiosCortos = seg > 0))
                         },
                         valueRange = 0f..120f,
                         steps = 5,
