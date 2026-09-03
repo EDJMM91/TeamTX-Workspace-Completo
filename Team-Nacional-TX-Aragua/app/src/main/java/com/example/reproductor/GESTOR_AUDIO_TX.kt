@@ -125,6 +125,8 @@ object GESTOR_AUDIO_TX {
     private const val MIN_DURACION_VALIDA_MS = 2000L
     private var errorEnCurso = false
     private val isTransitioning = java.util.concurrent.atomic.AtomicBoolean(false)
+    private var jobAutoSkip: Job? = null
+    private var contadorSkipsConsecutivosUsuario = 0
     private var logFile: File? = null
     private var timestampsSkips = mutableListOf<Long>()
 
@@ -453,16 +455,16 @@ object GESTOR_AUDIO_TX {
                     jobProgreso?.cancel()
 
                     if (intentosErrorConsecutivos < MAX_INTENTOS_ERROR && autoSkipsConsecutivos < MAX_AUTO_SKIPS) {
-                        logDiagnostico("Saltando en 500ms...")
+                        logDiagnostico("Saltando a siguiente canción por error...")
                         scopeCoroutine.launch {
-                            delay(500)
-                            logDiagnostico("Ejecutando siguienteCancion desde error handler")
+                            delay(200)
                             siguienteCancion()
                         }
                     } else {
-                        logDiagnostico("🛑 DETENIENDO: max errores alcanzado")
+                        logDiagnostico("🛑 DETENIENDO: max errores alcanzado en reproductor")
                         intentosErrorConsecutivos = 0
                         autoSkipsConsecutivos = 0
+                        errorEnCurso = false
                         ocultarNotificacion()
                         abandonarFocoAudio()
                     }
@@ -640,6 +642,7 @@ object GESTOR_AUDIO_TX {
         if (esCompletionInmediato && tiempoInicioReproduccionMs > 0) {
             autoSkipsConsecutivos++
             logDiagnostico("⚠️ COMPLETION INMEDIATO [auto=$autoSkipsConsecutivos/$MAX_AUTO_SKIPS]")
+            tiempoInicioReproduccionMs = System.currentTimeMillis()
 
             if (autoSkipsConsecutivos >= MAX_AUTO_SKIPS) {
                 logDiagnostico("🛑 DEMASIADOS AUTO-SKIPS. Deteniendo.")
@@ -647,6 +650,8 @@ object GESTOR_AUDIO_TX {
                 detener()
                 return
             }
+        } else {
+            autoSkipsConsecutivos = 0
         }
 
         when (_modoBucle.value) {
