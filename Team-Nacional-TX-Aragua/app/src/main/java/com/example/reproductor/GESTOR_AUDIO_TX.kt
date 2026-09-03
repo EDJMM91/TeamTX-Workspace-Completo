@@ -349,6 +349,10 @@ object GESTOR_AUDIO_TX {
         _duracionTotalMs.value = cancion.duracionMs
         _estado.value = EstadoReproductor.CARGANDO
 
+        errorEnCurso = false
+        intentosErrorConsecutivos = 0
+        autoSkipsConsecutivos = 0
+
         guardarUltimaCancion(cancion.id)
         cargarCaratulaParaCancion(cancion)
         liberarMediaPlayer()
@@ -478,6 +482,11 @@ object GESTOR_AUDIO_TX {
      */
     private fun liberarMediaPlayer() {
         try {
+            mediaPlayer?.setOnPreparedListener(null)
+            mediaPlayer?.setOnCompletionListener(null)
+            mediaPlayer?.setOnErrorListener(null)
+            mediaPlayer?.setOnInfoListener(null)
+            mediaPlayer?.setOnSeekCompleteListener(null)
             mediaPlayer?.reset()
         } catch (_: Exception) {}
         try {
