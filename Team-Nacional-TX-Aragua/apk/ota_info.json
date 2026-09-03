@@ -1,6 +1,6 @@
 {
-  "versionCode": 13,
-  "versionName": "1.3.2-beta",
+  "versionCode": 14,
+  "versionName": "1.3.3-beta",
   "urlDescarga": "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd",
-  "notas": "Versión 1.3.2-beta: Panel de Directiva optimizado con tarjetas de códigos expandibles, asignación accesible de cargos, botón de salida visible, velocímetro con identificación de piloto en tiempo real sincronizado con Carnet TX y bypass OsmAnd Pro activo."
+  "notas": "Versión 1.3.3-beta: Reproductor de música mejorado con soporte universal para formatos de audio (MP3, M4A, AAC, FLAC, OGG, OPUS, WAV), pipeline multi-etapa de FileDescriptor para Scoped Storage, corrección de escaneo en carpetas de descarga y eliminación definitiva del bucle de salto infinito de canciones."
 }

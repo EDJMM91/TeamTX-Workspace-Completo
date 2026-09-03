@@ -81,7 +81,7 @@ object MOTOR_AUDIO_NATIVO {
      * Vincula y configura el pipeline de efectos al AudioSessionId del reproductor.
      */
     fun vincularAudioSession(audioSessionId: Int, config: ConfiguracionReproductor) {
-        if (audioSessionId <= 0 || audioSessionId == ultimoAudioSessionId) return
+        if (audioSessionId <= 0 || (audioSessionId == ultimoAudioSessionId && ecualizadorHardware != null)) return
         liberarEfectos()
         ultimoAudioSessionId = audioSessionId
 
