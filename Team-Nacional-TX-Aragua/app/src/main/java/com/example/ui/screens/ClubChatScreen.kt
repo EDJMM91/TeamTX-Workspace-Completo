@@ -1961,28 +1961,24 @@ fun ChatMessageBubble(
                     }
 
                     val bubbleBgColor = when {
-                        message.isRadioCallout -> Color(0xFF241C10)
-                        isMe -> if (isSystemInDarkTheme()) Color(0xFF381419) else Color(0xFFFFEBEE)
-                        else -> if (isSystemInDarkTheme()) Color(0xFF1E2430) else Color(0xFFFFFFFF)
+                        message.isRadioCallout -> Color(0xFFFFF8E1)
+                        isMe -> Color(0xFFE3F2FD)
+                        else -> DashboardFondoConfig.ColorTarjetaClara
                     }
 
                     val bubbleBorder = when {
-                        message.isRadioCallout -> BorderStroke(1.dp, MotoGoldSecondary)
-                        isMe -> BorderStroke(0.5.dp, Color(0xFF8C1414).copy(alpha = if (isSystemInDarkTheme()) 0.4f else 0.25f))
-                        else -> BorderStroke(0.5.dp, if (isSystemInDarkTheme()) Color.White.copy(alpha = 0.08f) else Color(0xFFE2E8F0))
+                        message.isRadioCallout -> BorderStroke(1.dp, Color(0xFFFFB300))
+                        isMe -> BorderStroke(0.5.dp, Color(0xFF90CAF9))
+                        else -> BorderStroke(0.5.dp, DashboardFondoConfig.ColorBordeClaro)
                     }
 
-                    val mainTextColor = when {
-                        message.isRadioCallout -> Color.White
-                        isMe -> if (isSystemInDarkTheme()) Color.White else Color(0xFF1E293B)
-                        else -> if (isSystemInDarkTheme()) Color(0xFFF1F5F9) else Color(0xFF1E293B)
-                    }
+                    val mainTextColor = DashboardFondoConfig.ColorTextoPrimario
 
                     Surface(
                         shape = bubbleShape,
                         color = bubbleBgColor,
                         border = bubbleBorder,
-                        shadowElevation = if (isSystemInDarkTheme()) 0.dp else 1.dp,
+                        shadowElevation = 1.dp,
                         modifier = Modifier
                             .combinedClickable(
                                 onClick = {},
