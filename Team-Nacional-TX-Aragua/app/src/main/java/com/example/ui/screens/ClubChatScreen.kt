@@ -236,12 +236,13 @@ fun ClubChatScreen(
             // HEADER: TopAppBar WhatsApp Red + Selector de Canales
             // ═══════════════════════════════════════════════
             Surface(
-                color = Color(0xFF8C1414),
-                tonalElevation = 4.dp,
+                color = DashboardFondoConfig.ColorTarjetaClara,
+                tonalElevation = 2.dp,
+                border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Barra superior sólida WhatsApp Red
+                    // Barra superior limpia estilo Chat2Desk / Dashboard
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -255,7 +256,7 @@ fun ClubChatScreen(
                             Icon(
                                 Icons.Default.ArrowBack,
                                 contentDescription = "Volver",
-                                tint = Color.White,
+                                tint = DashboardFondoConfig.ColorTextoPrimario,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -315,7 +316,7 @@ fun ClubChatScreen(
                                 },
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = DashboardFondoConfig.ColorTextoPrimario,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -326,14 +327,14 @@ fun ClubChatScreen(
                                     "$alias${otherDirectMember.role.displayName} • $online"
                                 } else if (isPrivateGroupActive && currentPrivateGroup != null) {
                                     if (currentPrivateGroup.isBlockedByDirectiva) "🔒 Bloqueado por Directiva"
-                                    else "${currentPrivateGroup.memberIds.size} miembros • Grupo Privado"
+                                    else "${currentPrivateGroup.memberIds.size} pilotos • Grupo Privado"
                                 } else if (activeChannelId == "DIRECTIVA") {
                                     "Consejo Directivo • Privado"
                                 } else {
                                     "en línea • Comunidad TX"
                                 },
                                 fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.85f),
+                                color = DashboardFondoConfig.ColorTextoSecundario,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -347,7 +348,7 @@ fun ClubChatScreen(
                             Icon(
                                 Icons.Default.PersonSearch,
                                 contentDescription = "Chats Privados",
-                                tint = Color.White,
+                                tint = DashboardFondoConfig.ColorTextoPrimario,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -360,8 +361,8 @@ fun ClubChatScreen(
                             ) {
                                 Icon(
                                     Icons.Default.Group,
-                                    contentDescription = "Miembros",
-                                    tint = Color.White,
+                                    contentDescription = "Pilotos",
+                                    tint = DashboardFondoConfig.ColorTextoPrimario,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -376,7 +377,7 @@ fun ClubChatScreen(
                                 Icon(
                                     Icons.Default.MoreVert,
                                     contentDescription = "Opciones",
-                                    tint = Color.White,
+                                    tint = DashboardFondoConfig.ColorTextoPrimario,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
