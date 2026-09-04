@@ -2,7 +2,9 @@ package com.example.radar
 
 import android.content.Context
 import android.graphics.*
+import android.graphics.BitmapFactory
 import android.util.Log
+import com.aistudio.teamtxvzla.R
 import net.osmand.data.LatLon
 import android.graphics.PointF
 import net.osmand.data.PointDescription
@@ -58,6 +60,13 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         pathEffect = DashPathEffect(floatArrayOf(10f, 6f), 0f)
     }
 
+    private var iconoEmergencia: Bitmap? = null
+    private var iconoPrecaucion: Bitmap? = null
+    private val rectIconoEmergencia = RectF()
+    private val paintPuntoAccidente = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+
     private val avataresCache = mutableMapOf<String, Bitmap>()
     private val limitarRect = RectF()
 
@@ -70,6 +79,10 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         super.destroyLayer()
         avataresCache.clear()
         pilotos = emptyList()
+        iconoEmergencia?.recycle()
+        iconoEmergencia = null
+        iconoPrecaucion?.recycle()
+        iconoPrecaucion = null
     }
 
     override fun drawInScreenPixels(): Boolean = false
@@ -96,6 +109,58 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         avataresCache[url] = bitmap
     }
 
+    private fun obtenerIconoEmergencia(): Bitmap? {
+        if (iconoEmergencia == null || iconoEmergencia?.isRecycled == true) {
+            try {
+                iconoEmergencia = BitmapFactory.decodeResource(context.resources, R.drawable.emergencia)
+            } catch (e: Exception) {
+                Log.e(ETIQUETA, "Error decodificando icono emergencia", e)
+            }
+        }
+        return iconoEmergencia
+    }
+
+    private fun obtenerIconoPrecaucion(): Bitmap? {
+        if (iconoPrecaucion == null || iconoPrecaucion?.isRecycled == true) {
+            try {
+                iconoPrecaucion = BitmapFactory.decodeResource(context.resources, R.drawable.precaucion)
+            } catch (e: Exception) {
+                Log.e(ETIQUETA, "Error decodificando icono precaucion", e)
+            }
+        }
+        return iconoPrecaucion
+    }
+
+    private fun dibujarIconoEmergencia(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        radio: Float,
+        density: Float,
+        piloto: PilotoRadar
+    ) {
+        val alertText = piloto.alertaSos ?: ""
+        // En caso de choque (o colisión/accidente vial grave) usar emergencia.png
+        // Para cualquier otro tipo de emergencia que no sea choque usar precaucion.png
+        val esChoque = alertText.contains("CHOQUE", ignoreCase = true) ||
+                       alertText.contains("COLISION", ignoreCase = true) ||
+                       alertText.contains("ACCIDENTE", ignoreCase = true)
+
+        val iconoBmp = if (esChoque) obtenerIconoEmergencia() else obtenerIconoPrecaucion()
+        if (iconoBmp != null) {
+            val altoIcono = radio * 1.5f
+            val anchoIcono = altoIcono * (461f / 541f)
+
+            val left = cx + radio + (4f * density)
+            val top = cy - (altoIcono / 2f)
+            val right = left + anchoIcono
+            val bottom = top + altoIcono
+
+            rectIconoEmergencia.set(left, top, right, bottom)
+            canvas.drawBitmap(iconoBmp, null, rectIconoEmergencia, paintBitmap)
+        }
+    }
+
     override fun onPrepareBufferImage(
         canvas: Canvas,
         tileBox: RotatedTileBox,
@@ -118,6 +183,7 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
             val x = tileBox.getPixXFromLatLon(piloto.lat, piloto.lon)
             val y = tileBox.getPixYFromLatLon(piloto.lat, piloto.lon)
             val esLocal = piloto.id == miUserId && miUserId.isNotBlank()
+            val esSos = !piloto.alertaSos.isNullOrBlank()
 
             val avatar = if (esLocal) {
                 RadarFirebase.obtenerAvatarLocal(context) 
@@ -126,29 +192,45 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
                 if (piloto.avatarUrl.isNotBlank()) avataresCache[piloto.avatarUrl] ?: RadarFirebase.obtenerAvatarCacheado(piloto.avatarUrl) else null
             }
 
-            if (esLocal) {
-                val offsetX = OFFSET_LOCAL_X_DP * density
-                val offsetY = OFFSET_LOCAL_Y_DP * density
-                val avatarCx = x + offsetX
-                val avatarCy = y + offsetY
+            val hasOffset = esLocal || esSos
+            val avatarCx = if (hasOffset) x + (OFFSET_LOCAL_X_DP * density) else x
+            val avatarCy = if (hasOffset) y + (OFFSET_LOCAL_Y_DP * density) else y
 
-                paintLinea.color = colorPorRango(piloto.rango)
-                paintLinea.strokeWidth = 2.5f * density
-                canvas.drawLine(x, y, avatarCx, avatarCy, paintLinea)
+            if (hasOffset) {
+                if (esSos) {
+                    val alertText = piloto.alertaSos ?: ""
+                    val esChoque = alertText.contains("CHOQUE", ignoreCase = true) ||
+                                   alertText.contains("COLISION", ignoreCase = true) ||
+                                   alertText.contains("ACCIDENTE", ignoreCase = true)
+                    val colorAlerta = if (esChoque) Color.parseColor("#FF1744") else Color.parseColor("#FF9100")
 
-                if (avatar != null) {
-                    dibujarAvatar(canvas, avatarCx, avatarCy, avatar, radio.toFloat(), piloto)
+                    // Punto de coordenadas exactas del incidente en el asfalto/vía
+                    paintPuntoAccidente.color = colorAlerta
+                    canvas.drawCircle(x, y, 7f * density, paintPuntoAccidente)
+
+                    // Línea conectora entre el punto del incidente y el disco de info
+                    paintLinea.color = colorAlerta
+                    paintLinea.strokeWidth = 3.5f * density
+                    canvas.drawLine(x, y, avatarCx, avatarCy, paintLinea)
                 } else {
-                    dibujarPlaceholder(canvas, avatarCx, avatarCy, radio.toFloat(), piloto)
+                    paintLinea.color = colorPorRango(piloto.rango)
+                    paintLinea.strokeWidth = 2.5f * density
+                    canvas.drawLine(x, y, avatarCx, avatarCy, paintLinea)
                 }
-                dibujarLabel(canvas, avatarCx, avatarCy + radio + 16 * density, piloto.nombre)
+            }
+
+            if (avatar != null) {
+                dibujarAvatar(canvas, avatarCx, avatarCy, avatar, radio.toFloat(), piloto)
             } else {
-                if (avatar != null) {
-                    dibujarAvatar(canvas, x, y, avatar, radio.toFloat(), piloto)
-                } else {
-                    dibujarPlaceholder(canvas, x, y, radio.toFloat(), piloto)
-                }
-                dibujarLabel(canvas, x, y + radio + 16 * density, piloto.nombre)
+                dibujarPlaceholder(canvas, avatarCx, avatarCy, radio.toFloat(), piloto)
+            }
+
+            val labelTexto = if (esSos) "🚨 SOS ${piloto.nombre}" else piloto.nombre
+            dibujarLabel(canvas, avatarCx, avatarCy + radio + 16 * density, labelTexto, esSos = esSos)
+
+            // Si está en SOS: dibujar icono (emergencia.png o precaucion.png) al lado del disco de info del usuario conectado por una línea
+            if (esSos) {
+                dibujarIconoEmergencia(canvas, avatarCx, avatarCy, radio.toFloat(), density, piloto)
             }
         }
 
@@ -169,8 +251,9 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         canvas.drawBitmap(avatar, null, limitarRect, paintBitmap)
         canvas.restore()
 
-        paintAvatarBorde.color = colorPorRango(piloto.rango)
-        paintAvatarBorde.strokeWidth = 3f * getContext()!!.resources.displayMetrics.density
+        val esSos = !piloto.alertaSos.isNullOrBlank()
+        paintAvatarBorde.color = if (esSos) Color.parseColor("#FF1744") else colorPorRango(piloto.rango)
+        paintAvatarBorde.strokeWidth = (if (esSos) 5f else 3f) * getContext()!!.resources.displayMetrics.density
         canvas.drawCircle(cx, cy, radio, paintAvatarBorde)
     }
 
@@ -178,7 +261,8 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         canvas: Canvas, cx: Float, cy: Float,
         radio: Float, piloto: PilotoRadar
     ) {
-        paintCirculo.color = colorPorRango(piloto.rango)
+        val esSos = !piloto.alertaSos.isNullOrBlank()
+        paintCirculo.color = if (esSos) Color.parseColor("#FF1744") else colorPorRango(piloto.rango)
         canvas.drawCircle(cx, cy, radio, paintCirculo)
 
         val inicial = piloto.nombre.take(1).uppercase()
@@ -192,8 +276,8 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         canvas.drawText(inicial, cx, yPos, textoPaint)
     }
 
-    private fun dibujarLabel(canvas: Canvas, cx: Float, cy: Float, texto: String) {
-        val textoCorto = if (texto.length > 12) texto.take(12) + "." else texto
+    private fun dibujarLabel(canvas: Canvas, cx: Float, cy: Float, texto: String, esSos: Boolean = false) {
+        val textoCorto = if (texto.length > 16) texto.take(16) + "." else texto
         val anchoTexto = paintTexto.measureText(textoCorto)
         val altoTexto = (paintTexto.descent() - paintTexto.ascent()).toInt()
         val density = getContext()!!.resources.displayMetrics.density
@@ -204,6 +288,7 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         val top = cy - altoTexto / 2 - padding
         val right = cx + anchoTexto / 2 + padding
         val bottom = cy + altoTexto / 2 + padding
+        paintFondoTexto.color = if (esSos) Color.parseColor("#D50000") else Color.parseColor("#CC111827")
         canvas.drawRoundRect(left, top, right, bottom, radioFondo, radioFondo, paintFondoTexto)
         canvas.drawText(textoCorto, cx, cy + altoTexto / 4, paintTexto)
     }
@@ -232,12 +317,15 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER * 2.2f).toFloat()
 
         for (piloto in pilotos) {
+            val esSos = !piloto.alertaSos.isNullOrBlank()
             val esLocal = piloto.id == miUserId && miUserId.isNotBlank()
+            val hasOffset = esLocal || esSos
+
             val px = tileBox.getPixXFromLatLon(piloto.lat, piloto.lon)
             val py = tileBox.getPixYFromLatLon(piloto.lat, piloto.lon)
 
-            val avatarCx = if (esLocal) px + OFFSET_LOCAL_X_DP * density else px
-            val avatarCy = if (esLocal) py + OFFSET_LOCAL_Y_DP * density else py
+            val avatarCx = if (hasOffset) px + OFFSET_LOCAL_X_DP * density else px
+            val avatarCy = if (hasOffset) py + OFFSET_LOCAL_Y_DP * density else py
 
             val dx = point.x - avatarCx
             val dy = point.y - avatarCy

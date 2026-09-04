@@ -265,11 +265,11 @@ fun ClubChatScreen(
                         // Avatar circular del chat
                         Surface(
                             shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.2f),
+                            color = DashboardFondoConfig.ColorFondoClaro,
                             border = BorderStroke(
                                 1.dp,
                                 if (isDirectChatActive && otherDirectMember != null) Color(otherDirectMember.role.badgeColorHex)
-                                else Color.White.copy(alpha = 0.4f)
+                                else DashboardFondoConfig.ColorBordeClaro
                             ),
                             modifier = Modifier.size(38.dp)
                         ) {
@@ -287,7 +287,7 @@ fun ClubChatScreen(
                                             text = if (otherDirectMember.nickname.isNotBlank()) otherDirectMember.nickname.take(2).uppercase() else otherDirectMember.avatarInitials,
                                             fontWeight = FontWeight.Black,
                                             fontSize = 13.sp,
-                                            color = Color.White
+                                            color = DashboardFondoConfig.ColorTextoPrimario
                                         )
                                     }
                                 } else {
@@ -295,7 +295,7 @@ fun ClubChatScreen(
                                         if (isPrivateGroupActive) Icons.Default.Groups
                                         else activeChannel?.icon ?: Icons.Default.ChatBubble,
                                         contentDescription = null,
-                                        tint = Color.White,
+                                        tint = DashboardFondoConfig.ColorTextoPrimario,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -510,7 +510,8 @@ fun ClubChatScreen(
             // Sub-barra: Selector de Canales & Grupos
             if (!showOnlyDirectiva) {
                 Surface(
-                    color = Color(0xFF161B26),
+                    color = DashboardFondoConfig.ColorTarjetaClara,
+                    border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     LazyRow(
@@ -535,7 +536,7 @@ fun ClubChatScreen(
                                     Icon(
                                         channel.icon,
                                         contentDescription = null,
-                                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = if (isSelected) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTextoSecundario,
                                         modifier = Modifier.size(14.dp)
                                     )
                                 },
@@ -548,6 +549,7 @@ fun ClubChatScreen(
                                             channel.title,
                                             fontSize = 11.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTextoPrimario,
                                             maxLines = 1
                                         )
                                         if (unreadForThisChannel > 0) {
@@ -572,9 +574,12 @@ fun ClubChatScreen(
                                     }
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = TxFlameRed,
-                                    selectedLabelColor = Color.White
-                                )
+                                    containerColor = Color.Transparent,
+                                    selectedContainerColor = Color.Transparent,
+                                    labelColor = DashboardFondoConfig.ColorTextoPrimario,
+                                    selectedLabelColor = DashboardFondoConfig.ColorRojoCarrera
+                                ),
+                                border = if (isSelected) BorderStroke(1.5.dp, DashboardFondoConfig.ColorRojoCarrera) else BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
                             )
                         }
 
@@ -592,7 +597,7 @@ fun ClubChatScreen(
                                     Icon(
                                         Icons.Default.Forum,
                                         contentDescription = "Chats Privados",
-                                        tint = if (isDirectChatActive) Color.White else Color(0xFF38BDF8),
+                                        tint = if (isDirectChatActive) DashboardFondoConfig.ColorRojoCarrera else Color(0xFF0284C7),
                                         modifier = Modifier.size(15.dp)
                                     )
                                 },
@@ -605,7 +610,7 @@ fun ClubChatScreen(
                                             if (isDirectChatActive && otherDirectMember != null) "💬 ${otherDirectMember.fullName}" else "💬 Chats Privados",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (isDirectChatActive) Color.White else Color(0xFF38BDF8),
+                                            color = if (isDirectChatActive) DashboardFondoConfig.ColorRojoCarrera else Color(0xFF0284C7),
                                             maxLines = 1
                                         )
                                         if (totalUnreadDMs > 0) {
@@ -627,9 +632,9 @@ fun ClubChatScreen(
                                     }
                                 },
                                 colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = if (isDirectChatActive) TxFlameRed else Color(0xFF142236)
+                                    containerColor = Color.Transparent
                                 ),
-                                border = BorderStroke(1.dp, if (isDirectChatActive) TxFlameRed else Color(0xFF38BDF8).copy(alpha = 0.6f))
+                                border = BorderStroke(1.dp, if (isDirectChatActive) DashboardFondoConfig.ColorRojoCarrera else Color(0xFF0284C7).copy(alpha = 0.5f))
                             )
                         }
 
@@ -641,7 +646,7 @@ fun ClubChatScreen(
                                     Icon(
                                         Icons.Default.GroupAdd,
                                         contentDescription = "Crear Grupo Privado",
-                                        tint = MotoGoldSecondary,
+                                        tint = Color(0xFFB45309),
                                         modifier = Modifier.size(15.dp)
                                     )
                                 },
@@ -650,13 +655,13 @@ fun ClubChatScreen(
                                         "+ Crear Grupo",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MotoGoldSecondary
+                                        color = Color(0xFFB45309)
                                     )
                                 },
                                 colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = Color(0xFF262114)
+                                    containerColor = Color.Transparent
                                 ),
-                                border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.6f))
+                                border = BorderStroke(1.dp, Color(0xFFB45309).copy(alpha = 0.5f))
                             )
                         }
 
@@ -675,7 +680,7 @@ fun ClubChatScreen(
                                     Icon(
                                         if (group.isBlockedByDirectiva) Icons.Default.Lock else Icons.Default.Groups,
                                         contentDescription = null,
-                                        tint = if (group.isBlockedByDirectiva) StatusError else if (isSelected) Color.White else MotoOrangePrimary,
+                                        tint = if (group.isBlockedByDirectiva) StatusError else if (isSelected) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTextoSecundario,
                                         modifier = Modifier.size(15.dp)
                                     )
                                 },
@@ -688,6 +693,7 @@ fun ClubChatScreen(
                                             group.name,
                                             fontSize = 11.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTextoPrimario,
                                             maxLines = 1
                                         )
                                         if (unreadForThisGroup > 0) {
@@ -712,13 +718,16 @@ fun ClubChatScreen(
                                     }
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = if (group.isBlockedByDirectiva) StatusError.copy(alpha = 0.8f) else MotoOrangePrimary,
-                                    selectedLabelColor = Color.White,
-                                    containerColor = Color(0xFF1E2333)
+                                    containerColor = Color.Transparent,
+                                    selectedContainerColor = Color.Transparent,
+                                    labelColor = DashboardFondoConfig.ColorTextoPrimario,
+                                    selectedLabelColor = DashboardFondoConfig.ColorRojoCarrera
                                 ),
                                 border = BorderStroke(
                                     1.dp,
-                                    if (group.isBlockedByDirectiva) StatusError.copy(alpha = 0.5f) else Color(0xFF333B50)
+                                    if (group.isBlockedByDirectiva) StatusError.copy(alpha = 0.5f)
+                                    else if (isSelected) DashboardFondoConfig.ColorRojoCarrera
+                                    else DashboardFondoConfig.ColorBordeClaro
                                 )
                             )
                         }
@@ -805,17 +814,18 @@ fun ClubChatScreen(
             // INPUT BAR (estilo WhatsApp con Citas / Respuestas / Notas de Voz)
             // ═══════════════════════════════════════════════
             Surface(
-                color = Color(0xFF1A1F2E),
-                tonalElevation = 8.dp,
+                color = DashboardFondoConfig.ColorTarjetaClara,
+                tonalElevation = 2.dp,
+                border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column {
                     // Banner de respuesta / citar mensaje
                     if (replyingToMessage != null) {
                         Surface(
-                            color = Color(0xFF242C3D),
+                            color = DashboardFondoConfig.ColorFondoClaro,
                             shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp),
-                            border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.4f)),
+                            border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
@@ -830,7 +840,7 @@ fun ClubChatScreen(
                                         modifier = Modifier
                                             .width(3.dp)
                                             .height(28.dp)
-                                            .background(MotoOrangePrimary, RoundedCornerShape(2.dp))
+                                            .background(DashboardFondoConfig.ColorRojoCarrera, RoundedCornerShape(2.dp))
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Column {
@@ -838,12 +848,12 @@ fun ClubChatScreen(
                                             text = "Respondiendo a ${replyingToMessage?.senderName}",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 11.sp,
-                                            color = MotoOrangePrimary
+                                            color = DashboardFondoConfig.ColorRojoCarrera
                                         )
                                         Text(
                                             text = replyingToMessage?.messageText ?: "Sticker",
                                             fontSize = 10.sp,
-                                            color = Color.White.copy(alpha = 0.85f),
+                                            color = DashboardFondoConfig.ColorTextoPrimario,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -853,7 +863,7 @@ fun ClubChatScreen(
                                     onClick = { replyingToMessage = null },
                                     modifier = Modifier.size(24.dp)
                                 ) {
-                                    Icon(Icons.Default.Close, contentDescription = "Cancelar respuesta", tint = Color(0xFF90A4AE), modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.Close, contentDescription = "Cancelar respuesta", tint = DashboardFondoConfig.ColorTextoSecundario, modifier = Modifier.size(16.dp))
                                 }
                             }
                         }
@@ -876,7 +886,8 @@ fun ClubChatScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(48.dp)
-                                        .background(Color(0xFF242C3D), RoundedCornerShape(24.dp))
+                                        .background(DashboardFondoConfig.ColorFondoClaro, RoundedCornerShape(24.dp))
+                                        .border(BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro), RoundedCornerShape(24.dp))
                                         .padding(horizontal = 14.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -893,14 +904,14 @@ fun ClubChatScreen(
                                         val sec = segundosGrabados % 60
                                         Text(
                                             text = String.format("%02d:%02d", min, sec),
-                                            color = Color.White,
+                                            color = DashboardFondoConfig.ColorTextoPrimario,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = "Grabando audio...",
-                                            color = Color(0xFF90A4AE),
+                                            color = DashboardFondoConfig.ColorTextoSecundario,
                                             fontSize = 11.sp
                                         )
                                     }
@@ -944,8 +955,8 @@ fun ClubChatScreen(
                                 // 💊 Campo de texto en píldora (85% ancho)
                                 Surface(
                                     shape = RoundedCornerShape(24.dp),
-                                    color = Color(0xFF242938),
-                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.12f)),
+                                    color = DashboardFondoConfig.ColorFondoClaro,
+                                    border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Row(
@@ -962,7 +973,7 @@ fun ClubChatScreen(
                                             Icon(
                                                 if (showStickerBox) Icons.Default.Keyboard else Icons.Default.EmojiEmotions,
                                                 contentDescription = "Stickers",
-                                                tint = if (showStickerBox) MotoOrangePrimary else Color(0xFF94A3B8),
+                                                tint = if (showStickerBox) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTextoSecundario,
                                                 modifier = Modifier.size(22.dp)
                                             )
                                         }
@@ -979,7 +990,7 @@ fun ClubChatScreen(
                                                         "Mensaje"
                                                     },
                                                     fontSize = 14.sp,
-                                                    color = if (estaDictandoVoz) TxFlameRed else Color(0xFF94A3B8)
+                                                    color = if (estaDictandoVoz) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTextoSecundario
                                                 )
                                             },
                                             modifier = Modifier
@@ -991,11 +1002,11 @@ fun ClubChatScreen(
                                                 unfocusedBorderColor = Color.Transparent,
                                                 focusedContainerColor = Color.Transparent,
                                                 unfocusedContainerColor = Color.Transparent,
-                                                cursorColor = TxFlameRed
+                                                cursorColor = DashboardFondoConfig.ColorRojoCarrera
                                             ),
                                             maxLines = 5,
                                             textStyle = LocalTextStyle.current.copy(
-                                                color = Color.White,
+                                                color = DashboardFondoConfig.ColorTextoPrimario,
                                                 fontSize = 14.sp
                                             )
                                         )
@@ -1030,7 +1041,7 @@ fun ClubChatScreen(
                                             Icon(
                                                 imageVector = if (estaDictandoVoz) Icons.Default.GraphicEq else Icons.Default.KeyboardVoice,
                                                 contentDescription = "Dictar por voz",
-                                                tint = if (estaDictandoVoz) TxFlameRed else Color(0xFF94A3B8),
+                                                tint = if (estaDictandoVoz) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTextoSecundario,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
@@ -1043,7 +1054,7 @@ fun ClubChatScreen(
                                             Icon(
                                                 Icons.Default.AttachFile,
                                                 contentDescription = "Adjuntar",
-                                                tint = Color(0xFF94A3B8),
+                                                tint = DashboardFondoConfig.ColorTextoSecundario,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
@@ -1087,13 +1098,13 @@ fun ClubChatScreen(
                                                 CircularProgressIndicator(
                                                     modifier = Modifier.size(18.dp),
                                                     strokeWidth = 2.dp,
-                                                    color = MotoOrangePrimary
+                                                    color = DashboardFondoConfig.ColorRojoCarrera
                                                 )
                                             } else {
                                                 Icon(
                                                     Icons.Default.LocationOn,
                                                     contentDescription = "Compartir Ubicación",
-                                                    tint = Color(0xFFEF5350),
+                                                    tint = DashboardFondoConfig.ColorRojoCarrera,
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                             }

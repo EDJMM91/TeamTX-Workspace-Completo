@@ -142,6 +142,7 @@ fun PilotStatusCard(
     modifier: Modifier = Modifier
 ) {
     val roleColor = when (currentMember?.role) {
+        MemberRole.DESARROLLADOR -> Color(0xFF00E5FF)
         MemberRole.PRESIDENTE, MemberRole.VICEPRESIDENTE, MemberRole.DIRECTIVA -> DashboardFondoConfig.ColorDoradoOro
         MemberRole.CAPITAN_RUTA, MemberRole.DISCIPLINARIO -> DashboardFondoConfig.ColorRojoCarrera
         MemberRole.MECANICO_OFICIAL, MemberRole.SECRETARIO, MemberRole.SEGURIDAD_VIAL -> Color(0xFF1E88E5)

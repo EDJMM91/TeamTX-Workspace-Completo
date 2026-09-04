@@ -1,6 +1,6 @@
 {
-  "versionCode": 15,
-  "versionName": "1.3.4-beta",
+  "versionCode": 16,
+  "versionName": "1.3.5-beta",
   "urlDescarga": "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd",
-  "notas": "Versión 1.3.4-beta: Solución definitiva al paso de canciones. Corrección de descriptores de archivo persistentes (sin cierre prematuro de flujo), inclusión de audios de cualquier duración (sin exclusión obligatoria de audios cortos), parada limpia de audio HAL al cambiar pistas y prevención de bucles de auto-salto."
+  "notas": "Versión 1.3.5-beta: Modernización integral a Tema Claro Puro de los módulos Calendario, Rodadas y Caravanas, Bitácora de Mantenimiento, Retos y Desafíos, Directorio Comercial (filas independientes sin solapamientos) y Pasaporte Motero. Botón institucional de retorno al Inicio en TopAppBar."
 }

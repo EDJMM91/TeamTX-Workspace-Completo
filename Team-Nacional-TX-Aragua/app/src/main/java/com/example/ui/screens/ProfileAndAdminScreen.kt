@@ -417,6 +417,7 @@ fun ProfileAndAdminScreen(
 
             // Quick Actions: Edit Profile + Switch Demo Member
             item {
+                val isDeveloper = currentMember?.role == MemberRole.DESARROLLADOR || (currentMember?.role == MemberRole.PRESIDENTE && isDirectivaMode) || isLeaderSuperAdmin || currentMember?.memberNumber == "TX-001" || currentMember?.memberNumber?.startsWith("TX-DEV-") == true
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -425,27 +426,27 @@ fun ProfileAndAdminScreen(
                         onClick = { showEditProfileDialog = true },
                         colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera),
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("btn_edit_profile")
+                        modifier = if (isDeveloper) Modifier.weight(1f).testTag("btn_edit_profile") else Modifier.fillMaxWidth().testTag("btn_edit_profile")
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Editar Mi Perfil", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    OutlinedButton(
-                        onClick = { showMemberSelectorDialog = true },
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("btn_switch_member")
-                    ) {
-                        Icon(Icons.Default.SwitchAccount, contentDescription = null, modifier = Modifier.size(16.dp), tint = DashboardFondoConfig.ColorDoradoOro)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Cambiar Piloto", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
+                    if (isDeveloper) {
+                        OutlinedButton(
+                            onClick = { showMemberSelectorDialog = true },
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("btn_switch_member")
+                        ) {
+                            Icon(Icons.Default.SwitchAccount, contentDescription = null, modifier = Modifier.size(16.dp), tint = DashboardFondoConfig.ColorDoradoOro)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Cambiar Piloto (Dev)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
+                        }
                     }
                 }
             }

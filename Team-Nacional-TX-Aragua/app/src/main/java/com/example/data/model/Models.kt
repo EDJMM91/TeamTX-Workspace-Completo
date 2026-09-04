@@ -16,6 +16,18 @@ enum class MemberRole(
     val defaultTitle: String = displayName,
     val roleDuties: String = "Participación y deberes de la agrupación."
 ) {
+    DESARROLLADOR(
+        "Desarrollador (Super Admin)",
+        0xFF00E5FF,
+        canManageApp = true,
+        canCreateRides = true,
+        canPostAnnouncements = true,
+        canManageMembers = true,
+        canManageFinances = true,
+        canCoordinateEmergency = true,
+        defaultTitle = "Desarrollador / Control Supremo",
+        roleDuties = "Control absoluto del sistema, depuración, administración total y supervisión técnica de la plataforma."
+    ),
     PRESIDENTE(
         "Presidente Nacional",
         0xFFFFD700,

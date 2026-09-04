@@ -273,6 +273,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
         ?: remember { mutableStateOf(0) }
 
     var showQuickSosModal by remember { mutableStateOf(false) }
+    var readOnlyCarnetMember by remember { mutableStateOf<MemberProfile?>(null) }
     var isBottomNavVisible by remember { mutableStateOf(true) }
 
     // 🎛️ Estado para los 5 accesos rápidos principales de la barra inferior (personalizables por long-press)
@@ -350,12 +351,16 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     onToggleDirectiva = { viewModel.toggleDirectivaMode() },
                     onOpenSosModal = { showQuickSosModal = true },
                     onOpenCarnet = { selectedTab = NavigationTab.PROFILE },
-                    isDeveloperMode = currentMember?.role == MemberRole.PRESIDENTE && isDirectivaMode
+                    isDeveloperMode = currentMember?.role == MemberRole.DESARROLLADOR || (currentMember?.role == MemberRole.PRESIDENTE && isDirectivaMode) || currentMember?.memberNumber?.startsWith("TX-DEV-") == true
                 )
             }
         },
         bottomBar = {
-            val isCalendarOrFullscreen = selectedTab == NavigationTab.CALENDARIO || selectedTab == NavigationTab.NOTIFICACIONES || selectedTab == NavigationTab.PLAYER || selectedTab == NavigationTab.DIRECTORIO
+            val isCalendarOrFullscreen = selectedTab == NavigationTab.CALENDARIO ||
+                    selectedTab == NavigationTab.NOTIFICACIONES ||
+                    selectedTab == NavigationTab.PLAYER ||
+                    selectedTab == NavigationTab.DIRECTORIO ||
+                    selectedTab == NavigationTab.RANKING
             AnimatedVisibility(visible = isBottomNavVisible && !isCalendarOrFullscreen) {
                 Surface(
                     shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -676,8 +681,11 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         allMembers = allMembers,
                         currentMember = currentMember,
                         onOpenMemberCarnet = { member ->
-                            viewModel.selectMember(member.id)
-                            selectedTab = NavigationTab.PROFILE
+                            if (member.id == currentMember?.id) {
+                                selectedTab = NavigationTab.PROFILE
+                            } else {
+                                readOnlyCarnetMember = member
+                            }
                         },
                         onRateMember = { target, isPos, cat, pts, comm ->
                             viewModel.ratePilotMember(target.id, isPos, cat, pts, comm) { _, msg ->
@@ -802,7 +810,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                 maxParticipants = max,
                                 whatsappLink = wa
                             )
-                        }
+                        },
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
                 NavigationTab.MEMBERS -> {
@@ -908,6 +917,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         alerts = emergencyAlerts,
                         currentMember = currentMember,
                         isDirectivaMode = isDirectivaMode,
+                        onBack = { selectedTab = NavigationTab.DASHBOARD },
                         onBroadcastSos = { type, loc, details, blood, lat, lng ->
                             viewModel.broadcastSosEmergency(type, loc, details, blood, lat, lng)
                         },
@@ -984,6 +994,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         invitationCodes = viewModel.allInvitationCodes.collectAsStateWithLifecycle().value ?: emptyList(),
                         accessRequests = accessRequests,
                         directivaChatMessages = directivaChatMessages,
+                        disciplinaryRecords = viewModel.allDisciplinaryRecords.collectAsStateWithLifecycle().value ?: emptyList(),
+                        onExpelMember = { member, reason -> viewModel.expelMember(member, reason) },
                         onGenerateCode = { role, note, isGuest, hours -> viewModel.generateInvitationCode(role, note, isGuest, hours) },
                         onDeleteCode = { viewModel.deleteInvitationCode(it) },
                         onDarDeBajaInvitado = { member -> viewModel.darDeBajaInvitado(member) },
@@ -1027,7 +1039,22 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                 NavigationTab.MAPA -> {
                     TxMapLauncher(
                         onBackClick = { selectedTab = NavigationTab.DASHBOARD },
-                        onNavigateToDirectory = { selectedTab = NavigationTab.DIRECTORIO }
+                        onNavigateToDirectory = { selectedTab = NavigationTab.DIRECTORIO },
+                        onOpenMemberCarnetById = { pilotId ->
+                            val found = allMembers.find {
+                                it.id.toString() == pilotId ||
+                                it.firebaseUid == pilotId ||
+                                it.memberNumber.equals(pilotId, ignoreCase = true) ||
+                                it.fullName.contains(pilotId, ignoreCase = true)
+                            }
+                            if (found != null) {
+                                if (found.id == currentMember?.id) {
+                                    selectedTab = NavigationTab.PROFILE
+                                } else {
+                                    readOnlyCarnetMember = found
+                                }
+                            }
+                        }
                     )
                 }
                 NavigationTab.INFO -> {
@@ -1040,7 +1067,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                 it.email.equals("eduardo.androide.em@gmail.com", ignoreCase = true) ||
                                 it.cedulaDni.trim() == "19554402" ||
                                 (it.fullName.contains("Eduardo", ignoreCase = true) && (it.fullName.contains("Márquez", ignoreCase = true) || it.fullName.contains("Marquez", ignoreCase = true) || it.fullName.contains("Androide", ignoreCase = true))) ||
-                                it.role == MemberRole.PRESIDENTE
+                                it.role == MemberRole.DESARROLLADOR || it.role == MemberRole.PRESIDENTE
                             }
                             val devId = devMember?.id ?: 1L
                             val myId = currentMember?.id ?: 0L
@@ -1075,6 +1102,15 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                 showQuickSosModal = false
                 selectedTab = NavigationTab.SOS
             }
+        )
+    }
+
+    // Modal de Carnet TX en Modo Solo Lectura (sin suplantar identidad ni cambiar sesión)
+    if (readOnlyCarnetMember != null) {
+        com.example.ui.screens.dialogs.ReadOnlyCarnetDialog(
+            member = readOnlyCarnetMember!!,
+            currentLoggedInMemberId = currentMember?.id ?: 0L,
+            onDismiss = { readOnlyCarnetMember = null }
         )
     }
 

@@ -152,7 +152,7 @@ fun RatePilotDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF131822),
+        containerColor = Color.White,
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(0.92f),
@@ -165,13 +165,13 @@ fun RatePilotDialog(
                 Icon(
                     Icons.Default.Stars,
                     contentDescription = null,
-                    tint = if (isPositiveTab) Color(0xFF22C55E) else TxFlameRed
+                    tint = if (isPositiveTab) Color(0xFF16A34A) else TxFlameRed
                 )
                 Text(
                     text = "CALIFICAR PILOTO TX",
                     fontWeight = FontWeight.Black,
                     fontSize = 15.sp,
-                    color = Color.White
+                    color = Color(0xFF0F172A)
                 )
             }
         },
@@ -180,11 +180,11 @@ fun RatePilotDialog(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // ── Tarjeta de Piloto Seleccionado ───────────────────────────
+                // ── Tarjeta de Piloto Seleccionado (Tema Claro) ───────────────
                 Surface(
-                    color = Color(0xFF1B2230),
+                    color = Color(0xFFF8FAFC),
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, Color(0xFF2E384D)),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -197,7 +197,7 @@ fun RatePilotDialog(
                             modifier = Modifier
                                 .size(46.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF2A3447))
+                                .background(Color(0xFFE2E8F0))
                                 .border(1.5.dp, currentRank.badgeColor, CircleShape)
                         ) {
                             if (!targetMember.profilePhotoUri.isNullOrBlank()) {
@@ -212,7 +212,7 @@ fun RatePilotDialog(
                                     Text(
                                         text = targetMember.fullName.take(2).uppercase(),
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.White,
+                                        color = Color(0xFF0F172A),
                                         fontSize = 14.sp
                                     )
                                 }
@@ -224,7 +224,7 @@ fun RatePilotDialog(
                                 text = targetMember.fullName,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                color = Color.White,
+                                color = Color(0xFF0F172A),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -241,7 +241,7 @@ fun RatePilotDialog(
                                 Text(
                                     text = "👍 ${targetMember.positiveRatingsCount}",
                                     fontSize = 10.sp,
-                                    color = Color(0xFF22C55E),
+                                    color = Color(0xFF16A34A),
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
@@ -253,12 +253,12 @@ fun RatePilotDialog(
                                 Text(
                                     text = "•",
                                     fontSize = 10.sp,
-                                    color = Color.Gray
+                                    color = Color(0xFF94A3B8)
                                 )
                                 Text(
                                     text = "$currentMerit PTS",
                                     fontSize = 10.sp,
-                                    color = TxGoldLight,
+                                    color = Color(0xFFB45309),
                                     fontWeight = FontWeight.Black
                                 )
                             }
@@ -274,10 +274,10 @@ fun RatePilotDialog(
                     Surface(
                         onClick = { isPositiveTab = true },
                         shape = RoundedCornerShape(10.dp),
-                        color = if (isPositiveTab) Color(0xFF163824) else Color(0xFF1A212E),
+                        color = if (isPositiveTab) Color(0xFFE8F5E9) else Color(0xFFF1F5F9),
                         border = BorderStroke(
                             1.dp,
-                            if (isPositiveTab) Color(0xFF22C55E) else Color(0xFF2A3447)
+                            if (isPositiveTab) Color(0xFF22C55E) else Color(0xFFCBD5E1)
                         ),
                         modifier = Modifier.weight(1f).height(40.dp)
                     ) {
@@ -289,7 +289,7 @@ fun RatePilotDialog(
                             Icon(
                                 Icons.Default.ThumbUp,
                                 contentDescription = null,
-                                tint = if (isPositiveTab) Color(0xFF22C55E) else Color.Gray,
+                                tint = if (isPositiveTab) Color(0xFF1B5E20) else Color(0xFF64748B),
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -297,7 +297,7 @@ fun RatePilotDialog(
                                 text = "👍 POSITIVO",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 11.sp,
-                                color = if (isPositiveTab) Color(0xFF22C55E) else Color.Gray
+                                color = if (isPositiveTab) Color(0xFF1B5E20) else Color(0xFF64748B)
                             )
                         }
                     }
@@ -305,10 +305,10 @@ fun RatePilotDialog(
                     Surface(
                         onClick = { isPositiveTab = false },
                         shape = RoundedCornerShape(10.dp),
-                        color = if (!isPositiveTab) Color(0xFF381618) else Color(0xFF1A212E),
+                        color = if (!isPositiveTab) Color(0xFFFEE2E2) else Color(0xFFF1F5F9),
                         border = BorderStroke(
                             1.dp,
-                            if (!isPositiveTab) TxFlameRed else Color(0xFF2A3447)
+                            if (!isPositiveTab) TxFlameRed else Color(0xFFCBD5E1)
                         ),
                         modifier = Modifier.weight(1f).height(40.dp)
                     ) {
@@ -320,7 +320,7 @@ fun RatePilotDialog(
                             Icon(
                                 Icons.Default.ThumbDown,
                                 contentDescription = null,
-                                tint = if (!isPositiveTab) TxFlameRed else Color.Gray,
+                                tint = if (!isPositiveTab) TxFlameRed else Color(0xFF64748B),
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -328,7 +328,7 @@ fun RatePilotDialog(
                                 text = "👎 NEGATIVO",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 11.sp,
-                                color = if (!isPositiveTab) TxFlameRed else Color.Gray
+                                color = if (!isPositiveTab) TxFlameRed else Color(0xFF64748B)
                             )
                         }
                     }
@@ -339,7 +339,7 @@ fun RatePilotDialog(
                     text = if (isPositiveTab) "SELECCIONA ASPECTO DESTACADO (+PUNTOS):" else "SELECCIONA MOTIVO O LLAMADO DE ATENCIÓN (-PUNTOS):",
                     fontWeight = FontWeight.Bold,
                     fontSize = 10.sp,
-                    color = if (isPositiveTab) Color(0xFF22C55E) else TxFlameRed,
+                    color = if (isPositiveTab) Color(0xFF15803D) else TxFlameRed,
                     letterSpacing = 0.5.sp
                 )
 
@@ -355,16 +355,16 @@ fun RatePilotDialog(
                             onClick = { selectedOption = opt },
                             shape = RoundedCornerShape(10.dp),
                             color = when {
-                                isSelected && opt.isPositive -> Color(0xFF152F20)
-                                isSelected && !opt.isPositive -> Color(0xFF30181A)
-                                else -> Color(0xFF1A212E)
+                                isSelected && opt.isPositive -> Color(0xFFDCFCE7)
+                                isSelected && !opt.isPositive -> Color(0xFFFEE2E2)
+                                else -> Color(0xFFF8FAFC)
                             },
                             border = BorderStroke(
                                 if (isSelected) 1.5.dp else 1.dp,
                                 when {
                                     isSelected && opt.isPositive -> Color(0xFF22C55E)
                                     isSelected && !opt.isPositive -> TxFlameRed
-                                    else -> Color(0xFF2A3447)
+                                    else -> Color(0xFFE2E8F0)
                                 }
                             ),
                             modifier = Modifier.fillMaxWidth()
@@ -377,7 +377,7 @@ fun RatePilotDialog(
                                 Icon(
                                     opt.icon,
                                     contentDescription = null,
-                                    tint = if (opt.isPositive) Color(0xFF22C55E) else TxFlameRed,
+                                    tint = if (opt.isPositive) Color(0xFF16A34A) else TxFlameRed,
                                     modifier = Modifier.size(20.dp)
                                 )
 
@@ -386,18 +386,18 @@ fun RatePilotDialog(
                                         text = opt.title,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
-                                        color = Color.White
+                                        color = Color(0xFF0F172A)
                                     )
                                     Text(
                                         text = opt.description,
                                         fontSize = 10.sp,
-                                        color = Color(0xFF94A3B8),
+                                        color = Color(0xFF64748B),
                                         lineHeight = 13.sp
                                     )
                                 }
 
                                 Surface(
-                                    color = if (opt.isPositive) Color(0xFF16A34A).copy(alpha = 0.2f) else TxFlameRed.copy(alpha = 0.2f),
+                                    color = if (opt.isPositive) Color(0xFFDCFCE7) else Color(0xFFFEE2E2),
                                     shape = RoundedCornerShape(6.dp),
                                     border = BorderStroke(
                                         1.dp,
@@ -408,7 +408,7 @@ fun RatePilotDialog(
                                         text = if (opt.pointsDelta > 0) "+${opt.pointsDelta} PTS" else "${opt.pointsDelta} PTS",
                                         fontWeight = FontWeight.Black,
                                         fontSize = 10.sp,
-                                        color = if (opt.isPositive) Color(0xFF22C55E) else TxFlameRed,
+                                        color = if (opt.isPositive) Color(0xFF15803D) else TxFlameRed,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -421,24 +421,26 @@ fun RatePilotDialog(
                 OutlinedTextField(
                     value = commentText,
                     onValueChange = { commentText = it },
-                    placeholder = { Text("Nota o comentario adicional (opcional)...", fontSize = 11.sp) },
+                    placeholder = { Text("Nota o comentario adicional (opcional)...", fontSize = 11.sp, color = Color(0xFF64748B)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(68.dp),
                     maxLines = 2,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = if (isPositiveTab) Color(0xFF22C55E) else TxFlameRed,
-                        unfocusedBorderColor = Color(0xFF2A3447),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
+                        focusedBorderColor = if (isPositiveTab) Color(0xFF16A34A) else TxFlameRed,
+                        unfocusedBorderColor = Color(0xFFCBD5E1),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        focusedTextColor = Color(0xFF0F172A),
+                        unfocusedTextColor = Color(0xFF0F172A)
                     )
                 )
 
                 // ── Impacto en el Ranking ────────────────────────────────────
                 Surface(
-                    color = Color(0xFF171F2C),
+                    color = Color(0xFFF1F5F9),
                     shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, Color(0xFF2A3447)),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -449,7 +451,7 @@ fun RatePilotDialog(
                         Text(
                             text = "Impacto en Ranking:",
                             fontSize = 10.sp,
-                            color = Color.Gray
+                            color = Color(0xFF475569)
                         )
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -458,19 +460,19 @@ fun RatePilotDialog(
                             Text(
                                 text = "$currentMerit PTS",
                                 fontSize = 10.sp,
-                                color = Color.Gray
+                                color = Color(0xFF64748B)
                             )
                             Icon(
                                 Icons.Default.ArrowForward,
                                 contentDescription = null,
-                                tint = if (selectedOption.pointsDelta >= 0) Color(0xFF22C55E) else TxFlameRed,
+                                tint = if (selectedOption.pointsDelta >= 0) Color(0xFF16A34A) else TxFlameRed,
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
                                 text = "$projectedMerit PTS",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
-                                color = if (selectedOption.pointsDelta >= 0) Color(0xFF22C55E) else TxFlameRed
+                                color = if (selectedOption.pointsDelta >= 0) Color(0xFF15803D) else TxFlameRed
                             )
                             Text(
                                 text = "(${projectedRank.title})",
@@ -508,13 +510,14 @@ fun RatePilotDialog(
                 Text(
                     text = if (isPositiveTab) "Confirmar (+${selectedOption.pointsDelta} PTS)" else "Confirmar (${selectedOption.pointsDelta} PTS)",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
+                    fontSize = 12.sp,
+                    color = Color.White
                 )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = Color.White)
+                Text("Cancelar", color = Color(0xFF64748B))
             }
         }
     )

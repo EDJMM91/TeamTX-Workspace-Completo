@@ -193,6 +193,7 @@ object RadarFirebase {
                     val nombre = doc.getString("nombre") ?: "Piloto"
                     val rango = doc.getString("rango") ?: ""
                     val avatarUrl = doc.getString("avatarUrl") ?: ""
+                    val alertaSos = doc.getString("alertaSos")
 
                     idsEnFirebase.add(id)
 
@@ -213,7 +214,8 @@ object RadarFirebase {
                         lon = lon,
                         avatarUrl = avatarUrl,
                         timestamp = timestamp,
-                        activo = activo && antiguedad < TIMEOUT_MS
+                        activo = activo && antiguedad < TIMEOUT_MS,
+                        alertaSos = if (alertaSos.isNullOrBlank()) null else alertaSos
                     )
 
                     pilotosEnMemoria[id] = piloto
@@ -285,6 +287,17 @@ object RadarFirebase {
             local?.delete()
         } catch (_: Exception) {}
         Log.d(ETIQUETA, "Caché de usuario reseteado")
+    }
+
+    fun eliminarPilotoRemoto(id: String) {
+        if (id.isBlank()) return
+        try {
+            db.collection(COLECCION).document(id).delete()
+            pilotosEnMemoria.remove(id)
+            Log.d(ETIQUETA, "Piloto $id eliminado de radar_en_vivo")
+        } catch (e: Exception) {
+            Log.e(ETIQUETA, "Error eliminando piloto $id de radar: ${e.message}")
+        }
     }
 }
 

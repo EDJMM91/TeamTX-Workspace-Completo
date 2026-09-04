@@ -26,7 +26,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun TxMapLauncher(
     onBackClick: () -> Unit,
-    onNavigateToDirectory: (() -> Unit)? = null
+    onNavigateToDirectory: (() -> Unit)? = null,
+    onOpenMemberCarnetById: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     var launched by remember { mutableStateOf(false) }
@@ -41,9 +42,14 @@ fun TxMapLauncher(
 
         val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
         val targetWorkshop = prefs.getString("target_workshop_name", null)
+        val targetPilotCarnetId = prefs.getString("target_carnet_pilot_id", null)
+
         if (!targetWorkshop.isNullOrBlank()) {
             prefs.edit().remove("target_workshop_name").apply()
             onNavigateToDirectory?.invoke() ?: onBackClick()
+        } else if (!targetPilotCarnetId.isNullOrBlank()) {
+            prefs.edit().remove("target_carnet_pilot_id").apply()
+            onOpenMemberCarnetById?.invoke(targetPilotCarnetId) ?: onBackClick()
         } else {
             onBackClick()
         }

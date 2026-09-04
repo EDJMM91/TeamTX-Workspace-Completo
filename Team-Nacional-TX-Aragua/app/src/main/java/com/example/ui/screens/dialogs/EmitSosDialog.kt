@@ -29,6 +29,7 @@ import com.example.ui.theme.StatusError
 @Composable
 fun EmitSosDialog(
     currentMember: com.example.data.model.MemberProfile?,
+    initialType: EmergencyType = EmergencyType.CAIDA,
     onDismiss: () -> Unit,
     onBroadcast: (type: EmergencyType, location: String, details: String, blood: String?, lat: Double, lng: Double) -> Unit
 ) {
@@ -36,10 +37,12 @@ fun EmitSosDialog(
         EmergencyType.ACCIDENTADO_GASOLINA,
         EmergencyType.ACCIDENTADO_MECANICO,
         EmergencyType.CAIDA,
-        EmergencyType.CHOQUE
+        EmergencyType.CHOQUE,
+        EmergencyType.EMERGENCIA_MEDICA,
+        EmergencyType.APOYO_SEGURIDAD
     )
 
-    var selectedType by remember { mutableStateOf(EmergencyType.CAIDA) }
+    var selectedType by remember { mutableStateOf(initialType) }
     var location by remember { mutableStateOf("Autopista Regional del Centro (ARC), cerca de Tazón") }
     var details by remember { mutableStateOf("") }
     var bloodType by remember { mutableStateOf(currentMember?.bloodType ?: "O+") }
@@ -49,7 +52,7 @@ fun EmitSosDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError)
-                Text("EMITIR ALERTA SOS POR NIVEL", fontWeight = FontWeight.Black, color = StatusError, fontSize = 16.sp)
+                Text("EMITIR ALERTA SOS POR NIVEL", fontWeight = FontWeight.Black, color = Color(0xFF0F172A), fontSize = 16.sp)
             }
         },
         text = {
@@ -58,7 +61,7 @@ fun EmitSosDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 item {
-                    Text("1. Selecciona el Nivel del Incidente:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("1. Selecciona el Nivel del Incidente:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
                     Spacer(modifier = Modifier.height(4.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         primaryTypes.forEach { type ->
@@ -66,8 +69,8 @@ fun EmitSosDialog(
                             val typeColor = Color(type.severityColorHex)
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isSelected) typeColor.copy(alpha = 0.2f) else Color(0xFF1B2230),
-                                border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) typeColor else Color(0xFF283244)),
+                                color = if (isSelected) typeColor.copy(alpha = 0.15f) else Color(0xFFF1F5F9),
+                                border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) typeColor else Color(0xFFE2E8F0)),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { selectedType = type }
@@ -82,6 +85,8 @@ fun EmitSosDialog(
                                         "mechanic" -> Icons.Default.Build
                                         "fall" -> Icons.Default.PersonalInjury
                                         "crash" -> Icons.Default.CarCrash
+                                        "medical" -> Icons.Default.MedicalServices
+                                        "security" -> Icons.Default.Shield
                                         else -> Icons.Default.Warning
                                     }
                                     Icon(icon, contentDescription = null, tint = typeColor, modifier = Modifier.size(20.dp))
@@ -95,7 +100,7 @@ fun EmitSosDialog(
                                         Text(
                                             text = "Especialista: ${type.recommendedSpecialist}",
                                             fontSize = 9.sp,
-                                            color = Color(0xFF8C9BAE)
+                                            color = Color(0xFF475569)
                                         )
                                     }
                                 }
@@ -106,12 +111,14 @@ fun EmitSosDialog(
 
                 // Quick preset buttons based on selected level
                 item {
-                    Text("Sugerencias rápidas para el reporte:", fontSize = 11.sp, color = Color(0xFFA0ADC0), fontWeight = FontWeight.SemiBold)
+                    Text("Sugerencias rápidas para el reporte:", fontSize = 11.sp, color = Color(0xFF475569), fontWeight = FontWeight.SemiBold)
                     val quickPresets = when (selectedType) {
                         EmergencyType.ACCIDENTADO_GASOLINA -> listOf("Sin 95 octanos en hombrillo", "Tanque seco, requiere 3L", "Falla de medidor flotante")
                         EmergencyType.ACCIDENTADO_MECANICO -> listOf("Guaya de embrague rota", "Caucho espichado", "Cadena rota", "Falla eléctrica / batería")
                         EmergencyType.CAIDA -> listOf("Deslizamiento en asfalto húmedo", "Piloto consciente / Raspaduras", "Manubrio doblado")
                         EmergencyType.CHOQUE -> listOf("Colisión lateral con vehículo", "Impacto contra defensa", "Auxilio médico urgente")
+                        EmergencyType.EMERGENCIA_MEDICA -> listOf("Mareo / Descompensación en ruta", "Reacción alérgica", "Traumatismo en muñeca/tobillo")
+                        EmergencyType.APOYO_SEGURIDAD -> listOf("Derrame de aceite en vía", "Obstáculo / Escombros en curva", "Protesta / Paso cerrado")
                         else -> listOf("Auxilio requerido en sitio")
                     }
 
@@ -121,7 +128,7 @@ fun EmitSosDialog(
                                 onClick = {
                                     details = if (details.isBlank()) preset else "$details. $preset"
                                 },
-                                label = { Text(preset, fontSize = 10.sp) }
+                                label = { Text(preset, fontSize = 10.sp, color = Color(0xFF1E293B)) }
                             )
                         }
                     }
@@ -177,7 +184,7 @@ fun EmitSosDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(selectedType.severityColorHex)),
                 modifier = Modifier.testTag("btn_confirm_broadcast_sos")
             ) {
-                Text("EMITIR ALERTA SOS AHORA", fontWeight = FontWeight.Black)
+                Text("EMITIR ALERTA SOS AHORA", fontWeight = FontWeight.Black, color = Color.White)
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
@@ -189,8 +196,8 @@ private fun SuggestionChip(onClick: () -> Unit, label: @Composable () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE2E6EE)),
-        border = BorderStroke(1.dp, Color(0xFF283244)),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E293B)),
+        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
         modifier = Modifier.padding(vertical = 4.dp)
     ) {
         label()

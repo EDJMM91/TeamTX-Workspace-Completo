@@ -561,6 +561,17 @@ private val CODIGOS_MAESTROS = mapOf(
     "TX19554402" to "PRESIDENTE",
     "TX19554402SB" to "PRESIDENTE",
     "19554402SB" to "PRESIDENTE",
+    // Códigos de Desarrollador (Acceso total / control maestro a todo)
+    "DESARROLLO1" to "PRESIDENTE",
+    "DESARROLLO2" to "PRESIDENTE",
+    "DESARROLLO3" to "PRESIDENTE",
+    // Códigos de Directivo (Acceso de gobernanza y directiva)
+    "DIRECTIVO1" to "DIRECTIVA",
+    "DIRECTIVO2" to "DIRECTIVA",
+    // Códigos de Piloto Común (Miembro activo normal sin permisos)
+    "PILOTO1" to "MIEMBRO_ACTIVO",
+    "PILOTO2" to "MIEMBRO_ACTIVO",
+    "PILOTO3" to "MIEMBRO_ACTIVO",
     // Códigos de prueba Google (asignan rol específico)
     "TX-TEST-ADMIN" to "PRESIDENTE",
     "TX-TEST-DIRECTIVA" to "DIRECTIVA",

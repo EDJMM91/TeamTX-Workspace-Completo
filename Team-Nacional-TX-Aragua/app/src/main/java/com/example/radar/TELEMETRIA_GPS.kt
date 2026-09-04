@@ -34,9 +34,10 @@ class TelemetriaGps : Service() {
         private const val PREFS_NOMBRE_PILOTO = "radar_nombre"
         private const val PREFS_RANGO = "radar_rango"
         private const val PREFS_AVATAR_URL = "radar_avatar"
+        private const val PREFS_ALERTA_SOS = "radar_alerta_sos"
         private const val COLECCION = "radar_en_vivo"
 
-        fun activar(contexto: Context, userId: String, nombre: String = "", rango: String = "", avatarUrl: String = "") {
+        fun activar(contexto: Context, userId: String, nombre: String = "", rango: String = "", avatarUrl: String = "", alertaSos: String = "") {
             val prefs = contexto.getSharedPreferences(PREFS_NOMBRE, Context.MODE_PRIVATE)
             prefs.edit()
                 .putBoolean(PREFS_ACTIVO, true)
@@ -44,10 +45,11 @@ class TelemetriaGps : Service() {
                 .putString(PREFS_NOMBRE_PILOTO, nombre)
                 .putString(PREFS_RANGO, rango)
                 .putString(PREFS_AVATAR_URL, avatarUrl)
+                .putString(PREFS_ALERTA_SOS, alertaSos)
                 .apply()
             val intent = Intent(contexto, TelemetriaGps::class.java)
             contexto.startForegroundService(intent)
-            Log.d(ETIQUETA, "Servicio de telemetría solicitado para: $nombre")
+            Log.d(ETIQUETA, "Servicio de telemetría solicitado para: $nombre (SOS: $alertaSos)")
         }
 
         fun desactivar(contexto: Context) {
@@ -149,6 +151,7 @@ class TelemetriaGps : Service() {
     private fun subirAUbicacion(lat: Double, lon: Double) {
         if (userId.isBlank()) return
 
+        val alertaSos = prefs.getString(PREFS_ALERTA_SOS, "") ?: ""
         val datos = hashMapOf(
             "id" to userId,
             "lat" to lat,
@@ -157,7 +160,8 @@ class TelemetriaGps : Service() {
             "activo" to true,
             "nombre" to nombrePiloto,
             "rango" to rangoPiloto,
-            "avatarUrl" to avatarUrlPiloto
+            "avatarUrl" to avatarUrlPiloto,
+            "alertaSos" to alertaSos
         )
 
         prefs.edit()

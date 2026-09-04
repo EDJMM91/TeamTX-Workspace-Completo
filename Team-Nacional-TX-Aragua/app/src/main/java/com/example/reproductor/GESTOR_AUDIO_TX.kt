@@ -55,6 +55,7 @@ object GESTOR_AUDIO_TX {
     private var notificationManager: NotificationManager? = null
     private var contextoApp: Context? = null
     private var prefs: SharedPreferences? = null
+    private var activoAfd: android.content.res.AssetFileDescriptor? = null
     private var activoPfd: android.os.ParcelFileDescriptor? = null
     private var activoFis: java.io.FileInputStream? = null
 
@@ -403,6 +404,11 @@ object GESTOR_AUDIO_TX {
     fun reproducirCancion(cancion: CancionMotera, nuevaCola: List<CancionMotera>? = null) {
         val ctx = contextoApp ?: return
 
+        jobAutoSkip?.cancel()
+        jobAutoSkip = null
+        jobProgreso?.cancel()
+        jobProgreso = null
+
         nuevaCola?.let {
             _colaReproduccion.value = it
         }
@@ -420,16 +426,47 @@ object GESTOR_AUDIO_TX {
 
         guardarUltimaCancion(cancion.id)
         cargarCaratulaParaCancion(cancion)
-        liberarMediaPlayer()
+
+        // Limpieza previa de descriptores abiertos
+        try { activoAfd?.close() } catch (_: Exception) {}
+        activoAfd = null
+        try { activoPfd?.close() } catch (_: Exception) {}
+        activoPfd = null
+        try { activoFis?.close() } catch (_: Exception) {}
+        activoFis = null
+
+        errorEnCurso = false
         solicitarFocoAudio()
 
         val uriAudio = if (cancion.uriStr.isNotBlank()) Uri.parse(cancion.uriStr) else Uri.fromFile(File(cancion.rutaArchivo))
         val rutaFisica = cancion.rutaArchivo
 
-        logDiagnostico("▶ reproducirCancion [errores=$intentosErrorConsecutivos auto=$autoSkipsConsecutivos]: ${cancion.titulo} | $uriAudio")
+        logDiagnostico("▶ reproducirCancion: ${cancion.titulo} | $uriAudio")
 
         try {
-            mediaPlayer = MediaPlayer().apply {
+            val mp = try {
+                val existente = mediaPlayer
+                if (existente != null) {
+                    existente.apply {
+                        setOnPreparedListener(null)
+                        setOnCompletionListener(null)
+                        setOnErrorListener(null)
+                        setOnInfoListener(null)
+                        setOnSeekCompleteListener(null)
+                        if (isPlaying) {
+                            try { stop() } catch (_: Exception) {}
+                        }
+                        reset()
+                    }
+                } else {
+                    MediaPlayer().also { mediaPlayer = it }
+                }
+            } catch (e: Exception) {
+                liberarMediaPlayer()
+                MediaPlayer().also { mediaPlayer = it }
+            }
+
+            mp.apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -438,22 +475,30 @@ object GESTOR_AUDIO_TX {
                 )
 
                 // ═══════════════════════════════════════════════════════════════════
-                // PIPELINE UNIVERSAL DE ORIGEN DE DATOS SIN CIERRE PREMATURO DE FD
+                // PIPELINE ROBUSTO DE ORIGEN DE DATOS CON ASSETFILEDESCRIPTOR
                 // ═══════════════════════════════════════════════════════════════════
                 var fuenteConfigurada = false
 
-                // Etapa 1: Apertura oficial por Context + Uri (mantiene descriptor abierto internamente)
-                if (cancion.uriStr.isNotBlank()) {
+                // Etapa 1: Apertura oficial AssetFileDescriptor con offset y declaredLength
+                if (cancion.uriStr.isNotBlank() && cancion.uriStr.startsWith("content://")) {
                     try {
-                        setDataSource(ctx, uriAudio)
-                        fuenteConfigurada = true
-                        logDiagnostico("setDataSource OK vía Context + URI")
+                        val afd = ctx.contentResolver.openAssetFileDescriptor(Uri.parse(cancion.uriStr), "r")
+                        if (afd != null) {
+                            activoAfd = afd
+                            if (afd.declaredLength < 0) {
+                                setDataSource(afd.fileDescriptor)
+                            } else {
+                                setDataSource(afd.fileDescriptor, afd.startOffset, afd.declaredLength)
+                            }
+                            fuenteConfigurada = true
+                            logDiagnostico("setDataSource OK vía AssetFileDescriptor (${afd.declaredLength} bytes)")
+                        }
                     } catch (e: Exception) {
-                        logDiagnostico("Etapa 1 Context URI falló (${e.message}) — probando etapa 2...")
+                        logDiagnostico("Etapa 1 AFD falló (${e.message}) — probando etapa 2...")
                     }
                 }
 
-                // Etapa 2: FileDescriptor persistente vía ContentResolver (sin .use para que no se cierre)
+                // Etapa 2: FileDescriptor persistente vía ContentResolver
                 if (!fuenteConfigurada && cancion.uriStr.isNotBlank() && cancion.uriStr.startsWith("content://")) {
                     try {
                         val pfd = ctx.contentResolver.openFileDescriptor(Uri.parse(cancion.uriStr), "r")
@@ -468,31 +513,41 @@ object GESTOR_AUDIO_TX {
                     }
                 }
 
-                // Etapa 3: FileDescriptor persistente vía FileInputStream (sin .use para que no se cierre)
+                // Etapa 3: Apertura oficial por Context + Uri
+                if (!fuenteConfigurada && cancion.uriStr.isNotBlank()) {
+                    try {
+                        setDataSource(ctx, uriAudio)
+                        fuenteConfigurada = true
+                        logDiagnostico("setDataSource OK vía Context + URI")
+                    } catch (e: Exception) {
+                        logDiagnostico("Etapa 3 Context URI falló (${e.message}) — probando etapa 4...")
+                    }
+                }
+
+                // Etapa 4: FileDescriptor persistente vía FileInputStream
                 if (!fuenteConfigurada && rutaFisica.isNotBlank()) {
                     val f = File(rutaFisica)
                     if (f.exists() && f.canRead() && f.length() > 0) {
                         try {
                             val fis = java.io.FileInputStream(f)
                             activoFis = fis
-                            setDataSource(fis.fd)
+                            setDataSource(fis.fd, 0, f.length())
                             fuenteConfigurada = true
                             logDiagnostico("setDataSource OK vía FileInputStream FD persistente: $rutaFisica")
                         } catch (e: Exception) {
-                            logDiagnostico("Etapa 3 FIS falló (${e.message}) — probando etapa 4...")
+                            logDiagnostico("Etapa 4 FIS falló (${e.message}) — probando etapa 5...")
                         }
                     }
                 }
 
-                // Etapa 4: Ruta física directa (fallback)
+                // Etapa 5: Ruta física directa (fallback)
                 if (!fuenteConfigurada && rutaFisica.isNotBlank() && File(rutaFisica).exists()) {
                     try {
-                        reset()
                         setDataSource(rutaFisica)
                         fuenteConfigurada = true
                         logDiagnostico("setDataSource OK vía ruta física directa")
                     } catch (e: Exception) {
-                        logDiagnostico("Etapa 4 Ruta directa falló (${e.message})")
+                        logDiagnostico("Etapa 5 Ruta directa falló (${e.message})")
                     }
                 }
 
@@ -500,98 +555,67 @@ object GESTOR_AUDIO_TX {
                     throw java.io.IOException("No se pudo abrir descriptor para pista: ${cancion.titulo}")
                 }
 
-                setOnPreparedListener { mp ->
-                    logDiagnostico("ON_PREPARED: ${cancion.titulo} dur=${mp.duration}ms session=${mp.audioSessionId}")
+                setOnPreparedListener { mpPrepared ->
+                    val durLeida = mpPrepared.duration.toLong()
+                    val durReal = if (durLeida > 0) durLeida else cancion.duracionMs
+                    logDiagnostico("ON_PREPARED: ${cancion.titulo} dur=${durLeida}ms (durReal=${durReal}ms) session=${mpPrepared.audioSessionId}")
                     if (errorEnCurso) {
                         logDiagnostico("BLOQUEADO por errorEnCurso")
                         return@setOnPreparedListener
                     }
                     try {
-                        mp.start()
+                        mpPrepared.start()
                         logDiagnostico("start() OK: ${cancion.titulo}")
                     } catch (e: Exception) {
                         logDiagnostico("FALLO start(): ${e.message}")
-                        intentosErrorConsecutivos++
-                        autoSkipsConsecutivos++
                         liberarMediaPlayer()
                         _estado.value = EstadoReproductor.DETENIDO
-                        jobProgreso?.cancel()
-
-                        val cola = _colaReproduccion.value
-                        val maxPermitido = kotlin.math.min(MAX_AUTO_SKIPS, if (cola.isNotEmpty()) cola.size else MAX_AUTO_SKIPS)
-
-                        if (autoSkipsConsecutivos >= maxPermitido) {
-                            logDiagnostico("STOP por max fallos en start()")
-                            intentosErrorConsecutivos = 0
-                            autoSkipsConsecutivos = 0
-                            ocultarNotificacion()
-                            abandonarFocoAudio()
-                            scopeCoroutine.launch(Dispatchers.Main) {
-                                android.widget.Toast.makeText(ctx, "No se pudo reproducir el archivo de audio.", android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                        } else {
-                            scopeCoroutine.launch {
-                                delay(350)
-                                siguienteCancion(esAutoSkip = true)
-                            }
-                        }
                         return@setOnPreparedListener
                     }
 
-                    // start() EXITOSO: AHORA SÍ RESETEAR CONTADORES DE ERROR
                     intentosErrorConsecutivos = 0
                     autoSkipsConsecutivos = 0
+                    errorEnCurso = false
                     tiempoInicioReproduccionMs = System.currentTimeMillis()
                     _estado.value = EstadoReproductor.REPRODUCIENDO
-                    _duracionTotalMs.value = mp.duration.toLong()
+                    _duracionTotalMs.value = durReal
                     iniciarMonitoreoProgreso()
                     mostrarNotificacion()
                     try {
-                        MOTOR_AUDIO_NATIVO.vincularAudioSession(mp.audioSessionId, _configuracion.value)
+                        MOTOR_AUDIO_NATIVO.vincularAudioSession(mpPrepared.audioSessionId, _configuracion.value)
                     } catch (e: Exception) {
                         logDiagnostico("WARN AudioFX: ${e.message}")
                     }
-                    logDiagnostico("REPRODUCIENDO EXITOSAMENTE: ${cancion.titulo} dur=${mp.duration}ms")
+                    logDiagnostico("REPRODUCIENDO EXITOSAMENTE: ${cancion.titulo} dur=${durReal}ms")
                 }
 
                 setOnCompletionListener {
-                    logDiagnostico("🔄 ON_COMPLETION (errorEnCurso=$errorEnCurso): ${cancion.titulo}")
-                    if (!errorEnCurso) {
+                    logDiagnostico("🔄 ON_COMPLETION (errorEnCurso=$errorEnCurso, estado=${_estado.value}): ${cancion.titulo}")
+                    if (!errorEnCurso && _estado.value == EstadoReproductor.REPRODUCIENDO) {
                         alCompletarCancion()
                     } else {
-                        logDiagnostico("⚠️ ON_COMPLETION BLOQUEADO por error en curso")
+                        logDiagnostico("⚠️ ON_COMPLETION BLOQUEADO por error en curso o estado no reproduciendo")
                     }
                 }
 
-                setOnErrorListener { mp, what, extra ->
-                    errorEnCurso = true
-                    intentosErrorConsecutivos++
-                    autoSkipsConsecutivos++
-                    logDiagnostico("❌ ON_ERROR [err=$intentosErrorConsecutivos auto=$autoSkipsConsecutivos/$MAX_AUTO_SKIPS]: what=$what extra=$extra cancion=${cancion.titulo}")
+                setOnErrorListener { mpError, what, extra ->
+                    if (what == -38 || extra == -38) {
+                        logDiagnostico("⚠️ ON_ERROR transitorio ignorado (what=$what extra=$extra): ${cancion.titulo}")
+                        return@setOnErrorListener true
+                    }
 
+                    logDiagnostico("❌ ON_ERROR [what=$what extra=$extra]: ${cancion.titulo}")
                     liberarMediaPlayer()
                     _estado.value = EstadoReproductor.DETENIDO
                     jobProgreso?.cancel()
 
-                    val cola = _colaReproduccion.value
-                    val maxPermitido = kotlin.math.min(MAX_AUTO_SKIPS, if (cola.isNotEmpty()) cola.size else MAX_AUTO_SKIPS)
-
-                    if (autoSkipsConsecutivos < maxPermitido) {
-                        logDiagnostico("Saltando a siguiente canción por error ($autoSkipsConsecutivos/$maxPermitido)...")
-                        scopeCoroutine.launch {
-                            delay(350)
-                            siguienteCancion(esAutoSkip = true)
-                        }
-                    } else {
-                        logDiagnostico("🛑 Bucle de saltos detenido: se alcanzó el límite de fallos ($autoSkipsConsecutivos)")
-                        intentosErrorConsecutivos = 0
-                        autoSkipsConsecutivos = 0
-                        errorEnCurso = false
-                        ocultarNotificacion()
-                        abandonarFocoAudio()
-                        scopeCoroutine.launch(Dispatchers.Main) {
-                            android.widget.Toast.makeText(ctx, "No se pudo reproducir el archivo. Formato no compatible o archivo dañado.", android.widget.Toast.LENGTH_LONG).show()
-                        }
+                    intentosErrorConsecutivos = 0
+                    autoSkipsConsecutivos = 0
+                    errorEnCurso = false
+                    ocultarNotificacion()
+                    abandonarFocoAudio()
+                    scopeCoroutine.launch(Dispatchers.Main) {
+                        android.widget.Toast.makeText(ctx, "No se pudo reproducir '${cancion.titulo}'.", android.widget.Toast.LENGTH_SHORT).show()
                     }
                     true
                 }
@@ -603,23 +627,13 @@ object GESTOR_AUDIO_TX {
             logDiagnostico("💥 EXCEPCIÓN MediaPlayer: ${e.message}")
             liberarMediaPlayer()
             _estado.value = EstadoReproductor.DETENIDO
-            autoSkipsConsecutivos++
-            val cola = _colaReproduccion.value
-            val maxPermitido = kotlin.math.min(MAX_AUTO_SKIPS, if (cola.isNotEmpty()) cola.size else MAX_AUTO_SKIPS)
-            if (autoSkipsConsecutivos < maxPermitido) {
-                scopeCoroutine.launch {
-                    delay(350)
-                    siguienteCancion(esAutoSkip = true)
-                }
-            } else {
-                autoSkipsConsecutivos = 0
-                intentosErrorConsecutivos = 0
-                errorEnCurso = false
-                ocultarNotificacion()
-                abandonarFocoAudio()
-                scopeCoroutine.launch(Dispatchers.Main) {
-                    android.widget.Toast.makeText(ctx, "No se pudo reproducir el audio. Formato no compatible.", android.widget.Toast.LENGTH_SHORT).show()
-                }
+            autoSkipsConsecutivos = 0
+            intentosErrorConsecutivos = 0
+            errorEnCurso = false
+            ocultarNotificacion()
+            abandonarFocoAudio()
+            scopeCoroutine.launch(Dispatchers.Main) {
+                android.widget.Toast.makeText(ctx, "No se pudo reproducir el audio. Formato no compatible.", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -628,21 +642,27 @@ object GESTOR_AUDIO_TX {
      * Libera el MediaPlayer de forma segura, cerrando descriptores y desvinculando efectos de hardware.
      */
     private fun liberarMediaPlayer() {
+        errorEnCurso = true
+        jobProgreso?.cancel()
+        jobProgreso = null
         try {
             mediaPlayer?.apply {
-                if (isPlaying) {
-                    try { stop() } catch (_: Exception) {}
-                }
+                // PRIMERO desvincular todos los listeners para evitar callbacks asíncronos residuales
                 setOnPreparedListener(null)
                 setOnCompletionListener(null)
                 setOnErrorListener(null)
                 setOnInfoListener(null)
                 setOnSeekCompleteListener(null)
+                if (isPlaying) {
+                    try { stop() } catch (_: Exception) {}
+                }
                 reset()
                 release()
             }
         } catch (_: Exception) {}
         mediaPlayer = null
+        try { activoAfd?.close() } catch (_: Exception) {}
+        activoAfd = null
         try { activoPfd?.close() } catch (_: Exception) {}
         activoPfd = null
         try { activoFis?.close() } catch (_: Exception) {}
@@ -705,7 +725,9 @@ object GESTOR_AUDIO_TX {
             }
 
             if (!esAutoSkip) {
-                // Acción manual del usuario: resetear contadores de error
+                // Acción manual del usuario: cancelar auto-skips y resetear contadores de error
+                jobAutoSkip?.cancel()
+                jobAutoSkip = null
                 intentosErrorConsecutivos = 0
                 autoSkipsConsecutivos = 0
             }
@@ -739,7 +761,7 @@ object GESTOR_AUDIO_TX {
             reproducirCancion(cola[indiceColaActual])
         } finally {
             scopeCoroutine.launch {
-                delay(300)
+                delay(400)
                 isTransitioning.set(false)
             }
         }
@@ -762,6 +784,8 @@ object GESTOR_AUDIO_TX {
             val cola = _colaReproduccion.value
             if (cola.isEmpty()) return
 
+            jobAutoSkip?.cancel()
+            jobAutoSkip = null
             intentosErrorConsecutivos = 0
             autoSkipsConsecutivos = 0
             errorEnCurso = false
@@ -775,7 +799,7 @@ object GESTOR_AUDIO_TX {
             reproducirCancion(cola[indiceColaActual])
         } finally {
             scopeCoroutine.launch {
-                delay(300)
+                delay(400)
                 isTransitioning.set(false)
             }
         }
@@ -814,11 +838,23 @@ object GESTOR_AUDIO_TX {
     }
 
     private fun alCompletarCancion() {
-        val tiempoTranscurrido = if (tiempoInicioReproduccionMs > 0) System.currentTimeMillis() - tiempoInicioReproduccionMs else 0L
+        // Protección 1: Si el reproductor no está reproduciendo activamente, ignorar callbacks espurios
+        if (_estado.value != EstadoReproductor.REPRODUCIENDO) {
+            logDiagnostico("⚠️ alCompletarCancion ignorado: estado actual es ${_estado.value} (no REPRODUCIENDO)")
+            return
+        }
+
+        // Protección 2: Si nunca se inició el playback real, ignorar evento espurio
+        if (tiempoInicioReproduccionMs <= 0L) {
+            logDiagnostico("⚠️ alCompletarCancion ignorado: tiempoInicioReproduccionMs no válido ($tiempoInicioReproduccionMs)")
+            return
+        }
+
+        val tiempoTranscurrido = System.currentTimeMillis() - tiempoInicioReproduccionMs
         logDiagnostico("🎵 alCompletarCancion: '${_cancionActual.value?.titulo}' tiempo=${tiempoTranscurrido}ms modoBucle=${_modoBucle.value}")
 
-        // Si nunca inició (0L) o terminó en menos de 2000ms, es un fallo prematuro o descriptor cerrado
-        val esFalloPrematuro = tiempoInicioReproduccionMs == 0L || tiempoTranscurrido < MIN_DURACION_VALIDA_MS
+        // Si terminó en menos de 2000ms, es un fallo prematuro o descriptor cerrado
+        val esFalloPrematuro = tiempoTranscurrido < MIN_DURACION_VALIDA_MS
 
         if (esFalloPrematuro) {
             autoSkipsConsecutivos++
@@ -839,7 +875,8 @@ object GESTOR_AUDIO_TX {
                 }
                 return
             } else {
-                scopeCoroutine.launch {
+                jobAutoSkip?.cancel()
+                jobAutoSkip = scopeCoroutine.launch {
                     delay(350)
                     siguienteCancion(esAutoSkip = true)
                 }
@@ -1295,12 +1332,16 @@ object GESTOR_AUDIO_TX {
     private fun iniciarMonitoreoProgreso() {
         jobProgreso?.cancel()
         jobProgreso = scopeCoroutine.launch {
+            delay(250) // Pausa de estabilización para evitar colisión de estado nativo
             while (_estado.value == EstadoReproductor.REPRODUCIENDO) {
                 try {
-                    mediaPlayer?.let { mp ->
-                        if (mp.isPlaying) {
-                            _posicionActualMs.value = mp.currentPosition.toLong()
-                        }
+                    val mp = mediaPlayer
+                    if (mp != null && _estado.value == EstadoReproductor.REPRODUCIENDO) {
+                        try {
+                            if (mp.isPlaying) {
+                                _posicionActualMs.value = mp.currentPosition.toLong()
+                            }
+                        } catch (_: Exception) {}
                     }
                 } catch (_: Exception) {}
                 delay(500)

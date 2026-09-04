@@ -1,5 +1,5 @@
 # Gestor de Módulos - Team Nacional TX Aragua
-
+la mayoria del contaxto esta en el archivo  D:\MAPA\Team-Nacional-TX-Aragua\graphify-out 
 > ## 🔒 REPOSITORIO OFICIAL DEL PROYECTO (REGLA INMUTABLE PARA TODOS LOS AGENTES)
 > **A partir de ahora TODO se sube a:**  
 > ### 👉 `https://github.com/EDJMM91/TeamTX-Workspace-Completo`
@@ -68,8 +68,8 @@ EL LOGCAST DE ANDROID STUDIO Y VER CADA ERROR ALLI
 **Configuraciones (⚙️ Engranaje)**: Se encarga de contener configuraciones previas de toda la app, cosas a ajustar, temas, etc., y configuraciones específicas de cada módulo.
 
 ---
-
-## Instrucciones de Trabajo
+a cada modulo hay que darle coneccion al modulo avisos en caso de que este requiera generar un aviso por ner el aviso en ese modulo ejemplo  se subio un reto y o desafio , esto va un mensaje a avisos y en avisos sale "Se ha subido un nuevo reto y o desafio para los miembros del team nacional tx" a su vez sale la notificacion push cuando la gente lo abre y lo ve .  asi para mercado biker una nueva rodada o rodada programada lo que sea sale un aviso  asi para tesoreria cuando se lance una rifa
+asegura la conexion de cada modulo tocado que tenga conexion con avisos en caso de que se requiera .## Instrucciones de Trabajo
 
 - Esperaré órdenes de mejoras, a no ser de que me digas que trabajes en uno específico o que te faltan módulos por mostrar.
 - Hay cosas que mejorar: vistas, etc.
@@ -145,3 +145,7 @@ Registro: Queda guardado en el gestor para que cualquier otro agente sepa que es
    Línea 137: Método isPaidVersion.
    ◦
    Cambio: Retornará true directamente. Identifica a la app como "Versión de Pago" en todo el sistema.
+
+   ahora cada modulo de manera visual nos enfocaremos en usar tema claro usado en el dashboad evitar siempre usar tarjetas o fondos colores oscuros y , letras blancas en fondos claros
+
+   al culminar utilizar comando am start a los dispositivos conectados por adb o por red local para que funcione con el wifi-enabled wifiadb 

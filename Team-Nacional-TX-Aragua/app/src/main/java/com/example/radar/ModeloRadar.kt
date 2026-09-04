@@ -8,7 +8,8 @@ data class PilotoRadar(
     val lon: Double,
     val avatarUrl: String,
     val timestamp: Long,
-    val activo: Boolean
+    val activo: Boolean,
+    val alertaSos: String? = null
 )
 
 enum class EstadoRadar {

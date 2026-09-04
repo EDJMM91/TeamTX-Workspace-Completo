@@ -97,37 +97,57 @@ fun ChallengesScreen(
                             Text(
                                 text = "Retos Moteros TX",
                                 fontWeight = FontWeight.Black,
-                                fontSize = 18.sp,
-                                color = Color.White
+                                fontSize = 17.sp,
+                                color = Color(0xFF0F172A)
                             )
                             Text(
                                 text = "Rutas, Checkpoints y Reportes Oficiales",
                                 fontSize = 11.sp,
-                                color = MotoGoldSecondary
+                                color = MotoOrangePrimary,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color(0xFF0F172A))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = TxCarbonDark)
+                actions = {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onBack() }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Home, contentDescription = "Inicio", tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Inicio", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
         floatingActionButton = {
-            // Permite crear reto oficial (si es directiva) o reto personal (cualquier usuario)
             FloatingActionButton(
                 onClick = { showCreateChallengeDialog = true },
-                containerColor = TxFlameRed,
+                containerColor = MotoOrangePrimary,
                 contentColor = Color.White,
                 shape = CircleShape
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Nuevo Reto")
             }
         },
-        containerColor = Color.Black
+        containerColor = Color(0xFFF8FAFC)
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -137,8 +157,8 @@ fun ChallengesScreen(
             // Pestañas Retos Oficiales vs Mis Retos
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = TxCarbonDark,
-                contentColor = Color.White,
+                containerColor = Color.White,
+                contentColor = Color(0xFF0F172A),
                 indicator = { tabPositions ->
                     TabRowDefaults.SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
@@ -153,7 +173,7 @@ fun ChallengesScreen(
                         Text(
                             text = "Oficiales Club (${officialChallenges.size})",
                             fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
-                            color = if (selectedTab == 0) MotoOrangePrimary else Color(0xFF90A4AE)
+                            color = if (selectedTab == 0) MotoOrangePrimary else Color(0xFF64748B)
                         )
                     }
                 )
@@ -164,7 +184,7 @@ fun ChallengesScreen(
                         Text(
                             text = "Mis Retos & Reportes (${personalChallenges.size + progressList.size})",
                             fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
-                            color = if (selectedTab == 1) MotoOrangePrimary else Color(0xFF90A4AE)
+                            color = if (selectedTab == 1) MotoOrangePrimary else Color(0xFF64748B)
                         )
                     }
                 )
@@ -180,11 +200,11 @@ fun ChallengesScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFF607D8B), modifier = Modifier.size(56.dp))
+                            Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(56.dp))
                             Spacer(modifier = Modifier.height(12.dp))
-                            Text("No hay retos oficiales activos", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("No hay retos oficiales activos", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("La directiva publicará nuevos desafíos de ruta pronto.", color = Color(0xFF90A4AE), fontSize = 13.sp, textAlign = TextAlign.Center)
+                            Text("La directiva publicará nuevos desafíos de ruta pronto.", color = Color(0xFF64748B), fontSize = 13.sp, textAlign = TextAlign.Center)
                         }
                     }
                 } else {
@@ -224,7 +244,7 @@ fun ChallengesScreen(
                         item {
                             Text(
                                 text = "🏍️ RETOS PERSONALES CREADOS POR TI",
-                                color = MotoGoldSecondary,
+                                color = Color(0xFFD97706),
                                 fontWeight = FontWeight.Black,
                                 fontSize = 12.sp,
                                 modifier = Modifier.padding(vertical = 4.dp)
@@ -263,17 +283,17 @@ fun ChallengesScreen(
                     if (progressList.isEmpty()) {
                         item {
                             Surface(
-                                color = Color(0xFF1E2433),
+                                color = Color.White,
                                 shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(Icons.Default.DirectionsBike, contentDescription = null, tint = Color(0xFF78909C), modifier = Modifier.size(40.dp))
+                                    Icon(Icons.Default.DirectionsBike, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(40.dp))
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text("Aún no tienes reportes de ruta registrados", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("Aún no tienes reportes de ruta registrados", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("Selecciona cualquier reto oficial o personal y pulsa 'Llenar Reporte de Ruta'.", color = Color(0xFF90A4AE), fontSize = 12.sp, textAlign = TextAlign.Center)
+                                    Text("Selecciona cualquier reto oficial o personal y pulsa 'Llenar Reporte de Ruta'.", color = Color(0xFF64748B), fontSize = 12.sp, textAlign = TextAlign.Center)
                                 }
                             }
                         }
@@ -387,10 +407,12 @@ fun ChallengeCard(
     onShareReport: (UserChallengeProgress) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     Surface(
-        color = Color(0xFF1A202C),
+        color = Color.White,
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, if (challenge.isOfficial) MotoGoldSecondary.copy(alpha = 0.4f) else MotoOrangePrimary.copy(alpha = 0.3f)),
+        border = BorderStroke(1.dp, if (challenge.isOfficial) Color(0xFFF59E0B).copy(alpha = 0.5f) else Color(0xFFE2E8F0)),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -402,25 +424,30 @@ fun ChallengeCard(
             ) {
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (challenge.isOfficial) MotoGoldSecondary.copy(alpha = 0.2f) else MotoOrangePrimary.copy(alpha = 0.2f),
-                    border = BorderStroke(0.5.dp, if (challenge.isOfficial) MotoGoldSecondary else MotoOrangePrimary)
+                    color = if (challenge.isOfficial) Color(0xFFFEF3C7) else Color(0xFFFFEDD5),
+                    border = BorderStroke(1.dp, if (challenge.isOfficial) Color(0xFFF59E0B) else MotoOrangePrimary.copy(alpha = 0.5f))
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(if (challenge.isOfficial) "👑 RETO OFICIAL" else "🏍️ RETO PERSONAL", fontSize = 10.sp, fontWeight = FontWeight.Black, color = if (challenge.isOfficial) MotoGoldSecondary else MotoOrangePrimary)
+                        Text(
+                            text = if (challenge.isOfficial) "👑 RETO OFICIAL CLUB" else "🏍️ RETO PERSONAL",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (challenge.isOfficial) Color(0xFFB45309) else MotoOrangePrimary
+                        )
                     }
                 }
 
                 if (isDirectiva || isCreator) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF90A4AE), modifier = Modifier.size(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        IconButton(onClick = onEdit, modifier = Modifier.size(30.dp)) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
                         }
-                        IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = StatusError, modifier = Modifier.size(16.dp))
+                        IconButton(onClick = { showDeleteConfirm = true }, modifier = Modifier.size(30.dp)) {
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFDC2626), modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -433,20 +460,20 @@ fun ChallengeCard(
                 text = challenge.title,
                 fontWeight = FontWeight.Black,
                 fontSize = 17.sp,
-                color = Color.White
+                color = Color(0xFF0F172A)
             )
 
             // Distintivo / Parche
             if (challenge.badgeName.isNotBlank()) {
                 Spacer(modifier = Modifier.height(3.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = MotoGoldSecondary, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = challenge.badgeName,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MotoGoldSecondary
+                        color = Color(0xFFD97706)
                     )
                 }
             }
@@ -474,7 +501,7 @@ fun ChallengeCard(
             Text(
                 text = challenge.description,
                 fontSize = 13.sp,
-                color = Color(0xFFB0BEC5),
+                color = Color(0xFF334155),
                 lineHeight = 18.sp
             )
 
@@ -482,23 +509,24 @@ fun ChallengeCard(
 
             // Métricas: Kms, Velocidad, Fechas
             Surface(
-                color = Color(0xFF131722),
+                color = Color(0xFFF8FAFC),
                 shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("🎯 Objetivo:", fontSize = 11.sp, color = Color(0xFF78909C))
-                        Text("${String.format(Locale.US, "%.1f", challenge.targetKm)} KM", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("🎯 Objetivo:", fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
+                        Text("${String.format(Locale.US, "%.1f", challenge.targetKm)} KM", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("⚡ Velocidad Crucero:", fontSize = 11.sp, color = Color(0xFF78909C))
+                        Text("⚡ Velocidad Crucero:", fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
                         Text(challenge.cruisingSpeed.ifBlank { "80-100 km/h" }, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
                     }
                     if (challenge.startDate.isNotBlank()) {
@@ -506,8 +534,8 @@ fun ChallengeCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("📅 Vigencia:", fontSize = 11.sp, color = Color(0xFF78909C))
-                            Text("${challenge.startDate} al ${challenge.endDate.ifBlank { "Indefinido" }}", fontSize = 11.sp, color = Color(0xFFCFD8DC))
+                            Text("📅 Vigencia:", fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Medium)
+                            Text("${challenge.startDate} al ${challenge.endDate.ifBlank { "Indefinido" }}", fontSize = 11.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -520,18 +548,18 @@ fun ChallengeCard(
                     text = "📍 Toques / Sitios del Reto:",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MotoGoldSecondary
+                    color = Color(0xFFD97706)
                 )
                 Text(
                     text = challenge.checkpoints,
                     fontSize = 12.sp,
-                    color = Color(0xFFECEFF1)
+                    color = Color(0xFF1E293B)
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Botones de acción
+            // Botones de acción sin choques
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -539,13 +567,13 @@ fun ChallengeCard(
                 // Botón Llenar / Modificar Reporte
                 Button(
                     onClick = onRegisterProgress,
-                    colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed),
+                    colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.EditNote, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.EditNote, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(if (userProgress != null) "Editar Reporte" else "Llenar Reporte", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(if (userProgress != null) "Editar Reporte" else "Llenar Reporte", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 // Botón Compartir WhatsApp
@@ -563,6 +591,31 @@ fun ChallengeCard(
             }
         }
     }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("¿Eliminar este reto?", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
+            text = { Text("Se eliminará permanentemente el reto '${challenge.title}'.", color = Color(0xFF334155)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("Eliminar", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancelar", color = Color(0xFF64748B))
+                }
+            },
+            containerColor = Color.White
+        )
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -577,13 +630,15 @@ fun RouteReportSummaryCard(
     onShare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     Surface(
-        color = Color(0xFF1E2433),
+        color = Color.White,
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, Color(0xFF25D366).copy(alpha = 0.3f)),
+        border = BorderStroke(1.dp, Color(0xFF25D366).copy(alpha = 0.5f)),
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -591,34 +646,34 @@ fun RouteReportSummaryCard(
             ) {
                 Text(
                     text = "🏍️ ${progress.challengeTitle}",
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     fontSize = 14.sp,
-                    color = Color.White,
+                    color = Color(0xFF0F172A),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                Row {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF90A4AE), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
                     }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = StatusError, modifier = Modifier.size(16.dp))
+                    IconButton(onClick = { showDeleteConfirm = true }, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFDC2626), modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "🚀 ${progress.originLocation} ➔ 🗺️ ${progress.destinationLocation}",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MotoGoldSecondary
+                color = Color(0xFF0284C7)
             )
             Text(
                 text = "🏍️ Moto: ${progress.bikeModel} (Placa: ${progress.bikePlate}) | Piloto: ${progress.pilotName}",
                 fontSize = 11.sp,
-                color = Color(0xFFB0BEC5)
+                color = Color(0xFF475569)
             )
             Text(
                 text = "🛣️ Recorrido: ${String.format(Locale.US, "%.1f", progress.finalKm - progress.initialKm)} KM | Acumulados: ${String.format(Locale.US, "%.1f", progress.accumulatedKm)} KM",
@@ -629,24 +684,24 @@ fun RouteReportSummaryCard(
 
             // Foto miniatura si existe
             if (!progress.sitePhotoUrl.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 SubcomposeAsyncImage(
                     model = progress.sitePhotoUrl,
                     contentDescription = "Foto Sitio",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(90.dp)
+                        .height(100.dp)
                         .clip(RoundedCornerShape(6.dp)),
                     contentScale = ContentScale.Crop
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Button(
                 onClick = onShare,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
-                shape = RoundedCornerShape(6.dp),
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
@@ -654,6 +709,31 @@ fun RouteReportSummaryCard(
                 Text("Compartir Reporte por WhatsApp", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("¿Eliminar este reporte?", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
+            text = { Text("Se eliminará el reporte de ruta de ${progress.pilotName} (${progress.destinationLocation}).", color = Color(0xFF334155)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("Eliminar", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancelar", color = Color(0xFF64748B))
+                }
+            },
+            containerColor = Color.White
+        )
     }
 }
 
@@ -682,6 +762,15 @@ fun CreateEditChallengeDialog(
         selectedImageUri = uri
     }
 
+    val tfColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF0F172A),
+        focusedBorderColor = MotoOrangePrimary,
+        unfocusedBorderColor = Color(0xFFCBD5E1),
+        focusedLabelColor = MotoOrangePrimary,
+        unfocusedLabelColor = Color(0xFF64748B)
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -689,7 +778,7 @@ fun CreateEditChallengeDialog(
                 text = if (existingChallenge != null) "Editar Reto Motero" else "Nuevo Reto Motero",
                 fontWeight = FontWeight.Black,
                 fontSize = 18.sp,
-                color = Color.White
+                color = Color(0xFF0F172A)
             )
         },
         text = {
@@ -697,13 +786,14 @@ fun CreateEditChallengeDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Título del Reto") },
                     placeholder = { Text("Ej: 3er. RETO PILOTO EXPERTO") },
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -711,6 +801,7 @@ fun CreateEditChallengeDialog(
                     value = description,
                     onValueChange = { description = it },
                     label = { Text("Descripción / Reglas") },
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
                 )
@@ -721,12 +812,14 @@ fun CreateEditChallengeDialog(
                         onValueChange = { targetKmStr = it },
                         label = { Text("KM Objetivo") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = tfColors,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = cruisingSpeed,
                         onValueChange = { cruisingSpeed = it },
                         label = { Text("Velocidad") },
+                        colors = tfColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -736,6 +829,7 @@ fun CreateEditChallengeDialog(
                     onValueChange = { badgeName = it },
                     label = { Text("Insignia / Parche a Otorgar") },
                     placeholder = { Text("Ej: Parche Piloto Experto 🏆") },
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -745,6 +839,7 @@ fun CreateEditChallengeDialog(
                         onValueChange = { startDate = it },
                         label = { Text("Fecha Inicio") },
                         placeholder = { Text("DD/MM/AAAA") },
+                        colors = tfColors,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
@@ -752,6 +847,7 @@ fun CreateEditChallengeDialog(
                         onValueChange = { endDate = it },
                         label = { Text("Fecha Fin") },
                         placeholder = { Text("DD/MM/AAAA") },
+                        colors = tfColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -761,6 +857,7 @@ fun CreateEditChallengeDialog(
                     onValueChange = { checkpoints = it },
                     label = { Text("Toques / Sitios (Separados por coma)") },
                     placeholder = { Text("Ej: Cabo San Román, Collado del Cóndor, Cuyagua") },
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -772,21 +869,35 @@ fun CreateEditChallengeDialog(
                         Checkbox(
                             checked = isOfficial,
                             onCheckedChange = { isOfficial = it },
-                            colors = CheckboxDefaults.colors(checkedColor = MotoGoldSecondary)
+                            colors = CheckboxDefaults.colors(checkedColor = Color(0xFFD97706))
                         )
-                        Text("Reto Oficial del Club (Visible para todos)", fontSize = 12.sp, color = Color.White)
+                        Text("Reto Oficial del Club (Visible para todos)", fontSize = 12.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.SemiBold)
                     }
                 }
 
                 // Selector de Flyer / Imagen
-                Button(
-                    onClick = { photoPickerLauncher.launch("image/*") },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2F3E)),
-                    modifier = Modifier.fillMaxWidth()
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF1F5F9),
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { photoPickerLauncher.launch("image/*") }
                 ) {
-                    Icon(Icons.Default.Image, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (selectedImageUri != null) "Flyer seleccionado ✓" else "Subir Flyer / Imagen")
+                    Row(
+                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = null, tint = MotoOrangePrimary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (selectedImageUri != null) "Flyer seleccionado ✓" else "Subir Flyer / Imagen del Reto",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                    }
                 }
             }
         },
@@ -798,17 +909,17 @@ fun CreateEditChallengeDialog(
                         onSave(title, description, km, cruisingSpeed, badgeName, startDate, endDate, checkpoints, isOfficial, selectedImageUri)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed)
+                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
             ) {
-                Text("Guardar Reto")
+                Text("Guardar Reto", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = Color(0xFF90A4AE))
+                Text("Cancelar", color = Color(0xFF64748B))
             }
         },
-        containerColor = Color(0xFF1E2433)
+        containerColor = Color.White
     )
 }
 
@@ -842,6 +953,15 @@ fun ChallengeProgressDialog(
     var notes by remember { mutableStateOf(existingProgress?.notes ?: "") }
     var selectedSitePhotoUri by remember { mutableStateOf<Uri?>(null) }
 
+    val tfColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF0F172A),
+        focusedBorderColor = MotoOrangePrimary,
+        unfocusedBorderColor = Color(0xFFCBD5E1),
+        focusedLabelColor = MotoOrangePrimary,
+        unfocusedLabelColor = Color(0xFF64748B)
+    )
+
     // Checkpoints mapping (Lugar -> Boolean visitado)
     val challengeCheckpointsList = remember(challenge.checkpoints) {
         challenge.checkpoints.split(",").map { it.trim() }.filter { it.isNotBlank() }
@@ -866,7 +986,7 @@ fun ChallengeProgressDialog(
                 text = "🏍️ Reporte de Ruta - ${challenge.title}",
                 fontWeight = FontWeight.Black,
                 fontSize = 17.sp,
-                color = Color.White
+                color = Color(0xFF0F172A)
             )
         },
         text = {
@@ -874,12 +994,12 @@ fun ChallengeProgressDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
                     text = "Llenado de datos oficiales para el reporte de WhatsApp y registro de ruta.",
                     fontSize = 12.sp,
-                    color = Color(0xFF90A4AE)
+                    color = Color(0xFF64748B)
                 )
 
                 // Fechas
@@ -888,12 +1008,14 @@ fun ChallengeProgressDialog(
                         value = departureDate,
                         onValueChange = { departureDate = it },
                         label = { Text("Fecha Salida") },
+                        colors = tfColors,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = returnDate,
                         onValueChange = { returnDate = it },
                         label = { Text("Fecha Llegada") },
+                        colors = tfColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -903,6 +1025,7 @@ fun ChallengeProgressDialog(
                     value = originLocation,
                     onValueChange = { originLocation = it },
                     label = { Text("🚀 SALIDA (Origen)") },
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -910,6 +1033,7 @@ fun ChallengeProgressDialog(
                     onValueChange = { destinationLocation = it },
                     label = { Text("🗺️ DESTINO") },
                     placeholder = { Text("Ej: Barquisimeto (Aniversario MC)") },
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -919,12 +1043,14 @@ fun ChallengeProgressDialog(
                         value = bikeModel,
                         onValueChange = { bikeModel = it },
                         label = { Text("🏍️ Moto") },
+                        colors = tfColors,
                         modifier = Modifier.weight(1.2f)
                     )
                     OutlinedTextField(
                         value = bikePlate,
                         onValueChange = { bikePlate = it },
                         label = { Text("🆔 Placa") },
+                        colors = tfColors,
                         modifier = Modifier.weight(0.8f)
                     )
                 }
@@ -936,6 +1062,7 @@ fun ChallengeProgressDialog(
                         onValueChange = { initialKmStr = it },
                         label = { Text("🏁 KM Inicial") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = tfColors,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
@@ -943,6 +1070,7 @@ fun ChallengeProgressDialog(
                         onValueChange = { finalKmStr = it },
                         label = { Text("🏆 KM Final") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = tfColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -954,6 +1082,7 @@ fun ChallengeProgressDialog(
                         onValueChange = { currentRouteNumberStr = it },
                         label = { Text("Ruta #") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = tfColors,
                         modifier = Modifier.weight(0.5f)
                     )
                     OutlinedTextField(
@@ -961,6 +1090,7 @@ fun ChallengeProgressDialog(
                         onValueChange = { routeDescription = it },
                         label = { Text("Descripción Tramo / Vía") },
                         placeholder = { Text("Ej: San Cristóbal - El Vigía - Barquisimeto") },
+                        colors = tfColors,
                         modifier = Modifier.weight(1.5f)
                     )
                 }
@@ -971,12 +1101,14 @@ fun ChallengeProgressDialog(
                         value = pilotName,
                         onValueChange = { pilotName = it },
                         label = { Text("👨‍🚀 Piloto") },
+                        colors = tfColors,
                         modifier = Modifier.weight(1.2f)
                     )
                     OutlinedTextField(
                         value = pilotPhone,
                         onValueChange = { pilotPhone = it },
                         label = { Text("☎️ Teléfono") },
+                        colors = tfColors,
                         modifier = Modifier.weight(0.8f)
                     )
                 }
@@ -987,12 +1119,14 @@ fun ChallengeProgressDialog(
                         value = copilotName,
                         onValueChange = { copilotName = it },
                         label = { Text("👨‍🚀 Copiloto (Opcional)") },
+                        colors = tfColors,
                         modifier = Modifier.weight(1.2f)
                     )
                     OutlinedTextField(
                         value = copilotPhone,
                         onValueChange = { copilotPhone = it },
                         label = { Text("☎️ Tel Copiloto") },
+                        colors = tfColors,
                         modifier = Modifier.weight(0.8f)
                     )
                 }
@@ -1003,6 +1137,7 @@ fun ChallengeProgressDialog(
                     onValueChange = { emergencyContact = it },
                     label = { Text("☎️ Contactos de Emergencia (Nombre y Tlf)") },
                     placeholder = { Text("Ej: María Pérez (Esposa): 0414-1234567") },
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1013,7 +1148,7 @@ fun ChallengeProgressDialog(
                         text = "📍 PUNTOS DE CONTROL / TOQUES:",
                         fontWeight = FontWeight.Black,
                         fontSize = 12.sp,
-                        color = MotoGoldSecondary
+                        color = Color(0xFFD97706)
                     )
                     challengeCheckpointsList.forEach { place ->
                         Row(
@@ -1026,12 +1161,12 @@ fun ChallengeProgressDialog(
                             Checkbox(
                                 checked = completedMap[place] ?: false,
                                 onCheckedChange = { completedMap[place] = it },
-                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF25D366))
+                                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF16A34A))
                             )
                             Text(
                                 text = place,
                                 fontSize = 12.sp,
-                                color = if (completedMap[place] == true) Color.White else Color(0xFF90A4AE),
+                                color = if (completedMap[place] == true) Color(0xFF0F172A) else Color(0xFF64748B),
                                 fontWeight = if (completedMap[place] == true) FontWeight.Bold else FontWeight.Normal
                             )
                         }
@@ -1044,6 +1179,7 @@ fun ChallengeProgressDialog(
                     onValueChange = { accumulatedKmStr = it },
                     label = { Text("🛣️ Kms Acumulados Totales") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1053,19 +1189,34 @@ fun ChallengeProgressDialog(
                     onValueChange = { notes = it },
                     label = { Text("Nota / Observación") },
                     placeholder = { Text("Ej: Ruta sin novedades mecánicas.") },
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 2
                 )
 
-                // Foto del Sitio Visitado (Optimizado 1 foto para ahorrar Firebase)
-                Button(
-                    onClick = { photoPickerLauncher.launch("image/*") },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2F3E)),
-                    modifier = Modifier.fillMaxWidth()
+                // Foto del Sitio Visitado
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF1F5F9),
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { photoPickerLauncher.launch("image/*") }
                 ) {
-                    Icon(Icons.Default.AddAPhoto, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (selectedSitePhotoUri != null) "Foto del Sitio seleccionada ✓" else "Foto del Sitio Visitado (1 Foto)")
+                    Row(
+                        modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MotoOrangePrimary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (selectedSitePhotoUri != null) "Foto del Sitio seleccionada ✓" else "Foto del Sitio Visitado (1 Foto)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                    }
                 }
             }
         },
@@ -1110,17 +1261,17 @@ fun ChallengeProgressDialog(
                     )
                     onSave(progress, selectedSitePhotoUri)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed)
+                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
             ) {
-                Text("Guardar Reporte")
+                Text("Guardar Reporte", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = Color(0xFF90A4AE))
+                Text("Cancelar", color = Color(0xFF64748B))
             }
         },
-        containerColor = Color(0xFF1E2433)
+        containerColor = Color.White
     )
 }
 

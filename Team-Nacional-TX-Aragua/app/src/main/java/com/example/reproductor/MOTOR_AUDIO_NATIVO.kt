@@ -191,9 +191,19 @@ object MOTOR_AUDIO_NATIVO {
      */
     fun liberarEfectos() {
         try {
+            ecualizadorHardware?.enabled = false
             ecualizadorHardware?.release()
+        } catch (_: Exception) {}
+        try {
+            bassBoostHardware?.enabled = false
             bassBoostHardware?.release()
+        } catch (_: Exception) {}
+        try {
+            virtualizadorHardware?.enabled = false
             virtualizadorHardware?.release()
+        } catch (_: Exception) {}
+        try {
+            ultraVolumenHardware?.enabled = false
             ultraVolumenHardware?.release()
         } catch (_: Exception) {}
         ecualizadorHardware = null

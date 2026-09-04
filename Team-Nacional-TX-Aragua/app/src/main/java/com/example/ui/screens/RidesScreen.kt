@@ -67,6 +67,7 @@ fun RidesScreen(
         maxParticipants: Int,
         whatsappLink: String?
     ) -> Unit,
+    onBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -102,6 +103,39 @@ fun RidesScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Rodadas y Caravanas TX",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 16.sp,
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            text = "Convoy oficial, logística y cupos",
+                            fontSize = 11.sp,
+                            color = MotoOrangePrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color(0xFF0F172A))
+                    }
+                },
+                actions = {
+                    TextButton(onClick = onBack) {
+                        Icon(Icons.Default.Home, contentDescription = "Inicio", tint = Color(0xFF0F172A), modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Inicio", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
+        },
         floatingActionButton = {
             if (isDirectivaMode) {
                 ExtendedFloatingActionButton(
@@ -114,6 +148,7 @@ fun RidesScreen(
                 )
             }
         },
+        containerColor = Color(0xFFF8FAFC),
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         LazyColumn(
@@ -128,48 +163,29 @@ fun RidesScreen(
         ) {
             item {
                 Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Calendario de Rodadas & Salidas TX",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = "Inscríbete a las salidas oficiales, consulta logística y puestos de caravana",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
                     // Search field
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Buscar por destino, ruta o capitán...", fontSize = 13.sp, color = TxSteelSilver) },
+                        placeholder = { Text("Buscar por destino, ruta o capitán...", fontSize = 13.sp, color = Color(0xFF94A3B8)) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MotoOrangePrimary) },
                         trailingIcon = {
                             if (searchQuery.isNotBlank()) {
                                 IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Limpiar")
+                                    Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = Color(0xFF64748B))
                                 }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF1E293B),
                             focusedBorderColor = MotoOrangePrimary,
-                            unfocusedBorderColor = TxSteelSilver.copy(alpha = 0.3f),
-                            focusedContainerColor = AsphaltDarkSurface,
-                            unfocusedContainerColor = AsphaltDarkSurface
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            cursorColor = MotoOrangePrimary
                         ),
                         singleLine = true
                     )
@@ -183,13 +199,20 @@ fun RidesScreen(
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { selectedStatusFilter = filter },
-                                label = { Text(filter, fontSize = 11.sp) },
+                                label = {
+                                    Text(
+                                        filter,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MotoOrangePrimary,
                                     selectedLabelColor = Color.White,
-                                    containerColor = AsphaltDarkSurface,
-                                    labelColor = Color.White
-                                )
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = Color(0xFF334155)
+                                ),
+                                border = BorderStroke(1.dp, if (isSelected) MotoOrangePrimary else Color(0xFFCBD5E1))
                             )
                         }
                     }
@@ -293,14 +316,15 @@ fun RidesScreen(
             onDismissRequest = { selectedRideForDelete = null },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.DeleteForever, contentDescription = null, tint = TxFlameRed)
+                    Icon(Icons.Default.DeleteForever, contentDescription = null, tint = Color(0xFFDC2626))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Eliminar Rodada", fontWeight = FontWeight.Bold)
+                    Text("Eliminar Rodada", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                 }
             },
             text = {
                 Text(
-                    "¿Estás seguro de que deseas eliminar permanentemente la rodada \"${selectedRideForDelete!!.title}\"? Se anularán todas las inscripciones registradas."
+                    text = "¿Estás seguro de que deseas eliminar permanentemente la rodada \"${selectedRideForDelete!!.title}\"? Se anularán todas las inscripciones registradas.",
+                    color = Color(0xFF334155)
                 )
             },
             confirmButton = {
@@ -309,17 +333,17 @@ fun RidesScreen(
                         onDeleteRide(selectedRideForDelete!!.id)
                         selectedRideForDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
                 ) {
                     Text("Eliminar", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { selectedRideForDelete = null }) {
-                    Text("Cancelar")
+                    Text("Cancelar", color = Color(0xFF64748B))
                 }
             },
-            containerColor = AsphaltDarkSurface
+            containerColor = Color.White
         )
     }
 
@@ -373,11 +397,12 @@ fun RideItemCard(
 
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = AsphaltDarkSurface),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(
             1.dp,
-            if (isArchived) TxGoldBrass.copy(alpha = 0.5f) else if (isPostponed) StatusWarning.copy(alpha = 0.5f) else AsphaltDarkBorder
+            if (isArchived) Color(0xFFD97706) else if (isPostponed) Color(0xFFF59E0B) else Color(0xFFE2E8F0)
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = modifier
             .fillMaxWidth()
             .testTag("ride_card_${ride.id}")
@@ -390,8 +415,8 @@ fun RideItemCard(
                     .height(95.dp)
                     .background(
                         Brush.horizontalGradient(
-                            if (isArchived) listOf(Color(0xFF1E2633), Color(0xFF2E2411), TxGoldDark)
-                            else listOf(Color(0xFF1E2633), Color(0xFF2E1A11), MotoOrangeDark)
+                            if (isArchived) listOf(Color(0xFFFFFBEB), Color(0xFFFEF3C7))
+                            else listOf(Color(0xFFFFF7ED), Color(0xFFFFEDD5))
                         )
                     )
                     .padding(12.dp)
@@ -404,29 +429,29 @@ fun RideItemCard(
                         else -> "PROGRAMADA 📅"
                     }
                     val statusColor = when {
-                        isArchived -> TxGoldBrass
-                        isPostponed -> StatusWarning
-                        ride.status == RideStatus.EN_CURSO -> StatusWarning
-                        else -> StatusInfo
+                        isArchived -> Color(0xFFD97706)
+                        isPostponed -> Color(0xFFB45309)
+                        ride.status == RideStatus.EN_CURSO -> Color(0xFFEA580C)
+                        else -> Color(0xFF0284C7)
                     }
 
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = statusColor.copy(alpha = 0.25f),
+                        color = statusColor.copy(alpha = 0.15f),
                         border = BorderStroke(1.dp, statusColor)
                     ) {
                         Text(
                             text = statusText,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = statusColor,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "${ride.originCity} ➔ ${ride.destinationCity}",
-                        color = Color.White,
+                        color = Color(0xFF0F172A),
                         fontWeight = FontWeight.Black,
                         fontSize = 15.sp,
                         maxLines = 1,
@@ -441,8 +466,8 @@ fun RideItemCard(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color.Black.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, MotoGoldSecondary)
+                        color = Color.White,
+                        border = BorderStroke(1.dp, MotoOrangePrimary)
                     ) {
                         Column(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -450,14 +475,15 @@ fun RideItemCard(
                         ) {
                             Text(
                                 text = "${ride.distanceKm} KM",
-                                color = MotoGoldSecondary,
+                                color = Color(0xFFC2410C),
                                 fontWeight = FontWeight.Black,
                                 fontSize = 13.sp
                             )
                             Text(
                                 text = "Ruta",
-                                color = Color.White,
-                                fontSize = 9.sp
+                                color = Color(0xFF64748B),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -470,21 +496,21 @@ fun RideItemCard(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.6f))
+                                    .background(Color.White)
                             ) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Opciones Directiva", tint = Color.White, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.MoreVert, contentDescription = "Opciones Directiva", tint = Color(0xFF0F172A), modifier = Modifier.size(18.dp))
                             }
                             DropdownMenu(
                                 expanded = showDirectivaMenu,
                                 onDismissRequest = { showDirectivaMenu = false },
-                                modifier = Modifier.background(AsphaltDarkSurface)
+                                modifier = Modifier.background(Color.White)
                             ) {
                                 DropdownMenuItem(
                                     text = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(Icons.Default.Edit, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Text("Editar Rodada", color = Color.White)
+                                            Text("Editar Rodada", color = Color(0xFF0F172A))
                                         }
                                     },
                                     onClick = {
@@ -495,9 +521,9 @@ fun RideItemCard(
                                 DropdownMenuItem(
                                     text = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.Update, contentDescription = null, tint = StatusWarning, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Default.Update, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Text("Posponer Rodada", color = StatusWarning)
+                                            Text("Posponer Rodada", color = Color(0xFFD97706))
                                         }
                                     },
                                     onClick = {
@@ -509,9 +535,9 @@ fun RideItemCard(
                                     DropdownMenuItem(
                                         text = {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(16.dp))
+                                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(16.dp))
                                                 Spacer(modifier = Modifier.width(8.dp))
-                                                Text("Finalizar y Archivar", color = StatusSuccess)
+                                                Text("Finalizar y Archivar", color = Color(0xFF16A34A))
                                             }
                                         },
                                         onClick = {
@@ -520,13 +546,13 @@ fun RideItemCard(
                                         }
                                     )
                                 }
-                                HorizontalDivider(color = AsphaltDarkBorder)
+                                HorizontalDivider(color = Color(0xFFE2E8F0))
                                 DropdownMenuItem(
                                     text = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.Delete, contentDescription = null, tint = TxFlameRed, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Text("Eliminar Rodada", color = TxFlameRed)
+                                            Text("Eliminar Rodada", color = Color(0xFFDC2626))
                                         }
                                     },
                                     onClick = {
@@ -550,13 +576,13 @@ fun RideItemCard(
                     text = ride.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color(0xFF0F172A)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = ride.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color(0xFF475569),
                     maxLines = if (expandedDetails) 10 else 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -569,12 +595,12 @@ fun RideItemCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = if (isPostponed) StatusWarning else MotoOrangePrimary, modifier = Modifier.size(16.dp))
-                        Text(ride.departureDate, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = if (isPostponed) StatusWarning else Color.White)
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = if (isPostponed) Color(0xFFD97706) else MotoOrangePrimary, modifier = Modifier.size(16.dp))
+                        Text(ride.departureDate, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = if (isPostponed) Color(0xFFD97706) else Color(0xFF0F172A))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Icon(Icons.Default.AccessTime, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
-                        Text(ride.meetingTime, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text(ride.meetingTime, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
                     }
                 }
 
@@ -586,38 +612,41 @@ fun RideItemCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
-                        Text("🎖️ CAPITÁN / LÍDER", fontSize = 9.sp, color = TxGoldBrass, fontWeight = FontWeight.Bold)
-                        Text(ride.convoyLeader, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text("🎖️ CAPITÁN / LÍDER", fontSize = 9.sp, color = Color(0xFFC2410C), fontWeight = FontWeight.Bold)
+                        Text(ride.convoyLeader, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("🧹 ESCOBA / BARREDOR", fontSize = 9.sp, color = TxSteelSilver, fontWeight = FontWeight.Bold)
-                        Text(ride.tailRider, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text("🧹 ESCOBA / BARREDOR", fontSize = 9.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                        Text(ride.tailRider, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF0F172A))
                     }
                 }
 
                 // Convoy Staff Bar: Seguridad, Médico, Mecánico
                 Spacer(modifier = Modifier.height(8.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF141923))
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("🛡️ Seguridad: ${ride.roadSafetyOfficer.ifBlank { "Oficial Vial TX" }}", fontSize = 10.sp, color = Color(0xFF90CAF9))
-                        Text("🩺 Médico: ${ride.medicOfficer.ifBlank { "Médico de Ruta TX" }}", fontSize = 10.sp, color = Color(0xFF00E676))
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("🔧 Mecánico: ${ride.mechanicOfficer.ifBlank { "Mecánico Oficial TX" }}", fontSize = 10.sp, color = Color(0xFFFF9100))
-                        Text("🧹 Barredor: ${ride.tailRider.ifBlank { "Jefe de Cola TX" }}", fontSize = 10.sp, color = Color(0xFFFFD54F))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("🛡️ Seguridad: ${ride.roadSafetyOfficer.ifBlank { "Oficial Vial TX" }}", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Medium)
+                            Text("🩺 Médico: ${ride.medicOfficer.ifBlank { "Médico de Ruta TX" }}", fontSize = 10.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Medium)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("🔧 Mecánico: ${ride.mechanicOfficer.ifBlank { "Mecánico Oficial TX" }}", fontSize = 10.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Medium)
+                            Text("🧹 Barredor: ${ride.tailRider.ifBlank { "Jefe de Cola TX" }}", fontSize = 10.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Medium)
+                        }
                     }
                 }
 
@@ -628,24 +657,24 @@ fun RideItemCard(
                             .fillMaxWidth()
                             .padding(top = 10.dp)
                     ) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        HorizontalDivider(color = Color(0xFFE2E8F0))
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        Text("⛽ Paradas de Gasolina:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MotoOrangeLight)
-                        Text(ride.gasStops, fontSize = 12.sp, color = Color.White)
+                        Text("⛽ Paradas de Gasolina:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFEA580C))
+                        Text(ride.gasStops, fontSize = 12.sp, color = Color(0xFF0F172A))
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        Text("🛡️ Indumentaria Obligatoria:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MotoOrangeLight)
-                        Text(ride.requiredGear, fontSize = 12.sp, color = Color.White)
+                        Text("🛡️ Indumentaria Obligatoria:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFEA580C))
+                        Text(ride.requiredGear, fontSize = 12.sp, color = Color(0xFF0F172A))
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        Text("⛰️ Tipo de Terreno:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MotoOrangeLight)
-                        Text(ride.terrainType, fontSize = 12.sp, color = Color.White)
+                        Text("⛰️ Tipo de Terreno:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFEA580C))
+                        Text(ride.terrainType, fontSize = 12.sp, color = Color(0xFF0F172A))
 
                         if (ride.costUsd > 0) {
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text("💵 Cuota / Pote sugerido:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = StatusSuccess)
-                            Text("$${ride.costUsd} USD (~${ride.costVes} Bs)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = StatusSuccess)
+                            Text("💵 Cuota / Pote sugerido:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF16A34A))
+                            Text("$${ride.costUsd} USD (~${ride.costVes} Bs)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF16A34A))
                         }
                     }
                 }
@@ -661,105 +690,164 @@ fun RideItemCard(
                     Text(
                         text = if (expandedDetails) "Ocultar detalles ▲" else "Ver ruta, paradas y equipo requerido ▼",
                         fontSize = 11.sp,
-                        color = MotoOrangePrimary
+                        color = MotoOrangePrimary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                HorizontalDivider(color = Color(0xFFE2E8F0))
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Action Footer: Roster + Map + WhatsApp + Register / Finalize
+                // FILA 1 DE BOTONES: PUESTOS CONVOY & INSCRIPCIÓN (Sin choques)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Registered count / Roster trigger
                     OutlinedButton(
                         onClick = onViewRoster,
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                        modifier = Modifier.testTag("btn_roster_${ride.id}")
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF8FAFC)),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp)
+                            .testTag("btn_roster_${ride.id}")
                     ) {
                         Icon(Icons.Default.TwoWheeler, contentDescription = null, modifier = Modifier.size(16.dp), tint = MotoOrangePrimary)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("$registeredCount/${ride.maxParticipants} Motos", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("$registeredCount/${ride.maxParticipants} Motos", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        // Open Map Intent
-                        IconButton(
-                            onClick = {
-                                val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(ride.destinationCity)}"))
-                                context.startActivity(mapIntent)
-                            },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF1E2633))
+                    // Join / Cancel / Finalized Badge
+                    if (isArchived) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFEF3C7),
+                            border = BorderStroke(1.dp, Color(0xFFF59E0B)),
+                            modifier = Modifier.height(34.dp)
                         ) {
-                            Icon(Icons.Default.Map, contentDescription = "Ver en Mapa", tint = TxGoldBrass, modifier = Modifier.size(18.dp))
-                        }
-
-                        // WhatsApp Group
-                        if (!ride.whatsappGroupUrl.isNullOrBlank()) {
-                            IconButton(
-                                onClick = { openUrl(context, ride.whatsappGroupUrl!!) },
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(WhatsAppGreen)
-                            ) {
-                                Icon(Icons.Default.Chat, contentDescription = "Grupo WhatsApp", tint = Color.White, modifier = Modifier.size(18.dp))
-                            }
-                        }
-
-                        // Join / Cancel / Finalized Badge
-                        if (isArchived) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = TxGoldBrass.copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, TxGoldBrass)
-                            ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 12.dp)) {
                                 Text(
                                     text = "Archivada ✓",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TxGoldBrass,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                    color = Color(0xFFB45309)
                                 )
                             }
-                        } else if (isRegistered) {
-                            Button(
-                                onClick = onCancelClick,
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.testTag("btn_cancel_join_${ride.id}")
-                            ) {
-                                Text("Inscrito ✓ (Anular)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        } else {
-                            Button(
-                                onClick = onJoinClick,
-                                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.testTag("btn_join_ride_${ride.id}")
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Inscribirme", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
+                        }
+                    } else if (isRegistered) {
+                        Button(
+                            onClick = onCancelClick,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE2E2)),
+                            border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(34.dp)
+                                .testTag("btn_cancel_join_${ride.id}")
+                        ) {
+                            Text("Inscrito ✓ (Anular)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                        }
+                    } else {
+                        Button(
+                            onClick = onJoinClick,
+                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(34.dp)
+                                .testTag("btn_join_ride_${ride.id}")
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Inscribirme", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
 
-                // Directiva Quick Actions Bar (Posponer / Finalizar)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // FILA 2 DE BOTONES: ACCIONES TÁCTICAS (DUAL MAPS Y WHATSAPP)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Mapa TX Interno
+                    Button(
+                        onClick = {
+                            com.example.mapa.PuenteMapa.mostrarUbicacionEnMapa(
+                                context,
+                                "10.2319,-67.5744",
+                                "${ride.title} - ${ride.destinationCity}"
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp)
+                    ) {
+                        Icon(Icons.Default.Explore, contentDescription = "Mapa TX", tint = Color.White, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Mapa TX", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+
+                    // Google Maps Externo
+                    Button(
+                        onClick = {
+                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode("${ride.destinationCity}, Venezuela")}"))
+                            mapIntent.setPackage("com.google.android.apps.maps")
+                            try {
+                                context.startActivity(mapIntent)
+                            } catch (e: Exception) {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode("${ride.destinationCity}, Venezuela")}")))
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp)
+                    ) {
+                        Icon(Icons.Default.Navigation, contentDescription = "G. Maps", tint = Color.White, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("G. Maps", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+
+                    // WhatsApp Group
+                    if (!ride.whatsappGroupUrl.isNullOrBlank()) {
+                        Button(
+                            onClick = { openUrl(context, ride.whatsappGroupUrl!!) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(32.dp)
+                        ) {
+                            Icon(Icons.Default.Chat, contentDescription = "WhatsApp", tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("WhatsApp", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+
+                // FILA 3: DIRECTIVA ACCIONES RÁPIDAS
                 if (isDirectivaMode) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF141923),
+                        color = Color(0xFFFFF7ED),
+                        border = BorderStroke(1.dp, Color(0xFFFED7AA)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -769,31 +857,33 @@ fun RideItemCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Directiva:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TxSteelSilver)
+                            Text("Directiva:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2410C))
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Button(
                                     onClick = onPostponeClick,
-                                    colors = ButtonDefaults.buttonColors(containerColor = StatusWarning.copy(alpha = 0.2f), contentColor = StatusWarning),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEF3C7)),
+                                    border = BorderStroke(1.dp, Color(0xFFFDE68A)),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                     shape = RoundedCornerShape(6.dp),
                                     modifier = Modifier.height(28.dp)
                                 ) {
-                                    Icon(Icons.Default.Update, contentDescription = null, modifier = Modifier.size(12.dp))
+                                    Icon(Icons.Default.Update, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color(0xFFB45309))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Posponer", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text("Posponer", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
                                 }
 
                                 if (!isArchived) {
                                     Button(
                                         onClick = onFinalizeClick,
-                                        colors = ButtonDefaults.buttonColors(containerColor = StatusSuccess.copy(alpha = 0.2f), contentColor = StatusSuccess),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDCFCE7)),
+                                        border = BorderStroke(1.dp, Color(0xFFBBF7D0)),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                         shape = RoundedCornerShape(6.dp),
                                         modifier = Modifier.height(28.dp)
                                     ) {
-                                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(12.dp))
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color(0xFF15803D))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Finalizar y Archivar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text("Finalizar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
                                     }
                                 }
                             }
@@ -816,13 +906,23 @@ fun PostponeRideDialog(
     var newTime by remember { mutableStateOf(ride.meetingTime) }
     var reason by remember { mutableStateOf("") }
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF1E293B),
+        focusedBorderColor = MotoOrangePrimary,
+        unfocusedBorderColor = Color(0xFFCBD5E1),
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color(0xFFF8FAFC),
+        cursorColor = MotoOrangePrimary
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Update, contentDescription = null, tint = StatusWarning)
+                Icon(Icons.Default.Update, contentDescription = null, tint = Color(0xFFD97706))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Posponer Rodada TX", fontWeight = FontWeight.Bold)
+                Text("Posponer Rodada TX", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
             }
         },
         text = {
@@ -833,14 +933,14 @@ fun PostponeRideDialog(
                 Text(
                     text = "Selecciona la modalidad para posponer \"${ride.title}\":",
                     fontSize = 13.sp,
-                    color = Color.White
+                    color = Color(0xFF334155)
                 )
 
                 // Option 1: Indefinite / TBD
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isIndefinite) StatusWarning.copy(alpha = 0.15f) else Color(0xFF141923),
-                    border = BorderStroke(1.dp, if (isIndefinite) StatusWarning else TxSteelSilver.copy(alpha = 0.3f)),
+                    color = if (isIndefinite) Color(0xFFFEF3C7) else Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, if (isIndefinite) Color(0xFFF59E0B) else Color(0xFFCBD5E1)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { isIndefinite = true }
@@ -852,12 +952,12 @@ fun PostponeRideDialog(
                         RadioButton(
                             selected = isIndefinite,
                             onClick = { isIndefinite = true },
-                            colors = RadioButtonDefaults.colors(selectedColor = StatusWarning)
+                            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFD97706))
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Column {
-                            Text("Fecha Indefinida (Por Definir / TBD)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
-                            Text("Se mantendrá en pausa hasta nuevo aviso de Directiva", fontSize = 10.sp, color = TxSteelSilver)
+                            Text("Fecha Indefinida (Por Definir / TBD)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            Text("Se mantendrá en pausa hasta nuevo aviso de Directiva", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -865,8 +965,8 @@ fun PostponeRideDialog(
                 // Option 2: New Date and Time
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (!isIndefinite) MotoOrangePrimary.copy(alpha = 0.15f) else Color(0xFF141923),
-                    border = BorderStroke(1.dp, if (!isIndefinite) MotoOrangePrimary else TxSteelSilver.copy(alpha = 0.3f)),
+                    color = if (!isIndefinite) Color(0xFFFFF7ED) else Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, if (!isIndefinite) MotoOrangePrimary else Color(0xFFCBD5E1)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { isIndefinite = false }
@@ -882,8 +982,8 @@ fun PostponeRideDialog(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Column {
-                            Text("Asignar Nueva Fecha y Hora", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
-                            Text("Reprogramar con fecha exacta de salida", fontSize = 10.sp, color = TxSteelSilver)
+                            Text("Asignar Nueva Fecha y Hora", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            Text("Reprogramar con fecha exacta de salida", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -893,6 +993,7 @@ fun PostponeRideDialog(
                         value = newDate,
                         onValueChange = { newDate = it },
                         label = { Text("Nueva Fecha de Salida") },
+                        colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -900,6 +1001,7 @@ fun PostponeRideDialog(
                         value = newTime,
                         onValueChange = { newTime = it },
                         label = { Text("Nueva Hora de Encuentro") },
+                        colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -909,6 +1011,7 @@ fun PostponeRideDialog(
                     onValueChange = { reason = it },
                     label = { Text("Motivo del aplazamiento (Opcional)") },
                     placeholder = { Text("ej. Mal clima, permisos de vialidad...") },
+                    colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -931,15 +1034,15 @@ fun PostponeRideDialog(
                     }
                     onConfirmPostpone(updated)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = StatusWarning)
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
             ) {
-                Text("Confirmar Aplazamiento", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text("Confirmar Aplazamiento", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = AsphaltDarkSurface
+        containerColor = Color.White
     )
 }
 
@@ -959,9 +1062,9 @@ fun FinalizeAndArchiveRideDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StatusSuccess)
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF16A34A))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Finalizar y Archivar Rodada", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Finalizar y Archivar Rodada", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
             }
         },
         text = {
@@ -972,7 +1075,7 @@ fun FinalizeAndArchiveRideDialog(
                 Text(
                     text = "Confirma la asistencia oficial de los pilotos para \"${ride.title}\". Se acreditará la salida a su récord de membresía y la rodada quedará archivada.",
                     fontSize = 12.sp,
-                    color = TxSteelSilver
+                    color = Color(0xFF475569)
                 )
 
                 Row(
@@ -980,7 +1083,7 @@ fun FinalizeAndArchiveRideDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Pilotos Inscritos (${attendedMemberIds.size}/${roster.size}):", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TxGoldBrass)
+                    Text("Pilotos Inscritos (${attendedMemberIds.size}/${roster.size}):", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2410C))
                     TextButton(
                         onClick = {
                             if (attendedMemberIds.size == roster.size) attendedMemberIds.clear()
@@ -990,12 +1093,12 @@ fun FinalizeAndArchiveRideDialog(
                             }
                         }
                     ) {
-                        Text(if (attendedMemberIds.size == roster.size) "Desmarcar Todos" else "Marcar Todos", fontSize = 11.sp)
+                        Text(if (attendedMemberIds.size == roster.size) "Desmarcar Todos" else "Marcar Todos", fontSize = 11.sp, color = MotoOrangePrimary)
                     }
                 }
 
                 if (roster.isEmpty()) {
-                    Text("No hubo inscripciones registradas en la app para esta rodada.", fontSize = 11.sp, color = TxSteelSilver)
+                    Text("No hubo inscripciones registradas en la app para esta rodada.", fontSize = 11.sp, color = Color(0xFF64748B))
                 } else {
                     LazyColumn(
                         modifier = Modifier
@@ -1007,8 +1110,8 @@ fun FinalizeAndArchiveRideDialog(
                             val isChecked = attendedMemberIds.contains(reg.memberId)
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isChecked) StatusSuccess.copy(alpha = 0.15f) else Color(0xFF141923),
-                                border = BorderStroke(1.dp, if (isChecked) StatusSuccess else TxSteelSilver.copy(alpha = 0.2f)),
+                                color = if (isChecked) Color(0xFFDCFCE7) else Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, if (isChecked) Color(0xFF86EFAC) else Color(0xFFE2E8F0)),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -1026,12 +1129,12 @@ fun FinalizeAndArchiveRideDialog(
                                             text = "${reg.memberAlias.ifBlank { reg.memberName }} (${reg.memberName})",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 12.sp,
-                                            color = Color.White
+                                            color = Color(0xFF0F172A)
                                         )
                                         Text(
                                             text = "Placa: ${reg.bikePlate}${if (reg.hasPillion) " • Copiloto: ${reg.pillionName}" else ""}",
                                             fontSize = 10.sp,
-                                            color = TxSteelSilver
+                                            color = Color(0xFF64748B)
                                         )
                                     }
 
@@ -1041,7 +1144,7 @@ fun FinalizeAndArchiveRideDialog(
                                             if (checked) attendedMemberIds.add(reg.memberId)
                                             else attendedMemberIds.remove(reg.memberId)
                                         },
-                                        colors = CheckboxDefaults.colors(checkedColor = StatusSuccess)
+                                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF16A34A))
                                     )
                                 }
                             }
@@ -1053,15 +1156,15 @@ fun FinalizeAndArchiveRideDialog(
         confirmButton = {
             Button(
                 onClick = { onConfirmFinalize(attendedMemberIds.toList()) },
-                colors = ButtonDefaults.buttonColors(containerColor = StatusSuccess)
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A))
             ) {
-                Text("Archivar y Acreditar Asistencia 🏆", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text("Archivar y Acreditar Asistencia 🏆", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = AsphaltDarkSurface
+        containerColor = Color.White
     )
 }
 
@@ -1082,7 +1185,7 @@ fun JoinRideDialog(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = MotoOrangePrimary)
-                Text("Inscripción a Rodada TX", fontWeight = FontWeight.Bold)
+                Text("Inscripción a Rodada TX", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
             }
         },
         text = {
@@ -1090,20 +1193,20 @@ fun JoinRideDialog(
                 if (isSuspended) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = StatusError.copy(alpha = 0.2f),
-                        border = BorderStroke(1.dp, StatusError),
+                        color = Color(0xFFFEE2E2),
+                        border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("🚫 MIEMBRO SUSPENDIDO", fontWeight = FontWeight.Black, color = StatusError, fontSize = 13.sp)
+                            Text("🚫 MIEMBRO SUSPENDIDO", fontWeight = FontWeight.Black, color = Color(0xFFDC2626), fontSize = 13.sp)
                             Text(
                                 "No puedes inscribirte a rodadas oficiales mientras tu sanción disciplinaria esté activa.",
-                                color = Color.White,
+                                color = Color(0xFF7F1D1D),
                                 fontSize = 11.sp
                             )
                             Text(
                                 "Motivo: ${currentMember?.suspensionReason}",
-                                color = TxGoldSecondary,
+                                color = Color(0xFF991B1B),
                                 fontSize = 10.sp
                             )
                         }
@@ -1111,18 +1214,20 @@ fun JoinRideDialog(
                 } else {
                     Text(
                         text = "Confirma tu participación para la rodada \"${ride.title}\" con destino a ${ride.destinationCity}.",
-                        fontSize = 13.sp
+                        fontSize = 13.sp,
+                        color = Color(0xFF334155)
                     )
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
-                            Text("🏍️ Piloto: ${currentMember?.fullName ?: "Piloto TX"}", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Text("Placa: ${currentMember?.bikePlate ?: "TX-000"} • Modelo: ${currentMember?.bikeModel ?: "Keeway TX 200"}", fontSize = 11.sp)
-                            Text("🩸 Tipo de Sangre: ${currentMember?.bloodType ?: "O+"}", fontSize = 11.sp, color = StatusError, fontWeight = FontWeight.Bold)
+                            Text("🏍️ Piloto: ${currentMember?.fullName ?: "Piloto TX"}", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                            Text("Placa: ${currentMember?.bikePlate ?: "TX-000"} • Modelo: ${currentMember?.bikeModel ?: "Keeway TX 200"}", fontSize = 11.sp, color = Color(0xFF475569))
+                            Text("🩸 Tipo de Sangre: ${currentMember?.bloodType ?: "O+"}", fontSize = 11.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -1135,7 +1240,7 @@ fun JoinRideDialog(
                             onCheckedChange = { hasPillion = it },
                             colors = CheckboxDefaults.colors(checkedColor = MotoOrangePrimary)
                         )
-                        Text("Llevo Copiloto / Acompañante", fontSize = 13.sp)
+                        Text("Llevo Copiloto / Acompañante", fontSize = 13.sp, color = Color(0xFF0F172A))
                     }
 
                     if (hasPillion) {
@@ -1144,7 +1249,16 @@ fun JoinRideDialog(
                             onValueChange = { pillionName = it },
                             label = { Text("Nombre y Apellido del Copiloto") },
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF0F172A),
+                                unfocusedTextColor = Color(0xFF1E293B),
+                                focusedBorderColor = MotoOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color(0xFFF8FAFC),
+                                cursorColor = MotoOrangePrimary
+                            )
                         )
                     }
                 }
@@ -1157,15 +1271,15 @@ fun JoinRideDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
                 modifier = Modifier.testTag("btn_confirm_join")
             ) {
-                Text("Confirmar Salida")
+                Text("Confirmar Salida", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text("Cancelar", color = Color(0xFF64748B))
             }
         },
-        containerColor = AsphaltDarkSurface
+        containerColor = Color.White
     )
 }
 
@@ -1185,15 +1299,15 @@ fun RideRosterDialog(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.Group, contentDescription = null, tint = MotoOrangePrimary)
                 Column {
-                    Text("Puestos & Convoy Oficial", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("${ride.title} (${roster.size} motos inscritas)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Puestos & Convoy Oficial", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                    Text("${ride.title} (${roster.size} motos inscritas)", fontSize = 11.sp, color = Color(0xFFEA580C))
                 }
             }
         },
         text = {
             if (roster.isEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp), contentAlignment = Alignment.Center) {
-                    Text("Aún no hay pilotos inscritos a esta rodada.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Aún no hay pilotos inscritos a esta rodada.", color = Color(0xFF64748B))
                 }
             } else {
                 LazyColumn(
@@ -1204,7 +1318,8 @@ fun RideRosterDialog(
                         Text(
                             text = if (isDirectivaMode) "Toca el rol de un piloto para cambiar su posición en la caravana (Capitán, Barredor, Seguridad, etc.):" else "Posiciones de caravana y convoy asignadas:",
                             fontSize = 11.sp,
-                            color = TxGoldBrass
+                            color = Color(0xFFC2410C),
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
@@ -1212,7 +1327,8 @@ fun RideRosterDialog(
                         val roleType = ConvoyRoleType.values().firstOrNull { it.label == reg.convoyRole } ?: ConvoyRoleType.PILOTO_CENTRAL
                         Card(
                             shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
@@ -1225,12 +1341,13 @@ fun RideRosterDialog(
                                         Text(
                                             text = "${reg.memberAlias.ifBlank { reg.memberName }} (${reg.memberName})",
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF0F172A)
                                         )
                                         Text(
                                             text = "Placa: ${reg.bikePlate}${if (reg.hasPillion) " • Copiloto: ${reg.pillionName}" else ""}",
                                             fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = Color(0xFF64748B)
                                         )
                                     }
 
@@ -1238,7 +1355,7 @@ fun RideRosterDialog(
                                     Box {
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = Color(roleType.colorHex).copy(alpha = 0.2f),
+                                            color = Color(roleType.colorHex).copy(alpha = 0.15f),
                                             border = BorderStroke(1.dp, Color(roleType.colorHex)),
                                             modifier = Modifier.clickable(enabled = isDirectivaMode) {
                                                 editingRegistrationId = if (editingRegistrationId == reg.id) null else reg.id
@@ -1264,12 +1381,12 @@ fun RideRosterDialog(
                                         DropdownMenu(
                                             expanded = editingRegistrationId == reg.id,
                                             onDismissRequest = { editingRegistrationId = null },
-                                            modifier = Modifier.background(AsphaltDarkSurface)
+                                            modifier = Modifier.background(Color.White)
                                         ) {
                                             ConvoyRoleType.values().forEach { itemRole ->
                                                 DropdownMenuItem(
                                                     text = {
-                                                        Text(itemRole.label, fontWeight = if (itemRole == roleType) FontWeight.Bold else FontWeight.Normal, color = Color.White)
+                                                        Text(itemRole.label, fontWeight = if (itemRole == roleType) FontWeight.Bold else FontWeight.Normal, color = Color(0xFF0F172A))
                                                     },
                                                     onClick = {
                                                         onUpdateConvoyRole(reg.id, itemRole)
@@ -1288,9 +1405,10 @@ fun RideRosterDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+                Text("Cerrar", color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
             }
-        }
+        },
+        containerColor = Color.White
     )
 }
 
@@ -1333,7 +1451,7 @@ fun CreateRideDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Programar Nueva Rodada TX", fontWeight = FontWeight.Bold) },
+        title = { Text("Programar Nueva Rodada TX", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -1345,6 +1463,14 @@ fun CreateRideDialog(
                         onValueChange = { title = it },
                         label = { Text("Nombre de la Rodada *") },
                         placeholder = { Text("ej. Vuelta al Jarillo & Colonia Tovar") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedBorderColor = MotoOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedLabelColor = MotoOrangePrimary,
+                            unfocusedLabelColor = Color(0xFF64748B)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("input_ride_title")
@@ -1356,6 +1482,14 @@ fun CreateRideDialog(
                         onValueChange = { destination = it },
                         label = { Text("Destino Final *") },
                         placeholder = { Text("ej. Bahía de Cata, Aragua") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedBorderColor = MotoOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedLabelColor = MotoOrangePrimary,
+                            unfocusedLabelColor = Color(0xFF64748B)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1365,12 +1499,28 @@ fun CreateRideDialog(
                             value = origin,
                             onValueChange = { origin = it },
                             label = { Text("Punto de Partida") },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF0F172A),
+                                unfocusedTextColor = Color(0xFF0F172A),
+                                focusedBorderColor = MotoOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1),
+                                focusedLabelColor = MotoOrangePrimary,
+                                unfocusedLabelColor = Color(0xFF64748B)
+                            ),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = kmStr,
                             onValueChange = { kmStr = it },
                             label = { Text("KM Totales") },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF0F172A),
+                                unfocusedTextColor = Color(0xFF0F172A),
+                                focusedBorderColor = MotoOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1),
+                                focusedLabelColor = MotoOrangePrimary,
+                                unfocusedLabelColor = Color(0xFF64748B)
+                            ),
                             modifier = Modifier.weight(0.7f)
                         )
                     }
@@ -1381,12 +1531,28 @@ fun CreateRideDialog(
                             value = date,
                             onValueChange = { date = it },
                             label = { Text("Fecha") },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF0F172A),
+                                unfocusedTextColor = Color(0xFF0F172A),
+                                focusedBorderColor = MotoOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1),
+                                focusedLabelColor = MotoOrangePrimary,
+                                unfocusedLabelColor = Color(0xFF64748B)
+                            ),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = time,
                             onValueChange = { time = it },
                             label = { Text("Hora de Encuentro") },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF0F172A),
+                                unfocusedTextColor = Color(0xFF0F172A),
+                                focusedBorderColor = MotoOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1),
+                                focusedLabelColor = MotoOrangePrimary,
+                                unfocusedLabelColor = Color(0xFF64748B)
+                            ),
                             modifier = Modifier.weight(0.8f)
                         )
                     }
@@ -1397,11 +1563,19 @@ fun CreateRideDialog(
                         onValueChange = { description = it },
                         label = { Text("Descripción de la Rodada") },
                         minLines = 2,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedBorderColor = MotoOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedLabelColor = MotoOrangePrimary,
+                            unfocusedLabelColor = Color(0xFF64748B)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 item {
-                    Text("ROLES CLAVE DE CONVOY Y SEGURIDAD", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TxGoldBrass)
+                    Text("ROLES CLAVE DE CONVOY Y SEGURIDAD", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                 }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1409,12 +1583,28 @@ fun CreateRideDialog(
                             value = leader,
                             onValueChange = { leader = it },
                             label = { Text("Capitán / Líder") },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF0F172A),
+                                unfocusedTextColor = Color(0xFF0F172A),
+                                focusedBorderColor = MotoOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1),
+                                focusedLabelColor = MotoOrangePrimary,
+                                unfocusedLabelColor = Color(0xFF64748B)
+                            ),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = tail,
                             onValueChange = { tail = it },
                             label = { Text("Barredor / Escoba") },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF0F172A),
+                                unfocusedTextColor = Color(0xFF0F172A),
+                                focusedBorderColor = MotoOrangePrimary,
+                                unfocusedBorderColor = Color(0xFFCBD5E1),
+                                focusedLabelColor = MotoOrangePrimary,
+                                unfocusedLabelColor = Color(0xFF64748B)
+                            ),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -1424,6 +1614,14 @@ fun CreateRideDialog(
                         value = gasStops,
                         onValueChange = { gasStops = it },
                         label = { Text("Paradas de Gasolina") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedBorderColor = MotoOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedLabelColor = MotoOrangePrimary,
+                            unfocusedLabelColor = Color(0xFF64748B)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1432,6 +1630,14 @@ fun CreateRideDialog(
                         value = requiredGear,
                         onValueChange = { requiredGear = it },
                         label = { Text("Indumentaria y Equipo Requerido") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedBorderColor = MotoOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedLabelColor = MotoOrangePrimary,
+                            unfocusedLabelColor = Color(0xFF64748B)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1441,6 +1647,14 @@ fun CreateRideDialog(
                         onValueChange = { waGroup = it },
                         label = { Text("Enlace Grupo WhatsApp (Opcional)") },
                         placeholder = { Text("https://chat.whatsapp.com/...") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedBorderColor = MotoOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedLabelColor = MotoOrangePrimary,
+                            unfocusedLabelColor = Color(0xFF64748B)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1467,9 +1681,9 @@ fun CreateRideDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = AsphaltDarkSurface
+        containerColor = Color.White
     )
 }
 
@@ -1500,13 +1714,22 @@ fun EditRideDialog(
     var waGroup by remember { mutableStateOf(ride.whatsappGroupUrl ?: "") }
     var status by remember { mutableStateOf(ride.status) }
 
+    val tfColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF0F172A),
+        focusedBorderColor = MotoOrangePrimary,
+        unfocusedBorderColor = Color(0xFFCBD5E1),
+        focusedLabelColor = MotoOrangePrimary,
+        unfocusedLabelColor = Color(0xFF64748B)
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.EditRoad, contentDescription = null, tint = MotoOrangePrimary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Editar Rodada TX", fontWeight = FontWeight.Bold)
+                Text("Editar Rodada TX", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
             }
         },
         text = {
@@ -1515,13 +1738,23 @@ fun EditRideDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 item {
-                    Text("Estado de la Rodada:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TxGoldBrass)
+                    Text("Estado de la Rodada:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(RideStatus.values()) { s ->
                             FilterChip(
                                 selected = status == s,
                                 onClick = { status = s },
-                                label = { Text(s.label, fontSize = 10.sp) }
+                                label = { Text(s.label, fontSize = 10.sp, color = if (status == s) MotoOrangePrimary else Color(0xFF334155)) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    selectedContainerColor = MotoOrangePrimary.copy(alpha = 0.15f)
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = status == s,
+                                    borderColor = Color(0xFFCBD5E1),
+                                    selectedBorderColor = MotoOrangePrimary
+                                )
                             )
                         }
                     }
@@ -1532,6 +1765,7 @@ fun EditRideDialog(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text("Nombre de la Rodada *") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1541,6 +1775,7 @@ fun EditRideDialog(
                         value = destination,
                         onValueChange = { destination = it },
                         label = { Text("Destino Final *") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1551,12 +1786,14 @@ fun EditRideDialog(
                             value = origin,
                             onValueChange = { origin = it },
                             label = { Text("Punto de Partida") },
+                            colors = tfColors,
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = kmStr,
                             onValueChange = { kmStr = it },
                             label = { Text("KM Totales") },
+                            colors = tfColors,
                             modifier = Modifier.weight(0.7f)
                         )
                     }
@@ -1568,12 +1805,14 @@ fun EditRideDialog(
                             value = date,
                             onValueChange = { date = it },
                             label = { Text("Fecha") },
+                            colors = tfColors,
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = time,
                             onValueChange = { time = it },
                             label = { Text("Hora") },
+                            colors = tfColors,
                             modifier = Modifier.weight(0.8f)
                         )
                     }
@@ -1585,12 +1824,13 @@ fun EditRideDialog(
                         onValueChange = { description = it },
                         label = { Text("Descripción") },
                         minLines = 2,
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
 
                 item {
-                    Text("EQUIPO DE CONVOY Y SEGURIDAD", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TxGoldBrass)
+                    Text("EQUIPO DE CONVOY Y SEGURIDAD", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                 }
 
                 item {
@@ -1599,12 +1839,14 @@ fun EditRideDialog(
                             value = leader,
                             onValueChange = { leader = it },
                             label = { Text("Capitán / Líder") },
+                            colors = tfColors,
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = tail,
                             onValueChange = { tail = it },
                             label = { Text("Barredor") },
+                            colors = tfColors,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -1616,12 +1858,14 @@ fun EditRideDialog(
                             value = roadSafetyOfficer,
                             onValueChange = { roadSafetyOfficer = it },
                             label = { Text("Oficial de Seguridad") },
+                            colors = tfColors,
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = medicOfficer,
                             onValueChange = { medicOfficer = it },
                             label = { Text("Médico de Ruta") },
+                            colors = tfColors,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -1632,6 +1876,7 @@ fun EditRideDialog(
                         value = mechanicOfficer,
                         onValueChange = { mechanicOfficer = it },
                         label = { Text("Mecánico Oficial TX") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1641,6 +1886,7 @@ fun EditRideDialog(
                         value = gasStops,
                         onValueChange = { gasStops = it },
                         label = { Text("Paradas de Gasolina") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1650,6 +1896,7 @@ fun EditRideDialog(
                         value = requiredGear,
                         onValueChange = { requiredGear = it },
                         label = { Text("Indumentaria y Equipo") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1659,6 +1906,7 @@ fun EditRideDialog(
                         value = waGroup,
                         onValueChange = { waGroup = it },
                         label = { Text("Enlace Grupo WhatsApp") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1702,8 +1950,8 @@ fun EditRideDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = AsphaltDarkSurface
+        containerColor = Color.White
     )
 }

@@ -183,8 +183,26 @@ fun WorkshopDirectoryScreen(
                             Icon(Icons.Default.AddBusiness, contentDescription = "Registrar Comercio", tint = MotoOrangePrimary)
                         }
                     }
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onBack() }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Home, contentDescription = "Inicio", tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Inicio", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                        }
+                    }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DashboardFondoConfig.ColorTarjetaClara)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
         floatingActionButton = {
@@ -205,16 +223,16 @@ fun WorkshopDirectoryScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Buscador libre dinámico
+            // Buscador libre dinámico en tema claro
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Buscar tienda, repuesto, Cashea, Rapikom, ciudad...", fontSize = 13.sp, color = Color(0xFF90A4AE)) },
+                placeholder = { Text("Buscar tienda, repuesto, Cashea, Rapikom, ciudad...", fontSize = 13.sp, color = Color(0xFF64748B)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MotoOrangePrimary) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = Color(0xFF90A4AE))
+                            Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = Color(0xFF64748B))
                         }
                     }
                 },
@@ -224,20 +242,20 @@ fun WorkshopDirectoryScreen(
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MotoOrangePrimary,
-                    unfocusedBorderColor = Color(0xFF37474F),
-                    focusedContainerColor = Color(0xFF1E2433),
-                    unfocusedContainerColor = Color(0xFF1E2433),
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
+                    unfocusedBorderColor = Color(0xFFE2E8F0),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedTextColor = Color(0xFF0F172A),
+                    unfocusedTextColor = Color(0xFF0F172A)
                 ),
                 singleLine = true
             )
 
-            // Switch Interactivo: Mostrar Directorio en Mapa TX
+            // Switch Interactivo: Mostrar Directorio en Mapa TX (Tema Claro)
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = if (mostrarEnMapa) Color(0xFF0D2818) else Color(0xFF1C2230),
-                border = BorderStroke(1.dp, if (mostrarEnMapa) Color(0xFF00E676) else Color(0xFF37474F)),
+                color = if (mostrarEnMapa) Color(0xFFE8F5E9) else Color(0xFFF8FAFC),
+                border = BorderStroke(1.dp, if (mostrarEnMapa) Color(0xFF81C784) else Color(0xFFE2E8F0)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp, vertical = 2.dp)
@@ -258,7 +276,7 @@ fun WorkshopDirectoryScreen(
                         Icon(
                             Icons.Default.Map,
                             contentDescription = null,
-                            tint = if (mostrarEnMapa) Color(0xFF69F0AE) else Color(0xFF90A4AE),
+                            tint = if (mostrarEnMapa) Color(0xFF2E7D32) else Color(0xFF64748B),
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -267,12 +285,12 @@ fun WorkshopDirectoryScreen(
                                 text = "Mostrar Directorio en Mapa TX",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
-                                color = if (mostrarEnMapa) Color.White else Color(0xFFCFD8DC)
+                                color = if (mostrarEnMapa) Color(0xFF1B5E20) else Color(0xFF0F172A)
                             )
                             Text(
                                 text = if (mostrarEnMapa) "Puntos tácticos con bandera y Cashea visibles" else "Puntos ocultados del mapa táctico",
                                 fontSize = 10.sp,
-                                color = if (mostrarEnMapa) Color(0xFFB9F6CA) else Color(0xFF90A4AE)
+                                color = if (mostrarEnMapa) Color(0xFF2E7D32) else Color(0xFF64748B)
                             )
                         }
                     }
@@ -287,8 +305,8 @@ fun WorkshopDirectoryScreen(
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
                             checkedTrackColor = Color(0xFF2E7D32),
-                            uncheckedThumbColor = Color(0xFF90A4AE),
-                            uncheckedTrackColor = Color(0xFF263238)
+                            uncheckedThumbColor = Color(0xFF94A3B8),
+                            uncheckedTrackColor = Color(0xFFE2E8F0)
                         )
                     )
                 }
@@ -306,7 +324,7 @@ fun WorkshopDirectoryScreen(
                     text = "${filteredWorkshops.size} comercios encontrados",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF90A4AE)
+                    color = Color(0xFF475569)
                 )
 
                 FilterChip(
@@ -320,14 +338,14 @@ fun WorkshopDirectoryScreen(
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFF2E7D32),
                         selectedLabelColor = Color.White,
-                        containerColor = Color(0xFF1E2433),
-                        labelColor = Color(0xFF81C784)
+                        containerColor = Color(0xFFF1F5F9),
+                        labelColor = Color(0xFF1B5E20)
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
                         selected = onlyCreditFilter,
-                        borderColor = if (onlyCreditFilter) Color(0xFF4CAF50) else Color(0xFF37474F),
-                        selectedBorderColor = Color(0xFF81C784),
+                        borderColor = Color(0xFFCBD5E1),
+                        selectedBorderColor = Color(0xFF2E7D32),
                         borderWidth = 1.dp
                     )
                 )
@@ -344,12 +362,19 @@ fun WorkshopDirectoryScreen(
                     FilterChip(
                         selected = isSelected,
                         onClick = { selectedState = state },
-                        label = { Text(state, fontSize = 11.sp) },
+                        label = { Text(state, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MotoOrangePrimary,
                             selectedLabelColor = Color.Black,
-                            containerColor = Color(0xFF1E2433),
-                            labelColor = Color.White
+                            containerColor = Color(0xFFF1F5F9),
+                            labelColor = Color(0xFF334155)
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            borderColor = Color(0xFFE2E8F0),
+                            selectedBorderColor = MotoOrangePrimary,
+                            borderWidth = 1.dp
                         )
                     )
                 }
@@ -366,12 +391,19 @@ fun WorkshopDirectoryScreen(
                     FilterChip(
                         selected = isSelected,
                         onClick = { selectedType = type },
-                        label = { Text(type, fontSize = 11.sp) },
+                        label = { Text(type, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MotoGoldSecondary,
                             selectedLabelColor = Color.Black,
-                            containerColor = Color(0xFF1E2433),
-                            labelColor = Color.White
+                            containerColor = Color(0xFFF1F5F9),
+                            labelColor = Color(0xFF334155)
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            borderColor = Color(0xFFE2E8F0),
+                            selectedBorderColor = MotoGoldSecondary,
+                            borderWidth = 1.dp
                         )
                     )
                 }
@@ -388,11 +420,11 @@ fun WorkshopDirectoryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.BuildCircle, contentDescription = null, tint = Color(0xFF607D8B), modifier = Modifier.size(54.dp))
+                        Icon(Icons.Default.BuildCircle, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(54.dp))
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("No se encontraron comercios con estos filtros", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("No se encontraron comercios con estos filtros", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Intenta buscar por otra palabra clave o desactiva los filtros.", color = Color(0xFF90A4AE), fontSize = 12.sp)
+                        Text("Intenta buscar por otra palabra clave o desactiva los filtros.", color = Color(0xFF64748B), fontSize = 12.sp)
                     }
                 }
             } else {
@@ -465,12 +497,12 @@ fun WorkshopDirectoryScreen(
         )
     }
 
-    // Modal Confirmación Eliminar
+    // Modal Confirmación Eliminar (Tema Claro)
     workshopToDelete?.let { item ->
         AlertDialog(
             onDismissRequest = { workshopToDelete = null },
-            title = { Text("¿Eliminar Establecimiento?", fontWeight = FontWeight.Black, color = Color.White) },
-            text = { Text("¿Estás seguro de que deseas eliminar '${item.name}' del directorio del Team TX?", color = Color(0xFFCFD8DC)) },
+            title = { Text("¿Eliminar Establecimiento?", fontWeight = FontWeight.Black, color = Color(0xFF0F172A)) },
+            text = { Text("¿Estás seguro de que deseas eliminar '${item.name}' del directorio del Team TX?", color = Color(0xFF475569)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -480,15 +512,15 @@ fun WorkshopDirectoryScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = StatusError)
                 ) {
-                    Text("Eliminar")
+                    Text("Eliminar", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { workshopToDelete = null }) {
-                    Text("Cancelar", color = Color(0xFF90A4AE))
+                    Text("Cancelar", color = Color(0xFF64748B))
                 }
             },
-            containerColor = Color(0xFF1E2433)
+            containerColor = Color.White
         )
     }
 }
@@ -711,142 +743,235 @@ fun CommercialServiceCard(
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+            HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.8.dp)
             Spacer(modifier = Modifier.height(8.dp))
 
-            // FILA PRINCIPAL DE BOTONES DE ACCIÓN
+            // FILA 1: CONTACTO Y NAVEGACIÓN (BOTONES PRINCIPALES - SIN SOLAPAMIENTOS)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f, fill = false)
-                ) {
-                    // Botón Llamar
-                    if (workshop.phone.isNotBlank()) {
-                        Button(
-                            onClick = {
-                                context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${workshop.phone}")))
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Black, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Llamar", fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    // Botón WhatsApp
-                    if (workshop.whatsapp.isNotBlank()) {
-                        val clean = workshop.whatsapp.replace(Regex("[^0-9]"), "")
-                        val formatted = if (clean.startsWith("0")) "58" + clean.substring(1) else clean
-                        Button(
-                            onClick = {
-                                val url = "https://wa.me/$formatted?text=Hola,%20te%20escribo%20desde%20la%20App%20Team%20Nacional%20TX%20Venezuela"
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("WhatsApp", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    // Botón Ir en Mapa TX
-                    if (workshop.latitude != 0.0 && workshop.longitude != 0.0) {
-                        Button(
-                            onClick = {
-                                if (onNavigateToMap != null) {
-                                    onNavigateToMap(workshop.latitude, workshop.longitude, workshop.name)
-                                } else {
-                                    val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:${workshop.latitude},${workshop.longitude}?q=${workshop.latitude},${workshop.longitude}(${Uri.encode(workshop.name)})"))
-                                    context.startActivity(mapIntent)
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0288D1)),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Icon(Icons.Default.Navigation, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Mapa TX", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    // Botón Google Maps Web / App Externa
-                    val gMapsUrl = if (workshop.googleMapsUrl.isNotBlank()) workshop.googleMapsUrl else if (workshop.latitude != 0.0) "https://maps.google.com/?q=${workshop.latitude},${workshop.longitude}" else ""
-                    if (gMapsUrl.isNotBlank()) {
-                        IconButton(
-                            onClick = {
-                                try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(gMapsUrl)))
-                                } catch (_: Exception) {
-                                    Toast.makeText(context, "No se pudo abrir el enlace", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            modifier = Modifier.size(34.dp).background(Color(0xFF1E2433), RoundedCornerShape(8.dp))
-                        ) {
-                            Icon(Icons.Default.Public, contentDescription = "Google Maps", tint = Color(0xFF4FC3F7), modifier = Modifier.size(16.dp))
-                        }
-                    }
-
-                    // Botón Calificar Establecimiento
-                    IconButton(
-                        onClick = onRate,
-                        modifier = Modifier.size(34.dp).background(Color(0xFF332600), RoundedCornerShape(8.dp))
-                    ) {
-                        Icon(Icons.Default.Star, contentDescription = "Calificar Establecimiento", tint = Color(0xFFFFD700), modifier = Modifier.size(17.dp))
-                    }
-
-                    // Compartir
-                    IconButton(
+                // Botón Llamar
+                if (workshop.phone.isNotBlank()) {
+                    Button(
                         onClick = {
-                            shareCommercialServiceViaWhatsApp(context, workshop)
+                            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${workshop.phone}")))
                         },
-                        modifier = Modifier.size(34.dp).background(Color(0xFF1E2433), RoundedCornerShape(8.dp))
+                        colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f).height(34.dp)
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Color(0xFF25D366), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Black, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Llamar", fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                     }
+                }
 
-                    // Copiar Datos
-                    IconButton(
+                // Botón WhatsApp
+                if (workshop.whatsapp.isNotBlank()) {
+                    val clean = workshop.whatsapp.replace(Regex("[^0-9]"), "")
+                    val formatted = if (clean.startsWith("0")) "58" + clean.substring(1) else clean
+                    Button(
                         onClick = {
+                            val url = "https://wa.me/$formatted?text=Hola,%20te%20escribo%20desde%20la%20App%20Team%20Nacional%20TX%20Venezuela"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f).height(34.dp)
+                    ) {
+                        Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("WhatsApp", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Botón 1: Mapa TX (Abre internamente en el mapa táctico de la app)
+                val tieneGps = workshop.latitude != 0.0 && workshop.longitude != 0.0
+                Button(
+                    onClick = {
+                        if (tieneGps) {
+                            if (onNavigateToMap != null) {
+                                onNavigateToMap(workshop.latitude, workshop.longitude, workshop.name)
+                            } else {
+                                val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:${workshop.latitude},${workshop.longitude}?q=${workshop.latitude},${workshop.longitude}(${Uri.encode(workshop.name)})"))
+                                context.startActivity(mapIntent)
+                            }
+                        } else {
+                            Toast.makeText(context, "Este comercio no tiene coordenadas GPS cargadas", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (tieneGps) Color(0xFF0288D1) else Color(0xFF94A3B8)
+                    ),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f).height(34.dp)
+                ) {
+                    Icon(Icons.Default.Navigation, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text("Mapa TX", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                }
+
+                // Botón 2: Google Maps (Abre la app o enlace web externo)
+                val gMapsUrl = if (workshop.googleMapsUrl.isNotBlank()) workshop.googleMapsUrl else if (tieneGps) "https://maps.google.com/?q=${workshop.latitude},${workshop.longitude}" else ""
+                OutlinedButton(
+                    onClick = {
+                        if (gMapsUrl.isNotBlank()) {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(gMapsUrl)))
+                            } catch (_: Exception) {
+                                Toast.makeText(context, "No se pudo abrir Google Maps", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(context, "Sin enlace de Google Maps disponible", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    border = BorderStroke(1.dp, Color(0xFF90CAF9)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color(0xFFF0F7FF),
+                        contentColor = Color(0xFF1565C0)
+                    ),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f).height(34.dp)
+                ) {
+                    Icon(Icons.Default.Public, contentDescription = "Google Maps", tint = Color(0xFF1565C0), modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text("G. Maps", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // FILA 2: HERRAMIENTAS COMUNITARIAS
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Calificar
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFEF3C7),
+                    border = BorderStroke(0.8.dp, Color(0xFFFDE68A)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onRate() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.Star, contentDescription = "Calificar", tint = Color(0xFFD97706), modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Calificar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
+                    }
+                }
+
+                // Compartir WhatsApp
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF1F5F9),
+                    border = BorderStroke(0.8.dp, Color(0xFFCBD5E1)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { shareCommercialServiceViaWhatsApp(context, workshop) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Color(0xFF0F172A), modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Compartir", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                    }
+                }
+
+                // Copiar Datos
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFF1F5F9),
+                    border = BorderStroke(0.8.dp, Color(0xFFCBD5E1)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
                             val textToCopy = "${workshop.name}\n${workshop.type}\nUbicación: ${workshop.address}, ${workshop.city}, ${workshop.state}\nTlf: ${workshop.phone}\nWhatsApp: ${workshop.whatsapp}\nCalificación: ${workshop.rating} ⭐\nCrédito: ${if (hasCredit) workshop.creditPlatforms else "Contado"}\nEspecialidad: ${workshop.notes}"
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText("Datos Comercio TX", textToCopy))
                             Toast.makeText(context, "Datos copiados al portapapeles ✓", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.size(34.dp).background(Color(0xFF1E2433), RoundedCornerShape(8.dp))
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", tint = Color(0xFF90A4AE), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", tint = Color(0xFF0F172A), modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Copiar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
                     }
                 }
+            }
 
-                // ACCIONES DE GESTIÓN PARA DIRECTIVOS / ADMINISTRADORES
-                if (isAuthorizedAdmin) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(
-                            onClick = onEdit,
-                            modifier = Modifier.size(32.dp).background(Color(0xFF263238), RoundedCornerShape(8.dp))
+            // FILA 3: GESTIÓN DIRECTIVA / ADMINISTRACIÓN (EN FILA INDEPENDIENTE, NUNCA CHOCA NI TAPA BOTONES)
+            if (isAuthorizedAdmin) {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 0.8.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Botón Editar Comercio
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFEF3C7),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onEdit() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = MotoGoldSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFFD97706), modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Editar Comercio", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
                         }
-                        IconButton(
-                            onClick = onDelete,
-                            modifier = Modifier.size(32.dp).background(Color(0xFF263238), RoundedCornerShape(8.dp))
+                    }
+
+                    // Botón Eliminar Comercio
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFEE2E2),
+                        border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onDelete() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = StatusError, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFDC2626), modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Eliminar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
                         }
                     }
                 }
@@ -856,7 +981,7 @@ fun CommercialServiceCard(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// DIÁLOGO: CALIFICAR COMERCIO / ESTABLECIMIENTO
+// DIÁLOGO: CALIFICAR COMERCIO / ESTABLECIMIENTO (TEMA CLARO)
 // ═══════════════════════════════════════════════════════════════════════
 @Composable
 fun RateCommercialServiceDialog(
@@ -877,8 +1002,8 @@ fun RateCommercialServiceDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = Color(0xFF161B26),
-            border = BorderStroke(1.2.dp, Color(0xFFFFD700)),
+            color = Color.White,
+            border = BorderStroke(1.2.dp, Color(0xFFF59E0B)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -887,8 +1012,8 @@ fun RateCommercialServiceDialog(
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = Color(0xFF332600),
-                    border = BorderStroke(1.dp, Color(0xFFFFD700)),
+                    color = Color(0xFFFEF3C7),
+                    border = BorderStroke(1.dp, Color(0xFFFDE68A)),
                     modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -901,7 +1026,7 @@ fun RateCommercialServiceDialog(
                     text = "Calificar Establecimiento",
                     fontWeight = FontWeight.Black,
                     fontSize = 17.sp,
-                    color = Color.White
+                    color = Color(0xFF0F172A)
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -916,7 +1041,7 @@ fun RateCommercialServiceDialog(
                 Text(
                     text = "Tu puntuación ayuda a toda la comunidad del Team TX a encontrar los mejores servicios y repuestos.",
                     fontSize = 11.sp,
-                    color = Color(0xFF90A4AE),
+                    color = Color(0xFF64748B),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
 
@@ -935,7 +1060,7 @@ fun RateCommercialServiceDialog(
                             Icon(
                                 Icons.Default.Star,
                                 contentDescription = "$i Estrellas",
-                                tint = if (i <= selectedStars) Color(0xFFFFD700) else Color(0xFF455A64),
+                                tint = if (i <= selectedStars) Color(0xFFF59E0B) else Color(0xFFCBD5E1),
                                 modifier = Modifier.size(36.dp)
                             )
                         }
@@ -946,15 +1071,15 @@ fun RateCommercialServiceDialog(
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF10141D),
-                    border = BorderStroke(0.5.dp, Color(0xFF2A3644)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(0.8.dp, Color(0xFFE2E8F0)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = feedbackText,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (selectedStars >= 4) Color(0xFFFFD700) else Color(0xFFECEFF1),
+                        color = if (selectedStars >= 4) Color(0xFFB45309) else Color(0xFF334155),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         modifier = Modifier.padding(vertical = 8.dp, horizontal = 10.dp)
                     )
@@ -970,18 +1095,18 @@ fun RateCommercialServiceDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, Color(0xFF455A64))
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
                     ) {
-                        Text("Cancelar", color = Color(0xFFB0BEC5), fontSize = 12.sp)
+                        Text("Cancelar", color = Color(0xFF64748B), fontSize = 12.sp)
                     }
 
                     Button(
                         onClick = { onConfirm(selectedStars.toDouble()) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB300))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
                     ) {
-                        Text("Guardar ⭐", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("Guardar ⭐", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
@@ -990,7 +1115,7 @@ fun RateCommercialServiceDialog(
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// DIÁLOGO: EXPLICACIÓN DE PLATAFORMAS DE CRÉDITO
+// DIÁLOGO: EXPLICACIÓN DE PLATAFORMAS DE CRÉDITO (TEMA CLARO)
 // ═══════════════════════════════════════════════════════════════════════
 @Composable
 fun CreditPlatformsInfoDialog(
@@ -1010,8 +1135,8 @@ fun CreditPlatformsInfoDialog(
                 Text("💳", fontSize = 20.sp)
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
-                    Text("Opciones de Financiamiento", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White)
-                    Text(workshop.name, fontSize = 12.sp, color = MotoGoldSecondary)
+                    Text("Opciones de Financiamiento", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
+                    Text(workshop.name, fontSize = 12.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -1023,27 +1148,27 @@ fun CreditPlatformsInfoDialog(
                 Text(
                     text = "Este establecimiento ofrece opciones de crédito y facilidades de pago para repuestos, accesorios o mano de obra:",
                     fontSize = 12.sp,
-                    color = Color(0xFFCFD8DC)
+                    color = Color(0xFF475569)
                 )
 
                 if (acceptsCashea) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF0F2B1D),
-                        border = BorderStroke(1.dp, Color(0xFF00E676)),
+                        color = Color(0xFFE8F5E9),
+                        border = BorderStroke(1.dp, Color(0xFF81C784)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("🟢", fontSize = 14.sp)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("CASHEA", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFF69F0AE))
+                                Text("CASHEA", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFF1B5E20))
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Compra tus repuestos pagando una inicial en tienda y el saldo restante en 3 cuotas cada 14 días sin intereses.",
                                 fontSize = 11.sp,
-                                color = Color(0xFFB9F6CA)
+                                color = Color(0xFF2E7D32)
                             )
                         }
                     }
@@ -1052,21 +1177,21 @@ fun CreditPlatformsInfoDialog(
                 if (acceptsRapikom) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF261230),
-                        border = BorderStroke(1.dp, Color(0xFFAB47BC)),
+                        color = Color(0xFFF3E8FF),
+                        border = BorderStroke(1.dp, Color(0xFFC084FC)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("🟣", fontSize = 14.sp)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("RAPIKOM", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFFCE93D8))
+                                Text("RAPIKOM", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFF6B21A8))
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Financiamiento flexible por aplicación para repuestos mecánicos, cauchos y baterías en comercios afiliados.",
                                 fontSize = 11.sp,
-                                color = Color(0xFFE1BEE7)
+                                color = Color(0xFF7E22CE)
                             )
                         }
                     }
@@ -1075,21 +1200,21 @@ fun CreditPlatformsInfoDialog(
                 if (acceptsConvenio || (!acceptsCashea && !acceptsRapikom)) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF2B2109),
-                        border = BorderStroke(1.dp, MotoGoldSecondary),
+                        color = Color(0xFFFEF3C7),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("🟡", fontSize = 14.sp)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("CONVENIO TEAM TX & DUEÑO", fontWeight = FontWeight.Black, fontSize = 14.sp, color = MotoGoldSecondary)
+                                Text("CONVENIO TEAM TX & DUEÑO", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFF92400E))
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Descuento y facilidades exclusivas para miembros activos del Team Nacional TX Venezuela presentando su Carnet Digital en la app.",
                                 fontSize = 11.sp,
-                                color = Color(0xFFFFECB3)
+                                color = Color(0xFFB45309)
                             )
                         }
                     }
@@ -1099,7 +1224,7 @@ fun CreditPlatformsInfoDialog(
                     Text(
                         text = "💡 Recomendación: Consulta disponibilidad de tu línea de crédito antes de realizar tu compra.",
                         fontSize = 11.sp,
-                        color = Color(0xFF90A4AE)
+                        color = Color(0xFF64748B)
                     )
                 }
             }
@@ -1112,7 +1237,7 @@ fun CreditPlatformsInfoDialog(
                 Text("Entendido", color = Color.Black, fontWeight = FontWeight.Bold)
             }
         },
-        containerColor = Color(0xFF1E2433)
+        containerColor = Color.White
     )
 }
 
@@ -1187,7 +1312,7 @@ fun CreateCommercialServiceDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("🏪 Registrar Negocio en Directorio", fontWeight = FontWeight.Black, color = Color.White) },
+        title = { Text("🏪 Registrar Negocio en Directorio", fontWeight = FontWeight.Black, color = Color(0xFF0F172A)) },
         text = {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -1263,7 +1388,8 @@ fun CreateCommercialServiceDialog(
 
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C2230)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
@@ -1275,7 +1401,7 @@ fun CreateCommercialServiceDialog(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.CreditCard, contentDescription = null, tint = MotoGoldSecondary)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("¿Acepta Crédito? (Cashea, etc.)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("¿Acepta Crédito? (Cashea, etc.)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                                 }
                                 Switch(
                                     checked = hasCredit,
@@ -1416,13 +1542,13 @@ fun CreateCommercialServiceDialog(
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed)
             ) {
-                Text("Guardar")
+                Text("Guardar", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF90A4AE)) }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = Color(0xFF1E2433)
+        containerColor = Color.White
     )
 }
 
@@ -1484,7 +1610,7 @@ fun EditCommercialServiceDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("✏️ Editar Comercio / Taller", fontWeight = FontWeight.Black, color = Color.White) },
+        title = { Text("✏️ Editar Comercio / Taller", fontWeight = FontWeight.Black, color = Color(0xFF0F172A)) },
         text = {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
@@ -1560,7 +1686,8 @@ fun EditCommercialServiceDialog(
 
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C2230)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
@@ -1572,7 +1699,7 @@ fun EditCommercialServiceDialog(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.CreditCard, contentDescription = null, tint = MotoGoldSecondary)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("¿Acepta Crédito? (Cashea, etc.)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text("¿Acepta Crédito? (Cashea, etc.)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                                 }
                                 Switch(
                                     checked = hasCredit,
@@ -1734,9 +1861,9 @@ fun EditCommercialServiceDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF90A4AE)) }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = Color(0xFF1E2433)
+        containerColor = Color.White
     )
 }
 

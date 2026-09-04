@@ -1,6 +1,9 @@
 package com.example.ui.screens
 
+import android.content.Context
+import android.content.Intent
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -43,8 +46,8 @@ enum class RankingCategoryFilter(val displayName: String, val icon: androidx.com
     KILOMETRAJE("Más KM Recorridos", Icons.Default.Speed),
     ASISTENCIA("Rodadas & Eventos", Icons.Default.TwoWheeler),
     HEROES_SOS("Héroes SOS Vial", Icons.Default.Emergency),
-    RETOS("Retos & Retos KM", Icons.Default.MilitaryTech),
-    DESTACADOS("Destacados del Mes", Icons.Default.Star)
+    RETOS("Retos & Desafíos", Icons.Default.MilitaryTech),
+    DESTACADOS("Destacados", Icons.Default.Star)
 }
 
 /**
@@ -60,11 +63,11 @@ data class BikerHonorRank(
 )
 
 val BIKER_RANKS = listOf(
-    BikerHonorRank("Aspirante TX", 0, 299, Color(0xFF9E9E9E), Icons.Default.Person, "Iniciando el camino motero en el club."),
-    BikerHonorRank("Piloto de Ruta", 300, 799, Color(0xFF42A5F5), Icons.Default.TwoWheeler, "Rodador activo en caravanas oficiales."),
-    BikerHonorRank("Capitán de Asfalto", 800, 1999, MotoGoldSecondary, Icons.Default.MilitaryTech, "Veterano de carreteras y rutas interurbanas."),
+    BikerHonorRank("Aspirante TX", 0, 299, Color(0xFF64748B), Icons.Default.Person, "Iniciando el camino motero en el club."),
+    BikerHonorRank("Piloto de Ruta", 300, 799, Color(0xFF0288D1), Icons.Default.TwoWheeler, "Rodador activo en caravanas oficiales."),
+    BikerHonorRank("Capitán de Asfalto", 800, 1999, Color(0xFFD97706), Icons.Default.MilitaryTech, "Veterano de carreteras y rutas interurbanas."),
     BikerHonorRank("Centurión Legendario", 2000, 4999, TxFlameRed, Icons.Default.Shield, "Líder de asfalto con miles de kilómetros y asistencias."),
-    BikerHonorRank("Titán del Asfalto", 5000, Int.MAX_VALUE, Color(0xFFFFD700), Icons.Default.WorkspacePremium, "Máxima gloria y leyenda viviente del Team TX.")
+    BikerHonorRank("Titán del Asfalto", 5000, Int.MAX_VALUE, Color(0xFFB45309), Icons.Default.WorkspacePremium, "Máxima gloria y leyenda viviente del Team TX.")
 )
 
 fun calculateMemberMeritPoints(member: MemberProfile): Int {
@@ -91,11 +94,17 @@ fun RankingScreen(
     onRateMember: (MemberProfile, Boolean, String, Int, String) -> Unit = { _, _, _, _, _ -> },
     onBack: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
+    val context = LocalContext.current
     var selectedFilter by remember { mutableStateOf(RankingCategoryFilter.GENERAL) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedChapterFilter by remember { mutableStateOf<String?>(null) }
     var ratingTargetMember by remember { mutableStateOf<MemberProfile?>(null) }
+    var showMeritInfoDialog by remember { mutableStateOf(false) }
+
+    val chapters = listOf(
+        "TODOS", "Aragua", "Carabobo", "Distrito Capital", "Miranda", "Lara",
+        "Falcón", "Zulia", "Táchira", "Mérida", "Guárico", "Anzoátegui", "Bolívar", "Yaracuy", "Portuguesa", "Barinas"
+    )
 
     // Logcat inicial de auditoría
     LaunchedEffect(Unit) {
@@ -109,7 +118,9 @@ fun RankingScreen(
                     member.fullName.contains(searchQuery, ignoreCase = true) ||
                     member.nickname.contains(searchQuery, ignoreCase = true) ||
                     member.bikePlate.contains(searchQuery, ignoreCase = true)
-            val matchesChapter = selectedChapterFilter == null || member.chapterState.equals(selectedChapterFilter, ignoreCase = true)
+            val matchesChapter = selectedChapterFilter == null ||
+                    selectedChapterFilter == "TODOS" ||
+                    member.chapterState.equals(selectedChapterFilter, ignoreCase = true)
             matchesSearch && matchesChapter
         }
 
@@ -125,20 +136,6 @@ fun RankingScreen(
     }
 
     val top3 = remember(rankedMembers) { rankedMembers.take(3) }
-    val remainingMembers = remember(rankedMembers) { if (rankedMembers.size > 3) rankedMembers.drop(3) else emptyList() }
-
-    // Posición del usuario actual
-    val myPosition = remember(rankedMembers, currentMember) {
-        if (currentMember != null) {
-            val idx = rankedMembers.indexOfFirst { it.id == currentMember.id }
-            if (idx >= 0) idx + 1 else null
-        } else null
-    }
-
-    val myPoints = remember(currentMember) {
-        if (currentMember != null) calculateMemberMeritPoints(currentMember) else 0
-    }
-    val myRank = remember(myPoints) { getMemberHonorRank(myPoints) }
 
     Scaffold(
         topBar = {
@@ -154,7 +151,7 @@ fun RankingScreen(
                                 Icon(
                                     Icons.Default.MilitaryTech,
                                     contentDescription = null,
-                                    tint = MotoGoldSecondary,
+                                    tint = Color(0xFFD97706),
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -165,27 +162,70 @@ fun RankingScreen(
                                 text = "RANKING & MÉRITO TX",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 16.sp,
-                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                                color = Color(0xFF0F172A)
                             )
                             Text(
                                 text = "Gamificación y Récords de Pilotos",
-                                fontSize = 10.sp,
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                fontSize = 11.sp,
+                                color = Color(0xFF64748B)
                             )
                         }
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color(0xFF0F172A))
+                    }
+                },
+                actions = {
+                    // Botón Compartir Ranking
+                    IconButton(onClick = {
+                        shareRankingViaWhatsApp(context, rankedMembers.take(5), selectedFilter.displayName)
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Compartir Podio", tint = Color(0xFF0F172A))
+                    }
+
+                    // Botón Ayuda / Explicación del Sistema de Mérito
+                    IconButton(onClick = { showMeritInfoDialog = true }) {
+                        Icon(Icons.Default.HelpOutline, contentDescription = "Sistema de Mérito", tint = Color(0xFFD97706))
+                    }
+
+                    // Botón Volver al Inicio
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClick = onBack)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Home,
+                                contentDescription = "Volver al Inicio",
+                                tint = Color(0xFF0F172A),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Inicio",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isDark) Color(0xFF121212) else Color.White
+                    containerColor = Color.White
                 )
             )
         },
-        containerColor = if (isDark) Color(0xFF0A0A0A) else Color(0xFFF1F5F9)
+        containerColor = Color(0xFFF8FAFC)
     ) { padding ->
         Column(
             modifier = Modifier
@@ -193,10 +233,11 @@ fun RankingScreen(
                 .padding(padding)
         ) {
             // ═══════════════════════════════════════════════════════════════════
-            // BARRA DE BÚSQUEDA Y FILTROS RÁPIDOS
+            // BARRA DE BÚSQUEDA Y FILTROS RÁPIDOS EN TEMA CLARO
             // ═══════════════════════════════════════════════════════════════════
             Surface(
-                color = if (isDark) Color(0xFF18181B) else Color.White,
+                color = Color.White,
+                border = BorderStroke(0.5.dp, Color(0xFFE2E8F0)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
@@ -204,20 +245,24 @@ fun RankingScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Buscar piloto por nombre, apodo o placa...", fontSize = 12.sp) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        placeholder = { Text("Buscar piloto por nombre, apodo o placa...", fontSize = 12.sp, color = Color(0xFF64748B)) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(18.dp)) },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Limpiar", modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
                                 }
                             }
                         },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = if (isDark) Color(0xFF27272A) else Color(0xFFF8FAFC),
-                            focusedContainerColor = if (isDark) Color(0xFF27272A) else Color(0xFFF8FAFC)
+                            focusedBorderColor = MotoOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFE2E8F0),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -227,38 +272,71 @@ fun RankingScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Categorías / Filtros Gamificados
+                    // 1. Selector de Categorías Gamificadas
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         items(RankingCategoryFilter.values()) { cat ->
                             val isSelected = selectedFilter == cat
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedFilter = cat },
+                                label = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = cat.icon,
+                                            contentDescription = null,
+                                            tint = if (isSelected) Color.Black else Color(0xFF334155),
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(cat.displayName, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Black else FontWeight.Normal)
+                                    }
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MotoOrangePrimary,
+                                    selectedLabelColor = Color.Black,
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = Color(0xFF334155)
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = Color(0xFFE2E8F0),
+                                    selectedBorderColor = MotoOrangePrimary,
+                                    borderWidth = 1.dp
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // 2. NUEVO: Selector Deslizable de Capítulos / Estados
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(chapters) { chap ->
+                            val isCurrentChap = (selectedChapterFilter == null && chap == "TODOS") || (selectedChapterFilter == chap)
                             Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (isSelected) MotoOrangePrimary else (if (isDark) Color(0xFF27272A) else Color(0xFFE2E8F0)),
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isCurrentChap) Color(0xFF0288D1) else Color(0xFFF1F5F9),
+                                border = BorderStroke(1.dp, if (isCurrentChap) Color(0xFF0288D1) else Color(0xFFE2E8F0)),
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .clickable { selectedFilter = cat }
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .clickable {
+                                        selectedChapterFilter = if (chap == "TODOS") null else chap
+                                    }
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = cat.icon,
-                                        contentDescription = null,
-                                        tint = if (isSelected) Color.Black else (if (isDark) Color.White else Color(0xFF1E293B)),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(5.dp))
-                                    Text(
-                                        text = cat.displayName,
-                                        fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium,
-                                        color = if (isSelected) Color.Black else (if (isDark) Color.White else Color(0xFF1E293B))
-                                    )
-                                }
+                                Text(
+                                    text = if (chap == "TODOS") "🇻🇪 Todo el País" else "📍 $chap",
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isCurrentChap) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isCurrentChap) Color.White else Color(0xFF475569),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
                             }
                         }
                     }
@@ -266,16 +344,16 @@ fun RankingScreen(
             }
 
             // ═══════════════════════════════════════════════════════════════════
-            // CONTENIDO DEL RANKING (PODIO + LISTA)
+            // CONTENIDO DEL RANKING (PODIO + TABLA)
             // ═══════════════════════════════════════════════════════════════════
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Podio Visual Top 3 (Solo en categoría General o cuando hay al menos 2 pilotos)
+                // Podio Visual Top 3 (Solo si no hay búsqueda activa)
                 if (top3.isNotEmpty() && searchQuery.isBlank()) {
                     item {
                         VisualPodiumView(
@@ -291,7 +369,7 @@ fun RankingScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 4.dp, vertical = 4.dp),
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -299,7 +377,7 @@ fun RankingScreen(
                             text = "TABLA DE CLASIFICACIÓN (${rankedMembers.size})",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Black,
-                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            color = Color(0xFF475569),
                             letterSpacing = 0.5.sp
                         )
                         Text(
@@ -332,13 +410,14 @@ fun RankingScreen(
                                     Icons.Default.SearchOff,
                                     contentDescription = null,
                                     modifier = Modifier.size(48.dp),
-                                    tint = Color.Gray
+                                    tint = Color(0xFF94A3B8)
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "No se encontraron pilotos con ese filtro",
-                                    color = Color.Gray,
-                                    fontSize = 13.sp
+                                    color = Color(0xFF64748B),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
                         }
@@ -358,80 +437,10 @@ fun RankingScreen(
                     }
                 }
             }
-
-            // ═══════════════════════════════════════════════════════════════════
-            // TARJETA FLOTANTE FIJA: "MI POSICIÓN ACTUAL EN EL RANKING"
-            // ═══════════════════════════════════════════════════════════════════
-            if (currentMember != null && myPosition != null) {
-                Surface(
-                    color = if (isDark) Color(0xFF18181B) else Color.White,
-                    shadowElevation = 8.dp,
-                    border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.5f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MotoOrangePrimary,
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = "#$myPosition",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 13.sp,
-                                        color = Color.Black
-                                    )
-                                }
-                            }
-
-                            Column {
-                                val myPoints = calculateMemberMeritPoints(currentMember)
-                                val myRank = getMemberHonorRank(myPoints)
-                                Text(
-                                    text = "Tu Posición: ${currentMember.fullName}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (isDark) Color.White else Color(0xFF0F172A),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "${myRank.title} • $myPoints pts",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = myRank.badgeColor
-                                )
-                            }
-                        }
-
-                        Button(
-                            onClick = { onOpenMemberCarnet(currentMember) },
-                            colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Icon(Icons.Default.Badge, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Mi Carnet", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
         }
     }
 
+    // Diálogo Modal para Calificar al Piloto
     if (ratingTargetMember != null) {
         RatePilotDialog(
             targetMember = ratingTargetMember!!,
@@ -442,10 +451,15 @@ fun RankingScreen(
             }
         )
     }
+
+    // Diálogo Modal: Explicación del Sistema de Mérito y Rangos
+    if (showMeritInfoDialog) {
+        MeritSystemInfoDialog(onDismiss = { showMeritInfoDialog = false })
+    }
 }
 
 /**
- * Podio Visual Top 3 (Oro, Plata, Bronce)
+ * Podio Visual Top 3 (Oro, Plata, Bronce) en Tema Claro
  */
 @Composable
 fun VisualPodiumView(
@@ -453,12 +467,11 @@ fun VisualPodiumView(
     onOpenMemberCarnet: (MemberProfile) -> Unit,
     onRateMember: (MemberProfile) -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
-
-    Surface(
+    Card(
         shape = RoundedCornerShape(16.dp),
-        color = if (isDark) Color(0xFF18181B) else Color.White,
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF27272A) else Color(0xFFE2E8F0)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -469,17 +482,17 @@ fun VisualPodiumView(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = MotoGoldSecondary, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(18.dp))
                 Text(
                     text = "PODIO DE HONOR TEAM TX",
                     fontWeight = FontWeight.Black,
                     fontSize = 13.sp,
-                    color = MotoGoldSecondary,
+                    color = Color(0xFF92400E),
                     letterSpacing = 0.5.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -493,8 +506,9 @@ fun VisualPodiumView(
                         position = 2,
                         member = p2,
                         stepHeight = 85.dp,
-                        stepColor = Color(0xFF94A3B8),
-                        crownColor = Color(0xFFCBD5E1),
+                        stepColor = Color(0xFF64748B),
+                        crownColor = Color(0xFF94A3B8),
+                        fillColor = Color(0xFFF1F5F9),
                         onClick = { onOpenMemberCarnet(p2) },
                         modifier = Modifier.weight(1f)
                     )
@@ -507,8 +521,9 @@ fun VisualPodiumView(
                         position = 1,
                         member = p1,
                         stepHeight = 110.dp,
-                        stepColor = Color(0xFFFFD700),
-                        crownColor = Color(0xFFFFD700),
+                        stepColor = Color(0xFFB45309),
+                        crownColor = Color(0xFFD97706),
+                        fillColor = Color(0xFFFEF08A),
                         onClick = { onOpenMemberCarnet(p1) },
                         modifier = Modifier.weight(1.15f)
                     )
@@ -521,8 +536,9 @@ fun VisualPodiumView(
                         position = 3,
                         member = p3,
                         stepHeight = 65.dp,
-                        stepColor = Color(0xFFCD7F32),
-                        crownColor = Color(0xFFD97706),
+                        stepColor = Color(0xFFC2410C),
+                        crownColor = Color(0xFFEA580C),
+                        fillColor = Color(0xFFFFEDD5),
                         onClick = { onOpenMemberCarnet(p3) },
                         modifier = Modifier.weight(1f)
                     )
@@ -539,10 +555,10 @@ fun PodiumStepItem(
     stepHeight: androidx.compose.ui.unit.Dp,
     stepColor: Color,
     crownColor: Color,
+    fillColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
     val points = calculateMemberMeritPoints(member)
 
     Column(
@@ -564,7 +580,7 @@ fun PodiumStepItem(
             modifier = Modifier
                 .size(if (position == 1) 52.dp else 44.dp)
                 .clip(CircleShape)
-                .background(if (isDark) Color(0xFF262626) else Color(0xFFE2E8F0))
+                .background(Color(0xFFE2E8F0))
                 .border(2.dp, crownColor, CircleShape),
             contentAlignment = Alignment.Center
         ) {
@@ -580,7 +596,7 @@ fun PodiumStepItem(
                     text = if (member.nickname.isNotBlank()) member.nickname.take(2).uppercase() else member.avatarInitials,
                     fontWeight = FontWeight.Black,
                     fontSize = if (position == 1) 14.sp else 12.sp,
-                    color = if (isDark) Color.White else Color.Black
+                    color = Color(0xFF0F172A)
                 )
             }
         }
@@ -591,7 +607,7 @@ fun PodiumStepItem(
             text = if (member.nickname.isNotBlank()) member.nickname else member.fullName.split(" ").firstOrNull() ?: "Piloto",
             fontWeight = FontWeight.Bold,
             fontSize = 11.sp,
-            color = if (isDark) Color.White else Color(0xFF0F172A),
+            color = Color(0xFF0F172A),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -605,11 +621,11 @@ fun PodiumStepItem(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Escalón del Podio
+        // Escalón del Podio en Tema Claro
         Surface(
             shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
-            color = stepColor.copy(alpha = 0.25f),
-            border = BorderStroke(1.dp, stepColor.copy(alpha = 0.6f)),
+            color = fillColor,
+            border = BorderStroke(1.dp, stepColor.copy(alpha = 0.5f)),
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .height(stepHeight)
@@ -627,7 +643,7 @@ fun PodiumStepItem(
 }
 
 /**
- * Tarjeta Individual de Piloto en la Lista del Ranking
+ * Tarjeta Individual de Piloto en la Lista del Ranking (Tema Claro)
  */
 @Composable
 fun RankingPilotCard(
@@ -638,33 +654,33 @@ fun RankingPilotCard(
     onClick: () -> Unit,
     onRateClick: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
     val meritPoints = calculateMemberMeritPoints(member)
     val rank = getMemberHonorRank(meritPoints)
 
     val positionBadgeColor = when (position) {
-        1 -> Color(0xFFFFD700)
-        2 -> Color(0xFFCBD5E1)
-        3 -> Color(0xFFD97706)
-        else -> if (isDark) Color(0xFF3F3F46) else Color(0xFFE2E8F0)
+        1 -> Color(0xFFFEF08A)
+        2 -> Color(0xFFE2E8F0)
+        3 -> Color(0xFFFFEDD5)
+        else -> Color(0xFFF1F5F9)
     }
 
     val positionTextColor = when (position) {
-        1, 2, 3 -> Color.Black
-        else -> if (isDark) Color.White else Color(0xFF334155)
+        1 -> Color(0xFF854D0E)
+        2 -> Color(0xFF334155)
+        3 -> Color(0xFF9A3412)
+        else -> Color(0xFF475569)
     }
 
-    Surface(
+    Card(
         shape = RoundedCornerShape(14.dp),
-        color = if (isCurrentUser) {
-            MotoOrangePrimary.copy(alpha = 0.12f)
-        } else {
-            if (isDark) Color(0xFF18181B) else Color.White
-        },
+        colors = CardDefaults.cardColors(
+            containerColor = if (isCurrentUser) Color(0xFFFFFBEB) else Color.White
+        ),
         border = BorderStroke(
             if (isCurrentUser) 1.5.dp else 1.dp,
-            if (isCurrentUser) MotoOrangePrimary else (if (isDark) Color(0xFF27272A) else Color(0xFFE2E8F0))
+            if (isCurrentUser) Color(0xFFF59E0B) else Color(0xFFE2E8F0)
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
@@ -682,6 +698,7 @@ fun RankingPilotCard(
             Surface(
                 shape = CircleShape,
                 color = positionBadgeColor,
+                border = BorderStroke(1.dp, positionTextColor.copy(alpha = 0.3f)),
                 modifier = Modifier.size(32.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -699,7 +716,7 @@ fun RankingPilotCard(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(if (isDark) Color(0xFF262626) else Color(0xFFE2E8F0))
+                    .background(Color(0xFFE2E8F0))
                     .border(1.5.dp, rank.badgeColor, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -715,7 +732,7 @@ fun RankingPilotCard(
                         text = if (member.nickname.isNotBlank()) member.nickname.take(2).uppercase() else member.avatarInitials,
                         fontWeight = FontWeight.Black,
                         fontSize = 13.sp,
-                        color = if (isDark) Color.White else Color.Black
+                        color = Color(0xFF0F172A)
                     )
                 }
             }
@@ -730,7 +747,7 @@ fun RankingPilotCard(
                         text = member.fullName,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
-                        color = if (isDark) Color.White else Color(0xFF0F172A),
+                        color = Color(0xFF0F172A),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -760,11 +777,11 @@ fun RankingPilotCard(
                         fontWeight = FontWeight.Bold,
                         color = rank.badgeColor
                     )
-                    Text(text = "•", fontSize = 10.sp, color = Color.Gray)
+                    Text(text = "•", fontSize = 10.sp, color = Color(0xFF94A3B8))
                     Text(
-                        text = if (member.bikeModel.isNotBlank()) "${member.bikeBrand} ${member.bikeModel}" else "TX 200",
+                        text = if (member.bikeModel.isNotBlank()) "${member.bikeBrand} ${member.bikeModel}" else "Keeway TX 200",
                         fontSize = 10.sp,
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        color = Color(0xFF64748B),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -780,7 +797,7 @@ fun RankingPilotCard(
                     MetricChip(
                         icon = Icons.Default.ThumbUp,
                         value = "${member.positiveRatingsCount}",
-                        tint = Color(0xFF22C55E)
+                        tint = Color(0xFF16A34A)
                     )
                     if (member.negativeRatingsCount > 0) {
                         MetricChip(
@@ -791,8 +808,8 @@ fun RankingPilotCard(
                     }
                     MetricChip(
                         icon = Icons.Default.Speed,
-                        value = "${member.totalKmRidden.toInt()}k",
-                        tint = MotoGoldSecondary
+                        value = "${member.totalKmRidden.toInt()} km",
+                        tint = Color(0xFFD97706)
                     )
                     if (member.sosAssistanceCount > 0) {
                         MetricChip(
@@ -804,10 +821,10 @@ fun RankingPilotCard(
                 }
             }
 
-            // Puntuación Principal Destacada según Filtro y Botón Calificar
+            // Puntuación Principal y Botones de Acción
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 val primaryMetricText = when (filterCategory) {
                     RankingCategoryFilter.GENERAL, RankingCategoryFilter.DESTACADOS -> "$meritPoints"
@@ -829,24 +846,56 @@ fun RankingPilotCard(
 
                 Text(
                     text = primaryMetricText,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Black,
-                    color = MotoOrangePrimary
+                    color = Color(0xFFB45309)
                 )
                 Text(
                     text = metricUnit,
-                    fontSize = 8.sp,
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                    color = Color(0xFF64748B)
                 )
 
-                if (!isCurrentUser) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Botón Calificar (Solo si no soy yo)
+                    if (!isCurrentUser) {
+                        Surface(
+                            onClick = onRateClick,
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFEF3C7),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ThumbUp,
+                                    contentDescription = null,
+                                    tint = Color(0xFF92400E),
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Text(
+                                    text = "Calificar",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF92400E)
+                                )
+                            }
+                        }
+                    }
+
+                    // Botón Ver Carnet Digital
                     Surface(
-                        onClick = onRateClick,
+                        onClick = onClick,
                         shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF1E293B),
-                        border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.6f)),
-                        modifier = Modifier.padding(top = 2.dp)
+                        color = Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
@@ -854,16 +903,16 @@ fun RankingPilotCard(
                             horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Icon(
-                                Icons.Default.ThumbUp,
-                                contentDescription = null,
-                                tint = MotoGoldSecondary,
+                                Icons.Default.Badge,
+                                contentDescription = "Carnet",
+                                tint = Color(0xFF334155),
                                 modifier = Modifier.size(10.dp)
                             )
                             Text(
-                                text = "Calificar",
-                                fontSize = 8.sp,
+                                text = "Carnet",
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MotoGoldSecondary
+                                color = Color(0xFF334155)
                             )
                         }
                     }
@@ -879,10 +928,10 @@ fun MetricChip(
     value: String,
     tint: Color
 ) {
-    val isDark = isSystemInDarkTheme()
     Surface(
         shape = RoundedCornerShape(4.dp),
-        color = if (isDark) Color(0xFF27272A) else Color(0xFFF1F5F9)
+        color = Color(0xFFF1F5F9),
+        border = BorderStroke(0.5.dp, Color(0xFFE2E8F0))
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -894,8 +943,140 @@ fun MetricChip(
                 text = value,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                color = Color(0xFF334155)
             )
+        }
+    }
+}
+
+/**
+ * Diálogo Modal: Explicación del Sistema de Méritos y Rangos de Honor
+ */
+@Composable
+fun MeritSystemInfoDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = Color(0xFFD97706))
+                Text("Sistema de Mérito & Rangos", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
+            }
+        },
+        text = {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    Text(
+                        text = "El Ranking Team TX premia la constancia, la hermandad en carretera, la participación en caravanas y el auxilio a hermanos caídos.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF475569)
+                    )
+                }
+
+                item {
+                    Text("Puntos de Mérito por Acción:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("🛣️ 10 KM Recorridos en Moto = +1 Punto", fontSize = 11.sp, color = Color(0xFF334155))
+                            Text("🏍️ Asistencia a Rodada Oficial = +50 Puntos", fontSize = 11.sp, color = Color(0xFF334155))
+                            Text("🏁 Rodada de Fondo (>100 KM) = +100 Puntos", fontSize = 11.sp, color = Color(0xFF334155))
+                            Text("🏆 Evento Nacional / Aniversario = +200 Puntos", fontSize = 11.sp, color = Color(0xFF334155))
+                            Text("🚨 Asistencia a Emergencia SOS Vial = +150 Puntos", fontSize = 11.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
+                            Text("🎖️ Reto Motero Completado = +75 Puntos", fontSize = 11.sp, color = Color(0xFF334155))
+                            Text("👍 Calificación Positiva de Hermano = +15 Puntos", fontSize = 11.sp, color = Color(0xFF16A34A))
+                            Text("👎 Falta o Llamado de Atención = -15 Puntos", fontSize = 11.sp, color = TxFlameRed)
+                        }
+                    }
+                }
+
+                item {
+                    Text("Rangos Honoríficos TX:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
+                        BIKER_RANKS.forEach { r ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(r.icon, contentDescription = null, tint = r.badgeColor, modifier = Modifier.size(20.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(r.title, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = r.badgeColor)
+                                        Text(r.description, fontSize = 10.sp, color = Color(0xFF64748B))
+                                    }
+                                    Text("${r.minPoints} - ${if (r.maxPoints == Int.MAX_VALUE) "+" else r.maxPoints.toString()} pts", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
+            ) {
+                Text("Entendido", color = Color.Black, fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = Color.White
+    )
+}
+
+/**
+ * Compartir Podio del Ranking por WhatsApp
+ */
+fun shareRankingViaWhatsApp(context: Context, topPilots: List<MemberProfile>, categoryName: String) {
+    val shareText = buildString {
+        appendLine("🏆🏍️ RANKING OFICIAL TEAM TX VENEZUELA 🏍️🏆")
+        appendLine("📊 Categoría: $categoryName")
+        appendLine("📅 Fecha: ${java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date())}")
+        appendLine()
+        appendLine("🎖️ CUADRO DE HONOR Y LÍDERES:")
+        topPilots.forEachIndexed { index, pilot ->
+            val pts = calculateMemberMeritPoints(pilot)
+            val rank = getMemberHonorRank(pts)
+            val medal = when (index) {
+                0 -> "🥇"
+                1 -> "🥈"
+                2 -> "🥉"
+                else -> "#${index + 1}"
+            }
+            appendLine("$medal ${pilot.fullName} (${pilot.nickname.ifBlank { "Piloto" }})")
+            appendLine("   🎖️ ${rank.title} • $pts Puntos • ${pilot.chapterState}")
+        }
+        appendLine()
+        appendLine("¡Suma kilómetros, asiste a las rodadas y lidera el podio con la App Oficial Team TX!")
+    }
+
+    try {
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, shareText)
+            setPackage("com.whatsapp")
+        }
+        context.startActivity(sendIntent)
+    } catch (_: Exception) {
+        try {
+            val generalIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, shareText)
+            }
+            context.startActivity(Intent.createChooser(generalIntent, "Compartir Ranking Team TX"))
+        } catch (_: Exception) {
+            Toast.makeText(context, "No se pudo compartir el ranking", Toast.LENGTH_SHORT).show()
         }
     }
 }

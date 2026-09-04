@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,17 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.model.MemberProfile
 import com.example.data.model.PassportDestination
 import com.example.data.model.PassportStamp
-import com.example.dashboard.DashboardFondoConfig
-import com.example.dashboard.TipoFondoDashboard
 import com.example.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -56,32 +53,58 @@ fun PassportScreen(
         destinations.filter { it.id in stampedDestinationIds }.sumOf { it.requiredKm }
     }
 
-    val isLight = DashboardFondoConfig.tipoFondo == TipoFondoDashboard.TEMA_CLARO_ESTANDAR
-    val bgColor = if (isLight) DashboardFondoConfig.ColorFondoClaro else Color.Black
-    val cardBgColor = if (isLight) DashboardFondoConfig.ColorTarjetaClara else TxCarbonDark
-    val textColorPrimary = if (isLight) DashboardFondoConfig.ColorTextoPrimario else Color.White
-    val textColorSecondary = if (isLight) DashboardFondoConfig.ColorTextoSecundario else TxSteelSilver
-    val borderColor = if (isLight) DashboardFondoConfig.ColorBordeClaro else TxSteelSilver.copy(alpha = 0.2f)
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Explore, contentDescription = null, tint = TxGoldBrass)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("PASAPORTE MOTERO TX", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (isLight) Color.White else Color.White)
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Explore, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "PASAPORTE MOTERO TX",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 16.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                        }
+                        Text(
+                            "Libreta Oficial de Rutas y Sellos",
+                            fontSize = 11.sp,
+                            color = MotoOrangePrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color(0xFF0F172A))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = TxCarbonDark)
+                actions = {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onBack() }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Home, contentDescription = "Inicio", tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Inicio", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
-        containerColor = bgColor
+        containerColor = Color(0xFFF8FAFC)
     ) { padding ->
         Column(
             modifier = Modifier
@@ -91,8 +114,8 @@ fun PassportScreen(
             // Passport Booklet Cover Card
             Surface(
                 shape = RoundedCornerShape(18.dp),
-                color = cardBgColor,
-                border = androidx.compose.foundation.BorderStroke(2.dp, TxGoldBrass),
+                color = Color.White,
+                border = BorderStroke(1.5.dp, Color(0xFFD97706)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
@@ -104,27 +127,29 @@ fun PassportScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Stars, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(28.dp))
+                            Icon(Icons.Default.Stars, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(28.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(
                                     text = "TEAM NACIONAL TX VENEZUELA",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = TxGoldBrass,
-                                    letterSpacing = 1.sp
+                                    color = Color(0xFFD97706),
+                                    letterSpacing = 0.5.sp
                                 )
                                 Text(
                                     text = "PASAPORTE OFICIAL DE RUTAS",
                                     fontSize = 10.sp,
-                                    color = textColorSecondary
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF64748B)
                                 )
                             }
                         }
 
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MotoOrangePrimary.copy(alpha = 0.2f)
+                            color = Color(0xFFFFEDD5),
+                            border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.5f))
                         ) {
                             Text(
                                 text = currentMember?.memberNumber ?: "TX-PILOT",
@@ -143,15 +168,15 @@ fun PassportScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column {
-                            Text("PILOTO TITULAR", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = textColorSecondary)
-                            Text(currentMember?.fullName ?: "Piloto TX", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = textColorPrimary)
-                            Text(currentMember?.nickname?.let { "\"$it\"" } ?: "", fontSize = 12.sp, color = TxGoldBrass)
+                            Text("PILOTO TITULAR", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                            Text(currentMember?.fullName ?: "Piloto TX", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                            Text(currentMember?.nickname?.let { "\"$it\"" } ?: "", fontSize = 12.sp, color = Color(0xFFD97706), fontWeight = FontWeight.SemiBold)
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("PROGRESO DE SELLOS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = textColorSecondary)
-                            Text("$stampedCount / $totalDestinations Destinos", fontSize = 14.sp, fontWeight = FontWeight.Black, color = textColorPrimary)
-                            Text("$totalKmEarned KM Sellados", fontSize = 12.sp, color = StatusSuccess, fontWeight = FontWeight.SemiBold)
+                            Text("PROGRESO DE SELLOS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                            Text("$stampedCount / $totalDestinations Destinos", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
+                            Text("$totalKmEarned KM Sellados", fontSize = 12.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -164,8 +189,8 @@ fun PassportScreen(
                             .fillMaxWidth()
                             .height(8.dp)
                             .clip(RoundedCornerShape(4.dp)),
-                        color = TxGoldBrass,
-                        trackColor = if (isLight) Color(0xFFE2E8F0) else TxCharcoalSurface
+                        color = Color(0xFFD97706),
+                        trackColor = Color(0xFFE2E8F0)
                     )
                 }
             }
@@ -174,7 +199,7 @@ fun PassportScreen(
                 text = "DESTINOS EMBLEMÁTICOS DE VENEZUELA",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = textColorSecondary,
+                color = Color(0xFF64748B),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
 
@@ -192,9 +217,6 @@ fun PassportScreen(
                         destination = destination,
                         stamp = stamp,
                         isStamped = isStamped,
-                        cardBgColor = cardBgColor,
-                        textColorPrimary = textColorPrimary,
-                        textColorSecondary = textColorSecondary,
                         onStampClick = {
                             selectedDestinationForStamp = destination
                             showStampDialog = true
@@ -211,7 +233,6 @@ fun PassportScreen(
     if (showStampDialog && selectedDestinationForStamp != null) {
         StampDestinationDialog(
             destination = selectedDestinationForStamp!!,
-            isLight = isLight,
             onDismiss = { showStampDialog = false },
             onConfirm = { proofUri, customDate ->
                 onStampDestination(selectedDestinationForStamp!!, proofUri, customDate) { success ->
@@ -227,18 +248,17 @@ fun PassportDestinationCard(
     destination: PassportDestination,
     stamp: PassportStamp?,
     isStamped: Boolean,
-    cardBgColor: Color,
-    textColorPrimary: Color,
-    textColorSecondary: Color,
     onStampClick: () -> Unit,
     onDeleteStamp: () -> Unit
 ) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = cardBgColor,
-        border = androidx.compose.foundation.BorderStroke(
+        color = Color.White,
+        border = BorderStroke(
             1.dp,
-            if (isStamped) TxGoldBrass else textColorSecondary.copy(alpha = 0.3f)
+            if (isStamped) Color(0xFFD97706) else Color(0xFFE2E8F0)
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -249,8 +269,8 @@ fun PassportDestinationCard(
             // Icon Badge
             Surface(
                 shape = CircleShape,
-                color = if (isStamped) TxGoldBrass.copy(alpha = 0.2f) else TxCharcoalSurface,
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isStamped) TxGoldBrass else TxSteelSilver.copy(alpha = 0.4f)),
+                color = if (isStamped) Color(0xFFFEF3C7) else Color(0xFFF1F5F9),
+                border = BorderStroke(1.dp, if (isStamped) Color(0xFFD97706) else Color(0xFFCBD5E1)),
                 modifier = Modifier.size(50.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -273,7 +293,7 @@ fun PassportDestinationCard(
                         text = destination.title,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = textColorPrimary
+                        color = Color(0xFF0F172A)
                     )
                 }
 
@@ -289,7 +309,7 @@ fun PassportDestinationCard(
                 Text(
                     text = destination.description,
                     fontSize = 11.sp,
-                    color = textColorSecondary,
+                    color = Color(0xFF475569),
                     lineHeight = 15.sp
                 )
 
@@ -297,20 +317,20 @@ fun PassportDestinationCard(
                     Spacer(modifier = Modifier.height(8.dp))
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = TxGoldBrass.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, TxGoldBrass)
+                        color = Color(0xFFFEF3C7),
+                        border = BorderStroke(1.dp, Color(0xFFD97706))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Verified, contentDescription = null, tint = TxGoldBrass, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Verified, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "SELLADO OFICIAL: ${stamp.stampedDate}",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TxGoldBrass
+                                color = Color(0xFFB45309)
                             )
                         }
                     }
@@ -320,20 +340,45 @@ fun PassportDestinationCard(
             Spacer(modifier = Modifier.width(8.dp))
 
             if (isStamped) {
-                IconButton(onClick = onDeleteStamp) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar sello", tint = TxFlameRed, modifier = Modifier.size(18.dp))
+                IconButton(onClick = { showDeleteConfirm = true }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar sello", tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
                 }
             } else {
                 Button(
                     onClick = onStampClick,
                     colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Sellar", fontSize = 12.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("Sellar", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("¿Eliminar sello?", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
+            text = { Text("Se eliminará la estampa de visita a '${destination.title}'. Podrás sellarla nuevamente cuando quieras.", color = Color(0xFF334155)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDeleteStamp()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("Eliminar", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancelar", color = Color(0xFF64748B))
+                }
+            },
+            containerColor = Color.White
+        )
     }
 }
 
@@ -341,7 +386,6 @@ fun PassportDestinationCard(
 @Composable
 fun StampDestinationDialog(
     destination: PassportDestination,
-    isLight: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (proofUri: Uri?, customDate: String) -> Unit
 ) {
@@ -357,13 +401,22 @@ fun StampDestinationDialog(
         selectedPhotoUri = uri
     }
 
+    val tfColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF0F172A),
+        focusedBorderColor = MotoOrangePrimary,
+        unfocusedBorderColor = Color(0xFFCBD5E1),
+        focusedLabelColor = MotoOrangePrimary,
+        unfocusedLabelColor = Color(0xFF64748B)
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(destination.badgeIcon, fontSize = 22.sp)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Sellar: ${destination.title}", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Sellar: ${destination.title}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
             }
         },
         text = {
@@ -374,7 +427,7 @@ fun StampDestinationDialog(
                 Text(
                     text = "Registra tu visita a este destino emblemático para añadir el sello dorado a tu pasaporte.",
                     fontSize = 12.sp,
-                    color = TxSteelSilver
+                    color = Color(0xFF64748B)
                 )
 
                 // Photo proof picker
@@ -383,8 +436,8 @@ fun StampDestinationDialog(
                         .fillMaxWidth()
                         .height(120.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(TxCharcoalSurface)
-                        .border(1.dp, TxSteelSilver.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF8FAFC))
+                        .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(12.dp))
                         .clickable { photoLauncher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
@@ -399,7 +452,7 @@ fun StampDestinationDialog(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(32.dp))
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("Foto de la rodada / comprobante (Opcional)", fontSize = 11.sp, color = TxSteelSilver)
+                            Text("Foto de la rodada / comprobante (Opcional)", fontSize = 11.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -408,6 +461,7 @@ fun StampDestinationDialog(
                     value = customDate,
                     onValueChange = { customDate = it },
                     label = { Text("Fecha de la visita (DD/MM/AAAA)") },
+                    colors = tfColors,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -418,20 +472,20 @@ fun StampDestinationDialog(
                     isUploading = true
                     onConfirm(selectedPhotoUri, customDate)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = TxGoldBrass)
+                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
             ) {
                 if (isUploading) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.Black)
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
                 } else {
-                    Text("Aplicar Sello 🎖️", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("Aplicar Sello 🎖️", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text("Cancelar", color = Color(0xFF64748B))
             }
         },
-        containerColor = TxCarbonDark
+        containerColor = Color.White
     )
 }

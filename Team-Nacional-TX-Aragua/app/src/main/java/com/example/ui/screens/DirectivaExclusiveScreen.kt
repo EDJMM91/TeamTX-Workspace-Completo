@@ -71,6 +71,8 @@ fun DirectivaExclusiveScreen(
     invitationCodes: List<InvitationCode>,
     accessRequests: List<AccessRequest>,
     directivaChatMessages: List<ChatMessage>,
+    disciplinaryRecords: List<DisciplinaryRecord> = emptyList(),
+    onExpelMember: (MemberProfile, String) -> Unit = { _, _ -> },
     onGenerateCode: (targetRole: MemberRole, note: String, isSpecialGuest: Boolean, durationHours: Int) -> String,
     onDeleteCode: (InvitationCode) -> Unit,
     onDarDeBajaInvitado: (MemberProfile) -> Unit = {},
@@ -313,30 +315,26 @@ fun DirectivaExclusiveScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (isLeaderSuperAdmin) DirectivaGoldBg else MotoOrangePrimary.copy(alpha = 0.12f),
-                                    border = BorderStroke(1.dp, if (isLeaderSuperAdmin) DirectivaGoldPrimary else MotoOrangePrimary)
-                                ) {
-                                    Text(
-                                        text = if (isLeaderSuperAdmin) "👑 LÍDER SUPREMO" else "🛡️ DIRECTIVO",
-                                        color = if (isLeaderSuperAdmin) DirectivaGoldDark else MotoOrangePrimary,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Black,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-
                                 Button(
                                     onClick = onBack,
                                     colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed),
                                     shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.height(30.dp).testTag("btn_exit_directiva")
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(32.dp).testTag("btn_exit_directiva")
                                 ) {
-                                    Icon(Icons.Default.ArrowBack, contentDescription = "Salir al Menú Principal", tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Icon(
+                                        Icons.Default.Home,
+                                        contentDescription = "Volver al Inicio",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Salir", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text(
+                                        "Volver al Inicio",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
                                 }
 
                                 if (onToggleBottomNav != null) {
@@ -610,6 +608,7 @@ fun DirectivaExclusiveScreen(
                             currentMember = currentMember,
                             isLeaderSuperAdmin = isLeaderSuperAdmin,
                             roleConfigs = roleConfigs,
+                            disciplinaryRecords = disciplinaryRecords,
                             onUpdateRoleConfig = onUpdateRoleConfig,
                             onTransferClick = { member ->
                                 selectedMemberForAction = member
@@ -627,6 +626,7 @@ fun DirectivaExclusiveScreen(
                             onSuspendMember = onSuspendMember,
                             onReactivateMember = onReactivateMember,
                             onToggleSolvency = onToggleSolvency,
+                            onExpelMember = onExpelMember,
                             onOpenMuteDialog = { member ->
                                 memberToMute = member
                                 muteReasonInput = ""
@@ -2027,12 +2027,16 @@ private fun DirectivaCargosSection(
     onReactivateMember: (MemberProfile) -> Unit,
     onToggleSolvency: (MemberProfile) -> Unit,
     onOpenMuteDialog: (MemberProfile) -> Unit,
-    onOpenSuspendDialog: (MemberProfile) -> Unit
+    onOpenSuspendDialog: (MemberProfile) -> Unit,
+    disciplinaryRecords: List<DisciplinaryRecord> = emptyList(),
+    onExpelMember: (MemberProfile, String) -> Unit = { _, _ -> }
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("TODOS") }
+    var memberToExpel by remember { mutableStateOf<MemberProfile?>(null) }
+    var expelReasonInput by remember { mutableStateOf("") }
 
-    val filterOptions = listOf("TODOS", "DIRECTIVA", "ACTIVOS", "SILENCIADOS", "SUSPENDIDOS", "INSOLVENTES")
+    val filterOptions = listOf("TODOS", "DIRECTIVA", "ACTIVOS", "SILENCIADOS", "SUSPENDIDOS", "INSOLVENTES", "BAJAS / EXPULSADOS")
 
     val filteredMembers = remember(allMembers, searchQuery, selectedFilter) {
         allMembers.filter { member ->
@@ -2057,6 +2061,17 @@ private fun DirectivaCargosSection(
         }
     }
 
+    val expelledRecords = remember(disciplinaryRecords, searchQuery) {
+        disciplinaryRecords.filter { record ->
+            val matchesQuery = searchQuery.isBlank() ||
+                    record.memberName.contains(searchQuery, ignoreCase = true) ||
+                    record.reason.contains(searchQuery, ignoreCase = true) ||
+                    record.issuedBy.contains(searchQuery, ignoreCase = true) ||
+                    record.penaltyType.contains(searchQuery, ignoreCase = true)
+            matchesQuery
+        }
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 96.dp),
@@ -2078,7 +2093,7 @@ private fun DirectivaCargosSection(
                         fontSize = 13.sp
                     )
                     Text(
-                        text = "Control en tiempo real de solvencias, silencios de chat, sanciones disciplinarias y cargos institucionales.",
+                        text = "Control en tiempo real de solvencias, silencios de chat, sanciones disciplinarias, expulsiones y cargos institucionales.",
                         fontSize = 11.sp,
                         color = LightTextSecondary
                     )
@@ -2092,7 +2107,7 @@ private fun DirectivaCargosSection(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Buscar por nombre, placa, carnet o capítulo...", fontSize = 12.sp) },
+                    placeholder = { Text("Buscar por nombre, placa, carnet, motivo o autoridad...", fontSize = 12.sp) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = LightTextMuted, modifier = Modifier.size(18.dp)) },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
@@ -2113,10 +2128,10 @@ private fun DirectivaCargosSection(
                             onClick = { selectedFilter = filter },
                             label = { Text(filter, fontSize = 10.sp, fontWeight = FontWeight.Bold) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotoOrangePrimary,
+                                selectedContainerColor = if (filter == "BAJAS / EXPULSADOS") StatusError else MotoOrangePrimary,
                                 selectedLabelColor = Color.White,
                                 containerColor = LightCardBg,
-                                labelColor = LightTextSecondary
+                                labelColor = if (filter == "BAJAS / EXPULSADOS") StatusError else LightTextSecondary
                             )
                         )
                     }
@@ -2124,26 +2139,170 @@ private fun DirectivaCargosSection(
             }
         }
 
-        // Lista de Miembros
-        if (filteredMembers.isEmpty()) {
+        if (selectedFilter == "BAJAS / EXPULSADOS") {
             item {
                 Surface(
-                    color = LightCardBg,
+                    color = Color(0xFFFEF2F2),
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, LightBorder),
+                    border = BorderStroke(1.dp, Color(0xFFFECACA)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "No se encontraron pilotos que coincidan con la búsqueda.",
-                        color = LightTextMuted,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(16.dp),
-                        textAlign = TextAlign.Center
-                    )
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Security, contentDescription = null, tint = StatusError, modifier = Modifier.size(18.dp))
+                            Text(
+                                text = "LIBRO DE ACTAS: MIEMBROS PASADOS Y EXPULSIONES",
+                                fontWeight = FontWeight.Black,
+                                color = StatusError,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Text(
+                            text = "Historial inmutable con fecha, motivo y directivo actuante. Los miembros aquí listados fueron removidos de la app y sus credenciales revocadas.",
+                            fontSize = 11.sp,
+                            color = Color(0xFF7F1D1D)
+                        )
+                    }
+                }
+            }
+
+            if (expelledRecords.isEmpty()) {
+                item {
+                    Surface(
+                        color = LightCardBg,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, LightBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "No hay registros de miembros expulsados o dados de baja en el archivo histórico.",
+                            color = LightTextMuted,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(16.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                items(expelledRecords, key = { it.id }) { record ->
+                    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy • hh:mm a", Locale.getDefault()) }
+                    val fechaStr = dateFormat.format(Date(record.timestamp))
+
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                        border = BorderStroke(1.dp, StatusError.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(2.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = record.memberName,
+                                        fontWeight = FontWeight.Black,
+                                        color = LightTextPrimary,
+                                        fontSize = 13.sp
+                                    )
+                                    Text(
+                                        text = "Fecha de registro: $fechaStr",
+                                        fontSize = 10.sp,
+                                        color = LightTextMuted
+                                    )
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = StatusError.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, StatusError)
+                                ) {
+                                    Text(
+                                        text = record.penaltyType.ifBlank { "EXPULSIÓN" },
+                                        color = StatusError,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(color = LightBorder, thickness = 0.5.dp)
+
+                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(
+                                    text = "Motivo de la Sanción:",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF334155)
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = LightCardSubtle,
+                                    border = BorderStroke(0.5.dp, LightBorder),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = record.reason,
+                                        fontSize = 11.sp,
+                                        color = LightTextPrimary,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Expedido por: ${record.issuedBy}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = LightTextMuted
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFFF1F5F9)
+                                ) {
+                                    Text(
+                                        text = "🔒 Acceso Revocado",
+                                        fontSize = 9.sp,
+                                        color = LightTextSecondary,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         } else {
-            items(filteredMembers, key = { it.id }) { member ->
+            // Lista de Miembros Activos/Filtrados
+            if (filteredMembers.isEmpty()) {
+                item {
+                    Surface(
+                        color = LightCardBg,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, LightBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "No se encontraron pilotos que coincidan con la búsqueda.",
+                            color = LightTextMuted,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(16.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                items(filteredMembers, key = { it.id }) { member ->
                 val roleColor = Color(member.role.badgeColorHex)
                 val isMe = member.id == (currentMember?.id ?: 0)
 
@@ -2264,54 +2423,177 @@ private fun DirectivaCargosSection(
                         }
 
                         // Botones de Acción sobre el Miembro
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedButton(
-                                onClick = { onAssignRoleClick(member) },
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                modifier = Modifier.weight(1f).height(32.dp)
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Asignar Cargo", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                OutlinedButton(
+                                    onClick = { onAssignRoleClick(member) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.weight(1f).height(32.dp)
+                                ) {
+                                    Text("Asignar Cargo", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        if (member.isChatMuted) onToggleChatMute(member, false, "")
+                                        else onOpenMuteDialog(member)
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = if (member.isChatMuted) StatusSuccess else DirectivaGoldDark
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.weight(1f).height(32.dp)
+                                ) {
+                                    Text(if (member.isChatMuted) "Desmutear" else "Silenciar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
 
-                            OutlinedButton(
-                                onClick = {
-                                    if (member.isChatMuted) onToggleChatMute(member, false, "")
-                                    else onOpenMuteDialog(member)
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = if (member.isChatMuted) StatusSuccess else DirectivaGoldDark
-                                ),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                modifier = Modifier.weight(0.9f).height(32.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(if (member.isChatMuted) "Desmutear" else "Silenciar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            }
+                                Button(
+                                    onClick = {
+                                        if (member.isSuspended) onReactivateMember(member)
+                                        else onOpenSuspendDialog(member)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (member.isSuspended) StatusSuccess else Color(0xFFD97706)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.weight(1f).height(32.dp)
+                                ) {
+                                    Text(if (member.isSuspended) "Reactivar" else "Suspender", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
 
-                            Button(
-                                onClick = {
-                                    if (member.isSuspended) onReactivateMember(member)
-                                    else onOpenSuspendDialog(member)
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (member.isSuspended) StatusSuccess else StatusError
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                modifier = Modifier.weight(0.9f).height(32.dp)
-                            ) {
-                                Text(if (member.isSuspended) "Reactivar" else "Suspender", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                val canExpel = !isMe && member.role != MemberRole.DESARROLLADOR && (member.role != MemberRole.PRESIDENTE || isLeaderSuperAdmin)
+                                Button(
+                                    onClick = {
+                                        memberToExpel = member
+                                        expelReasonInput = ""
+                                    },
+                                    enabled = canExpel,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = StatusError,
+                                        disabledContainerColor = StatusError.copy(alpha = 0.3f)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.weight(1f).height(32.dp)
+                                ) {
+                                    Icon(Icons.Default.DeleteForever, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Expulsar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+    // 🛑 Diálogo de Confirmación: Expulsión Definitiva de Miembro
+    memberToExpel?.let { target ->
+        AlertDialog(
+            onDismissRequest = { memberToExpel = null },
+            icon = {
+                Icon(
+                    Icons.Default.DeleteForever,
+                    contentDescription = null,
+                    tint = StatusError,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Expulsar Miembro Definitivamente",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 15.sp,
+                    color = LightTextPrimary,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(
+                        color = Color(0xFFFEF2F2),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Piloto: ${target.fullName} (${target.memberNumber.ifBlank { "S/N" }})",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = LightTextPrimary
+                            )
+                            Text(
+                                text = "⚠️ ADVERTENCIA: Esta acción eliminará al miembro de toda la plataforma, revocará y eliminará su código de acceso para que NO pueda volver a ingresar, y quedará asentado en el Libro de Actas Histórico.",
+                                fontSize = 11.sp,
+                                color = Color(0xFF991B1B),
+                                lineHeight = 14.sp
+                            )
+                            Text(
+                                text = "Para volver a entrar en el futuro, deberá solicitar un código nuevo desde el inicio formalmente.",
+                                fontSize = 10.sp,
+                                color = Color(0xFF7F1D1D),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = expelReasonInput,
+                        onValueChange = { expelReasonInput = it },
+                        label = { Text("Motivo de la Expulsión (Obligatorio)", fontSize = 11.sp) },
+                        placeholder = { Text("Ej: Incumplimiento grave de estatutos institucionales...", fontSize = 11.sp) },
+                        minLines = 3,
+                        maxLines = 5,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = LightCardBg,
+                            unfocusedContainerColor = LightCardBg
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val reason = expelReasonInput.trim().ifBlank { "Sin motivo especificado por directiva." }
+                        onExpelMember(target, reason)
+                        memberToExpel = null
+                    },
+                    enabled = expelReasonInput.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusError),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Confirmar Expulsión", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { memberToExpel = null },
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Cancelar", fontSize = 11.sp, color = LightTextSecondary)
+                }
+            },
+            containerColor = LightCardBg,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }
 

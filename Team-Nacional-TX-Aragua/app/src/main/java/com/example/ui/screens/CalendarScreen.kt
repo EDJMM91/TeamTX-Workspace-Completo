@@ -310,20 +310,49 @@ fun CalendarScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("📅", fontSize = 22.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFFF7ED),
+                            border = BorderStroke(1.dp, Color(0xFFFDBA74)),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("📅", fontSize = 20.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Calendario Motero TX", fontWeight = FontWeight.Black, fontSize = 17.sp, color = Color.White)
-                            Text("Rutas, Clima, Garaje y Avisos en Vivo", fontSize = 11.sp, color = MotoGoldSecondary)
+                            Text("Calendario Motero TX", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
+                            Text("Rutas, Clima, Garaje y Avisos en Vivo", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MotoOrangePrimary)
                         }
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color(0xFF0F172A))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = TxCarbonDark)
+                actions = {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClick = onBack)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Home, contentDescription = "Inicio", tint = Color(0xFF0F172A), modifier = Modifier.size(16.dp))
+                            Text("Inicio", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
         floatingActionButton = {
@@ -332,23 +361,24 @@ fun CalendarScreen(
                     prefilledTimeForCreate = "08:00 AM"
                     showCreateDialog = true
                 },
-                containerColor = TxFlameRed,
+                containerColor = MotoOrangePrimary,
                 contentColor = Color.White,
                 shape = CircleShape
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Nuevo Evento")
             }
         },
-        containerColor = Color.Black
+        containerColor = Color(0xFFF8FAFC)
     ) { padding ->
         Column(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // SELECTOR DE VISTA: [ DÍA | MES | AÑO ]
+            // SELECTOR DE VISTA: [ DÍA | MES | AÑO ] (Tema Claro Táctico)
             Surface(
-                color = Color(0xFF131722),
+                color = Color.White,
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -361,8 +391,8 @@ fun CalendarScreen(
                         val isSelected = currentViewMode == mode
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) MotoOrangePrimary else Color(0xFF1E2433),
-                            border = BorderStroke(1.dp, if (isSelected) MotoOrangePrimary else Color(0xFF334155)),
+                            color = if (isSelected) MotoOrangePrimary else Color(0xFFF8FAFC),
+                            border = BorderStroke(1.dp, if (isSelected) MotoOrangePrimary else Color(0xFFE2E8F0)),
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
@@ -376,7 +406,7 @@ fun CalendarScreen(
                                 Icon(
                                     imageVector = mode.icon,
                                     contentDescription = mode.label,
-                                    tint = if (isSelected) Color.White else Color(0xFF94A3B8),
+                                    tint = if (isSelected) Color.White else Color(0xFF475569),
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -384,7 +414,7 @@ fun CalendarScreen(
                                     text = mode.label,
                                     fontSize = 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Black else FontWeight.SemiBold,
-                                    color = if (isSelected) Color.White else Color(0xFFCBD5E1)
+                                    color = if (isSelected) Color.White else Color(0xFF1E293B)
                                 )
                             }
                         }
@@ -392,9 +422,9 @@ fun CalendarScreen(
                 }
             }
 
-            // CHIPS DE FILTRO DE CATEGORÍAS
+            // CHIPS DE FILTRO DE CATEGORÍAS (Tema Claro)
             LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 val filterTabs = listOf("TODOS", "RUTAS", "GARAJE", "PERSONALES")
@@ -418,10 +448,11 @@ fun CalendarScreen(
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MotoOrangePrimary,
-                            selectedLabelColor = Color.Black,
-                            containerColor = Color(0xFF1E2433),
-                            labelColor = Color.White
-                        )
+                            selectedLabelColor = Color.White,
+                            containerColor = Color(0xFFF1F5F9),
+                            labelColor = Color(0xFF334155)
+                        ),
+                        border = BorderStroke(1.dp, if (isSelected) MotoOrangePrimary else Color(0xFFCBD5E1))
                     )
                 }
             }
@@ -751,9 +782,10 @@ fun CalendarMonthView(
     val selectedDayFeriado = remember(selectedDateStr) { FeriadosHelper.obtenerFeriadoPorFecha(selectedDateStr) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // CABECERA DEL MES (Selector Mes Anterior / Siguiente)
+        // CABECERA DEL MES (Selector Mes Anterior / Siguiente - Tema Claro)
         Surface(
-            color = Color(0xFF1E2433),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
@@ -770,7 +802,7 @@ fun CalendarMonthView(
                         text = monthFormat.format(currentCalendarMonth.time).replaceFirstChar { it.uppercase() },
                         fontWeight = FontWeight.Black,
                         fontSize = 16.sp,
-                        color = Color.White
+                        color = Color(0xFF0F172A)
                     )
 
                     IconButton(onClick = onNextMonth) {
@@ -778,7 +810,7 @@ fun CalendarMonthView(
                     }
                 }
 
-                // Días de la semana con resaltado de Sáb/Dom en Amarillo y Jueves Motero
+                // Días de la semana con resaltado de Sáb/Dom en Naranja y Jueves Motero
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
@@ -792,9 +824,9 @@ fun CalendarMonthView(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
                             color = when {
-                                isWeekend -> Color(0xFFFACC15) // Amarillo Libre
+                                isWeekend -> Color(0xFFD97706) // Ámbar/Naranja
                                 isThursday -> MotoOrangePrimary // Jueves Motero
-                                else -> Color(0xFF90A4AE)
+                                else -> Color(0xFF64748B)
                             },
                             textAlign = TextAlign.Center,
                             modifier = Modifier.width(38.dp)
@@ -804,7 +836,7 @@ fun CalendarMonthView(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // CUADRÍCULA DE DÍAS DEL MES
+                // CUADRÍCULA DE DÍAS DEL MES (Tema Claro)
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
                     modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp),
@@ -817,19 +849,20 @@ fun CalendarMonthView(
 
                             // Estilos de bordes y fondo según condición
                             val cellBackground = when {
-                                isSelected -> MotoOrangePrimary.copy(alpha = 0.35f)
-                                dayInfo.isToday -> MotoOrangePrimary.copy(alpha = 0.20f)
-                                dayInfo.isWeekend -> Color(0xFFFACC15).copy(alpha = 0.08f)
-                                dayInfo.isThursday -> Color(0xFFEA580C).copy(alpha = 0.08f)
-                                dayEvents.isNotEmpty() -> Color(0xFF263238)
+                                isSelected -> Color(0xFFFFEDD5) // Naranja claro
+                                dayInfo.isToday -> Color(0xFFFEE2E2) // Rojo muy suave
+                                dayInfo.isWeekend -> Color(0xFFFEF9C3) // Amarillo muy suave
+                                dayInfo.isThursday -> Color(0xFFFFF7ED) // Naranja tenue
+                                dayEvents.isNotEmpty() -> Color(0xFFF1F5F9)
                                 else -> Color.Transparent
                             }
 
                             val cellBorder: BorderStroke? = when {
                                 dayInfo.isToday -> BorderStroke(1.5.dp, TxFlameRed)
-                                isSelected -> BorderStroke(1.5.dp, MotoGoldSecondary)
-                                dayInfo.isWeekend -> BorderStroke(0.5.dp, Color(0xFFFACC15).copy(alpha = 0.4f))
-                                dayInfo.isThursday -> BorderStroke(0.5.dp, MotoOrangePrimary.copy(alpha = 0.4f))
+                                isSelected -> BorderStroke(1.5.dp, MotoOrangePrimary)
+                                dayInfo.isWeekend -> BorderStroke(0.5.dp, Color(0xFFFBBF24))
+                                dayInfo.isThursday -> BorderStroke(0.5.dp, MotoOrangePrimary)
+                                dayEvents.isNotEmpty() -> BorderStroke(0.5.dp, Color(0xFFCBD5E1))
                                 else -> null
                             }
 
@@ -856,13 +889,13 @@ fun CalendarMonthView(
                                     Text(
                                         text = "${dayInfo.dayNumber}",
                                         fontSize = 12.sp,
-                                        fontWeight = if (isSelected || dayInfo.isToday || dayEvents.isNotEmpty()) FontWeight.Black else FontWeight.Normal,
+                                        fontWeight = if (isSelected || dayInfo.isToday || dayEvents.isNotEmpty()) FontWeight.Black else FontWeight.SemiBold,
                                         color = when {
                                             dayInfo.isToday -> TxFlameRed
-                                            isSelected -> MotoGoldSecondary
-                                            dayInfo.isWeekend -> Color(0xFFFACC15)
-                                            dayInfo.isThursday -> MotoOrangePrimary
-                                            else -> Color.White
+                                            isSelected -> Color(0xFFC2410C)
+                                            dayInfo.isWeekend -> Color(0xFFB45309)
+                                            dayInfo.isThursday -> Color(0xFFC2410C)
+                                            else -> Color(0xFF0F172A)
                                         }
                                     )
 
@@ -894,13 +927,13 @@ fun CalendarMonthView(
             }
         }
 
-        // BANNER DE FECHA SELECCIONADA / FERIADO
+        // BANNER DE FECHA SELECCIONADA / FERIADO (Tema Claro)
         if (selectedDayFeriado != null) {
             Surface(
-                color = Color(0xFF312E81).copy(alpha = 0.6f),
-                border = BorderStroke(1.dp, Color(0xFF818CF8)),
+                color = Color(0xFFEEF2FF),
+                border = BorderStroke(1.dp, Color(0xFFC7D2FE)),
                 shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -913,19 +946,19 @@ fun CalendarMonthView(
                             text = if (selectedDayFeriado.esOficial) "Feriado Oficial: ${selectedDayFeriado.nombre}" else "Conmemoración: ${selectedDayFeriado.nombre}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
-                            color = Color(0xFFE0E7FF)
+                            color = Color(0xFF1E1B4B)
                         )
                         Text(
                             text = "Fecha: $selectedDateStr • Ideal para agendar rutas o descanso",
                             fontSize = 10.sp,
-                            color = Color(0xFFC7D2FE)
+                            color = Color(0xFF4338CA)
                         )
                     }
                 }
             }
         }
 
-        // LISTA DE EVENTOS PROGRAMADOS
+        // LISTA DE EVENTOS PROGRAMADOS (Tema Claro)
         val dayEvents = filteredEvents.filter { it.eventDate == selectedDateStr }
         val eventsToShow = if (dayEvents.isNotEmpty()) dayEvents else filteredEvents
 
@@ -935,19 +968,20 @@ fun CalendarMonthView(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.EventBusy, contentDescription = null, tint = Color(0xFF607D8B), modifier = Modifier.size(50.dp))
+                    Icon(Icons.Default.EventBusy, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(50.dp))
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text("Sin eventos para esta fecha", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Sin eventos para esta fecha", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("Presiona '+' o toca un día para agendar una rodada, mantenimiento o reunión.", color = Color(0xFF90A4AE), fontSize = 12.sp, textAlign = TextAlign.Center)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Presiona '+' o toca un día para agendar una rodada, mantenimiento o reunión.", color = Color(0xFF64748B), fontSize = 12.sp, textAlign = TextAlign.Center)
+                    Spacer(modifier = Modifier.height(14.dp))
                     Button(
                         onClick = onQuickAddEvent,
-                        colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
+                        colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Agendar Evento Aquí")
+                        Text("Agendar Evento Aquí", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -960,9 +994,9 @@ fun CalendarMonthView(
                 item {
                     Text(
                         text = if (dayEvents.isNotEmpty()) "📌 Eventos del día ($selectedDateStr)" else "📅 Próximos eventos programados",
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                         fontSize = 13.sp,
-                        color = MotoGoldSecondary,
+                        color = Color(0xFF0F172A),
                         modifier = Modifier.padding(bottom = 2.dp)
                     )
                 }
@@ -1048,9 +1082,10 @@ fun CalendarDayView(
     )
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // CABECERA DEL DÍA (Navegador ◀ Hoy ▶)
+        // CABECERA DEL DÍA (Navegador ◀ Hoy ▶ - Tema Claro)
         Surface(
-            color = Color(0xFF1E2433),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -1075,13 +1110,13 @@ fun CalendarDayView(
                             text = fullSpanishFormat.format(currentCal.time).replaceFirstChar { it.uppercase() },
                             fontWeight = FontWeight.Black,
                             fontSize = 14.sp,
-                            color = Color.White
+                            color = Color(0xFF0F172A)
                         )
                         Text(
                             text = if (isToday) "🌟 DÍA EN CURSO (HOY)" else selectedDateStr,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isToday) TxFlameRed else MotoGoldSecondary
+                            color = if (isToday) TxFlameRed else MotoOrangePrimary
                         )
                     }
 
@@ -1097,7 +1132,7 @@ fun CalendarDayView(
                     }
                 }
 
-                // INSIGNIAS DEL DÍA
+                // INSIGNIAS DEL DÍA (Tema Claro)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1106,7 +1141,7 @@ fun CalendarDayView(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     if (isToday) {
-                        Surface(shape = RoundedCornerShape(4.dp), color = TxFlameRed.copy(alpha = 0.2f), border = BorderStroke(0.5.dp, TxFlameRed)) {
+                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFEE2E2), border = BorderStroke(0.5.dp, TxFlameRed)) {
                             Text("🌟 HOY", fontSize = 10.sp, fontWeight = FontWeight.Black, color = TxFlameRed, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                     }
@@ -1114,52 +1149,52 @@ fun CalendarDayView(
                     if (isThursday) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = MotoOrangePrimary.copy(alpha = 0.2f),
+                            color = Color(0xFFFFF7ED),
                             border = BorderStroke(0.5.dp, MotoOrangePrimary),
                             modifier = Modifier.clickable(onClick = onOpenThursdayPlan)
                         ) {
-                            Text("🏍️ JUEVES MOTERO • Toca para planificar nocturna", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MotoOrangePrimary, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            Text("🏍️ JUEVES MOTERO • Toca para planificar nocturna", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2410C), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                     }
 
                     if (isWeekend) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = Color(0xFFFACC15).copy(alpha = 0.2f),
+                            color = Color(0xFFFEF9C3),
                             border = BorderStroke(0.5.dp, Color(0xFFFACC15)),
                             modifier = Modifier.clickable(onClick = onOpenWeekendPlan)
                         ) {
-                            Text("🏖️ LIBRE PARA RODADAS • Toca para planificar fin de semana", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFACC15), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            Text("🏖️ LIBRE PARA RODADAS • Toca para planificar fin de semana", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                     }
 
                     if (!isThursday && !isWeekend) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = MotoGoldSecondary.copy(alpha = 0.2f),
-                            border = BorderStroke(0.5.dp, MotoGoldSecondary),
+                            color = Color(0xFFF1F5F9),
+                            border = BorderStroke(0.5.dp, Color(0xFFCBD5E1)),
                             modifier = Modifier.clickable(onClick = onOpenGeneralDayPlan)
                         ) {
-                            Text("📅 PLANIFICAR DÍA / CUMPLEAÑOS 🎂", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            Text("📅 PLANIFICAR DÍA / CUMPLEAÑOS 🎂", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                     }
 
                     if (feriado != null) {
-                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF6366F1).copy(alpha = 0.2f), border = BorderStroke(0.5.dp, Color(0xFF818CF8))) {
-                            Text("${feriado.emoji} ${feriado.nombre}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC7D2FE), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFEEF2FF), border = BorderStroke(0.5.dp, Color(0xFF818CF8))) {
+                            Text("${feriado.emoji} ${feriado.nombre}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF312E81), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                         }
                     }
 
                     if (!isToday) {
                         TextButton(onClick = onGoToToday, modifier = Modifier.height(24.dp), contentPadding = PaddingValues(0.dp)) {
-                            Text("👉 Ir a Hoy", fontSize = 10.sp, color = MotoGoldSecondary)
+                            Text("👉 Ir a Hoy", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
                         }
                     }
                 }
             }
         }
 
-        // LÍNEA DE TIEMPO: BLOQUES HORARIOS (TIME-BLOCKING)
+        // LÍNEA DE TIEMPO: BLOQUES HORARIOS (TIME-BLOCKING - Tema Claro)
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
@@ -1177,9 +1212,10 @@ fun CalendarDayView(
                 }
 
                 Surface(
-                    color = Color(0xFF131722),
+                    color = Color.White,
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(0.5.dp, if (slotEvents.isNotEmpty()) MotoOrangePrimary else Color(0xFF263238)),
+                    border = BorderStroke(1.dp, if (slotEvents.isNotEmpty()) MotoOrangePrimary else Color(0xFFE2E8F0)),
+                    shadowElevation = 1.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -1197,14 +1233,14 @@ fun CalendarDayView(
                                 text = slotHour,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Black,
-                                color = if (slotEvents.isNotEmpty()) MotoOrangePrimary else Color(0xFF90A4AE)
+                                color = if (slotEvents.isNotEmpty()) MotoOrangePrimary else Color(0xFF334155)
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Box(
                                 modifier = Modifier
                                     .size(8.dp)
                                     .clip(CircleShape)
-                                    .background(if (slotEvents.isNotEmpty()) MotoGoldSecondary else Color(0xFF37474F))
+                                    .background(if (slotEvents.isNotEmpty()) MotoOrangePrimary else Color(0xFFCBD5E1))
                             )
                         }
 
@@ -1212,7 +1248,7 @@ fun CalendarDayView(
                             modifier = Modifier
                                 .height(if (slotEvents.isNotEmpty()) 80.dp else 36.dp)
                                 .padding(horizontal = 8.dp),
-                            color = Color(0xFF2A3447)
+                            color = Color(0xFFE2E8F0)
                         )
 
                         // Contenido del bloque horario
@@ -1226,20 +1262,21 @@ fun CalendarDayView(
                                     Text(
                                         text = "Horario libre",
                                         fontSize = 11.sp,
-                                        color = Color(0xFF64748B)
+                                        color = Color(0xFF94A3B8)
                                     )
                                     Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = Color(0xFF1E293B),
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFFFF7ED),
+                                        border = BorderStroke(0.5.dp, Color(0xFFFDBA74)),
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
+                                            .clip(RoundedCornerShape(6.dp))
                                             .clickable { onScheduleAtHour(slotHour) }
                                     ) {
                                         Text(
                                             text = "➕ Agendar a las $slotHour",
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = MotoGoldSecondary,
+                                            color = Color(0xFFC2410C),
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                                         )
                                     }
@@ -1249,7 +1286,7 @@ fun CalendarDayView(
                                     val catColor = getCategoryColor(ev.category, ev.isOfficialClubEvent)
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
-                                        color = Color(0xFF1E2433),
+                                        color = Color(0xFFF8FAFC),
                                         border = BorderStroke(1.dp, catColor.copy(alpha = 0.5f)),
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -1261,16 +1298,16 @@ fun CalendarDayView(
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Surface(shape = RoundedCornerShape(4.dp), color = catColor.copy(alpha = 0.2f)) {
+                                                Surface(shape = RoundedCornerShape(4.dp), color = catColor.copy(alpha = 0.15f)) {
                                                     Text(ev.category.uppercase(), fontSize = 8.sp, fontWeight = FontWeight.Black, color = catColor, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                                                 }
-                                                Text("⏰ Salida: ${ev.departureTime}", fontSize = 10.sp, color = MotoGoldSecondary)
+                                                Text("⏰ Salida: ${ev.departureTime}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
                                             }
 
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text(ev.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                                            Text(ev.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
                                             if (ev.originAddress.isNotBlank()) {
-                                                Text("📍 Salida: ${ev.originAddress}", fontSize = 10.sp, color = Color(0xFF90A4AE), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                Text("📍 Salida: ${ev.originAddress}", fontSize = 10.sp, color = Color(0xFF64748B), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                             }
 
                                             Spacer(modifier = Modifier.height(6.dp))
@@ -1280,11 +1317,11 @@ fun CalendarDayView(
                                             ) {
                                                 Button(
                                                     onClick = { onToggleRsvp(ev, true, false) },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
                                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                                     modifier = Modifier.height(26.dp)
                                                 ) {
-                                                    Text("RSVP (${ev.rsvpPilotsCount})", fontSize = 9.sp)
+                                                    Text("RSVP (${ev.rsvpPilotsCount})", fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                                 }
 
                                                 if (ev.originLatitude != 0.0 || ev.destinationLatitude != 0.0) {
@@ -1294,9 +1331,9 @@ fun CalendarDayView(
                                                             val lng = if (ev.originLongitude != 0.0) ev.originLongitude else ev.destinationLongitude
                                                             onOpenGps(lat, lng, ev.title)
                                                         },
-                                                        modifier = Modifier.size(26.dp).background(Color(0xFF263238), RoundedCornerShape(4.dp))
+                                                        modifier = Modifier.size(26.dp).background(Color(0xFFE0F2FE), RoundedCornerShape(4.dp))
                                                     ) {
-                                                        Icon(Icons.Default.Navigation, contentDescription = "GPS", tint = Color(0xFF4FC3F7), modifier = Modifier.size(14.dp))
+                                                        Icon(Icons.Default.Navigation, contentDescription = "GPS", tint = Color(0xFF0284C7), modifier = Modifier.size(14.dp))
                                                     }
                                                 }
 
@@ -1310,9 +1347,9 @@ fun CalendarDayView(
                                                 if (isDirectiva || ev.creatorMemberId == currentMember?.id) {
                                                     IconButton(
                                                         onClick = { onEditEvent(ev) },
-                                                        modifier = Modifier.size(26.dp).background(Color(0xFF37474F), RoundedCornerShape(4.dp))
+                                                        modifier = Modifier.size(26.dp).background(Color(0xFFF1F5F9), RoundedCornerShape(4.dp))
                                                     ) {
-                                                        Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color.White, modifier = Modifier.size(14.dp))
+                                                        Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF334155), modifier = Modifier.size(14.dp))
                                                     }
                                                 }
                                             }
@@ -1346,9 +1383,10 @@ fun CalendarYearView(
     )
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // CABECERA DE AÑO (◀ 2026 ▶)
+        // CABECERA DE AÑO (◀ 2026 ▶ - Tema Claro)
         Surface(
-            color = Color(0xFF1E2433),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -1367,12 +1405,13 @@ fun CalendarYearView(
                         text = "AÑO $currentYear",
                         fontWeight = FontWeight.Black,
                         fontSize = 18.sp,
-                        color = Color.White
+                        color = Color(0xFF0F172A)
                     )
                     Text(
                         text = "12 Meses • Rutas, Feriados y Jueves Moteros",
                         fontSize = 11.sp,
-                        color = MotoGoldSecondary
+                        fontWeight = FontWeight.Medium,
+                        color = MotoOrangePrimary
                     )
                 }
 
@@ -1382,7 +1421,7 @@ fun CalendarYearView(
             }
         }
 
-        // MATRIZ DE 12 MESES
+        // MATRIZ DE 12 MESES (Tema Claro)
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
@@ -1398,9 +1437,10 @@ fun CalendarYearView(
                 }
 
                 Surface(
-                    color = Color(0xFF131722),
+                    color = Color.White,
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, if (monthEventsCount > 0) MotoOrangePrimary.copy(alpha = 0.5f) else Color(0xFF263238)),
+                    border = BorderStroke(1.dp, if (monthEventsCount > 0) MotoOrangePrimary else Color(0xFFE2E8F0)),
+                    shadowElevation = 1.dp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
@@ -1416,16 +1456,16 @@ fun CalendarYearView(
                                 text = monthName,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 14.sp,
-                                color = Color.White
+                                color = Color(0xFF0F172A)
                             )
 
                             if (monthEventsCount > 0) {
-                                Surface(shape = RoundedCornerShape(4.dp), color = MotoGoldSecondary.copy(alpha = 0.2f)) {
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFFF7ED), border = BorderStroke(0.5.dp, MotoOrangePrimary)) {
                                     Text(
                                         text = "$monthEventsCount rodadas",
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MotoGoldSecondary,
+                                        color = Color(0xFFC2410C),
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                     )
                                 }
@@ -1475,7 +1515,7 @@ fun CalendarYearView(
                                                 text = "$dayVal",
                                                 fontSize = 8.sp,
                                                 fontWeight = if (isTodayMini) FontWeight.Black else FontWeight.Normal,
-                                                color = if (isTodayMini) TxFlameRed else Color(0xFFCBD5E1)
+                                                color = if (isTodayMini) TxFlameRed else Color(0xFF334155)
                                             )
                                         } else {
                                             Spacer(modifier = Modifier.size(8.dp))
@@ -1518,8 +1558,8 @@ fun PlanJuevesMoteroDialog(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = MotoOrangePrimary)
                 Column {
-                    Text("🏍️ Jueves Motero TX", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White)
-                    Text("Fecha: $targetDate • Planificar Actividad", fontSize = 11.sp, color = MotoGoldSecondary)
+                    Text("🏍️ Jueves Motero TX", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
+                    Text("Fecha: $targetDate • Planificar Actividad", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
                 }
             }
         },
@@ -1530,23 +1570,23 @@ fun PlanJuevesMoteroDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // SECCIÓN DIRECTIVA: SINCRONIZACIÓN Y COORDENADAS DEL MAPA TX
+                // SECCIÓN DIRECTIVA: SINCRONIZACIÓN Y COORDENADAS DEL MAPA TX (Tema Claro)
                 if (isDirectiva) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF0F172A),
-                        border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.6f)),
+                        color = Color(0xFFFFF7ED),
+                        border = BorderStroke(1.dp, Color(0xFFFDBA74)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("🛡️", fontSize = 14.sp)
-                                Text("Directiva: Sitio de Encuentro en Mapa", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MotoGoldSecondary)
+                                Text("Directiva: Sitio de Encuentro en Mapa", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFC2410C))
                             }
                             Text(
                                 text = "Busca la ubicación en el Mapa TX, copia las coordenadas y pégalas aquí:",
                                 fontSize = 11.sp,
-                                color = Color(0xFFCBD5E1)
+                                color = Color(0xFF7C2D12)
                             )
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 OutlinedButton(
@@ -1579,11 +1619,12 @@ fun PlanJuevesMoteroDialog(
                                         }
                                     },
                                     modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFF97316))
                                 ) {
-                                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(13.dp), tint = MotoGoldSecondary)
+                                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFFC2410C))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("📋 Pegar Coords", fontSize = 10.sp, color = MotoGoldSecondary)
+                                    Text("📋 Pegar Coords", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2410C))
                                 }
 
                                 OutlinedButton(
@@ -1591,11 +1632,12 @@ fun PlanJuevesMoteroDialog(
                                         PuenteMapa.mostrarUbicacionEnMapa(context, "10.2469,-67.5958", "Jueves Motero TX")
                                     },
                                     modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                    border = BorderStroke(1.dp, Color(0xFF0284C7))
                                 ) {
-                                    Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF38BDF8))
+                                    Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF0284C7))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("🗺️ Abrir Mapa TX", fontSize = 10.sp, color = Color(0xFF38BDF8))
+                                    Text("🗺️ Abrir Mapa TX", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                                 }
                             }
                         }
@@ -1605,13 +1647,13 @@ fun PlanJuevesMoteroDialog(
                 Text(
                     text = "¿Qué se va a hacer este Jueves Motero? Selecciona una actividad o personalízala:",
                     fontSize = 12.sp,
-                    color = Color(0xFFCBD5E1)
+                    color = Color(0xFF334155)
                 )
 
                 // Opción 1: Nocturna Motera
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
+                    color = Color(0xFFF8FAFC),
                     border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1632,8 +1674,8 @@ fun PlanJuevesMoteroDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🌙", fontSize = 24.sp)
                         Column {
-                            Text("Nocturna Motera TX", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("7:00 PM • Rodada urbana + cena y hermandad biker", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Nocturna Motera TX", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("7:00 PM • Rodada urbana + cena y hermandad biker", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -1641,8 +1683,8 @@ fun PlanJuevesMoteroDialog(
                 // Opción 2: Encuentro de Garaje & Taller
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.6f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFF0284C7).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -1662,8 +1704,8 @@ fun PlanJuevesMoteroDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🛠️", fontSize = 24.sp)
                         Column {
-                            Text("Garaje & Mantenimiento Preventivo", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("6:30 PM • Ajustes, cadenas y revisión para el fin de semana", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Garaje & Mantenimiento Preventivo", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("6:30 PM • Ajustes, cadenas y revisión para el fin de semana", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -1671,8 +1713,8 @@ fun PlanJuevesMoteroDialog(
                 // Opción 3: Bar & Encuentro Biker
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFFEAB308).copy(alpha = 0.6f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFD97706).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -1692,8 +1734,8 @@ fun PlanJuevesMoteroDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🍺", fontSize = 24.sp)
                         Column {
-                            Text("Bar & Encuentro Biker", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("7:00 PM • Cerveza fría, buena música y hermandad motera", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Bar & Encuentro Biker", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("7:00 PM • Cerveza fría, buena música y hermandad motera", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -1701,8 +1743,8 @@ fun PlanJuevesMoteroDialog(
                 // Opción 4: Café Biker & Hermandad
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.6f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFEA580C).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -1722,8 +1764,8 @@ fun PlanJuevesMoteroDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("☕", fontSize = 24.sp)
                         Column {
-                            Text("Café Biker & Hermandad", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("7:00 PM • Hermandad y planificación de rodadas", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Café Biker & Hermandad", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("7:00 PM • Hermandad y planificación de rodadas", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -1731,7 +1773,7 @@ fun PlanJuevesMoteroDialog(
                 // Opción 5: Cumpleaños Motero
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
+                    color = Color(0xFFF8FAFC),
                     border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1752,8 +1794,8 @@ fun PlanJuevesMoteroDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🎂", fontSize = 24.sp)
                         Column {
-                            Text("Cumpleaños Motero", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("7:00 PM • Celebración y felicitaciones a hermanos del club", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Cumpleaños Motero", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("7:00 PM • Celebración y hermandad motera", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -1761,8 +1803,8 @@ fun PlanJuevesMoteroDialog(
                 // Opción 6: Personalizado
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF475569)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -1771,8 +1813,8 @@ fun PlanJuevesMoteroDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("✏️", fontSize = 24.sp)
                         Column {
-                            Text("Personalizado / Otra Actividad", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("Abrir formulario completo para definir hora, ruta y flyer", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Personalizado / Otra Actividad", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("Abrir formulario completo para definir hora, ruta y flyer", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -1780,9 +1822,9 @@ fun PlanJuevesMoteroDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF90A4AE)) }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = Color(0xFF131722)
+        containerColor = Color.White
     )
 }
 
@@ -1804,10 +1846,10 @@ fun PlanFinDeSemanaDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.SportsMotorsports, contentDescription = null, tint = Color(0xFFFACC15))
+                Icon(Icons.Default.SportsMotorsports, contentDescription = null, tint = MotoOrangePrimary)
                 Column {
-                    Text("🏖️ Rodada de Fin de Semana TX", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White)
-                    Text("Fecha: $targetDate • Planificar Rutas y Rodadas", fontSize = 11.sp, color = Color(0xFFFACC15))
+                    Text("🏖️ Rodada de Fin de Semana TX", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
+                    Text("Fecha: $targetDate • Planificar Rutas y Rodadas", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
                 }
             }
         },
@@ -1818,23 +1860,23 @@ fun PlanFinDeSemanaDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // SECCIÓN DIRECTIVA: SINCRONIZACIÓN Y COORDENADAS DEL MAPA TX
+                // SECCIÓN DIRECTIVA: SINCRONIZACIÓN Y COORDENADAS DEL MAPA TX (Tema Claro)
                 if (isDirectiva) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF0F172A),
-                        border = BorderStroke(1.dp, Color(0xFFFACC15).copy(alpha = 0.6f)),
+                        color = Color(0xFFFFF7ED),
+                        border = BorderStroke(1.dp, Color(0xFFFDBA74)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("🛡️", fontSize = 14.sp)
-                                Text("Directiva: Sitio de Salida / Destino en Mapa", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFFACC15))
+                                Text("Directiva: Sitio de Salida / Destino en Mapa", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFC2410C))
                             }
                             Text(
                                 text = "Busca la ubicación en el Mapa TX, copia las coordenadas y pégalas aquí:",
                                 fontSize = 11.sp,
-                                color = Color(0xFFCBD5E1)
+                                color = Color(0xFF7C2D12)
                             )
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 OutlinedButton(
@@ -1867,11 +1909,12 @@ fun PlanFinDeSemanaDialog(
                                         }
                                     },
                                     modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFF97316))
                                 ) {
-                                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFFFACC15))
+                                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFFC2410C))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("📋 Pegar Coords", fontSize = 10.sp, color = Color(0xFFFACC15))
+                                    Text("📋 Pegar Coords", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2410C))
                                 }
 
                                 OutlinedButton(
@@ -1879,11 +1922,12 @@ fun PlanFinDeSemanaDialog(
                                         PuenteMapa.mostrarUbicacionEnMapa(context, "10.4900,-67.7300", "Rodada Fin de Semana TX")
                                     },
                                     modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                    border = BorderStroke(1.dp, Color(0xFF0284C7))
                                 ) {
-                                    Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF38BDF8))
+                                    Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF0284C7))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("🗺️ Abrir Mapa TX", fontSize = 10.sp, color = Color(0xFF38BDF8))
+                                    Text("🗺️ Abrir Mapa TX", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                                 }
                             }
                         }
@@ -1893,14 +1937,14 @@ fun PlanFinDeSemanaDialog(
                 Text(
                     text = "Selecciona el plan o rodada para este fin de semana:",
                     fontSize = 12.sp,
-                    color = Color(0xFFCBD5E1)
+                    color = Color(0xFF334155)
                 )
 
                 // Opción 1: Rodada Playera & Costera
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF06B6D4).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFF0284C7).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -1920,8 +1964,8 @@ fun PlanFinDeSemanaDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🏖️", fontSize = 24.sp)
                         Column {
-                            Text("Rodada Playera & Costera", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("7:00 AM • Sol, mar, comida y hermandad en la costa", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Rodada Playera & Costera", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("7:00 AM • Sol, mar, comida y hermandad en la costa", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -1929,8 +1973,8 @@ fun PlanFinDeSemanaDialog(
                 // Opción 2: Ruta de Montaña & Curvas
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -1950,8 +1994,8 @@ fun PlanFinDeSemanaDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("⛰️", fontSize = 24.sp)
                         Column {
-                            Text("Ruta de Montaña & Curvas", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("7:30 AM • Clima fresco, curvas y vistas panorámicas", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Ruta de Montaña & Curvas", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("7:30 AM • Clima fresco, curvas y vistas panorámicas", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -1959,8 +2003,8 @@ fun PlanFinDeSemanaDialog(
                 // Opción 3: Lavado de Moto en Familia
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF06B6D4).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFF0891B2).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -1980,8 +2024,8 @@ fun PlanFinDeSemanaDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🧼", fontSize = 24.sp)
                         Column {
-                            Text("Lavado de Moto en Familia", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("9:00 AM • Limpieza, brillo y encuentro familiar del club", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Lavado de Moto en Familia", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("9:00 AM • Limpieza, brillo y encuentro familiar del club", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -1989,8 +2033,8 @@ fun PlanFinDeSemanaDialog(
                 // Opción 4: Mantenimiento Preventivo para Rodada
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFF0284C7).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2010,8 +2054,8 @@ fun PlanFinDeSemanaDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🛠️", fontSize = 24.sp)
                         Column {
-                            Text("Mantenimiento Preventivo para Rodada", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("8:00 AM • Ajuste de cadenas, frenos, fluidos y puesta a punto", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Mantenimiento Preventivo para Rodada", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("8:00 AM • Ajuste de cadenas, frenos, fluidos y puesta a punto", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2019,8 +2063,8 @@ fun PlanFinDeSemanaDialog(
                 // Opción 5: Obra Benéfica & Labor Social
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFFEC4899).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFDB2777).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2040,8 +2084,8 @@ fun PlanFinDeSemanaDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("❤️", fontSize = 24.sp)
                         Column {
-                            Text("Obra Benéfica & Labor Social", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("8:30 AM • Rodada solidaria, donaciones y apoyo comunitario", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Obra Benéfica & Labor Social", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("8:30 AM • Rodada solidaria, donaciones y apoyo comunitario", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2049,8 +2093,8 @@ fun PlanFinDeSemanaDialog(
                 // Opción 6: Bar & Encuentro Biker
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFFEAB308).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFD97706).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2070,8 +2114,8 @@ fun PlanFinDeSemanaDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🍺", fontSize = 24.sp)
                         Column {
-                            Text("Bar & Encuentro Biker", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("4:00 PM • Cerveza fría, buena música y hermandad motera", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Bar & Encuentro Biker", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("4:00 PM • Cerveza fría, buena música y hermandad motera", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2079,8 +2123,8 @@ fun PlanFinDeSemanaDialog(
                 // Opción 7: Cumpleaños Motero
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2100,8 +2144,8 @@ fun PlanFinDeSemanaDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🎂", fontSize = 24.sp)
                         Column {
-                            Text("Cumpleaños Motero", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("5:00 PM • Festejo y rodada de cumpleaños", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Cumpleaños Motero", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("5:00 PM • Festejo y rodada de cumpleaños", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2109,8 +2153,8 @@ fun PlanFinDeSemanaDialog(
                 // Opción 8: Personalizado
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF475569)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2119,8 +2163,8 @@ fun PlanFinDeSemanaDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("✏️", fontSize = 24.sp)
                         Column {
-                            Text("Personalizado / Otra Rodada", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("Abrir formulario completo para definir hora, ruta y flyer", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Personalizado / Otra Rodada", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("Abrir formulario completo para definir hora, ruta y flyer", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2128,9 +2172,9 @@ fun PlanFinDeSemanaDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF90A4AE)) }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = Color(0xFF131722)
+        containerColor = Color.White
     )
 }
 
@@ -2152,10 +2196,10 @@ fun PlanDiaActividadDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MotoGoldSecondary)
+                Icon(Icons.Default.EventAvailable, contentDescription = null, tint = MotoOrangePrimary)
                 Column {
-                    Text("📅 Planificar Actividad TX", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White)
-                    Text("Fecha: $targetDate • Asignar Evento o Celebración", fontSize = 11.sp, color = MotoGoldSecondary)
+                    Text("📅 Planificar Actividad TX", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
+                    Text("Fecha: $targetDate • Asignar Evento o Celebración", fontSize = 11.sp, color = Color(0xFFEA580C))
                 }
             }
         },
@@ -2170,19 +2214,19 @@ fun PlanDiaActividadDialog(
                 if (isDirectiva) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF0F172A),
-                        border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.6f)),
+                        color = Color(0xFFFFF7ED),
+                        border = BorderStroke(1.dp, Color(0xFFFED7AA)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("🛡️", fontSize = 14.sp)
-                                Text("Directiva: Sitio de Encuentro en Mapa", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MotoGoldSecondary)
+                                Text("Directiva: Sitio de Encuentro en Mapa", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFC2410C))
                             }
                             Text(
                                 text = "Busca la ubicación en el Mapa TX, copia las coordenadas y pégalas aquí:",
                                 fontSize = 11.sp,
-                                color = Color(0xFFCBD5E1)
+                                color = Color(0xFF475569)
                             )
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 OutlinedButton(
@@ -2217,9 +2261,9 @@ fun PlanDiaActividadDialog(
                                     modifier = Modifier.weight(1f),
                                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
-                                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(13.dp), tint = MotoGoldSecondary)
+                                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFFEA580C))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("📋 Pegar Coords", fontSize = 10.sp, color = MotoGoldSecondary)
+                                    Text("📋 Pegar Coords", fontSize = 10.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
                                 }
 
                                 OutlinedButton(
@@ -2229,9 +2273,9 @@ fun PlanDiaActividadDialog(
                                     modifier = Modifier.weight(1f),
                                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
-                                    Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF38BDF8))
+                                    Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF0284C7))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("🗺️ Abrir Mapa TX", fontSize = 10.sp, color = Color(0xFF38BDF8))
+                                    Text("🗺️ Abrir Mapa TX", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -2241,14 +2285,14 @@ fun PlanDiaActividadDialog(
                 Text(
                     text = "Selecciona una actividad para programar en este día:",
                     fontSize = 12.sp,
-                    color = Color(0xFFCBD5E1)
+                    color = Color(0xFF475569)
                 )
 
                 // Opción 1: Cumpleaños Motero
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFDDD6FE)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2268,8 +2312,8 @@ fun PlanDiaActividadDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🎂", fontSize = 24.sp)
                         Column {
-                            Text("Cumpleaños Motero", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("6:00 PM • Homenaje, felicitaciones y aviso sincronizado", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Cumpleaños Motero", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("6:00 PM • Homenaje, felicitaciones y aviso sincronizado", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2277,8 +2321,8 @@ fun PlanDiaActividadDialog(
                 // Opción 2: Bar & Encuentro Biker
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFFEAB308).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFFEF08A)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2298,8 +2342,8 @@ fun PlanDiaActividadDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🍺", fontSize = 24.sp)
                         Column {
-                            Text("Bar & Encuentro Biker", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("6:30 PM • Cerveza fría, música y hermandad motera", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Bar & Encuentro Biker", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("6:30 PM • Cerveza fría, música y hermandad motera", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2307,8 +2351,8 @@ fun PlanDiaActividadDialog(
                 // Opción 3: Mantenimiento Preventivo para Rodada
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFBAE6FD)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2328,8 +2372,8 @@ fun PlanDiaActividadDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🛠️", fontSize = 24.sp)
                         Column {
-                            Text("Mantenimiento Preventivo para Rodada", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("5:00 PM • Taller, lubricación y ajustes técnicos", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Mantenimiento Preventivo para Rodada", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("5:00 PM • Taller, lubricación y ajustes técnicos", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2337,8 +2381,8 @@ fun PlanDiaActividadDialog(
                 // Opción 4: Lavado de Moto en Familia
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF06B6D4).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFA5F3FC)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2358,8 +2402,8 @@ fun PlanDiaActividadDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🧼", fontSize = 24.sp)
                         Column {
-                            Text("Lavado de Moto en Familia", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("4:00 PM • Limpieza y brillo en familia", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Lavado de Moto en Familia", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("4:00 PM • Limpieza y brillo en familia", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2367,8 +2411,8 @@ fun PlanDiaActividadDialog(
                 // Opción 5: Obra Benéfica & Labor Social
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFFEC4899).copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFFBCFE8)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2388,8 +2432,8 @@ fun PlanDiaActividadDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("❤️", fontSize = 24.sp)
                         Column {
-                            Text("Obra Benéfica & Labor Social", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("3:00 PM • Solidaridad y apoyo comunitario", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Obra Benéfica & Labor Social", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("3:00 PM • Solidaridad y apoyo comunitario", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2397,8 +2441,8 @@ fun PlanDiaActividadDialog(
                 // Opción 6: Café Biker & Hermandad
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, MotoGoldSecondary.copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFFED7AA)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2418,8 +2462,8 @@ fun PlanDiaActividadDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("☕", fontSize = 24.sp)
                         Column {
-                            Text("Café Biker & Hermandad", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("6:00 PM • Compartir un café y amistad biker", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Café Biker & Hermandad", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("6:00 PM • Compartir un café y amistad biker", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2427,8 +2471,8 @@ fun PlanDiaActividadDialog(
                 // Opción 7: Nocturna Motera Urbana
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.7f)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFFED7AA)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2448,8 +2492,8 @@ fun PlanDiaActividadDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("🌙", fontSize = 24.sp)
                         Column {
-                            Text("Nocturna Motera Urbana", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("7:00 PM • Rodada urbana nocturna y comida", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Nocturna Motera Urbana", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("7:00 PM • Rodada urbana nocturna y comida", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2457,8 +2501,8 @@ fun PlanDiaActividadDialog(
                 // Opción 8: Personalizado
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, Color(0xFF475569)),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
@@ -2467,8 +2511,8 @@ fun PlanDiaActividadDialog(
                     Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("✏️", fontSize = 24.sp)
                         Column {
-                            Text("Personalizado / Otra Actividad", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                            Text("Abrir formulario completo para definir hora, lugar y flyer", fontSize = 10.sp, color = Color(0xFF90A4AE))
+                            Text("Personalizado / Otra Actividad", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("Abrir formulario completo para definir hora, lugar y flyer", fontSize = 10.sp, color = Color(0xFF64748B))
                         }
                     }
                 }
@@ -2476,9 +2520,9 @@ fun PlanDiaActividadDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF90A4AE)) }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = Color(0xFF131722)
+        containerColor = Color.White
     )
 }
 
@@ -2501,6 +2545,7 @@ fun BikerEventCard(
     onShareWhatsApp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val catColor = getCategoryColor(event.category, event.isOfficialClubEvent)
     val myIdStr = currentMember?.id?.toString() ?: ""
     val isMyRsvpAttending = myIdStr.isNotBlank() && event.rsvpPilotsList.split(",").map { it.trim() }.contains(myIdStr)
@@ -2512,8 +2557,9 @@ fun BikerEventCard(
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B202E)),
-        border = BorderStroke(1.dp, if (event.isOfficialClubEvent) MotoGoldSecondary else catColor.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, if (event.isOfficialClubEvent) MotoOrangePrimary else Color(0xFFE2E8F0)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             // Header: Category badge + Official badge + Actions (Edit/Delete)
@@ -2528,7 +2574,7 @@ fun BikerEventCard(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = catColor.copy(alpha = 0.2f),
+                        color = catColor.copy(alpha = 0.15f),
                         border = BorderStroke(0.5.dp, catColor)
                     ) {
                         Text(
@@ -2543,14 +2589,14 @@ fun BikerEventCard(
                     if (event.isOfficialClubEvent) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = MotoGoldSecondary.copy(alpha = 0.2f),
-                            border = BorderStroke(0.5.dp, MotoGoldSecondary)
+                            color = Color(0xFFFFF7ED),
+                            border = BorderStroke(0.5.dp, MotoOrangePrimary)
                         ) {
                             Text(
                                 text = "⭐ OFICIAL TX",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Black,
-                                color = MotoGoldSecondary,
+                                color = Color(0xFFC2410C),
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -2560,7 +2606,7 @@ fun BikerEventCard(
                 Row {
                     if (isCreator || isDirectiva) {
                         IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF90A4AE), modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF475569), modifier = Modifier.size(16.dp))
                         }
                         IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
                             Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = TxFlameRed, modifier = Modifier.size(16.dp))
@@ -2590,7 +2636,7 @@ fun BikerEventCard(
                 text = event.title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Black,
-                color = Color.White
+                color = Color(0xFF0F172A)
             )
 
             // Description
@@ -2599,7 +2645,7 @@ fun BikerEventCard(
                 Text(
                     text = event.description,
                     fontSize = 12.sp,
-                    color = Color(0xFFCBD5E1),
+                    color = Color(0xFF334155),
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -2607,10 +2653,11 @@ fun BikerEventCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Date & Time details
+            // Date & Time details (Tema Claro)
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF131722),
+                color = Color(0xFFF8FAFC),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2620,40 +2667,40 @@ fun BikerEventCard(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Icon(Icons.Default.Event, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(14.dp))
-                            Text("Fecha: ${event.eventDate}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Fecha: ${event.eventDate}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Default.Schedule, contentDescription = null, tint = MotoGoldSecondary, modifier = Modifier.size(14.dp))
-                            Text("Conc: ${event.eventTime} • Salida: ${event.departureTime}", fontSize = 11.sp, color = MotoGoldSecondary)
+                            Icon(Icons.Default.Schedule, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(14.dp))
+                            Text("Conc: ${event.eventTime} • Salida: ${event.departureTime}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB45309))
                         }
                     }
 
                     if (event.originAddress.isNotBlank() || event.destinationAddress.isNotBlank()) {
-                        HorizontalDivider(color = Color(0xFF263238), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 2.dp))
+                        HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 2.dp))
                         if (event.originAddress.isNotBlank()) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Icon(Icons.Default.Place, contentDescription = null, tint = Color(0xFF4FC3F7), modifier = Modifier.size(14.dp))
-                                Text("Salida: ${event.originAddress}", fontSize = 10.sp, color = Color(0xFF90A4AE), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Icon(Icons.Default.Place, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(14.dp))
+                                Text("Salida: ${event.originAddress}", fontSize = 10.sp, color = Color(0xFF475569), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                         if (event.destinationAddress.isNotBlank()) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Icon(Icons.Default.Flag, contentDescription = null, tint = Color(0xFF81C784), modifier = Modifier.size(14.dp))
-                                Text("Destino: ${event.destinationAddress}", fontSize = 10.sp, color = Color(0xFF90A4AE), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Icon(Icons.Default.Flag, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(14.dp))
+                                Text("Destino: ${event.destinationAddress}", fontSize = 10.sp, color = Color(0xFF475569), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
 
                     // Route details (terrain, difficulty, captain, weather)
                     if (event.terrainType.isNotBlank() || event.difficultyLevel.isNotBlank() || event.roadCaptain.isNotBlank()) {
-                        HorizontalDivider(color = Color(0xFF263238), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 2.dp))
+                        HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 2.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("🛣️ ${event.terrainType} • Dificultad: ${event.difficultyLevel}", fontSize = 10.sp, color = Color(0xFFCBD5E1))
+                            Text("🛣️ ${event.terrainType} • Dificultad: ${event.difficultyLevel}", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = Color(0xFF334155))
                             if (event.roadCaptain.isNotBlank()) {
-                                Text("👨‍✈️ ${event.roadCaptain}", fontSize = 10.sp, color = MotoGoldSecondary)
+                                Text("👨‍✈️ ${event.roadCaptain}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2410C))
                             }
                         }
                     }
@@ -2669,39 +2716,40 @@ fun BikerEventCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.Groups, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Groups, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(16.dp))
                     Text(
                         text = "${event.rsvpPilotsCount} Pilotos • ${event.rsvpPillionsCount} Copilotos",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF81C784)
+                        color = Color(0xFF15803D)
                     )
                 }
 
                 // Reminder toggle button
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (isMyReminderActive) MotoGoldSecondary.copy(alpha = 0.2f) else Color(0xFF263238),
-                    border = BorderStroke(0.5.dp, if (isMyReminderActive) MotoGoldSecondary else Color.Transparent),
+                    color = if (isMyReminderActive) Color(0xFFFFF7ED) else Color(0xFFF1F5F9),
+                    border = BorderStroke(0.5.dp, if (isMyReminderActive) MotoOrangePrimary else Color(0xFFCBD5E1)),
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .clickable { onToggleReminder(!isMyReminderActive) }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             if (isMyReminderActive) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
                             contentDescription = null,
-                            tint = if (isMyReminderActive) MotoGoldSecondary else Color(0xFF90A4AE),
+                            tint = if (isMyReminderActive) MotoOrangePrimary else Color(0xFF64748B),
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
                             text = if (isMyReminderActive) "Avisar ✓" else "Recordar",
                             fontSize = 10.sp,
-                            color = if (isMyReminderActive) MotoGoldSecondary else Color(0xFF90A4AE)
+                            fontWeight = FontWeight.Bold,
+                            color = if (isMyReminderActive) Color(0xFFC2410C) else Color(0xFF475569)
                         )
                     }
                 }
@@ -2709,7 +2757,7 @@ fun BikerEventCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // RSVP action buttons
+            // FILA 1 DE BOTONES: ASISTENCIA RSVP (Sin choques)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -2717,9 +2765,10 @@ fun BikerEventCard(
                 Button(
                     onClick = { onToggleRsvp(true, false) },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isMyRsvpAttending && !isMyRsvpPillion) Color(0xFF2E7D32) else Color(0xFF1E293B)
+                        containerColor = if (isMyRsvpAttending && !isMyRsvpPillion) Color(0xFF16A34A) else Color(0xFFF1F5F9)
                     ),
                     shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, if (isMyRsvpAttending && !isMyRsvpPillion) Color(0xFF15803D) else Color(0xFFCBD5E1)),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     modifier = Modifier.weight(1f).height(32.dp)
                 ) {
@@ -2727,16 +2776,17 @@ fun BikerEventCard(
                         if (isMyRsvpAttending && !isMyRsvpPillion) "Asistiré ✓" else "Voy Solo",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isMyRsvpAttending && !isMyRsvpPillion) Color.White else Color(0xFFCBD5E1)
+                        color = if (isMyRsvpAttending && !isMyRsvpPillion) Color.White else Color(0xFF334155)
                     )
                 }
 
                 Button(
                     onClick = { onToggleRsvp(true, true) },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isMyRsvpAttending && isMyRsvpPillion) Color(0xFF1565C0) else Color(0xFF1E293B)
+                        containerColor = if (isMyRsvpAttending && isMyRsvpPillion) Color(0xFF2563EB) else Color(0xFFF1F5F9)
                     ),
                     shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, if (isMyRsvpAttending && isMyRsvpPillion) Color(0xFF1D4ED8) else Color(0xFFCBD5E1)),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     modifier = Modifier.weight(1.2f).height(32.dp)
                 ) {
@@ -2744,46 +2794,68 @@ fun BikerEventCard(
                         if (isMyRsvpAttending && isMyRsvpPillion) "+ Copiloto ✓" else "+ Copiloto",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isMyRsvpAttending && isMyRsvpPillion) Color.White else Color(0xFFCBD5E1)
+                        color = if (isMyRsvpAttending && isMyRsvpPillion) Color.White else Color(0xFF334155)
                     )
                 }
 
                 if (isMyRsvpAttending) {
                     Button(
                         onClick = { onToggleRsvp(false, false) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF374151)),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE2E2)),
+                        border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
                         shape = RoundedCornerShape(6.dp),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                         modifier = Modifier.height(32.dp)
                     ) {
-                        Text("No iré", fontSize = 10.sp, color = Color(0xFFEF4444))
+                        Text("No iré", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Action row: GPS, WhatsApp, Publish to Muro
+            // FILA 2 DE BOTONES: ACCIONES TÁCTICAS (MAPA TX, GOOGLE MAPS, WHATSAPP, MURO)
+            val hasCoords = event.originLatitude != 0.0 || event.destinationLatitude != 0.0
+            val lat = if (event.originLatitude != 0.0) event.originLatitude else event.destinationLatitude
+            val lng = if (event.originLongitude != 0.0) event.originLongitude else event.destinationLongitude
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (event.originLatitude != 0.0 || event.destinationLatitude != 0.0) {
+                if (hasCoords) {
                     Button(
-                        onClick = {
-                            val lat = if (event.originLatitude != 0.0) event.originLatitude else event.destinationLatitude
-                            val lng = if (event.originLongitude != 0.0) event.originLongitude else event.destinationLongitude
-                            onOpenGps(lat, lng, event.title)
-                        },
+                        onClick = { onOpenGps(lat, lng, event.title) },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
                         shape = RoundedCornerShape(6.dp),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                        modifier = Modifier.weight(1.2f).height(32.dp)
+                        modifier = Modifier.weight(1f).height(32.dp)
                     ) {
-                        Icon(Icons.Default.Navigation, contentDescription = "Mapa TX", modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("🧭 Ir al Mapa", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.Explore, contentDescription = "Mapa TX", modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Mapa TX", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = {
+                            val uri = Uri.parse("geo:$lat,$lng?q=$lat,$lng(${Uri.encode(event.title)})")
+                            val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+                            mapIntent.setPackage("com.google.android.apps.maps")
+                            try {
+                                context.startActivity(mapIntent)
+                            } catch (e: Exception) {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                        shape = RoundedCornerShape(6.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier.weight(1f).height(32.dp)
+                    ) {
+                        Icon(Icons.Default.Navigation, contentDescription = "Google Maps", modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("G. Maps", fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -2791,12 +2863,12 @@ fun BikerEventCard(
                     onClick = onShareWhatsApp,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
                     shape = RoundedCornerShape(6.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                     modifier = Modifier.weight(1f).height(32.dp)
                 ) {
-                    Icon(Icons.Default.Share, contentDescription = "WhatsApp", tint = Color.White, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Compartir", fontSize = 10.sp, color = Color.White)
+                    Icon(Icons.Default.Share, contentDescription = "WhatsApp", tint = Color.White, modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text("Compartir", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 if (isDirectiva || isCreator) {
@@ -2804,12 +2876,12 @@ fun BikerEventCard(
                         onClick = onPublishToFeed,
                         colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
                         shape = RoundedCornerShape(6.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        modifier = Modifier.weight(1.2f).height(32.dp)
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier.weight(1f).height(32.dp)
                     ) {
-                        Icon(Icons.Default.Campaign, contentDescription = "Publicar", tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Al Muro", fontSize = 10.sp, color = Color.White)
+                        Icon(Icons.Default.Campaign, contentDescription = "Publicar", tint = Color.White, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Al Muro", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
@@ -2895,15 +2967,34 @@ fun CreateEditCalendarEventDialog(
     val terrains = listOf("Asfalto", "Tierra", "Mixto", "Montaña", "Costa")
     val difficulties = listOf("Fácil", "Media", "Avanzada", "Extrema")
 
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF1E293B),
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color(0xFFF8FAFC),
+        focusedBorderColor = MotoOrangePrimary,
+        unfocusedBorderColor = Color(0xFFCBD5E1),
+        focusedLabelColor = MotoOrangePrimary,
+        unfocusedLabelColor = Color(0xFF64748B),
+        cursorColor = MotoOrangePrimary
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = if (existingEvent != null) "Editar Evento" else "Agendar Evento / Rodada",
-                fontWeight = FontWeight.Black,
-                fontSize = 17.sp,
-                color = Color.White
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(
+                    if (existingEvent != null) Icons.Default.EditCalendar else Icons.Default.AddCircle,
+                    contentDescription = null,
+                    tint = MotoOrangePrimary
+                )
+                Text(
+                    text = if (existingEvent != null) "Editar Evento / Rodada" else "Agendar Evento / Rodada",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 17.sp,
+                    color = Color(0xFF0F172A)
+                )
+            }
         },
         text = {
             Column(
@@ -2915,22 +3006,26 @@ fun CreateEditCalendarEventDialog(
                     onValueChange = { title = it },
                     label = { Text("Título del Evento / Rodada") },
                     placeholder = { Text("Ej: Rodada Costera a Cuyagua") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors
                 )
 
                 // Categoría con colores distintivos
-                Text("Categoría:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
+                Text("Categoría:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(categories) { cat ->
                         val catColor = getCategoryColor(cat)
                         FilterChip(
                             selected = category == cat,
                             onClick = { category = cat },
-                            label = { Text(cat, fontSize = 10.sp) },
+                            label = { Text(cat, fontSize = 10.sp, fontWeight = if (category == cat) FontWeight.Bold else FontWeight.Normal) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = catColor,
-                                selectedLabelColor = Color.Black
-                            )
+                                selectedContainerColor = catColor.copy(alpha = 0.2f),
+                                selectedLabelColor = catColor,
+                                containerColor = Color(0xFFF1F5F9),
+                                labelColor = Color(0xFF475569)
+                            ),
+                            border = BorderStroke(1.dp, if (category == cat) catColor else Color(0xFFCBD5E1))
                         )
                     }
                 }
@@ -2940,7 +3035,8 @@ fun CreateEditCalendarEventDialog(
                     onValueChange = { description = it },
                     label = { Text("Descripción / Detalles") },
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
+                    maxLines = 3,
+                    colors = textFieldColors
                 )
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -2948,14 +3044,16 @@ fun CreateEditCalendarEventDialog(
                         value = eventDate,
                         onValueChange = { eventDate = it },
                         label = { Text("Fecha (DD/MM/AAAA)") },
-                        modifier = Modifier.weight(1.2f)
+                        modifier = Modifier.weight(1.2f),
+                        colors = textFieldColors
                     )
                     OutlinedTextField(
                         value = remindDaysStr,
                         onValueChange = { remindDaysStr = it },
                         label = { Text("Avisar (Días)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(0.8f)
+                        modifier = Modifier.weight(0.8f),
+                        colors = textFieldColors
                     )
                 }
 
@@ -2964,13 +3062,15 @@ fun CreateEditCalendarEventDialog(
                         value = eventTime,
                         onValueChange = { eventTime = it },
                         label = { Text("Concentración") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors
                     )
                     OutlinedTextField(
                         value = departureTime,
                         onValueChange = { departureTime = it },
                         label = { Text("Ruedas Asfalto") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors
                     )
                 }
 
@@ -2978,7 +3078,8 @@ fun CreateEditCalendarEventDialog(
                     value = originAddress,
                     onValueChange = { originAddress = it },
                     label = { Text("Punto de Encuentro / Salida") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors
                 )
 
                 // Botones de Mapa TX y Portapapeles
@@ -3006,11 +3107,12 @@ fun CreateEditCalendarEventDialog(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                        border = BorderStroke(1.dp, Color(0xFFFED7AA))
                     ) {
-                        Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(13.dp), tint = MotoGoldSecondary)
+                        Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFFEA580C))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("📋 Pegar Coords", fontSize = 10.sp, color = MotoGoldSecondary)
+                        Text("📋 Pegar Coords", fontSize = 10.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.Bold)
                     }
 
                     OutlinedButton(
@@ -3020,27 +3122,28 @@ fun CreateEditCalendarEventDialog(
                             PuenteMapa.mostrarUbicacionEnMapa(context, "$lat,$lng", title.ifBlank { "Punto de Encuentro" })
                         },
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                        border = BorderStroke(1.dp, Color(0xFFBAE6FD))
                     ) {
-                        Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF38BDF8))
+                        Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF0284C7))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("🗺️ Ver en Mapa TX", fontSize = 10.sp, color = Color(0xFF38BDF8))
+                        Text("🗺️ Ver en Mapa TX", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                     }
                 }
 
                 if (originLatStr != "0.0" && originLngStr != "0.0" && originLatStr.isNotBlank()) {
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = Color(0xFF0284C7).copy(alpha = 0.15f),
-                        border = BorderStroke(0.5.dp, Color(0xFF38BDF8).copy(alpha = 0.5f))
+                        color = Color(0xFFE0F2FE),
+                        border = BorderStroke(0.5.dp, Color(0xFF38BDF8))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(12.dp))
-                            Text("📍 Coordenadas Salida: $originLatStr, $originLngStr", fontSize = 10.sp, color = Color(0xFFBAE6FD))
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(12.dp))
+                            Text("📍 Coordenadas Salida: $originLatStr, $originLngStr", fontSize = 10.sp, color = Color(0xFF0369A1), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -3049,7 +3152,8 @@ fun CreateEditCalendarEventDialog(
                     value = destinationAddress,
                     onValueChange = { destinationAddress = it },
                     label = { Text("Destino Final") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors
                 )
 
                 // Terreno y Dificultad
@@ -3058,13 +3162,15 @@ fun CreateEditCalendarEventDialog(
                         value = terrainType,
                         onValueChange = { terrainType = it },
                         label = { Text("Terreno") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors
                     )
                     OutlinedTextField(
                         value = difficultyLevel,
                         onValueChange = { difficultyLevel = it },
                         label = { Text("Dificultad") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors
                     )
                 }
 
@@ -3074,7 +3180,8 @@ fun CreateEditCalendarEventDialog(
                     onValueChange = { weatherForecast = it },
                     label = { Text("Pronóstico Clima Estimado") },
                     placeholder = { Text("Ej: Soleado 29°C • 10% Lluvia") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors
                 )
 
                 // Roles de caravana
@@ -3083,13 +3190,15 @@ fun CreateEditCalendarEventDialog(
                         value = roadCaptain,
                         onValueChange = { roadCaptain = it },
                         label = { Text("Capitán de Ruta") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors
                     )
                     OutlinedTextField(
                         value = tailRider,
                         onValueChange = { tailRider = it },
                         label = { Text("Barredora (Cierre)") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        colors = textFieldColors
                     )
                 }
 
@@ -3098,20 +3207,25 @@ fun CreateEditCalendarEventDialog(
                         Checkbox(
                             checked = isOfficial,
                             onCheckedChange = { isOfficial = it },
-                            colors = CheckboxDefaults.colors(checkedColor = MotoGoldSecondary)
+                            colors = CheckboxDefaults.colors(checkedColor = MotoOrangePrimary)
                         )
-                        Text("Evento Oficial del Club (Publicar a toda la comunidad)", fontSize = 12.sp, color = Color.White)
+                        Text("Evento Oficial del Club (Publicar aviso prioritario)", fontSize = 12.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.SemiBold)
                     }
                 }
 
                 Button(
                     onClick = { photoPickerLauncher.launch("image/*") },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2F3E)),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (selectedFlyerUri != null) Color(0xFFE0F2FE) else Color(0xFFF1F5F9)),
+                    border = BorderStroke(1.dp, if (selectedFlyerUri != null) Color(0xFF0284C7) else Color(0xFFCBD5E1)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Image, contentDescription = null)
+                    Icon(Icons.Default.Image, contentDescription = null, tint = if (selectedFlyerUri != null) Color(0xFF0284C7) else Color(0xFF334155))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (selectedFlyerUri != null) "Flyer seleccionado ✓" else "Subir Flyer / Imagen")
+                    Text(
+                        if (selectedFlyerUri != null) "Flyer seleccionado ✓" else "Subir Flyer / Imagen",
+                        color = if (selectedFlyerUri != null) Color(0xFF0284C7) else Color(0xFF334155),
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         },
@@ -3125,15 +3239,15 @@ fun CreateEditCalendarEventDialog(
                         onSave(title, description, category, visibility, eventDate, eventTime, departureTime, originAddress, destinationAddress, oLat, oLng, 0.0, 0.0, terrainType, difficultyLevel, weatherForecast, roadCaptain, tailRider, rDays, isOfficial, selectedFlyerUri)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed)
+                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
             ) {
-                Text("Guardar Evento")
+                Text("Guardar Evento", fontWeight = FontWeight.Bold, color = Color.White)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF90A4AE)) }
+            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = Color(0xFF1E2433)
+        containerColor = Color.White
     )
 }
 

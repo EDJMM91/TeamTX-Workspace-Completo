@@ -121,7 +121,20 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun selectMember(memberId: Long) {
-        _currentMemberId.value = memberId
+        val current = currentMember.value
+        val isDev = current?.role == MemberRole.DESARROLLADOR ||
+                   current?.role == MemberRole.PRESIDENTE ||
+                   current?.memberNumber == "TX-001" ||
+                   current?.memberNumber?.startsWith("TX-DEV-") == true ||
+                   _isLeaderSuperAdmin.value
+        if (isDev) {
+            _currentMemberId.value = memberId
+            val memberForSession = allMembers.value.find { it.id == memberId }
+            saveSession(memberId, memberForSession?.email, memberForSession?.firebaseUid)
+            Log.i("TeamTxViewModel", "👨‍💻 Modo Desarrollador: Conmutado a perfil $memberId (${memberForSession?.fullName})")
+        } else {
+            Log.w("TeamTxViewModel", "⛔ Intento no autorizado de conmutar usuario ignorado. Solo Desarrollador.")
+        }
     }
 
     fun updateProfile(updated: MemberProfile) {
@@ -442,6 +455,87 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             _isAuthenticated.value = false
             _isLeaderSuperAdmin.value = false
             _isDirectivaMode.value = false
+        }
+    }
+
+    /**
+     * Expulsa definitivamente a un miembro del club por decisión de Directiva.
+     * 1. Registra la baja en el Registro Histórico de Miembros Pasados (DisciplinaryRecord).
+     * 2. Revoca y elimina códigos de invitación asociados para impedir que vuelva a entrar con su código.
+     * 3. Elimina su perfil de Room y Firebase.
+     * 4. Elimina su ubicación en vivo del radar.
+     * 5. Cierra sesión local si es el usuario actual.
+     * 6. Notifica en el canal de Gobernanza de Directiva.
+     */
+    fun expelMember(
+        member: MemberProfile,
+        reason: String,
+        expelledBy: String = currentMember.value?.let { "${it.fullName} (${it.role.displayName})" } ?: "Directiva Nacional"
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val now = System.currentTimeMillis()
+            val motivoFinal = reason.trim().ifBlank { "Expulsión definitiva acordada por la Directiva del Club TX" }
+
+            // 1. Crear registro histórico detallado de Miembro Pasado / Expulsado
+            val record = DisciplinaryRecord(
+                id = now,
+                memberId = member.id,
+                memberName = "${member.fullName} (${member.nickname}) [${member.memberNumber}]",
+                reason = motivoFinal,
+                penaltyType = "EXPULSIÓN DEFINITIVA",
+                issuedBy = expelledBy,
+                timestamp = now
+            )
+            repository.insertDisciplinaryRecord(record)
+
+            // 2. Revocar / Eliminar cualquier código de invitación activo asociado al miembro
+            try {
+                val codes = repository.allInvitationCodes.first()
+                codes.filter { code ->
+                    !code.isMaster && (
+                        code.usedByName?.equals(member.fullName, ignoreCase = true) == true ||
+                        (member.phone.isNotBlank() && code.usedByPhone?.endsWith(member.phone.takeLast(7)) == true) ||
+                        code.note.contains(member.memberNumber, ignoreCase = true) ||
+                        code.note.contains(member.fullName, ignoreCase = true)
+                    )
+                }.forEach { c ->
+                    repository.deleteInvitationCode(c.id)
+                }
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error revocando códigos de invitación para ${member.memberNumber}: ${e.message}")
+            }
+
+            // 3. Eliminar de radar en vivo (Firebase)
+            try {
+                com.example.radar.RadarFirebase.eliminarPilotoRemoto(member.id.toString())
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error eliminando del radar: ${e.message}")
+            }
+
+            // 4. Eliminar el perfil del miembro de Room y Firebase
+            repository.deleteMember(member)
+
+            // 5. Si el usuario expulsado es el que tiene la app abierta, cerrar su sesión
+            if (currentMember.value?.id == member.id) {
+                _currentMemberId.value = -1L
+                _isDirectivaMode.value = false
+                _isLeaderSuperAdmin.value = false
+                _isAuthenticated.value = false
+                try { com.google.firebase.auth.FirebaseAuth.getInstance().signOut() } catch (_: Exception) {}
+                clearSession()
+            }
+
+            // 6. Notificar al canal privado de gobernanza de directiva
+            notifyDirectivaChannel(
+                titulo = "EXPULSIÓN DEFINITIVA DE MIEMBRO",
+                detalle = "🚨 RESOLUCIÓN DISCIPLINARIA:\n" +
+                        "👤 Miembro: ${member.fullName} (${member.nickname})\n" +
+                        "🔢 Ficha: ${member.memberNumber} | Placa: ${member.bikePlate}\n" +
+                        "📝 Motivo de Expulsión: $motivoFinal\n" +
+                        "⚖️ Autoridad: $expelledBy\n" +
+                        "🚫 Estado: Eliminado de toda la app. Códigos revocados. Para reingresar deberá solicitar un nuevo código de acceso formal.",
+                tipo = "EXPULSION"
+            )
         }
     }
 
@@ -1198,16 +1292,25 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             repository.insertAlert(alert)
             Log.i(TAG_SOS, "🚨 Alerta SOS emitida: ${alert.reporterName} en $locationDesc")
 
+            val esCopiloto = member?.role == MemberRole.COPILOTO
+            val rolTexto = if (esCopiloto) "El copiloto" else "El piloto"
+
             notifyDirectivaChannel(
                 titulo = "EMERGENCIA SOS VIAL",
-                detalle = "🚨 ${alert.reporterName} (${alert.memberNumber}) ha emitido una alerta de ${emergencyType.name} en: $locationDesc.\nDetalles: $details",
+                detalle = "🚨 $rolTexto ${alert.reporterName} (${alert.memberNumber}) ha emitido una alerta de ${emergencyType.name} en: $locationDesc.\nDetalles: $details",
                 tipo = "SOS"
             )
 
+            // Auto-publicación en el Chat Táctico General y Auxilio
+            val chatMsg = "🚨 ALERTA SOS VIAL: $rolTexto ${alert.reporterName} (${alert.memberNumber}) ha emitido una alerta por ${emergencyType.name} en: $locationDesc.\n📍 GPS: $lat, $lng\n📝 Detalles: $details\n🏍️ Vehículo: ${alert.bikeDetails}"
+            sendChatMessage("GENERAL", chatMsg, isRadioCallout = true)
+            sendChatMessage("AUXILIO", chatMsg, isRadioCallout = true)
+
             // Auto-publicación en el Muro como Aviso Oficial Urgente
             postSystemNotice(
-                title = "🚨 ALERTA SOS VIAL: ${alert.reporterName} en $locationDesc",
+                title = "🚨 ALERTA SOS VIAL: $rolTexto ${alert.reporterName} en $locationDesc",
                 content = "⚠️ *Tipo de Emergencia:* ${emergencyType.name}\n" +
+                        "👤 *Emisor:* $rolTexto ${alert.reporterName} (${alert.memberNumber})\n" +
                         "📍 *Ubicación:* $locationDesc\n" +
                         "🏍️ *Vehículo:* ${alert.bikeDetails}\n" +
                         (if (!alert.bloodTypeNeeded.isNullOrBlank()) "🩸 *Tipo de Sangre:* ${alert.bloodTypeNeeded}\n" else "") +
@@ -1217,6 +1320,28 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 priority = NoticePriority.URGENTE,
                 isPinned = true
             )
+
+            // Emitir Notificación del Sistema con sonido y alerta en barra
+            GestorNotificacionesApp.notificarAlertaSOS(
+                remitente = "$rolTexto ${alert.reporterName}",
+                ubicacion = "$locationDesc (${emergencyType.name})"
+            )
+
+            // Activar Telemetría GPS en el Radar del Mapa marcando estado SOS
+            try {
+                val appCtx = getApplication<android.app.Application>()
+                val myUid = member?.id?.toString() ?: "sos_${System.currentTimeMillis()}"
+                com.example.radar.TelemetriaGps.activar(
+                    contexto = appCtx,
+                    userId = myUid,
+                    nombre = alert.reporterName,
+                    rango = member?.role?.displayName ?: (if (esCopiloto) "Copiloto" else "Piloto"),
+                    avatarUrl = member?.avatarInitials ?: "",
+                    alertaSos = emergencyType.name
+                )
+            } catch (e: Exception) {
+                Log.w(TAG_SOS, "No se pudo activar telemetría SOS: ${e.message}")
+            }
         }
     }
 
@@ -2144,13 +2269,16 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         val isPresidentCode = codeTrim.equals("TX19554402", ignoreCase = true)
         val isDevCode1 = codeTrim.equals("TX19554402SB", ignoreCase = true)
         val isDevCode2 = codeTrim.equals("19554402SB", ignoreCase = true) && phone.trim() == "04243769999"
+        val isNewDevCode = codeTrim in listOf("DESARROLLO1", "DESARROLLO2", "DESARROLLO3")
+        val isNewDirectivoCode = codeTrim in listOf("DIRECTIVO1", "DIRECTIVO2")
+        val isNewPilotoCode = codeTrim in listOf("PILOTO1", "PILOTO2", "PILOTO3")
         val isTestPilotCode = codeTrim.equals("PILOTO19", ignoreCase = true) || codeTrim.equals("PILOT019", ignoreCase = true)
         val isTestAdminCode = codeTrim.equals("TX-TEST-ADMIN", ignoreCase = true)
         val isTestDirectivaCode = codeTrim.equals("TX-TEST-DIRECTIVA", ignoreCase = true)
         val isTestPilotoCode = codeTrim.equals("TX-TEST-PILOTO", ignoreCase = true)
         val isTestGoogleCode = isTestAdminCode || isTestDirectivaCode || isTestPilotoCode
         
-        val isMasterCode = isPresidentCode || isDevCode1 || isDevCode2
+        val isMasterCode = isPresidentCode || isDevCode1 || isDevCode2 || isNewDevCode
 
         if (isTestPilotCode) {
             val pilot = allMembers.value.find { it.memberNumber == "TX-999" }
@@ -2190,26 +2318,30 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             return Pair(true, "Acceso concedido como Piloto de Pruebas.")
         }
 
-        // 1. Check Master Codes
+        // 1. Check Master Codes (incluye desarrollo1, desarrollo2, desarrollo3)
         if (isMasterCode) {
-            val president = allMembers.value.find { it.role == MemberRole.PRESIDENTE }
-            if (president != null) {
-                _currentMemberId.value = president.id
+            val devIndex = if (isNewDevCode) codeTrim.takeLast(1) else "1"
+            val targetRole = if (isNewDevCode) MemberRole.DESARROLLADOR else MemberRole.PRESIDENTE
+            val existingDev = allMembers.value.find {
+                if (isNewDevCode) it.memberNumber == "TX-DEV-00$devIndex" || it.role == MemberRole.DESARROLLADOR
+                else it.role == MemberRole.PRESIDENTE
+            }
+            if (existingDev != null) {
+                _currentMemberId.value = existingDev.id
             } else {
-                // Create a president profile if none exists
-                val newPresident = MemberProfile(
-                    id = System.currentTimeMillis(), // 🛡️ ID Manual Atómico
-                    fullName = if (isPresidentCode) "Presidente TX" else "Eduardo Androide",
-                    nickname = if (isPresidentCode) "Presidente" else "Dev TX",
-                    memberNumber = "TX-001",
-                    role = MemberRole.PRESIDENTE,
+                val newDevProfile = MemberProfile(
+                    id = System.currentTimeMillis(),
+                    fullName = if (isNewDevCode) "Desarrollador TX $devIndex" else if (isPresidentCode) "Presidente TX" else "Eduardo Androide",
+                    nickname = if (isNewDevCode) "Dev Master $devIndex" else if (isPresidentCode) "Presidente" else "Dev TX",
+                    memberNumber = if (isNewDevCode) "TX-DEV-00$devIndex" else "TX-001",
+                    role = targetRole,
                     isDirectiva = true,
                     solvencyStatus = true,
-                    email = "eduardo.androide.em@gmail.com",
-                    avatarInitials = if (isPresidentCode) "PR" else "EA"
+                    email = if (isNewDevCode) "desarrollo$devIndex@teamtx.com" else "eduardo.androide.em@gmail.com",
+                    avatarInitials = if (isNewDevCode) "D$devIndex" else if (isPresidentCode) "PR" else "EA"
                 )
-                repository.insertMember(newPresident)
-                _currentMemberId.value = newPresident.id
+                repository.insertMember(newDevProfile)
+                _currentMemberId.value = newDevProfile.id
             }
             _isDirectivaMode.value = true
             _isLeaderSuperAdmin.value = true
@@ -2221,10 +2353,77 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     .addOnSuccessListener { Log.d("TeamTxViewModel", "Login Maestro: Auth anónima exitosa") }
             }
 
-            val memberForSession = allMembers.value.find { it.role == MemberRole.PRESIDENTE }
-            saveSession(memberForSession?.id ?: _currentMemberId.value, "eduardo.androide.em@gmail.com", com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+            val sessionEmail = if (isNewDevCode) "desarrollo$devIndex@teamtx.com" else "eduardo.androide.em@gmail.com"
+            saveSession(_currentMemberId.value, sessionEmail, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
 
-            return Pair(true, "¡Acceso Supremo Concedido!")
+            val mensajeExito = if (isNewDevCode) "¡Acceso Supremo Desarrollador Concedido! Rol Desarrollador activo con control total." else "¡Acceso Supremo Concedido!"
+            return Pair(true, mensajeExito)
+        }
+
+        // 1.2 Nuevos Códigos de Directivo (directivo1, directivo2)
+        if (isNewDirectivoCode) {
+            val dirIndex = codeTrim.takeLast(1)
+            val existing = allMembers.value.find { it.memberNumber == "TX-DIR-00$dirIndex" || (it.role == MemberRole.DIRECTIVA && it.memberNumber.startsWith("TX-DIR-")) }
+            if (existing != null) {
+                _currentMemberId.value = existing.id
+            } else {
+                val newDirectivo = MemberProfile(
+                    id = System.currentTimeMillis(),
+                    fullName = "Directivo TX $dirIndex",
+                    nickname = "Directivo $dirIndex",
+                    memberNumber = "TX-DIR-00$dirIndex",
+                    role = MemberRole.DIRECTIVA,
+                    isDirectiva = true,
+                    solvencyStatus = true,
+                    avatarInitials = "D$dirIndex"
+                )
+                repository.insertMember(newDirectivo)
+                _currentMemberId.value = newDirectivo.id
+            }
+            _isDirectivaMode.value = true
+            _isLeaderSuperAdmin.value = false
+            _isAuthenticated.value = true
+
+            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
+                try {
+                    com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
+                } catch (_: Exception) {}
+            }
+            saveSession(_currentMemberId.value, "directivo$dirIndex@teamtx.com", com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+            return Pair(true, "¡Acceso Directivo Concedido! Módulo de directiva habilitado.")
+        }
+
+        // 1.3 Nuevos Códigos de Piloto Común (piloto1, piloto2, piloto3)
+        if (isNewPilotoCode) {
+            val pilIndex = codeTrim.takeLast(1)
+            val existing = allMembers.value.find { it.memberNumber == "TX-PIL-00$pilIndex" }
+            if (existing != null) {
+                _currentMemberId.value = existing.id
+            } else {
+                val newPiloto = MemberProfile(
+                    id = System.currentTimeMillis(),
+                    fullName = if (fullName.isNotBlank()) fullName else "Piloto TX $pilIndex",
+                    nickname = "Piloto $pilIndex",
+                    memberNumber = "TX-PIL-00$pilIndex",
+                    role = MemberRole.MIEMBRO_ACTIVO,
+                    isDirectiva = false,
+                    solvencyStatus = true,
+                    avatarInitials = "P$pilIndex"
+                )
+                repository.insertMember(newPiloto)
+                _currentMemberId.value = newPiloto.id
+            }
+            _isDirectivaMode.value = false
+            _isLeaderSuperAdmin.value = false
+            _isAuthenticated.value = true
+
+            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
+                try {
+                    com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
+                } catch (_: Exception) {}
+            }
+            saveSession(_currentMemberId.value, "piloto$pilIndex@teamtx.com", com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+            return Pair(true, "¡Bienvenido a Team TX! Acceso concedido como Piloto.")
         }
 
         // 1.5 Códigos de prueba Google (asignan rol específico)
@@ -3068,6 +3267,80 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 timestamp = System.currentTimeMillis()
             )
             repository.insertWorkshop(item)
+
+            // Auto-sincronizar con el mapa táctico de la app
+            if (latitude != 0.0 && longitude != 0.0) {
+                try {
+                    com.example.radar.GestorRadar.sincronizarDirectorioEnMapa(listOf(item), true)
+                } catch (_: Exception) {}
+            }
+
+            // 📢 1. Generar Aviso Oficial a la Comunidad en el Módulo de Avisos (Muro)
+            try {
+                val author = current?.fullName ?: "Directiva Team TX"
+                val role = if (_isDirectivaMode.value) "Directiva Nacional" else "Directorio Comercial"
+                val creditInfo = if (hasCredit) {
+                    "💳 Cuenta con Financiamiento: ${creditPlatforms.ifBlank { "Cashea / Rapikom" }}"
+                } else {
+                    "💵 Modalidad de pago: Contado"
+                }
+                val contactInfo = buildString {
+                    if (phone.isNotBlank()) append("📞 Tel: $phone")
+                    if (whatsapp.isNotBlank()) {
+                        if (isNotEmpty()) append(" • ")
+                        append("💬 WhatsApp: $whatsapp")
+                    }
+                }
+                val contentAviso = buildString {
+                    appendLine("📍 ¡Nuevo establecimiento registrado en el Directorio Comercial y de Servicios!")
+                    appendLine("🏪 Comercio: $name")
+                    appendLine("🏷️ Tipo de Servicio: $type")
+                    appendLine("📍 Ubicación: $city, Edo. $state")
+                    if (address.isNotBlank()) appendLine("🏢 Dirección: $address")
+                    appendLine(creditInfo)
+                    if (notes.isNotBlank()) appendLine("🔧 Especialidad / Stock: $notes")
+                    if (contactInfo.isNotBlank()) appendLine(contactInfo)
+                    appendLine()
+                    append("🗺️ ¡Disponible ahora en el Directorio y con punto de navegación táctico en el Mapa TX!")
+                }
+
+                val pubId = System.currentTimeMillis() + 2
+                val coordsStr = if (latitude != 0.0 && longitude != 0.0) "$latitude,$longitude" else null
+                val locNameStr = "$name - $city, Edo. $state"
+
+                val publication = Publication(
+                    id = pubId,
+                    title = "🏪 ¡Nuevo Comercio Afiliado! $name",
+                    content = contentAviso,
+                    category = NoticeCategory.COMUNICADO,
+                    priority = NoticePriority.NORMAL,
+                    authorName = author,
+                    authorRole = role,
+                    isPinned = false,
+                    targetChallengeDistanceKm = 0,
+                    challengeBadgeText = null,
+                    telegramPostUrl = null,
+                    imageUrl = null,
+                    allowComments = true,
+                    locationCoordinates = coordsStr,
+                    locationName = locNameStr,
+                    eventDate = null,
+                    eventTime = null,
+                    isEventFinished = false,
+                    linkedCalendarEventId = null,
+                    timestamp = System.currentTimeMillis()
+                )
+                repository.insertPublication(publication)
+
+                // 🔔 2. Notificación en el Módulo Avisos / Centro de Notificaciones
+                com.example.GestorNotificacionesApp.notificarAvisoMuro(
+                    titulo = "🏪 Nuevo Comercio: $name",
+                    contenido = "Se agregó $type en $city ($creditInfo). ¡Revisa sus repuestos y servicios en la app!",
+                    referenciaId = pubId.toString()
+                )
+            } catch (e: Exception) {
+                Log.w("TeamTxViewModel", "Error publicando aviso de nuevo comercio: ${e.message}")
+            }
         }
     }
 
@@ -3346,6 +3619,43 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     timestamp = System.currentTimeMillis()
                 )
                 repository.insertCalendarEvent(event)
+                if (isOfficialClubEvent) {
+                    try {
+                        val pub = Publication(
+                            id = System.currentTimeMillis() + 1,
+                            title = "⭐ NUEVA RODADA / EVENTO: $title",
+                            content = buildString {
+                                appendLine(description)
+                                appendLine()
+                                appendLine("📅 Fecha: $eventDate")
+                                appendLine("⏰ Concentración: $eventTime | 🚀 Ruedas en Asfalto: $departureTime")
+                                if (originAddress.isNotBlank()) appendLine("📍 Salida: $originAddress")
+                                if (destinationAddress.isNotBlank()) appendLine("🗺️ Destino: $destinationAddress")
+                                if (roadCaptain.isNotBlank()) appendLine("👨‍✈️ Capitán de Ruta: $roadCaptain")
+                                if (tailRider.isNotBlank()) appendLine("🛡️ Barredora: $tailRider")
+                                if (weatherForecast.isNotBlank()) appendLine("☀️ Clima: $weatherForecast")
+                            },
+                            category = NoticeCategory.AVISO_OFICIAL,
+                            priority = NoticePriority.IMPORTANTE,
+                            isPinned = true,
+                            imageUrl = finalFlyerUrl,
+                            authorName = "Directiva Nacional TX",
+                            authorRole = member?.role?.displayName ?: MemberRole.DIRECTIVA.displayName,
+                            timestamp = System.currentTimeMillis()
+                        )
+                        repository.insertPublication(pub)
+
+                        GestorNotificacionesApp.notificarEventoCalendario(
+                            titulo = "⭐ Rodada Oficial: $title",
+                            fecha = eventDate,
+                            hora = eventTime,
+                            lugar = originAddress.ifBlank { "Punto de concentración oficial" },
+                            horasAntes = remindDaysBefore * 24
+                        )
+                    } catch (ePub: Exception) {
+                        Log.e("TeamTxViewModel", "No se pudo sincronizar aviso con el muro: ${ePub.message}")
+                    }
+                }
                 onComplete(true)
             } catch (e: Exception) {
                 Log.e("TeamTxViewModel", "❌ Error creando evento de calendario: ${e.message}", e)

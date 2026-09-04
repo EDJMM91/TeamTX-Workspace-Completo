@@ -233,7 +233,9 @@ object DialogosMapaTx {
             }
             setOnClickListener {
                 dialog.dismiss()
-                activity.finish() // Regresa a la app para ver el Carnet TX
+                val prefs = activity.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
+                prefs.edit().putString("target_carnet_pilot_id", piloto.id).apply()
+                activity.finish() // Regresa a la app para ver el Carnet TX en modo lectura
             }
         }
         buttonsCol.addView(btnCarnet)

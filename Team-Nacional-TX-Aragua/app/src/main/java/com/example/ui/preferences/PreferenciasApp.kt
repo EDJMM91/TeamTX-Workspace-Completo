@@ -17,19 +17,19 @@ object PreferenciasApp {
     fun init(context: Context) {
         if (!::prefs.isInitialized) {
             prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            _modoOscuroState.value = prefs.getBoolean("modo_oscuro", true)
+            _modoOscuroState.value = prefs.getBoolean("modo_oscuro", false)
         }
     }
 
     // ─── GLOBAL ───────────────────────────────────────────────────────────────
 
     /** Estado reactivo para que el Theme composable observe cambios de inmediato */
-    private val _modoOscuroState = mutableStateOf(true)
+    private val _modoOscuroState = mutableStateOf(false)
     val modoOscuroState get() = _modoOscuroState
 
-    /** Modo oscuro: true = tema oscuro (actual), false = tema claro */
+    /** Modo oscuro: fijado en false para tema claro unificado */
     var modoOscuro: Boolean
-        get() = prefs.getBoolean("modo_oscuro", true)
+        get() = prefs.getBoolean("modo_oscuro", false)
         set(value) {
             prefs.edit().putBoolean("modo_oscuro", value).apply()
             _modoOscuroState.value = value
@@ -128,6 +128,11 @@ object PreferenciasApp {
     var sosCompartirUbicacion: Boolean
         get() = prefs.getBoolean("sos_compartir_ubicacion", true)
         set(value) = prefs.edit().putBoolean("sos_compartir_ubicacion", value).apply()
+
+    /** Consentimiento transparente para acceso a GPS en emergencias */
+    var sosConsentimientoUbicacionAceptado: Boolean
+        get() = prefs.getBoolean("sos_consentimiento_gps_aceptado", false)
+        set(value) = prefs.edit().putBoolean("sos_consentimiento_gps_aceptado", value).apply()
 
     /** Reproducir sonido de alerta al recibir un SOS activo */
     var sosSonidoAlerta: Boolean

@@ -151,13 +151,11 @@ fun ConfiguracionesScreen(
             ) {
                 ItemToggle(
                     label = "Modo oscuro",
-                    descripcion = if (modoOscuroApp) "Tema oscuro activo" else "Tema claro activo",
-                    icono = if (modoOscuroApp) Icons.Default.DarkMode else Icons.Default.LightMode,
-                    checked = modoOscuroApp,
-                    onCheckedChange = {
-                        modoOscuroApp = it
-                        PreferenciasApp.modoOscuro = it
-                    }
+                    descripcion = "Tema claro fijado oficialmente (Modo oscuro desactivado)",
+                    icono = Icons.Default.LightMode,
+                    checked = false,
+                    enabled = false,
+                    onCheckedChange = { /* Desactivado por directiva de diseño visual uniforme */ }
                 )
                 ItemToggle(
                     label = "Notificaciones push",
@@ -692,32 +690,33 @@ private fun ItemToggle(
     descripcion: String,
     icono: ImageVector,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             icono,
             contentDescription = null,
-            tint = if (checked) TxFlameRed else MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = if (!enabled) Color.Gray else if (checked) TxFlameRed else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 label,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (!enabled) Color.Gray else MaterialTheme.colorScheme.onSurface,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 descripcion,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (!enabled) Color.Gray.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp,
                 lineHeight = 16.sp
             )
@@ -725,6 +724,7 @@ private fun ItemToggle(
         Spacer(Modifier.width(8.dp))
         Switch(
             checked = checked,
+            enabled = enabled,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,

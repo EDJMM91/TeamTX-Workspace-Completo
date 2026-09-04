@@ -1036,13 +1036,15 @@ fun MemberDetailDossierDialog(
                 Text("Cerrar Ficha", fontWeight = FontWeight.Bold)
             }
         },
-        dismissButton = {
-            OutlinedButton(onClick = onSelectAsActive) {
-                Icon(Icons.Default.SwitchAccount, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Usar este Perfil")
+        dismissButton = if (currentAdmin?.role == MemberRole.DESARROLLADOR || (currentAdmin?.role == MemberRole.PRESIDENTE && isDirectivaMode) || currentAdmin?.memberNumber == "TX-001" || currentAdmin?.memberNumber?.startsWith("TX-DEV-") == true) {
+            {
+                OutlinedButton(onClick = onSelectAsActive) {
+                    Icon(Icons.Default.SwitchAccount, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Usar este Perfil (Dev)")
+                }
             }
-        },
+        } else null,
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -77,30 +78,63 @@ fun MaintenanceScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Build, contentDescription = null, tint = MotoOrangePrimary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("BITÁCORA DE MANTENIMIENTO TX", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Build, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "BITÁCORA DE MANTENIMIENTO",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 15.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                        }
+                        Text(
+                            "Control Mecánico y Odómetro TX",
+                            fontSize = 11.sp,
+                            color = MotoOrangePrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = Color(0xFF0F172A))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = TxCarbonDark)
+                actions = {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFF1F5F9),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onBack() }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Home, contentDescription = "Inicio", tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Inicio", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showCreateDialog = true },
                 containerColor = MotoOrangePrimary,
-                contentColor = Color.Black,
+                contentColor = Color.White,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Registrar Servicio", fontWeight = FontWeight.Bold) }
             )
         },
-        containerColor = Color.Black
+        containerColor = Color(0xFFF8FAFC)
     ) { padding ->
         Column(
             modifier = Modifier
@@ -110,8 +144,8 @@ fun MaintenanceScreen(
             // Top Overview Card
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = TxCarbonDark,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.4f)),
+                color = Color.White,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -123,28 +157,28 @@ fun MaintenanceScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("ODÓMETRO REGISTRADO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TxSteelSilver)
-                            Text("$latestOdometer KM", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.White)
+                            Text("ODÓMETRO REGISTRADO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                            Text("$latestOdometer KM", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
                         }
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("GASTO TOTAL ACUMULADO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TxSteelSilver)
-                            Text("$${String.format("%.2f", totalSpentUsd)}", fontSize = 18.sp, fontWeight = FontWeight.Black, color = StatusSuccess)
+                            Text("GASTO TOTAL ACUMULADO", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+                            Text("$${String.format("%.2f", totalSpentUsd)}", fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color(0xFF16A34A))
                             if (totalSpentBs > 0) {
-                                Text("Bs. ${String.format("%.2f", totalSpentBs)}", fontSize = 11.sp, color = TxGoldBrass)
+                                Text("Bs. ${String.format("%.2f", totalSpentBs)}", fontSize = 11.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = TxSteelSilver.copy(alpha = 0.2f))
+                    HorizontalDivider(color = Color(0xFFE2E8F0))
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // Next Oil Alert Pill
                     val isOilDueSoon = kmRemainingForOil <= 500
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (isOilDueSoon) TxFlameRed.copy(alpha = 0.15f) else StatusSuccess.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isOilDueSoon) TxFlameRed else StatusSuccess)
+                        color = if (isOilDueSoon) Color(0xFFFEF2F2) else Color(0xFFF0FDF4),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isOilDueSoon) Color(0xFFF87171) else Color(0xFF86EFAC))
                     ) {
                         Row(
                             modifier = Modifier
@@ -155,7 +189,7 @@ fun MaintenanceScreen(
                             Icon(
                                 imageVector = if (isOilDueSoon) Icons.Default.Warning else Icons.Default.CheckCircle,
                                 contentDescription = null,
-                                tint = if (isOilDueSoon) TxFlameRed else StatusSuccess,
+                                tint = if (isOilDueSoon) Color(0xFFDC2626) else Color(0xFF16A34A),
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -164,12 +198,12 @@ fun MaintenanceScreen(
                                     text = if (isOilDueSoon) "⚠️ PRÓXIMO CAMBIO DE ACEITE URGENTE" else "ESTADO DEL ACEITE DEL MOTOR",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isOilDueSoon) TxFlameRed else StatusSuccess
+                                    color = if (isOilDueSoon) Color(0xFFB91C1C) else Color(0xFF15803D)
                                 )
                                 Text(
                                     text = "Próximo cambio a los $nextOilChangeKm KM (Restan $kmRemainingForOil KM)",
                                     fontSize = 11.sp,
-                                    color = Color.White
+                                    color = Color(0xFF334155)
                                 )
                             }
                         }
@@ -190,12 +224,25 @@ fun MaintenanceScreen(
                     FilterChip(
                         selected = isSelected,
                         onClick = { selectedFilter = type },
-                        label = { Text(type, fontSize = 12.sp) },
+                        label = {
+                            Text(
+                                type,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MotoOrangePrimary else Color(0xFF334155)
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MotoOrangePrimary,
-                            selectedLabelColor = Color.Black,
-                            containerColor = TxCarbonDark,
-                            labelColor = Color.White
+                            selectedContainerColor = MotoOrangePrimary.copy(alpha = 0.15f),
+                            selectedLabelColor = MotoOrangePrimary,
+                            containerColor = Color.White,
+                            labelColor = Color(0xFF334155)
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            borderColor = Color(0xFFCBD5E1),
+                            selectedBorderColor = MotoOrangePrimary
                         )
                     )
                 }
@@ -212,9 +259,9 @@ fun MaintenanceScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Build, contentDescription = null, tint = TxSteelSilver, modifier = Modifier.size(54.dp))
+                        Icon(Icons.Default.Build, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(54.dp))
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("No hay mantenimientos registrados aún", color = TxSteelSilver, fontSize = 14.sp)
+                        Text("No hay mantenimientos registrados aún", color = Color(0xFF64748B), fontSize = 14.sp)
                     }
                 }
             } else {
@@ -254,14 +301,15 @@ fun MaintenanceLogCard(
     onDelete: () -> Unit
 ) {
     val costBs = if (bcvRate > 0) log.costUsd * bcvRate else 0.0
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = TxCarbonDark,
-        border = androidx.compose.foundation.BorderStroke(1.dp, TxSteelSilver.copy(alpha = 0.2f)),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -270,14 +318,15 @@ fun MaintenanceLogCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = MotoOrangePrimary.copy(alpha = 0.2f)
+                        color = MotoOrangePrimary.copy(alpha = 0.12f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.4f))
                     ) {
                         Text(
                             text = log.serviceType.uppercase(),
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Black,
                             color = MotoOrangePrimary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -285,14 +334,15 @@ fun MaintenanceLogCard(
                         text = "${log.odometerKm} KM",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color(0xFF0F172A)
                     )
                 }
 
                 Text(
                     text = log.serviceDate,
                     fontSize = 11.sp,
-                    color = TxSteelSilver
+                    color = Color(0xFF64748B),
+                    fontWeight = FontWeight.Medium
                 )
             }
 
@@ -303,7 +353,7 @@ fun MaintenanceLogCard(
                     text = "Detalle: ${log.brandOrDetails}",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    color = Color(0xFF0F172A)
                 )
             }
 
@@ -311,7 +361,7 @@ fun MaintenanceLogCard(
                 Text(
                     text = "Taller: ${log.workshopName}",
                     fontSize = 12.sp,
-                    color = TxSteelSilver
+                    color = Color(0xFF334155)
                 )
             }
 
@@ -319,13 +369,13 @@ fun MaintenanceLogCard(
                 Text(
                     text = "Notas: ${log.notes}",
                     fontSize = 11.sp,
-                    color = TxSteelSilver
+                    color = Color(0xFF64748B)
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = TxSteelSilver.copy(alpha = 0.2f))
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = Color(0xFFF1F5F9))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -336,37 +386,70 @@ fun MaintenanceLogCard(
                     Text(
                         text = "Costo: $${String.format("%.2f", log.costUsd)}",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = StatusSuccess
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF16A34A)
                     )
                     if (costBs > 0) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "(Bs. ${String.format("%.2f", costBs)})",
                             fontSize = 11.sp,
-                            color = TxGoldBrass
+                            color = Color(0xFFD97706),
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (log.nextServiceKm > 0) {
-                        Text(
-                            text = "Próximo: ${log.nextServiceKm} KM",
-                            fontSize = 10.sp,
-                            color = TxSteelSilver,
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFFF1F5F9),
                             modifier = Modifier.padding(end = 8.dp)
-                        )
+                        ) {
+                            Text(
+                                text = "Próximo: ${log.nextServiceKm} KM",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF475569),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                     IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(28.dp)
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier.size(30.dp)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = TxFlameRed, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFDC2626), modifier = Modifier.size(17.dp))
                     }
                 }
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("¿Eliminar registro?", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
+            text = { Text("Esta acción eliminará permanentemente el registro de servicio de ${log.serviceType} (${log.odometerKm} KM).", color = Color(0xFF334155)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("Eliminar", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancelar", color = Color(0xFF64748B))
+                }
+            },
+            containerColor = Color.White
+        )
     }
 }
 
@@ -408,6 +491,15 @@ fun CreateMaintenanceLogDialog(
         "Mantenimiento General"
     )
 
+    val tfColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color(0xFF0F172A),
+        unfocusedTextColor = Color(0xFF0F172A),
+        focusedBorderColor = MotoOrangePrimary,
+        unfocusedBorderColor = Color(0xFFCBD5E1),
+        focusedLabelColor = MotoOrangePrimary,
+        unfocusedLabelColor = Color(0xFF64748B)
+    )
+
     // Auto calculate recommended next KM when service type changes
     LaunchedEffect(serviceType, odometerStr) {
         val currentKm = odometerStr.toIntOrNull() ?: currentOdometer
@@ -424,20 +516,46 @@ fun CreateMaintenanceLogDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Registrar Mantenimiento TX", fontWeight = FontWeight.Bold) },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Build, contentDescription = null, tint = MotoOrangePrimary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Registrar Mantenimiento TX", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+            }
+        },
         text = {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item {
-                    Text("Tipo de Servicio:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Tipo de Servicio:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(serviceTypes) { type ->
+                            val isSel = serviceType == type
                             FilterChip(
-                                selected = serviceType == type,
+                                selected = isSel,
                                 onClick = { serviceType = type },
-                                label = { Text(type, fontSize = 11.sp) }
+                                label = {
+                                    Text(
+                                        type,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSel) MotoOrangePrimary else Color(0xFF334155)
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MotoOrangePrimary.copy(alpha = 0.15f),
+                                    selectedLabelColor = MotoOrangePrimary,
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = Color(0xFF334155)
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSel,
+                                    borderColor = Color(0xFFCBD5E1),
+                                    selectedBorderColor = MotoOrangePrimary
+                                )
                             )
                         }
                     }
@@ -448,6 +566,7 @@ fun CreateMaintenanceLogDialog(
                         value = odometerStr,
                         onValueChange = { odometerStr = it },
                         label = { Text("Kilometraje Actual (KM)") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -458,6 +577,7 @@ fun CreateMaintenanceLogDialog(
                         onValueChange = { brandOrDetails = it },
                         label = { Text("Marca / Repuesto / Detalle") },
                         placeholder = { Text("ej. Motul 20W50, Bujía NGK") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -467,6 +587,7 @@ fun CreateMaintenanceLogDialog(
                         value = costStr,
                         onValueChange = { costStr = it },
                         label = { Text("Costo en USD ($)") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -476,6 +597,7 @@ fun CreateMaintenanceLogDialog(
                         value = workshopName,
                         onValueChange = { workshopName = it },
                         label = { Text("Taller / Mecánico (Opcional)") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -485,6 +607,7 @@ fun CreateMaintenanceLogDialog(
                         value = serviceDate,
                         onValueChange = { serviceDate = it },
                         label = { Text("Fecha del Servicio (DD/MM/AAAA)") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -494,6 +617,7 @@ fun CreateMaintenanceLogDialog(
                         value = nextServiceKmStr,
                         onValueChange = { nextServiceKmStr = it },
                         label = { Text("Próximo Servicio a los (KM)") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -503,6 +627,7 @@ fun CreateMaintenanceLogDialog(
                         value = notes,
                         onValueChange = { notes = it },
                         label = { Text("Observaciones / Notas") },
+                        colors = tfColors,
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 2
                     )
@@ -519,14 +644,14 @@ fun CreateMaintenanceLogDialog(
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
             ) {
-                Text("Guardar", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text("Guardar Servicio", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text("Cancelar", color = Color(0xFF64748B))
             }
         },
-        containerColor = TxCarbonDark
+        containerColor = Color.White
     )
 }
