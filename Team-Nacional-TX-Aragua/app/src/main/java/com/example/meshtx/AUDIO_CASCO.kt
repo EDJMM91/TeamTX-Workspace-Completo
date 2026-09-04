@@ -284,6 +284,12 @@ class AudioCasco(
     fun encolarAudioEntrante(datosComprimidos: ByteArray) {
         val audioPcm = descomprimirAudioSimple(datosComprimidos)
         colaReproduccion.add(audioPcm)
+        try {
+            if (reproductorAudio?.playState != AudioTrack.PLAYSTATE_PLAYING) {
+                reproductorAudio?.play()
+            }
+        } catch (_: Exception) {}
+        Log.i(etiquetaLog, "🔊 Encolado fragmento de voz entrante (${datosComprimidos.size} B comp -> ${audioPcm.size} B PCM). Cola: ${colaReproduccion.size}")
     }
 
     // ─────────────────────────────────────────────────────────────────────────

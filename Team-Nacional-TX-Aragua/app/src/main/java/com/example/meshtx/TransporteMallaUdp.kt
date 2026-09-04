@@ -11,8 +11,10 @@ import java.io.DataOutputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.net.NetworkInterface
 import java.net.SocketException
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -20,11 +22,12 @@ import java.nio.charset.StandardCharsets
  * ═══════════════════════════════════════════════════════════════════════════
  * Responsabilidades:
  * 1. Abrir un socket Datagram UDP en el puerto táctico 58200 con soporte Broadcast.
- * 2. Serializar y deserializar paquetes `PaqueteDatosMesh` a binario compacto.
- * 3. Enviar datagramas de audio, SOS, telemetría y balizas a toda la red local offline
- *    (Hotspot de convoy, Wi-Fi Direct o red compartida sin router).
- * 4. Hilo de escucha en bucle continuo para entregar inmediatamente el audio
- *    al enrutador y motor de reproducción.
+ * 2. Adquirir MulticastLock para evitar que Android suspenda paquetes de red.
+ * 3. Calcular dinámicamente las direcciones de broadcast de subred (Hotspot / LAN).
+ * 4. Serializar y deserializar paquetes `PaqueteDatosMesh` a binario compacto.
+ * 5. Transmitir paquetes de voz, SOS y telemetría por difusión múltiple
+ *    (Broadcast de subred + Unicast redundante a IPs conocidas).
+ * 6. Hilo continuo de recepción que alimenta directamente al motor de reproducción.
  *
  * 100% OFFLINE - Cero dependencias de servidores externos o internet.
  */
@@ -45,6 +48,9 @@ class TransporteMallaUdp(
     private var tareaBaliza: Job? = null
     private var estaActivo = false
 
+    // Registro de IPs de compañeros detectados para unicast directo redundante
+    private val ipsParesConocidos = ConcurrentHashMap<Long, String>()
+
     // Multicast lock para dispositivos que restringen paquetes UDP en reposo
     private var multicastLock: WifiManager.MulticastLock? = null
 
@@ -61,6 +67,7 @@ class TransporteMallaUdp(
                 setReferenceCounted(true)
                 acquire()
             }
+            Log.i(etiquetaLog, "MulticastLock adquirido correctamente.")
         } catch (e: Exception) {
             Log.w(etiquetaLog, "No se pudo adquirir MulticastLock: ${e.message}")
         }
@@ -74,9 +81,8 @@ class TransporteMallaUdp(
             }
             Log.i(etiquetaLog, "Socket UDP Táctico abierto con éxito en puerto $puertoTactico")
         } catch (e: Exception) {
-            Log.e(etiquetaLog, "Error al abrir socket UDP en $puertoTactico: ${e.message}")
+            Log.w(etiquetaLog, "Puerto $puertoTactico ocupado, intentando socket dinámico: ${e.message}")
             try {
-                // Intento alternativo en caso de puerto retenido
                 socketUdp = DatagramSocket().apply {
                     broadcast = true
                     receiveBufferSize = 65536
@@ -111,6 +117,7 @@ class TransporteMallaUdp(
         } catch (_: Exception) {}
         multicastLock = null
 
+        ipsParesConocidos.clear()
         Log.i(etiquetaLog, "Transporte UDP detenido y recursos liberados.")
     }
 
@@ -123,14 +130,37 @@ class TransporteMallaUdp(
         alcanceTransporte.launch {
             try {
                 val bytes = serializarPaquete(paquete)
-                val destino = if (!direccionIpDestino.isNullOrBlank() && direccionIpDestino.contains(".")) {
-                    InetAddress.getByName(direccionIpDestino)
-                } else {
-                    InetAddress.getByName("255.255.255.255")
+
+                if (paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS) {
+                    Log.i(etiquetaLog, "🎙️ Emitiendo fragmento audio (${bytes.size} B) desde $aliasPilotoLocal...")
                 }
 
-                val datagrama = DatagramPacket(bytes, bytes.size, destino, puertoTactico)
-                socketUdp?.send(datagrama)
+                if (!direccionIpDestino.isNullOrBlank() && direccionIpDestino.contains(".")) {
+                    // Unicast específico
+                    val destino = InetAddress.getByName(direccionIpDestino)
+                    val datagrama = DatagramPacket(bytes, bytes.size, destino, puertoTactico)
+                    socketUdp?.send(datagrama)
+                } else {
+                    // 1. Enviar a todas las direcciones de broadcast de subred detectadas
+                    val broadcasts = obtenerDireccionesBroadcast()
+                    for (bcast in broadcasts) {
+                        try {
+                            val datagrama = DatagramPacket(bytes, bytes.size, bcast, puertoTactico)
+                            socketUdp?.send(datagrama)
+                        } catch (e: Exception) {
+                            Log.w(etiquetaLog, "Fallo enviando a broadcast $bcast: ${e.message}")
+                        }
+                    }
+
+                    // 2. Enviar por Unicast directo redundante a cada IP conocida de compañeros
+                    for ((_, ip) in ipsParesConocidos) {
+                        try {
+                            val dest = InetAddress.getByName(ip)
+                            val datagrama = DatagramPacket(bytes, bytes.size, dest, puertoTactico)
+                            socketUdp?.send(datagrama)
+                        } catch (_: Exception) {}
+                    }
+                }
             } catch (e: Exception) {
                 Log.w(etiquetaLog, "Error enviando datagrama ${paquete.tipo}: ${e.message}")
             }
@@ -152,18 +182,28 @@ class TransporteMallaUdp(
                     socket.receive(datagrama)
 
                     if (datagrama.length > 0) {
+                        val ipRemota = datagrama.address.hostAddress ?: ""
                         val paquete = deserializarPaquete(datagrama.data, datagrama.length)
+
                         if (paquete != null && paquete.idEmisor != idPilotoLocal) {
+                            if (ipRemota.isNotBlank()) {
+                                ipsParesConocidos[paquete.idEmisor] = ipRemota
+                            }
+
+                            if (paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS) {
+                                Log.i(etiquetaLog, "🔊 AUDIO RECIBIDO de ${paquete.aliasEmisor} (${paquete.payloadAudio?.size} B) desde $ipRemota")
+                            }
+
                             alRecibirPaquete(paquete, paquete.idEmisor)
                         }
                     }
                 } catch (e: SocketException) {
                     if (!estaActivo) break
                     Log.w(etiquetaLog, "SocketException en recepción UDP: ${e.message}")
-                    delay(200)
+                    delay(150)
                 } catch (e: Exception) {
                     Log.w(etiquetaLog, "Error recibiendo paquete UDP: ${e.message}")
-                    delay(50)
+                    delay(30)
                 }
             }
         }
@@ -185,9 +225,34 @@ class TransporteMallaUdp(
                     saltosRelay = 0
                 )
                 transmitirPaquete(baliza)
-                delay(3000) // Baliza cada 3 segundos
+                delay(2500) // Baliza cada 2.5 segundos
             }
         }
+    }
+
+    /**
+     * Calcula dinámicamente las direcciones de broadcast de las interfaces de red locales
+     * (Hotspot Wi-Fi del líder, red compartida o router).
+     */
+    private fun obtenerDireccionesBroadcast(): List<InetAddress> {
+        val lista = mutableListOf<InetAddress>()
+        try {
+            lista.add(InetAddress.getByName("255.255.255.255"))
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val red = interfaces.nextElement()
+                if (red.isLoopback || !red.isUp) continue
+                for (ia in red.interfaceAddresses) {
+                    val bcast = ia.broadcast
+                    if (bcast != null) {
+                        lista.add(bcast)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(etiquetaLog, "Error calculando broadcasts locales: ${e.message}")
+        }
+        return lista.distinct()
     }
 
     /**

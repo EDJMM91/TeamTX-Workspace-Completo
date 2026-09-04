@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap
 class EnrutadorMalla(
     private val idPilotoLocal: Long,
     private val aliasPilotoLocal: String,
-    private val alEnviarPaqueteFisico: (PaqueteDatosMesh, NodoMeshPiloto) -> Unit
+    private val alEnviarPaqueteFisico: (PaqueteDatosMesh, NodoMeshPiloto?) -> Unit
 ) {
 
     private val etiquetaLog = "MeshTX_Enrutador"
@@ -296,6 +296,10 @@ class EnrutadorMalla(
     }
 
     private fun difundirPaqueteAVecinos(paquete: PaqueteDatosMesh, nodoAExcluir: Long? = null) {
+        // 1. Difusión física universal inmediata (al aire/broadcast)
+        alEnviarPaqueteFisico(paquete, null)
+
+        // 2. Transmisión dirigida a vecinos conocidos
         vecinosDirectos.values.forEach { vecino ->
             if (vecino.idMiembro != nodoAExcluir && vecino.idMiembro != paquete.idEmisor) {
                 alEnviarPaqueteFisico(paquete, vecino)
@@ -334,7 +338,7 @@ class EnrutadorMalla(
         val iterador = registroPresenciaNodos.entries.iterator()
         while (iterador.hasNext()) {
             val entrada = iterador.next()
-            if (ahora - entrada.value > 45000L) { // 45 segundos sin señal
+            if (ahora - entrada.value > 120000L) { // 120 segundos sin señal para evitar desconexiones falsas
                 Log.d(etiquetaLog, "Silencio prolongado del nodo ${entrada.key}. Purgando presencia...")
                 iterador.remove()
             }

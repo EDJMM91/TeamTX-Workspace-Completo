@@ -533,13 +533,19 @@ class BuscadorMalla(
                         val pares = listaPares.deviceList
                         for (dispositivo in pares) {
                             val idVirtual = (dispositivo.deviceAddress.hashCode().toLong() and 0x7FFFFFFF)
-                            if (idVirtual != idPilotoLocal) {
+                                val previo = _nodosDetectados.value[idVirtual]
+                                val aliasAsignado = if (previo != null && previo.aliasPiloto.isNotBlank() && previo.aliasPiloto != dispositivo.deviceName) {
+                                    previo.aliasPiloto
+                                } else {
+                                    "Piloto TX"
+                                }
                                 val nodoP2p = NodoMeshPiloto(
                                     idMiembro = idVirtual,
-                                    aliasPiloto = dispositivo.deviceName.ifBlank { "Piloto P2P" },
+                                    aliasPiloto = aliasAsignado,
+                                    modeloTelefonoHardware = dispositivo.deviceName.ifBlank { "Dispositivo Android" },
                                     direccionNodo = dispositivo.deviceAddress,
                                     intensidadSenalDbm = -50,
-                                    distanciaAproximadaMetros = 25.0,
+                                    distanciaAproximadaMetros = 12.0,
                                     ultimoPingTimestamp = System.currentTimeMillis()
                                 )
 
@@ -550,7 +556,6 @@ class BuscadorMalla(
                             }
                         }
                     }
-                }
 
                 WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
                     val infoRed = intent.getParcelableExtra<NetworkInfo>(WifiP2pManager.EXTRA_NETWORK_INFO)
@@ -582,8 +587,8 @@ class BuscadorMalla(
 
                 while (iterador.hasNext()) {
                     val entrada = iterador.next()
-                    // Si pasaron más de 30 segundos sin señal, considerar desconectado
-                    if (ahora - entrada.value.ultimoPingTimestamp > 30000) {
+                    // Si pasaron más de 120 segundos sin señal, considerar desconectado
+                    if (ahora - entrada.value.ultimoPingTimestamp > 120000) {
                         Log.d(etiquetaLog, "Nodo fuera de rango: ${entrada.value.aliasPiloto}")
                         alPerderNodo(entrada.key)
                         iterador.remove()

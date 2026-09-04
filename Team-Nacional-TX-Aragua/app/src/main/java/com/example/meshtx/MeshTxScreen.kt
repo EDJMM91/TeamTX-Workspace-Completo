@@ -205,25 +205,6 @@ fun MeshTxScreen(
                             }
                         }
                     }
-
-                    // Botón de Inicio rápido al Dashboard
-                    TextButton(
-                        onClick = onBackToDashboard,
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF6B00)),
-                        contentPadding = PaddingValues(horizontal = 8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Home,
-                            contentDescription = "Inicio",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "Inicio",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.White
@@ -401,56 +382,54 @@ fun MeshTxScreen(
                             }
                         }
 
-                        // Banner táctico interactivo de Modo Altavoz / Manos Libres
+                        // Control Horizontal Compacto de Modo Altavoz (Loudspeaker)
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (modoAltavozActivo) Color(0xFFF0FDF4) else Color(0xFFF8FAFC),
                             border = BorderStroke(1.dp, if (modoAltavozActivo) Color(0xFFBBF7D0) else Color(0xFFE2E8F0)),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { GestorMeshTx.alternarModoAltavoz(!modoAltavozActivo) }
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(
-                                        imageVector = if (modoAltavozActivo) Icons.Default.VolumeUp else Icons.Default.Hearing,
+                                        imageVector = if (modoAltavozActivo) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
                                         contentDescription = null,
                                         tint = if (modoAltavozActivo) Color(0xFF16A34A) else Color(0xFF64748B),
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(20.dp)
                                     )
                                     Column {
                                         Text(
-                                            text = if (modoAltavozActivo) "🔊 Modo Altavoz Potente ACTIVO" else "🔈 Modo Auricular Privado",
-                                            fontSize = 11.sp,
+                                            text = if (modoAltavozActivo) "Modo Altavoz Activo" else "Modo Auricular Privado",
+                                            fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = if (modoAltavozActivo) Color(0xFF15803D) else Color(0xFF334155)
                                         )
                                         Text(
-                                            text = if (modoAltavozActivo) "El audio suena fuerte por los parlantes del teléfono" else "Toca para activar el altavoz exterior",
+                                            text = if (modoAltavozActivo) "Sonando por altavoz exterior" else "Sonando pegado a la oreja",
                                             fontSize = 10.sp,
                                             color = if (modoAltavozActivo) Color(0xFF16A34A) else Color(0xFF64748B)
                                         )
                                     }
                                 }
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = if (modoAltavozActivo) Color(0xFFDCFCE7) else Color(0xFFFFEDD5)
-                                ) {
-                                    Text(
-                                        text = if (modoAltavozActivo) "ALTAVOZ" else "ACTIVAR",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (modoAltavozActivo) Color(0xFF16A34A) else Color(0xFFC2410C),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
+                                Switch(
+                                    checked = modoAltavozActivo,
+                                    onCheckedChange = { GestorMeshTx.alternarModoAltavoz(it) },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = Color(0xFF16A34A)
+                                    ),
+                                    modifier = Modifier.scale(0.85f)
+                                )
                             }
                         }
                     }
@@ -743,29 +722,102 @@ fun MeshTxScreen(
             // 5. RADAR TÁCTICO: LISTA DE COMPAÑEROS EN RANGO DE MALLA
             // ─────────────────────────────────────────────────────────────────
             item {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "Compañeros en Radar Mesh (${nodosEnRed.size})",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF0F172A)
-                    )
-                    if (nodosEnRed.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFDCFCE7)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Compañeros en Radar Mesh (${nodosEnRed.size})",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF0F172A)
+                        )
+                        if (nodosEnRed.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFDCFCE7)
+                            ) {
+                                Text(
+                                    text = "Enmallado Activo ✓",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF15803D),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Selector Rápido: Modo Piloto vs Modo Hardware
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                text = "Enmallado Activo ✓",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF15803D),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
+                            Surface(
+                                onClick = { GestorMeshTx.alternarVisualizacionPerfil(true) },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (ajustes.mostrarPerfilSincronizado) Color(0xFFFF6B00) else Color.Transparent,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.TwoWheeler,
+                                        contentDescription = null,
+                                        tint = if (ajustes.mostrarPerfilSincronizado) Color.White else Color(0xFF64748B),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Ver Pilotos TX",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (ajustes.mostrarPerfilSincronizado) Color.White else Color(0xFF64748B)
+                                    )
+                                }
+                            }
+                            Surface(
+                                onClick = { GestorMeshTx.alternarVisualizacionPerfil(false) },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (!ajustes.mostrarPerfilSincronizado) Color(0xFF0F172A) else Color.Transparent,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Smartphone,
+                                        contentDescription = null,
+                                        tint = if (!ajustes.mostrarPerfilSincronizado) Color.White else Color(0xFF64748B),
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Ver Dispositivos",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (!ajustes.mostrarPerfilSincronizado) Color.White else Color(0xFF64748B)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -861,7 +913,7 @@ fun MeshTxScreen(
                                 Column {
                                     Text(
                                         text = if (ajustes.mostrarPerfilSincronizado)
-                                            nodo.aliasPiloto
+                                            if (nodo.aliasPiloto.isNotBlank() && nodo.aliasPiloto != nodo.modeloTelefonoHardware) nodo.aliasPiloto else "Piloto TX #${nodo.idMiembro and 0x3FFL}"
                                         else
                                             nodo.modeloTelefonoHardware.ifBlank { "Dispositivo BLE/WiFi" },
                                         fontWeight = FontWeight.Black,

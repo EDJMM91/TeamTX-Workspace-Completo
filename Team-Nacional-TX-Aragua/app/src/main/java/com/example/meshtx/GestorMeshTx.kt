@@ -83,18 +83,20 @@ object GestorMeshTx {
             aliasPilotoLocal = aliasPilotoLocal,
             alRecibirPaquete = { paquete, remitenteId ->
                 enrutadorMalla?.procesarPaqueteRecibido(paquete, remitenteId)
-                // Registrar inmediatamente como nodo vecino directo UDP
+                // Registrar o actualizar con el alias real del piloto y dirección IP
+                val mapa = buscadorMalla?.nodosDetectados?.value?.toMutableMap() ?: mutableMapOf()
+                val previo = mapa[paquete.idEmisor]
                 val nodoUdp = NodoMeshPiloto(
                     idMiembro = paquete.idEmisor,
-                    aliasPiloto = paquete.aliasEmisor,
+                    aliasPiloto = paquete.aliasEmisor.ifBlank { previo?.aliasPiloto ?: "Piloto TX" },
+                    modeloTelefonoHardware = previo?.modeloTelefonoHardware ?: "Dispositivo TX",
                     direccionNodo = "UDP_58200",
-                    intensidadSenalDbm = -40,
-                    distanciaAproximadaMetros = 8.0,
+                    intensidadSenalDbm = -35,
+                    distanciaAproximadaMetros = 5.0,
                     ultimoPingTimestamp = System.currentTimeMillis()
                 )
                 enrutadorMalla?.actualizarVecinoDirecto(nodoUdp)
-                val mapa = buscadorMalla?.nodosDetectados?.value?.toMutableMap() ?: mutableMapOf()
-                if (!mapa.containsKey(paquete.idEmisor)) {
+                if (previo == null || previo.aliasPiloto != nodoUdp.aliasPiloto) {
                     mapa[paquete.idEmisor] = nodoUdp
                     actualizarListaNodos()
                 }
@@ -106,10 +108,13 @@ object GestorMeshTx {
             idPilotoLocal = idPilotoLocal,
             aliasPilotoLocal = aliasPilotoLocal,
             alEnviarPaqueteFisico = { paquete, nodoDestino ->
-                Log.d(ETIQUETA_LOG, "Emitiendo paquete ${paquete.tipo} hacia nodo ${nodoDestino.aliasPiloto} por UDP")
+                val destinoStr = nodoDestino?.aliasPiloto ?: "BROADCAST_UNIVERSAL"
+                if (paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS) {
+                    Log.i(ETIQUETA_LOG, "Emitiendo paquete AUDIO hacia $destinoStr por UDP")
+                }
                 transporteUdp?.transmitirPaquete(
                     paquete,
-                    if (nodoDestino.direccionNodo.contains(".")) nodoDestino.direccionNodo else null
+                    if (nodoDestino != null && nodoDestino.direccionNodo.contains(".")) nodoDestino.direccionNodo else null
                 )
             }
         )
