@@ -72,10 +72,10 @@ class AudioCasco(
     // Configuraciones tácticas
     var modoPttActivo: Boolean = true // True = pulsar para hablar; False = manos libres VOX
     var pulsadorPttPresionado: Boolean = false
-    var sensibilidadUmbralVox: Float = 0.08f // Umbral RMS para activar transmisión
+    var sensibilidadUmbralVox: Float = 0.04f // Umbral RMS para activar transmisión
     var cancelacionVientoActivada: Boolean = true
-    var factorGananciaMicrofono: Float = 1.8f // Ganancia amplificada para captar voz sin audífonos
-    var factorVolumenSalida: Float = 1.5f // Ganancia de amplificación en altavoz
+    var factorGananciaMicrofono: Float = 1.0f // Ganancia natural limpia sin saturación
+    var factorVolumenSalida: Float = 1.0f // Ganancia de salida pura sin acumulación de distorsión
 
     // Estado del filtro paso-alto de viento (IIR a ~300 Hz)
     private var ultimoMuestreoEntrada = 0f
@@ -225,13 +225,25 @@ class AudioCasco(
         if (_estaGrabando.value) return
 
         try {
-            grabadorAudio = AudioRecord(
-                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-                frecuenciaMuestreo,
-                canalEntrada,
-                formatoAudio,
-                tamanoBufferGrabacion
-            )
+            grabadorAudio = try {
+                AudioRecord(
+                    MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                    frecuenciaMuestreo,
+                    canalEntrada,
+                    formatoAudio,
+                    tamanoBufferGrabacion
+                )
+            } catch (_: Exception) { null }
+
+            if (grabadorAudio == null || grabadorAudio?.state != AudioRecord.STATE_INITIALIZED) {
+                grabadorAudio = AudioRecord(
+                    MediaRecorder.AudioSource.MIC,
+                    frecuenciaMuestreo,
+                    canalEntrada,
+                    formatoAudio,
+                    tamanoBufferGrabacion
+                )
+            }
 
             if (grabadorAudio?.state != AudioRecord.STATE_INITIALIZED) {
                 Log.e(etiquetaLog, "No se pudo inicializar el AudioRecord.")
@@ -281,15 +293,18 @@ class AudioCasco(
     /**
      * Encolar un paquete de voz recibido por la malla para reproducirlo en los parlantes/auriculares.
      */
-    fun encolarAudioEntrante(datosComprimidos: ByteArray) {
-        val audioPcm = descomprimirAudioSimple(datosComprimidos)
+    fun encolarAudioEntrante(datosAudio: ByteArray) {
+        val audioPcm = desempaquetarPcm16(datosAudio)
+        while (colaReproduccion.size > 8) {
+            colaReproduccion.poll()
+        }
         colaReproduccion.add(audioPcm)
         try {
             if (reproductorAudio?.playState != AudioTrack.PLAYSTATE_PLAYING) {
                 reproductorAudio?.play()
             }
         } catch (_: Exception) {}
-        Log.i(etiquetaLog, "🔊 Encolado fragmento de voz entrante (${datosComprimidos.size} B comp -> ${audioPcm.size} B PCM). Cola: ${colaReproduccion.size}")
+        Log.i(etiquetaLog, "🔊 Encolado fragmento de voz entrante (${datosAudio.size} B PCM). Cola: ${colaReproduccion.size}")
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -380,9 +395,10 @@ class AudioCasco(
 
         if (!debeTransmitir) return
 
-        // 3. Aplicar Filtro de Viento (High-Pass IIR a ~300 Hz) y Ganancia
+        // 3. Aplicar Filtro de Viento (High-Pass IIR a ~120 Hz para eliminar ruidos graves de moto sin cortar la voz humana)
         val bufferFiltrado = ShortArray(longitud)
-        val rc = 1.0f / (2.0f * Math.PI.toFloat() * 300.0f)
+        val fc = 120.0f
+        val rc = 1.0f / (2.0f * Math.PI.toFloat() * fc)
         val dt = 1.0f / frecuenciaMuestreo
         val alfa = rc / (rc + dt)
 
@@ -401,9 +417,9 @@ class AudioCasco(
             bufferFiltrado[i] = muestraClamped
         }
 
-        // 4. Comprimir a formato ligero para envío inmediato por la malla
-        val datosComprimidos = comprimirAudioSimple(bufferFiltrado)
-        alGenerarFragmentoVoz(datosComprimidos)
+        // 4. Empaquetar a PCM 16-bit nativo sin pérdidas para fidelidad vocal pura
+        val datosAudio = empaquetarPcm16(bufferFiltrado)
+        alGenerarFragmentoVoz(datosAudio)
     }
 
     private fun iniciarHiloReproduccion() {
@@ -428,37 +444,34 @@ class AudioCasco(
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // COMPRESIÓN Y DESCOMPRESIÓN LIGERA DE BAJA LATENCIA (DPCM 8-BIT)
+    // FORMATO PCM 16-BIT NATIVO (FIDELIDAD VOCAL PURA SIN DISTORSIÓN)
     // ─────────────────────────────────────────────────────────────────────────
 
-    private fun comprimirAudioSimple(pcm: ShortArray): ByteArray {
-        val stream = ByteArrayOutputStream(pcm.size)
-        var previo = 0
-
-        for (muestra in pcm) {
-            val delta = (muestra - previo) shr 8
-            val delta8 = delta.coerceIn(-128, 127).toByte()
-            stream.write(delta8.toInt())
-            previo = muestra.toInt()
+    private fun empaquetarPcm16(pcm: ShortArray): ByteArray {
+        val bytes = ByteArray(pcm.size * 2)
+        for (i in pcm.indices) {
+            val v = pcm[i].toInt()
+            bytes[i * 2] = (v and 0xFF).toByte()
+            bytes[i * 2 + 1] = ((v shr 8) and 0xFF).toByte()
         }
-
-        return stream.toByteArray()
+        return bytes
     }
 
-    private fun descomprimirAudioSimple(comprimido: ByteArray): ByteArray {
-        val pcmBytes = ByteArray(comprimido.size * 2)
-        var previo = 0
-
-        for (i in comprimido.indices) {
-            val delta = comprimido[i].toInt() shl 8
-            val escalado = ((previo + delta) * factorVolumenSalida).toInt().coerceIn(-32768, 32767)
-            previo = escalado
-
-            pcmBytes[i * 2] = (escalado and 0xFF).toByte()
-            pcmBytes[i * 2 + 1] = ((escalado shr 8) and 0xFF).toByte()
+    private fun desempaquetarPcm16(bytes: ByteArray): ByteArray {
+        if (factorVolumenSalida == 1.0f) return bytes
+        val resultado = ByteArray(bytes.size)
+        val factor = factorVolumenSalida
+        var i = 0
+        while (i < bytes.size - 1) {
+            val bajo = bytes[i].toInt() and 0xFF
+            val alto = bytes[i + 1].toInt()
+            val muestra = (alto shl 8) or bajo
+            val ajustada = (muestra * factor).toInt().coerceIn(-32768, 32767)
+            resultado[i] = (ajustada and 0xFF).toByte()
+            resultado[i + 1] = ((ajustada shr 8) and 0xFF).toByte()
+            i += 2
         }
-
-        return pcmBytes
+        return resultado
     }
 
     /**
