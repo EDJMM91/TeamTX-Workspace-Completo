@@ -41,6 +41,9 @@ object GestorMeshTx {
     private val _pilotoHablandoAhora = MutableStateFlow<String?>(null)
     val pilotoHablandoAhora: StateFlow<String?> = _pilotoHablandoAhora.asStateFlow()
 
+    private val _idPilotoHablandoAhora = MutableStateFlow<Long?>(null)
+    val idPilotoHablandoAhora: StateFlow<Long?> = _idPilotoHablandoAhora.asStateFlow()
+
     private val _ajustes = MutableStateFlow(AjustesIntercomunicadorTactico())
     val ajustes: StateFlow<AjustesIntercomunicadorTactico> = _ajustes.asStateFlow()
 
@@ -69,7 +72,7 @@ object GestorMeshTx {
      * Inicializar los componentes con el contexto de la aplicación e identidad del piloto.
      */
     fun inicializar(contexto: Context, idPiloto: Long, aliasPiloto: String) {
-        if (estaInicializado) return
+        if (estaInicializado && this.idPilotoLocal == idPiloto && this.aliasPilotoLocal == aliasPiloto) return
         this.idPilotoLocal = idPiloto
         this.aliasPilotoLocal = aliasPiloto
         val ctx = contexto.applicationContext
@@ -323,14 +326,18 @@ object GestorMeshTx {
             TipoPaqueteMesh.AUDIO_VOZ_OPUS -> {
                 paquete.payloadAudio?.let { audio ->
                     _pilotoHablandoAhora.value = paquete.aliasEmisor
+                    _idPilotoHablandoAhora.value = paquete.idEmisor
+                    actualizarListaNodos()
                     audioCasco?.encolarAudioEntrante(audio)
                     _totalSaltosRelay.value = paquete.saltosRelay
 
-                    // Restablecer indicador de orador después de 1.2 segundos sin paquetes
+                    // Restablecer indicador de orador después de 1.5 segundos sin paquetes
                     alcanceGestor.launch {
-                        delay(1200)
-                        if (_pilotoHablandoAhora.value == paquete.aliasEmisor) {
+                        delay(1500)
+                        if (_idPilotoHablandoAhora.value == paquete.idEmisor) {
+                            _idPilotoHablandoAhora.value = null
                             _pilotoHablandoAhora.value = null
+                            actualizarListaNodos()
                         }
                     }
                 }
@@ -350,19 +357,25 @@ object GestorMeshTx {
 
     private fun actualizarListaNodos() {
         val lista = buscadorMalla?.nodosDetectados?.value?.values?.toList() ?: emptyList()
+        val hablandoId = _idPilotoHablandoAhora.value
+        val hablandoAlias = _pilotoHablandoAhora.value
         val listaEnriquecida = lista.map { nodo ->
             val perfil = nubeMalla?.obtenerPerfilPiloto(nodo.idMiembro)
+            val estaHablando = (hablandoId != null && nodo.idMiembro == hablandoId) ||
+                               (!hablandoAlias.isNullOrBlank() && nodo.aliasPiloto.isNotBlank() && nodo.aliasPiloto == hablandoAlias)
             if (perfil != null) {
                 nodo.copy(
                     aliasPiloto = perfil.alias.ifBlank { nodo.aliasPiloto },
                     nombreMoto = perfil.modeloMoto.ifBlank { "Keeway TX 200" },
                     fotoUrl = perfil.fotoUrl,
                     fichaMiembro = "TX-${(nodo.idMiembro and 0x3FFL)}",
-                    modeloTelefonoHardware = nodo.modeloTelefonoHardware.ifBlank { nodo.aliasPiloto }
+                    modeloTelefonoHardware = nodo.modeloTelefonoHardware.ifBlank { nodo.aliasPiloto },
+                    estaTransmitiendoVoz = estaHablando
                 )
             } else {
                 nodo.copy(
-                    modeloTelefonoHardware = nodo.modeloTelefonoHardware.ifBlank { nodo.aliasPiloto }
+                    modeloTelefonoHardware = nodo.modeloTelefonoHardware.ifBlank { nodo.aliasPiloto },
+                    estaTransmitiendoVoz = estaHablando
                 )
             }
         }

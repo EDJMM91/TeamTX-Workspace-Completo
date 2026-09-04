@@ -73,11 +73,12 @@ class TransporteMallaUdp(
         }
 
         try {
-            socketUdp = DatagramSocket(puertoTactico).apply {
-                broadcast = true
+            socketUdp = DatagramSocket(null).apply {
                 reuseAddress = true
+                broadcast = true
                 receiveBufferSize = 65536
                 sendBufferSize = 65536
+                bind(java.net.InetSocketAddress(puertoTactico))
             }
             Log.i(etiquetaLog, "Socket UDP Táctico abierto con éxito en puerto $puertoTactico")
         } catch (e: Exception) {
@@ -185,13 +186,18 @@ class TransporteMallaUdp(
                         val ipRemota = datagrama.address.hostAddress ?: ""
                         val paquete = deserializarPaquete(datagrama.data, datagrama.length)
 
-                        if (paquete != null && paquete.idEmisor != idPilotoLocal) {
+                        if (paquete != null) {
+                            if (paquete.idEmisor == idPilotoLocal) {
+                                // Ignorar eco local de nuestro propio broadcast
+                                continue
+                            }
+
                             if (ipRemota.isNotBlank()) {
                                 ipsParesConocidos[paquete.idEmisor] = ipRemota
                             }
 
                             if (paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS) {
-                                Log.i(etiquetaLog, "🔊 AUDIO RECIBIDO de ${paquete.aliasEmisor} (${paquete.payloadAudio?.size} B) desde $ipRemota")
+                                Log.i(etiquetaLog, "🔊 AUDIO RECIBIDO de ${paquete.aliasEmisor} (ID: ${paquete.idEmisor}, ${paquete.payloadAudio?.size} B) desde $ipRemota")
                             }
 
                             alRecibirPaquete(paquete, paquete.idEmisor)

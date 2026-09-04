@@ -68,6 +68,7 @@ fun MeshTxScreen(
     val nodosEnRed by GestorMeshTx.nodosEnRed.collectAsState()
     val estaTransmitiendoPtt by GestorMeshTx.estaTransmitiendoPtt.collectAsState()
     val pilotoHablando by GestorMeshTx.pilotoHablandoAhora.collectAsState()
+    val idPilotoHablando by GestorMeshTx.idPilotoHablandoAhora.collectAsState()
     val ajustes by GestorMeshTx.ajustes.collectAsState()
     val saltosRelay by GestorMeshTx.totalSaltosRelay.collectAsState()
     val cascoBluetoothConectado by GestorMeshTx.cascoBluetoothConectado.collectAsState()
@@ -117,6 +118,20 @@ fun MeshTxScreen(
             }
         } else {
             GestorMeshTx.detenerMallaTactico()
+        }
+    }
+
+    // Auto-arranque táctico inmediato al ingresar a la pantalla
+    LaunchedEffect(Unit) {
+        if (estadoConexion == MeshEstadoConexion.DESCONECTADO) {
+            val faltanPermisos = permisosRequeridos.any { permiso ->
+                ContextCompat.checkSelfPermission(contextoLocal, permiso) != PackageManager.PERMISSION_GRANTED
+            }
+            if (faltanPermisos) {
+                launcherPermisosMalla.launch(permisosRequeridos)
+            } else {
+                GestorMeshTx.iniciarMallaTactico()
+            }
         }
     }
 
@@ -876,11 +891,30 @@ fun MeshTxScreen(
                 }
             } else {
                 items(nodosEnRed, key = { it.idMiembro }) { nodo ->
+                    val estaHablando = nodo.estaTransmitiendoVoz ||
+                            (idPilotoHablando != null && nodo.idMiembro == idPilotoHablando) ||
+                            (!pilotoHablando.isNullOrBlank() && nodo.aliasPiloto.isNotBlank() && nodo.aliasPiloto == pilotoHablando)
+
+                    val transition = rememberInfiniteTransition(label = "pulse_${nodo.idMiembro}")
+                    val animAlpha by transition.animateFloat(
+                        initialValue = 0.35f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(450, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "alpha_${nodo.idMiembro}"
+                    )
+
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Color.White,
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                        shadowElevation = 1.dp,
+                        color = if (estaHablando) Color(0xFFF0FDF4) else Color.White,
+                        border = if (estaHablando) {
+                            BorderStroke(2.dp, Color(0xFF16A34A).copy(alpha = animAlpha))
+                        } else {
+                            BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        },
+                        shadowElevation = if (estaHablando) 4.dp else 1.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -897,15 +931,34 @@ fun MeshTxScreen(
                             ) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = if (ajustes.mostrarPerfilSincronizado) Color(0xFFFFF7ED) else Color(0xFFF1F5F9),
-                                    border = BorderStroke(1.dp, if (ajustes.mostrarPerfilSincronizado) Color(0xFFFDBA74) else Color(0xFFCBD5E1)),
+                                    color = when {
+                                        estaHablando -> Color(0xFFDCFCE7)
+                                        ajustes.mostrarPerfilSincronizado -> Color(0xFFFFF7ED)
+                                        else -> Color(0xFFF1F5F9)
+                                    },
+                                    border = BorderStroke(
+                                        if (estaHablando) 2.dp else 1.dp,
+                                        when {
+                                            estaHablando -> Color(0xFF16A34A)
+                                            ajustes.mostrarPerfilSincronizado -> Color(0xFFFDBA74)
+                                            else -> Color(0xFFCBD5E1)
+                                        }
+                                    ),
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            imageVector = if (ajustes.mostrarPerfilSincronizado) Icons.Default.TwoWheeler else Icons.Default.Smartphone,
+                                            imageVector = when {
+                                                estaHablando -> Icons.Default.VolumeUp
+                                                ajustes.mostrarPerfilSincronizado -> Icons.Default.TwoWheeler
+                                                else -> Icons.Default.Smartphone
+                                            },
                                             contentDescription = null,
-                                            tint = if (ajustes.mostrarPerfilSincronizado) Color(0xFFFF6B00) else Color(0xFF475569),
+                                            tint = when {
+                                                estaHablando -> Color(0xFF15803D)
+                                                ajustes.mostrarPerfilSincronizado -> Color(0xFFFF6B00)
+                                                else -> Color(0xFF475569)
+                                            },
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -918,45 +971,74 @@ fun MeshTxScreen(
                                             nodo.modeloTelefonoHardware.ifBlank { "Dispositivo BLE/WiFi" },
                                         fontWeight = FontWeight.Black,
                                         fontSize = 13.sp,
-                                        color = Color(0xFF0F172A),
+                                        color = if (estaHablando) Color(0xFF15803D) else Color(0xFF0F172A),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = if (ajustes.mostrarPerfilSincronizado)
+                                        text = if (estaHablando)
+                                            "🔊 ¡RECIBIENDO AUDIO EN VIVO! • ~${nodo.distanciaAproximadaMetros.toInt()}m"
+                                        else if (ajustes.mostrarPerfilSincronizado)
                                             "${nodo.nombreMoto.ifBlank { "TX 200" }} • ${nodo.fichaMiembro.ifBlank { "Ficha #${nodo.idMiembro and 0x3FFL}" }} • ~${nodo.distanciaAproximadaMetros.toInt()}m"
                                         else
                                             "Hardware: ${nodo.direccionNodo.ifBlank { "Radio Local" }} • ${nodo.intensidadSenalDbm} dBm • ~${nodo.distanciaAproximadaMetros.toInt()}m",
                                         fontSize = 10.sp,
-                                        color = Color(0xFF64748B),
-                                        fontWeight = FontWeight.Medium
+                                        color = if (estaHablando) Color(0xFF16A34A) else Color(0xFF64748B),
+                                        fontWeight = if (estaHablando) FontWeight.Bold else FontWeight.Medium
                                     )
                                 }
                             }
 
-                            // Badge de calidad de señal
-                            val calidadColor = when {
-                                nodo.intensidadSenalDbm > -65 -> Color(0xFF16A34A)
-                                nodo.intensidadSenalDbm > -80 -> Color(0xFFF59E0B)
-                                else -> Color(0xFF64748B)
-                            }
-                            val calidadFondo = when {
-                                nodo.intensidadSenalDbm > -65 -> Color(0xFFDCFCE7)
-                                nodo.intensidadSenalDbm > -80 -> Color(0xFFFEF3C7)
-                                else -> Color(0xFFF1F5F9)
-                            }
+                            if (estaHablando) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFFDCFCE7),
+                                    border = BorderStroke(1.dp, Color(0xFF16A34A))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.RecordVoiceOver,
+                                            contentDescription = null,
+                                            tint = Color(0xFF15803D),
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Text(
+                                            text = "HABLANDO",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF15803D)
+                                        )
+                                    }
+                                }
+                            } else {
+                                // Badge de calidad de señal
+                                val calidadColor = when {
+                                    nodo.intensidadSenalDbm > -65 -> Color(0xFF16A34A)
+                                    nodo.intensidadSenalDbm > -80 -> Color(0xFFF59E0B)
+                                    else -> Color(0xFF64748B)
+                                }
+                                val calidadFondo = when {
+                                    nodo.intensidadSenalDbm > -65 -> Color(0xFFDCFCE7)
+                                    nodo.intensidadSenalDbm > -80 -> Color(0xFFFEF3C7)
+                                    else -> Color(0xFFF1F5F9)
+                                }
 
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = calidadFondo
-                            ) {
-                                Text(
-                                    text = if (nodo.intensidadSenalDbm > -65) "Fuerte" else if (nodo.intensidadSenalDbm > -80) "Media" else "Lejana",
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = calidadColor,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                )
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = calidadFondo
+                                ) {
+                                    Text(
+                                        text = if (nodo.intensidadSenalDbm > -65) "Fuerte" else if (nodo.intensidadSenalDbm > -80) "Media" else "Lejana",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = calidadColor,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
                             }
                         }
                     }

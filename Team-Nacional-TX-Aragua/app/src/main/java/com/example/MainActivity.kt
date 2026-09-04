@@ -303,14 +303,26 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
     val appCtx = LocalContext.current
 
     LaunchedEffect(currentMember) {
-        val miembro = currentMember
-        if (miembro != null) {
-            com.example.meshtx.GestorMeshTx.inicializar(
-                contexto = appCtx,
-                idPiloto = miembro.id,
-                aliasPiloto = miembro.nickname.ifBlank { miembro.fullName.ifBlank { "Piloto TX" } }
-            )
+        val androidId = try {
+            android.provider.Settings.Secure.getString(appCtx.contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: android.os.Build.MODEL
+        } catch (_: Exception) {
+            android.os.Build.MODEL
         }
+        val hardwareHash = (androidId.hashCode().toLong() and 0xFFFFL)
+        val miembro = currentMember
+        // Cada dispositivo físico tiene un ID de nodo de malla único, evitando colisión si se prueba con la misma cuenta:
+        val idPilotoUnico = if (miembro != null) {
+            (miembro.id shl 16) xor hardwareHash
+        } else {
+            100000L + hardwareHash
+        }
+        val aliasBase = miembro?.nickname?.ifBlank { miembro.fullName.ifBlank { "Piloto TX" } } ?: "Piloto TX"
+
+        com.example.meshtx.GestorMeshTx.inicializar(
+            contexto = appCtx,
+            idPiloto = idPilotoUnico,
+            aliasPiloto = aliasBase
+        )
     }
 
     // 🌐 Odómetro Continuo Global en Toda la App (Si está habilitado en Ajustes)
