@@ -190,6 +190,37 @@ fun ChallengesScreen(
                 )
             }
 
+            // Barra de intercomunicación Mesh TX para retos de ruta
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .clickable {
+                        try {
+                            com.example.meshtx.GestorMeshTx.iniciarMallaTactico()
+                            com.example.meshtx.GestorMeshTx.cambiarCanal(com.example.meshtx.CanalTactico.PERSONALIZADO)
+                        } catch (_: Exception) {}
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.Podcasts, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(20.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("🎙️ Canal Táctico de Retos", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                        Text("Sintoniza la frecuencia offline para coordinar check-points en ruta", fontSize = 10.sp, color = Color(0xFF64748B))
+                    }
+                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFFFF7ED), border = BorderStroke(1.dp, Color(0xFFFDBA74))) {
+                        Text("Sintonizar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MotoOrangePrimary, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
+            }
+
             if (selectedTab == 0) {
                 // LISTA DE RETOS OFICIALES
                 if (officialChallenges.isEmpty()) {

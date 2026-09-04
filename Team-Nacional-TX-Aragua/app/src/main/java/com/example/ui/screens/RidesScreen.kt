@@ -77,6 +77,7 @@ fun RidesScreen(
     var selectedRideForJoin by remember { mutableStateOf<RideEvent?>(null) }
     var selectedRideForPostpone by remember { mutableStateOf<RideEvent?>(null) }
     var selectedRideForFinalize by remember { mutableStateOf<RideEvent?>(null) }
+    var rideForMeshActivationDialog by remember { mutableStateOf<Pair<RideEvent, RideStatus>?>(null) }
 
     var selectedStatusFilter by remember { mutableStateOf("TODAS") }
     var searchQuery by remember { mutableStateOf("") }
@@ -251,7 +252,13 @@ fun RidesScreen(
                         onJoinClick = { selectedRideForJoin = ride },
                         onCancelClick = { onCancelJoin(ride.id) },
                         onViewRoster = { selectedRideForRoster = ride },
-                        onStatusChange = { newStatus -> onUpdateRideStatus(ride, newStatus) },
+                        onStatusChange = { newStatus ->
+                            if (newStatus == RideStatus.EN_CURSO) {
+                                rideForMeshActivationDialog = Pair(ride, newStatus)
+                            } else {
+                                onUpdateRideStatus(ride, newStatus)
+                            }
+                        },
                         onEditClick = { selectedRideForEdit = ride },
                         onDeleteClick = { selectedRideForDelete = ride },
                         onPostponeClick = { selectedRideForPostpone = ride },
@@ -307,6 +314,75 @@ fun RidesScreen(
                 onFinalizeRide(selectedRideForFinalize!!, attendedMemberIds)
                 selectedRideForFinalize = null
             }
+        )
+    }
+
+    // Modal: Preguntar si desea activar Mesh TX para la rodada en ruta
+    if (rideForMeshActivationDialog != null) {
+        val (rideToStart, targetStatus) = rideForMeshActivationDialog!!
+        AlertDialog(
+            onDismissRequest = {
+                onUpdateRideStatus(rideToStart, targetStatus)
+                rideForMeshActivationDialog = null
+            },
+            icon = {
+                Icon(
+                    Icons.Default.Podcasts,
+                    contentDescription = null,
+                    tint = Color(0xFFFF6B00),
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "🎙️ Activar Intercomunicador Mesh TX",
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF0F172A),
+                    fontSize = 16.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "La caravana \"${rideToStart.title}\" iniciará su marcha.",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A),
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        text = "¿Deseas activar el Intercomunicador Táctico Mesh TX para conectar a todos los pilotos sin internet mediante Wi-Fi Direct y Bluetooth?",
+                        color = Color(0xFF475569),
+                        fontSize = 12.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        try {
+                            com.example.meshtx.GestorMeshTx.iniciarMallaTactico()
+                            com.example.meshtx.GestorMeshTx.cambiarCanal(com.example.meshtx.CanalTactico.GENERAL_TX)
+                        } catch (_: Exception) {}
+                        onUpdateRideStatus(rideToStart, targetStatus)
+                        rideForMeshActivationDialog = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B00)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Sí, Activar Mesh TX", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        onUpdateRideStatus(rideToStart, targetStatus)
+                        rideForMeshActivationDialog = null
+                    }
+                ) {
+                    Text("Solo cambiar estado", color = Color(0xFF64748B))
+                }
+            },
+            containerColor = Color.White
         )
     }
 
@@ -697,7 +773,40 @@ fun RideItemCard(
 
                 Spacer(modifier = Modifier.height(6.dp))
                 HorizontalDivider(color = Color(0xFFE2E8F0))
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Banner táctico de conexión Mesh TX si la rodada está en ruta
+                if (ride.status == RideStatus.EN_CURSO) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFFF7ED),
+                        border = BorderStroke(1.dp, Color(0xFFFDBA74)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                try {
+                                    com.example.meshtx.GestorMeshTx.iniciarMallaTactico()
+                                    com.example.meshtx.GestorMeshTx.cambiarCanal(com.example.meshtx.CanalTactico.GENERAL_TX)
+                                } catch (_: Exception) {}
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.Podcasts, contentDescription = null, tint = Color(0xFFFF6B00), modifier = Modifier.size(20.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("🎙️ Caravana en Ruta (Mesh TX)", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF0F172A))
+                                Text("Toca para sintonizar el intercomunicador offline con el convoy", fontSize = 10.sp, color = Color(0xFF64748B))
+                            }
+                            Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFFF6B00)) {
+                                Text("Sintonizar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
                 // FILA 1 DE BOTONES: PUESTOS CONVOY & INSCRIPCIÓN (Sin choques)
                 Row(

@@ -103,6 +103,11 @@ fun VelocimetroScreen(
     var lastLocation by remember { mutableStateOf<Location?>(null) }
     var lastAccelTimestamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
+    // Estados de Intercomunicador Mesh TX en Malla
+    val estadoMalla by com.example.meshtx.GestorMeshTx.estadoConexion.collectAsState()
+    val nodosMalla by com.example.meshtx.GestorMeshTx.nodosEnRed.collectAsState()
+    val canalMalla by com.example.meshtx.GestorMeshTx.canalActual.collectAsState()
+
     // Animación de Inicialización (Self-Test / Needle Sweep)
     var isSelfTestRunning by remember { mutableStateOf(true) }
     val testAnim = remember { Animatable(0f) }
@@ -524,6 +529,51 @@ fun VelocimetroScreen(
                                 }
                             }
                         }
+                    }
+                }
+
+                // 🎙️ BANDA TÁCTICA INTERCOMUNICADOR MESH TX
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) Color(0xFF1E293B) else Color(0xFF121620),
+                    border = BorderStroke(1.dp, if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) MotoOrangePrimary else Color(0xFF334155)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(
+                                Icons.Default.Podcasts,
+                                contentDescription = null,
+                                tint = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) MotoOrangePrimary else Color.Gray,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO)
+                                    "Mesh TX • ${canalMalla.nombre}"
+                                else
+                                    "Mesh TX Apagado",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                        Text(
+                            text = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO)
+                                "${nodosMalla.size} pilotos en convoy"
+                            else
+                                "Offline",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) Color(0xFF38BDF8) else Color.Gray
+                        )
                     }
                 }
 

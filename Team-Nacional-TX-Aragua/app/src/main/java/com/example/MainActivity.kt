@@ -95,7 +95,8 @@ enum class NavigationTab(val label: String, val iconFilled: ImageVector, val ico
     PROFILE("Carnet TX", Icons.Default.Badge, Icons.Outlined.Badge, "tab_profile"),
     MAPA("Mapa TX", Icons.Default.Map, Icons.Outlined.Map, "tab_mapa"),
     INFO("Info", Icons.Default.Info, Icons.Outlined.Info, "tab_info"),
-    CONFIGURACIONES("Ajustes", Icons.Default.Settings, Icons.Outlined.Settings, "tab_configuraciones")
+    CONFIGURACIONES("Ajustes", Icons.Default.Settings, Icons.Outlined.Settings, "tab_configuraciones"),
+    MESHTX("Mesh TX", Icons.Default.Podcasts, Icons.Default.Podcasts, "tab_meshtx")
 }
 
 class MainActivity : ComponentActivity() {
@@ -299,8 +300,20 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
         }
     }
 
-    // 🌐 Odómetro Continuo Global en Toda la App (Si está habilitado en Ajustes)
     val appCtx = LocalContext.current
+
+    LaunchedEffect(currentMember) {
+        val miembro = currentMember
+        if (miembro != null) {
+            com.example.meshtx.GestorMeshTx.inicializar(
+                contexto = appCtx,
+                idPiloto = miembro.id,
+                aliasPiloto = miembro.nickname.ifBlank { miembro.fullName.ifBlank { "Piloto TX" } }
+            )
+        }
+    }
+
+    // 🌐 Odómetro Continuo Global en Toda la App (Si está habilitado en Ajustes)
     val hasLocPerm = remember {
         ContextCompat.checkSelfPermission(appCtx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
@@ -360,7 +373,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     selectedTab == NavigationTab.NOTIFICACIONES ||
                     selectedTab == NavigationTab.PLAYER ||
                     selectedTab == NavigationTab.DIRECTORIO ||
-                    selectedTab == NavigationTab.RANKING
+                    selectedTab == NavigationTab.RANKING ||
+                    selectedTab == NavigationTab.MESHTX
             AnimatedVisibility(visible = isBottomNavVisible && !isCalendarOrFullscreen) {
                 Surface(
                     shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -1089,6 +1103,12 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         }
                     )
                 }
+                NavigationTab.MESHTX -> {
+                    com.example.meshtx.MeshTxScreen(
+                        currentMember = currentMember,
+                        onBackToDashboard = { selectedTab = NavigationTab.DASHBOARD }
+                    )
+                }
             }
         }
     }
@@ -1099,6 +1119,9 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             onDismiss = { showQuickSosModal = false },
             onBroadcast = { type, loc, details, blood, lat, lng ->
                 viewModel.broadcastSosEmergency(type, loc, details, blood, lat, lng)
+                try {
+                    com.example.meshtx.GestorMeshTx.emitirAlertaSos("🚨 SOS ${type.name}: $loc - $details", if (lat != 0.0) "$lat,$lng" else null)
+                } catch (_: Exception) {}
                 showQuickSosModal = false
                 selectedTab = NavigationTab.SOS
             }

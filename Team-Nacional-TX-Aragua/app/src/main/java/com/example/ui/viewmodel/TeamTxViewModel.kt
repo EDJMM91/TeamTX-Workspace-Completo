@@ -60,6 +60,21 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     private val _dismissedNoticeIds = MutableStateFlow<Set<Long>>(emptySet())
     val dismissedNoticeIds: StateFlow<Set<Long>> = _dismissedNoticeIds.asStateFlow()
 
+    // ---------------- AUTHENTICATION & GATEKEEPER (Inicializados antes de init) ---------------- //
+    private val _isAuthenticated = MutableStateFlow(false)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
+    private val _isLeaderSuperAdmin = MutableStateFlow(false)
+    val isLeaderSuperAdmin: StateFlow<Boolean> = _isLeaderSuperAdmin.asStateFlow()
+
+    private val _isDirectivaMode = MutableStateFlow(false)
+    val isDirectivaMode: StateFlow<Boolean> = _isDirectivaMode.asStateFlow()
+
+    private val _currentMemberId = MutableStateFlow<Long>(1)
+
+    private val _requestAttemptsLeft = MutableStateFlow(prefs.getInt("PREF_REQUEST_ATTEMPTS_LEFT", 3))
+    val requestAttemptsLeft: StateFlow<Int> = _requestAttemptsLeft.asStateFlow()
+
     init {
         val db = AppDatabase.getDatabase(application, viewModelScope)
         repository = TeamTxRepository(db, viewModelScope)
@@ -90,9 +105,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             .set(mapOf("chatEnabled" to enabled), SetOptions.merge())
     }
 
-    // Directiva mode switch
-    private val _isDirectivaMode = MutableStateFlow(false)
-    val isDirectivaMode: StateFlow<Boolean> = _isDirectivaMode.asStateFlow()
+    // Directiva mode switch (declarado arriba de init)
 
     fun toggleDirectivaMode() {
         val member = currentMember.value
@@ -114,8 +127,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     val allMembers: StateFlow<List<MemberProfile>> = repository.allMembers
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Active User Profile (Defaults to first or selected)
-    private val _currentMemberId = MutableStateFlow<Long>(1)
+    // Active User Profile (Defaults to first or selected, _currentMemberId declarado arriba de init)
     val currentMember: StateFlow<MemberProfile?> = combine(allMembers, _currentMemberId) { members, id ->
         members.find { it.id == id } ?: members.firstOrNull()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -1924,15 +1936,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    // ---------------- AUTHENTICATION & GATEKEEPER ---------------- //
-    private val _isAuthenticated = MutableStateFlow(false)
-    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
-
-    private val _isLeaderSuperAdmin = MutableStateFlow(false)
-    val isLeaderSuperAdmin: StateFlow<Boolean> = _isLeaderSuperAdmin.asStateFlow()
-
-    private val _requestAttemptsLeft = MutableStateFlow(prefs.getInt("PREF_REQUEST_ATTEMPTS_LEFT", 3))
-    val requestAttemptsLeft: StateFlow<Int> = _requestAttemptsLeft.asStateFlow()
+    // ---------------- AUTHENTICATION & GATEKEEPER (Declaraciones movidas al encabezado de la clase) ---------------- //
 
     private fun saveSession(memberId: Long, email: String?, firebaseUid: String?) {
         prefs.edit()

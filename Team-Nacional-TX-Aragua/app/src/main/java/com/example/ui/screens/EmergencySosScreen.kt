@@ -753,6 +753,9 @@ fun EmergencySosScreen(
             onDismiss = { showEmitSosDialog = false },
             onBroadcast = { type, loc, details, blood, lat, lng ->
                 onBroadcastSos(type, loc, details, blood, lat, lng)
+                try {
+                    com.example.meshtx.GestorMeshTx.emitirAlertaSos("🚨 SOS ${type.name}: $loc - $details", if (lat != 0.0) "$lat,$lng" else null)
+                } catch (_: Exception) {}
                 showEmitSosDialog = false
             }
         )

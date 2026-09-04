@@ -16,10 +16,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.example.NavigationTab
 import com.example.data.model.BikerCalendarEvent
 import com.example.data.model.EmergencyAlert
 import com.example.data.model.MemberProfile
+import com.example.data.model.MemberRole
 import com.example.data.model.Publication
 
 /**
@@ -41,6 +46,7 @@ fun DashboardScreen(
 ) {
     val context = LocalContext.current
     val fondoConfig = DashboardFondoConfig
+    var mostrarDialogoMeshBloqueado by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -479,6 +485,74 @@ fun DashboardScreen(
                     onClick = { onNavigateToTab(NavigationTab.CONFIGURACIONES) }
                 )
             }
+
+            item {
+                val esAdminODev = isDirectivaMode ||
+                    currentMember?.role?.canManageApp == true ||
+                    currentMember?.role == MemberRole.DESARROLLADOR ||
+                    currentMember?.role == MemberRole.PRESIDENTE ||
+                    currentMember?.role == MemberRole.VICEPRESIDENTE ||
+                    currentMember?.role == MemberRole.DIRECTIVA ||
+                    currentMember?.role == MemberRole.SECRETARIO ||
+                    currentMember?.role == MemberRole.DISCIPLINARIO ||
+                    currentMember?.role == MemberRole.TESORERO ||
+                    currentMember?.isDirectiva == true
+
+                ModuleListRow(
+                    titulo = "Mesh TX (Intercom Táctico)",
+                    descripcion = if (esAdminODev) "Intercomunicador offline 3.0 para caravana y convoy" else "🔒 Exclusivo Directiva y Desarrolladores (Fase Beta)",
+                    icono = Icons.Default.Podcasts,
+                    colorIcono = if (esAdminODev) Color(0xFFFF6B00) else Color(0xFF94A3B8),
+                    badgeAlerta = !esAdminODev,
+                    onClick = {
+                        if (esAdminODev) {
+                            onNavigateToTab(NavigationTab.MESHTX)
+                        } else {
+                            mostrarDialogoMeshBloqueado = true
+                        }
+                    }
+                )
+            }
         }
+    }
+
+    // Diálogo informativo para usuarios sin rol de directiva/desarrollador
+    if (mostrarDialogoMeshBloqueado) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoMeshBloqueado = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = Color(0xFFFF6B00),
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "🔒 Módulo Táctico Mesh TX",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 16.sp,
+                    color = Color(0xFF0F172A)
+                )
+            },
+            text = {
+                Text(
+                    text = "El Intercomunicador Offline Mesh 3.0 se encuentra en fase de pruebas activas de radiofrecuencia (Wi-Fi Aware y BLE) para caravanas. El acceso operativo está restringido temporalmente a miembros de la Directiva y Desarrolladores.",
+                    fontSize = 12.sp,
+                    color = Color(0xFF334155),
+                    lineHeight = 18.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { mostrarDialogoMeshBloqueado = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B00))
+                ) {
+                    Text("Entendido", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = Color.White
+        )
     }
 }
