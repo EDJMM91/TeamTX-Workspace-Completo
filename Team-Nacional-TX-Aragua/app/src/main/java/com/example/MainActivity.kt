@@ -96,7 +96,8 @@ enum class NavigationTab(val label: String, val iconFilled: ImageVector, val ico
     MAPA("Mapa TX", Icons.Default.Map, Icons.Outlined.Map, "tab_mapa"),
     INFO("Info", Icons.Default.Info, Icons.Outlined.Info, "tab_info"),
     CONFIGURACIONES("Ajustes", Icons.Default.Settings, Icons.Outlined.Settings, "tab_configuraciones"),
-    MESHTX("Mesh TX", Icons.Default.Podcasts, Icons.Default.Podcasts, "tab_meshtx")
+    MESHTX("Mesh TX", Icons.Default.Podcasts, Icons.Default.Podcasts, "tab_meshtx"),
+    REDES("Redes TX", Icons.Default.Share, Icons.Outlined.Share, "tab_redes")
 }
 
 class MainActivity : ComponentActivity() {
@@ -1154,6 +1155,11 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     com.example.meshtx.MeshTxScreen(
                         currentMember = currentMember,
                         onBackToDashboard = { selectedTab = NavigationTab.DASHBOARD }
+                    )
+                }
+                NavigationTab.REDES -> {
+                    RedesScreen(
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
             }

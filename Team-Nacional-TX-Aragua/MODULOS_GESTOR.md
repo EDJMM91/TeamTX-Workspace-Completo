@@ -42,7 +42,7 @@ POR CADA MODULO INTEGRALE UNA DIRECCION DE LOGCAST PARA PONERLA EN
 EL LOGCAST DE ANDROID STUDIO Y VER CADA ERROR ALLI 
 | # | Módulo | Estado |
 |---|--------|--------|
-| 1 | **Muro** | 🟢 Estable (Visor Flyer Zoom, Descarga en Galería, Compartir WhatsApp/Estados, Limpieza Local Persistente, Sync Global y Auto-avisos Intermodulares) |
+| 1 | **Muro** | 🟢 Estable (Visor Flyer Zoom, Descarga en Galería, Auto-avisos Intermodulares y Cabecera Despejada con Perfil/Rol exclusivo) |
 | 2 | **Chat** | 🟢 Estable (Multicanal en vivo + Directiva + Killswitch) |
 | 3 | **Rodadas** | ⚪ Pendiente |
 | 4 | **Miembros** | 🟢 Estable (Directorio real, logo oficial y sync en vivo) |
@@ -53,6 +53,7 @@ EL LOGCAST DE ANDROID STUDIO Y VER CADA ERROR ALLI
 | 9 | **Directiva** | 🟢 Estable (Gobernanza, Códigos, Limpieza y Bloqueo) |
 | 10 | **Carnet TX** | 🟢 Estable (Vinculación Google en vivo sin App Check) |
 | 11 | **Mapa TX Info** | 🟢 Estable (Navegación y búsqueda con assets noCompress) |
+| 12 | **Redes TX** | 🟢 Estable (Hub interactivo Linktree, WhatsApp, Telegram, TikTok, Instagram, YouTube y soporte) |
 
 ### Módulos en Camino (por integrar)
 

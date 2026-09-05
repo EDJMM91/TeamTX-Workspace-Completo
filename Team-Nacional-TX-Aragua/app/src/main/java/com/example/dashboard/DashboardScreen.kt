@@ -513,6 +513,16 @@ fun DashboardScreen(
                     }
                 )
             }
+
+            item {
+                ModuleListRow(
+                    titulo = "Redes Sociales & Canales TX",
+                    descripcion = "Canales oficiales WhatsApp, TikTok, Telegram, Instagram y Linktree",
+                    icono = Icons.Default.Share,
+                    colorIcono = Color(0xFF0284C7),
+                    onClick = { onNavigateToTab(NavigationTab.REDES) }
+                )
+            }
         }
     }
 

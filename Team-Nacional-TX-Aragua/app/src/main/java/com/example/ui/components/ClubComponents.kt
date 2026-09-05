@@ -121,44 +121,6 @@ fun ClubTopBar(
                     }
                 },
                 actions = {
-                    // Telegram link shortcut (más a la izquierda y compacto)
-                    IconButton(
-                        onClick = {
-                            openUrl(context, "https://t.me/+R_oloXwkGqhkNzJh")
-                        },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .testTag("btn_top_telegram")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = "Telegram Team TX",
-                            tint = TelegramBlue,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(2.dp))
-
-                    // TikTok link shortcut (compacto)
-                    IconButton(
-                        onClick = {
-                            openUrl(context, "https://www.tiktok.com/@teamnacionaltx.aragua")
-                        },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .testTag("btn_top_tiktok")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = "TikTok Team TX",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
                     val isDarkTheme = isSystemInDarkTheme()
 
                     // Determinación del Rol de la cuenta actual
