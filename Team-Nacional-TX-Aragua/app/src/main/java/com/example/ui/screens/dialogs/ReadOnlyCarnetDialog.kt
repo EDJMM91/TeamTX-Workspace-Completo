@@ -12,7 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,6 +27,7 @@ import coil.compose.AsyncImage
 import com.example.dashboard.DashboardFondoConfig
 import com.example.data.model.MemberProfile
 import com.example.ui.components.DigitalCredentialCard
+import com.example.ui.components.RatePilotDialog
 import com.example.ui.theme.*
 
 /**
@@ -37,11 +38,14 @@ import com.example.ui.theme.*
 @Composable
 fun ReadOnlyCarnetDialog(
     member: MemberProfile,
+    currentMember: MemberProfile? = null,
     currentLoggedInMemberId: Long = 0L,
     onDismiss: () -> Unit,
-    onRateMember: ((MemberProfile) -> Unit)? = null
+    onRateMember: ((MemberProfile) -> Unit)? = null,
+    onConfirmRate: ((MemberProfile, Boolean, String, Int, String) -> Unit)? = null
 ) {
     val context = LocalContext.current
+    var showRateDialog by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -121,7 +125,10 @@ fun ReadOnlyCarnetDialog(
                         DigitalCredentialCard(
                             member = member,
                             currentLoggedInMemberId = currentLoggedInMemberId,
-                            onRateMember = { onRateMember?.invoke(it) },
+                            onRateMember = {
+                                onRateMember?.invoke(it)
+                                showRateDialog = true
+                            },
                             isLightTheme = true
                         )
                     }
@@ -303,5 +310,17 @@ fun ReadOnlyCarnetDialog(
                 }
             }
         }
+    }
+
+    if (showRateDialog && currentMember != null) {
+        RatePilotDialog(
+            targetMember = member,
+            currentMember = currentMember,
+            onDismiss = { showRateDialog = false },
+            onConfirmRating = { isPositive, category, pointsDelta, comment ->
+                onConfirmRate?.invoke(member, isPositive, category, pointsDelta, comment)
+                showRateDialog = false
+            }
+        )
     }
 }

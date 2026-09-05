@@ -2,6 +2,7 @@ package com.example.meshtx
 
 import android.content.Context
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.*
 import java.io.ByteArrayInputStream
@@ -34,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap
 class TransporteMallaUdp(
     private val contexto: Context,
     private val idPilotoLocal: Long,
-    private val aliasPilotoLocal: String,
+    private var aliasPilotoLocal: String,
     private val alRecibirPaquete: (PaqueteDatosMesh, Long) -> Unit
 ) {
 
@@ -51,8 +52,20 @@ class TransporteMallaUdp(
     // Registro de IPs de compañeros detectados para unicast directo redundante
     private val ipsParesConocidos = ConcurrentHashMap<Long, String>()
 
-    // Multicast lock para dispositivos que restringen paquetes UDP en reposo
+    fun registrarIpP2p(idNodo: Long, ip: String) {
+        if (ip.isNotBlank()) {
+            ipsParesConocidos[idNodo] = ip
+            Log.i(etiquetaLog, "IP P2P registrada para transporte: nodo=$idNodo, ip=$ip")
+        }
+    }
+
+    // Multicast lock y WifiLock para evitar que Android suspenda paquetes en Wi-Fi
     private var multicastLock: WifiManager.MulticastLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
+
+    // Rate-limiting de logs de audio para no saturar el logcat ni pausar hilos a 25 fps
+    private var ultimoLogAudioEmitidoMs = 0L
+    private var ultimoLogAudioRecibidoMs = 0L
 
     /**
      * Inicia la escucha UDP y el canal de difusión física.
@@ -67,9 +80,19 @@ class TransporteMallaUdp(
                 setReferenceCounted(true)
                 acquire()
             }
-            Log.i(etiquetaLog, "MulticastLock adquirido correctamente.")
+            val modoWifi = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            } else {
+                @Suppress("DEPRECATION")
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF
+            }
+            wifiLock = wifiManager?.createWifiLock(modoWifi, "MeshTxWifiLock")?.apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+            Log.i(etiquetaLog, "MulticastLock y WifiLock adquiridos correctamente (Modo baja latencia activo).")
         } catch (e: Exception) {
-            Log.w(etiquetaLog, "No se pudo adquirir MulticastLock: ${e.message}")
+            Log.w(etiquetaLog, "No se pudo adquirir locks de Wi-Fi: ${e.message}")
         }
 
         try {
@@ -118,6 +141,13 @@ class TransporteMallaUdp(
         } catch (_: Exception) {}
         multicastLock = null
 
+        try {
+            if (wifiLock?.isHeld == true) {
+                wifiLock?.release()
+            }
+        } catch (_: Exception) {}
+        wifiLock = null
+
         ipsParesConocidos.clear()
         Log.i(etiquetaLog, "Transporte UDP detenido y recursos liberados.")
     }
@@ -133,7 +163,11 @@ class TransporteMallaUdp(
                 val bytes = serializarPaquete(paquete)
 
                 if (paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS) {
-                    Log.i(etiquetaLog, "🎙️ Emitiendo fragmento audio (${bytes.size} B) desde $aliasPilotoLocal...")
+                    val ahora = System.currentTimeMillis()
+                    if (ahora - ultimoLogAudioEmitidoMs > 3000L) {
+                        ultimoLogAudioEmitidoMs = ahora
+                        Log.i(etiquetaLog, "🎙️ Transmitiendo flujo de voz activo (${bytes.size} B) desde $aliasPilotoLocal...")
+                    }
                 }
 
                 if (!direccionIpDestino.isNullOrBlank() && direccionIpDestino.contains(".")) {
@@ -142,24 +176,37 @@ class TransporteMallaUdp(
                     val datagrama = DatagramPacket(bytes, bytes.size, destino, puertoTactico)
                     socketUdp?.send(datagrama)
                 } else {
-                    // 1. Enviar a todas las direcciones de broadcast de subred detectadas
-                    val broadcasts = obtenerDireccionesBroadcast()
-                    for (bcast in broadcasts) {
-                        try {
-                            val datagrama = DatagramPacket(bytes, bytes.size, bcast, puertoTactico)
-                            socketUdp?.send(datagrama)
-                        } catch (e: Exception) {
-                            Log.w(etiquetaLog, "Fallo enviando a broadcast $bcast: ${e.message}")
+                    val esAudio = paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS
+                    if (esAudio && ipsParesConocidos.isNotEmpty()) {
+                        // Flujo de voz en tiempo real: Enviar EXCLUSIVAMENTE por Unicast a cada IP conocida.
+                        // Esto viaja a máxima tasa 802.11 (sin throttling de broadcast de 1 Mbps en routers Wi-Fi)
+                        for ((_, ip) in ipsParesConocidos) {
+                            try {
+                                val dest = InetAddress.getByName(ip)
+                                val datagrama = DatagramPacket(bytes, bytes.size, dest, puertoTactico)
+                                socketUdp?.send(datagrama)
+                            } catch (_: Exception) {}
                         }
-                    }
+                    } else {
+                        // 1. Enviar prioritariamente por Unicast directo a cada compañero conocido
+                        for ((_, ip) in ipsParesConocidos) {
+                            try {
+                                val dest = InetAddress.getByName(ip)
+                                val datagrama = DatagramPacket(bytes, bytes.size, dest, puertoTactico)
+                                socketUdp?.send(datagrama)
+                            } catch (_: Exception) {}
+                        }
 
-                    // 2. Enviar por Unicast directo redundante a cada IP conocida de compañeros
-                    for ((_, ip) in ipsParesConocidos) {
-                        try {
-                            val dest = InetAddress.getByName(ip)
-                            val datagrama = DatagramPacket(bytes, bytes.size, dest, puertoTactico)
-                            socketUdp?.send(datagrama)
-                        } catch (_: Exception) {}
+                        // 2. Enviar a las direcciones de broadcast de subred para descubrimiento y malla general
+                        val broadcasts = obtenerDireccionesBroadcast()
+                        for (bcast in broadcasts) {
+                            try {
+                                val datagrama = DatagramPacket(bytes, bytes.size, bcast, puertoTactico)
+                                socketUdp?.send(datagrama)
+                            } catch (e: Exception) {
+                                Log.w(etiquetaLog, "Fallo enviando a broadcast $bcast: ${e.message}")
+                            }
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -197,7 +244,11 @@ class TransporteMallaUdp(
                             }
 
                             if (paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS) {
-                                Log.i(etiquetaLog, "🔊 AUDIO RECIBIDO de ${paquete.aliasEmisor} (ID: ${paquete.idEmisor}, ${paquete.payloadAudio?.size} B) desde $ipRemota")
+                                val ahora = System.currentTimeMillis()
+                                if (ahora - ultimoLogAudioRecibidoMs > 3000L) {
+                                    ultimoLogAudioRecibidoMs = ahora
+                                    Log.i(etiquetaLog, "🔊 Recibiendo flujo de voz activo de ${paquete.aliasEmisor} (${paquete.payloadAudio?.size} B) desde $ipRemota")
+                                }
                             }
 
                             alRecibirPaquete(paquete, paquete.idEmisor)
@@ -215,6 +266,12 @@ class TransporteMallaUdp(
         }
     }
 
+    fun actualizarAliasLocal(nuevoAlias: String) {
+        if (nuevoAlias.isNotBlank()) {
+            this.aliasPilotoLocal = nuevoAlias
+        }
+    }
+
     /**
      * Emite una baliza periódica de descubrimiento para que los nodos se detecten
      * automáticamente aún sin conexión a internet ni Bluetooth emparejado.
@@ -223,10 +280,13 @@ class TransporteMallaUdp(
         tareaBaliza?.cancel()
         tareaBaliza = alcanceTransporte.launch {
             while (isActive && estaActivo) {
+                val fotoACompartir = if (GestorMeshTx.debeCompartirFotoPerfil()) GestorMeshTx.fotoPerfilLocal else ""
+                val payloadBaliza = "${android.os.Build.MODEL}|$fotoACompartir|${GestorMeshTx.modeloMotoLocal}|${GestorMeshTx.fichaLocal}"
                 val baliza = PaqueteDatosMesh(
                     idPaquete = System.currentTimeMillis(),
                     idEmisor = idPilotoLocal,
                     aliasEmisor = aliasPilotoLocal,
+                    payloadTexto = payloadBaliza,
                     tipo = TipoPaqueteMesh.BEACON_DESCUBRIMIENTO,
                     saltosRelay = 0
                 )
@@ -236,11 +296,18 @@ class TransporteMallaUdp(
         }
     }
 
+    @Volatile private var cacheBroadcasts = listOf<InetAddress>()
+    @Volatile private var tiempoUltimoCalculoBroadcastsMs = 0L
+
     /**
      * Calcula dinámicamente las direcciones de broadcast de las interfaces de red locales
-     * (Hotspot Wi-Fi del líder, red compartida o router).
+     * (Hotspot Wi-Fi del líder, red compartida o router) con caché para no saturar CPU ni generar jitter.
      */
     private fun obtenerDireccionesBroadcast(): List<InetAddress> {
+        val ahora = System.currentTimeMillis()
+        if (cacheBroadcasts.isNotEmpty() && (ahora - tiempoUltimoCalculoBroadcastsMs < 8000L)) {
+            return cacheBroadcasts
+        }
         val lista = mutableListOf<InetAddress>()
         try {
             lista.add(InetAddress.getByName("255.255.255.255"))
@@ -258,7 +325,10 @@ class TransporteMallaUdp(
         } catch (e: Exception) {
             Log.w(etiquetaLog, "Error calculando broadcasts locales: ${e.message}")
         }
-        return lista.distinct()
+        val distinct = lista.distinct()
+        cacheBroadcasts = distinct
+        tiempoUltimoCalculoBroadcastsMs = ahora
+        return distinct
     }
 
     /**

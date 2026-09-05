@@ -61,6 +61,7 @@ class EnrutadorMalla(
 
     // Canal activo seleccionado por el usuario local
     var canalActivo: CanalTactico = CanalTactico.GENERAL_TX
+    var canalActivoIdPersonalizado: Int? = null
 
     init {
         // Iniciar el bucle de procesamiento del Modelo Actor
@@ -230,7 +231,7 @@ class EnrutadorMalla(
             idEmisor = idPilotoLocal,
             aliasEmisor = aliasPilotoLocal,
             destinoPilotoId = destinoPilotoId,
-            canal = canalActivo.idCanal,
+            canal = canalActivoIdPersonalizado ?: canalActivo.idCanal,
             tipo = tipo,
             payloadAudio = payloadAudio,
             payloadTexto = payloadTexto,
@@ -266,15 +267,23 @@ class EnrutadorMalla(
 
         // 4. Evaluar si el paquete nos corresponde por destino o por canal
         val esParaMi = paquete.destinoPilotoId == null || paquete.destinoPilotoId == idPilotoLocal
+        val canalEsperado = canalActivoIdPersonalizado ?: canalActivo.idCanal
         val perteneceACanal = paquete.tipo == TipoPaqueteMesh.PAQUETE_SOS ||
+                paquete.tipo == TipoPaqueteMesh.BEACON_DESCUBRIMIENTO ||
                 paquete.destinoPilotoId != null ||
-                paquete.canal == canalActivo.idCanal
+                paquete.canal == canalEsperado
 
         if (esParaMi && perteneceACanal) {
             _paquetesEntrantes.tryEmit(paquete)
         }
 
         // 5. Retransmisión Multisalto (Relay) según tipo de paquete y límite TTL
+        if (paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS && paquete.destinoPilotoId == null) {
+            // Audio de difusión general de canal abierto: ya fue reproducido en este receptor.
+            // Para evitar tormentas de difusión en routers Wi-Fi compartidos, no re-inyectar al mismo medio.
+            return
+        }
+
         val ttlMaximo = if (paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS) limiteSaltosAudio else limiteMaximoSaltosTtl
         val nuevoSalto = paquete.saltosRelay + 1
 

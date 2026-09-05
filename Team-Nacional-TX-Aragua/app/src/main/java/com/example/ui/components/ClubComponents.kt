@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -479,6 +481,7 @@ fun DigitalCredentialCard(
     photoUrlOverride: String? = null
 ) {
     val effectivePhotoUrl = photoUrlOverride ?: member.profilePhotoUri
+    var showExpandedQrDialog by remember { mutableStateOf(false) }
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -713,60 +716,21 @@ fun DigitalCredentialCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Ficha Técnica de la Moto
+            // Specs Card: Moto & Specs
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = if (isLightTheme) Color(0xFFF8FAFC) else Color(0xFF171D28),
                 border = BorderStroke(1.dp, if (isLightTheme) DashboardFondoConfig.ColorBordeClaro else Color(0xFF283244)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    modifier = Modifier.padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (!member.bikePhotoUri.isNullOrBlank()) {
-                        val bikeUrl = member.bikePhotoUri
-                        LaunchedEffect(bikeUrl) {
-                            android.util.Log.d("TEAM_TX_IMAGES", "🏍️ Cargando Foto Moto: ${member.nickname} | URL: $bikeUrl")
-                        }
-                        AsyncImage(
-                            model = bikeUrl,
-                            contentDescription = "Foto de la moto",
-                            onSuccess = { android.util.Log.i("TEAM_TX_IMAGES", "✅ Foto Moto cargada: ${member.nickname}") },
-                            onError = { e -> android.util.Log.e("TEAM_TX_IMAGES", "❌ Error Foto Moto: ${member.nickname} | ${e.result.throwable.message}") },
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(110.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.TwoWheeler,
-                            contentDescription = null,
-                            tint = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldBrass,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "FICHA TÉCNICA DE LA MOTO",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            color = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldBrass,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-
+                Column(modifier = Modifier.padding(10.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(modifier = Modifier.weight(1.2f)) {
+                        Column(modifier = Modifier.weight(1.1f)) {
                             Text(
-                                "MOTO Y MODELO",
+                                "VEHÍCULO ASIGNADO",
                                 color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFF8C9BAE),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
@@ -779,19 +743,19 @@ fun DigitalCredentialCard(
                             )
                             Text(
                                 "Color: ${member.bikeColor}",
-                                color = if (isLightTheme) DashboardFondoConfig.ColorDoradoOro else TxGoldLight,
+                                color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFFA0ADC0),
                                 fontSize = 10.sp
                             )
                         }
-                        Column(modifier = Modifier.weight(0.8f)) {
+                        Column(modifier = Modifier.weight(0.9f)) {
                             Text(
-                                "CILINDRADA",
+                                "CILINDRADA / AÑO",
                                 color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFF8C9BAE),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                member.bikeDisplacementCc,
+                                "⚡ ${member.bikeDisplacementCc}",
                                 color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
@@ -816,7 +780,7 @@ fun DigitalCredentialCard(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "Placa: ${member.bikePlate}",
+                                "Placa: ${member.bikePlate.ifBlank { "En trámite" }}",
                                 color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else TxSteelSilver,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
@@ -838,31 +802,31 @@ fun DigitalCredentialCard(
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
                                     Icon(
                                         Icons.Default.Speed,
                                         contentDescription = null,
-                                        tint = if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera else MotoOrangePrimary,
+                                        tint = DashboardFondoConfig.ColorRojoCarrera,
                                         modifier = Modifier.size(13.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        "RÉCORD TOP SPEED:",
+                                        "RÉCORD VELOCIDAD MÁXIMA:",
                                         fontSize = 9.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isLightTheme) DashboardFondoConfig.ColorRojoCarrera else MotoOrangePrimary
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White
                                     )
                                 }
-                                val topKmh = PreferenciasApp.topSpeedRecordKmh.toInt()
-                                val topMph = (PreferenciasApp.topSpeedRecordKmh * 0.621371f).toInt()
                                 Text(
-                                    "$topKmh KM/H ($topMph MPH)",
+                                    "⚡ ${"%.1f".format(PreferenciasApp.topSpeedRecordKmh)} km/h",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White
+                                    color = DashboardFondoConfig.ColorRojoCarrera
                                 )
                             }
                         }
@@ -872,36 +836,34 @@ fun DigitalCredentialCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // QR de verificacion del carnet
+            // QR de verificacion del carnet (Formato 100% amigable y claro para usuarios)
             if (PreferenciasApp.carnetMostrarQr) {
                 val qrPayload = buildString {
-                    append("TEAMTX VZLA|")
-                    append("N°:${member.memberNumber}|")
-                    append("ID:${member.id}|")
-                    append("NOMBRE:${member.fullName}|")
-                    append("ALIAS:${member.nickname}|")
-                    append("CÉDULA:${member.cedulaDni}|")
-                    append("TEL:${member.phone}|")
-                    append("ROL:${member.role.displayName}|")
-                    append("ESTADO:${member.chapterState}|")
-                    append("NAC:${member.birthDate}|")
-                    append("MIEMBRO_DESDE:${member.joinYear}|")
-                    append("MOTO:${member.bikeBrand} ${member.bikeModel} ${member.bikeYear}|")
-                    append("COLOR:${member.bikeColor}|")
-                    append("CC:${member.bikeDisplacementCc}|")
-                    append("TANQUE:${member.bikeTankCapacityLiters}|")
-                    append("PLACA:${member.bikePlate}|")
-                    append("SANGRE:${member.bloodType}|")
-                    append("ALERGIAS:${member.medicalNotes}|")
-                    append("EMERGENCIA:${member.emergencyContactName} ${member.emergencyContactPhone} (${member.emergencyContactRelation})|")
-                    append("DIRECTIVA:${if (member.isDirectiva) "SI" else "NO"}|")
-                    append("SOLVENTE:${if (member.solvencyStatus) "SI" else "NO"}|")
+                    appendLine("🏍️ TEAM TX VENEZUELA - CREDENCIAL OFICIAL 🏍️")
+                    appendLine("--------------------------------------------")
+                    appendLine("Piloto: ${member.fullName} (${member.nickname.ifBlank { "Sin alias" }})")
+                    appendLine("Carnet N°: ${member.memberNumber}")
+                    appendLine("Cédula de Identidad: ${member.cedulaDni}")
+                    appendLine("Teléfono: ${member.phone}")
+                    appendLine("Rol en el Club: ${member.role.displayName}")
+                    appendLine("Capítulo / Estado: ${member.chapterState}")
+                    appendLine("Miembro Desde: ${member.joinYear}")
+                    appendLine("Moto: ${member.bikeBrand} ${member.bikeModel} (${member.bikeYear})")
+                    appendLine("Color: ${member.bikeColor} | Cilindrada: ${member.bikeDisplacementCc}")
+                    appendLine("Capacidad de Tanque: ${member.bikeTankCapacityLiters} | Placa: ${member.bikePlate.ifBlank { "En trámite" }}")
+                    appendLine("Grupo Sanguíneo: ${member.bloodType}")
+                    appendLine("Alergias: ${member.medicalNotes.ifBlank { "Ninguna reportada" }}")
+                    appendLine("Contacto SOS: ${member.emergencyContactName} - ${member.emergencyContactPhone} (${member.emergencyContactRelation})")
+                    appendLine("Directiva: ${if (member.isDirectiva) "Sí (Directiva Nacional)" else "No"}")
+                    appendLine("Estado de Solvencia: ${if (member.solvencyStatus) "Solvente (Al día)" else "Moroso (Pendiente)"}")
                     if (!member.copilotName.isNullOrBlank()) {
-                        append("COPILOTO:${member.copilotName} (${member.copilotRelation ?: ""})|")
+                        appendLine("Copiloto Oficial: ${member.copilotName} (${member.copilotRelation ?: "Acompañante"})")
                     }
-                    append("TEAMTX_OK")
+                    appendLine("--------------------------------------------")
+                    appendLine("Verificado Oficialmente por Team TX Venezuela")
                 }
-                val qrImage = remember(member.memberNumber, member.fullName, member.id, member.phone, member.bikePlate, member.bloodType, member.copilotName, member.cedulaDni) {
+
+                val qrImage = remember(member.memberNumber, member.fullName, member.id, member.phone, member.bikePlate, member.bloodType, member.copilotName, member.cedulaDni, member.solvencyStatus, member.medicalNotes) {
                     try {
                         val hints = mapOf(EncodeHintType.MARGIN to 1)
                         val matrix = QRCodeWriter().encode(qrPayload, BarcodeFormat.QR_CODE, 320, 320, hints)
@@ -913,25 +875,47 @@ fun DigitalCredentialCard(
                         null
                     }
                 }
+
+                val qrImageLarge = remember(member.memberNumber, member.fullName, member.id, member.phone, member.bikePlate, member.bloodType, member.copilotName, member.cedulaDni, member.solvencyStatus, member.medicalNotes) {
+                    try {
+                        val hints = mapOf(EncodeHintType.MARGIN to 1)
+                        val matrix = QRCodeWriter().encode(qrPayload, BarcodeFormat.QR_CODE, 512, 512, hints)
+                        val bmp = Bitmap.createBitmap(512, 512, Bitmap.Config.RGB_565)
+                        for (x in 0 until 512) for (y in 0 until 512)
+                            bmp.setPixel(x, y, if (matrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+                        bmp
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+
                 if (qrImage != null) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = if (isLightTheme) Color(0xFFF8FAFC) else Color(0xFF171D28),
                         border = BorderStroke(1.dp, if (isLightTheme) DashboardFondoConfig.ColorBordeClaro else Color(0xFF283244)),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showExpandedQrDialog = true }
                     ) {
                         Row(
                             modifier = Modifier.padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Image(
-                                bitmap = qrImage.asImageBitmap(),
-                                contentDescription = "QR de Verificacion",
+                            Box(
                                 modifier = Modifier
                                     .size(72.dp)
                                     .clip(RoundedCornerShape(6.dp))
-                            )
+                                    .background(Color.White)
+                                    .padding(2.dp)
+                            ) {
+                                Image(
+                                    bitmap = qrImage.asImageBitmap(),
+                                    contentDescription = "QR de Verificación",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     "QR DE VERIFICACIÓN OFICIAL",
@@ -940,17 +924,130 @@ fun DigitalCredentialCard(
                                     fontWeight = FontWeight.Black
                                 )
                                 Text(
-                                    "Escaneable para verificar autenticidad de la credencial en rodadas y puntos de control.",
+                                    "Información oficial legible para alcabalas y puntos de control.",
                                     color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFF8C9BAE),
                                     fontSize = 9.sp
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Button(
+                                        onClick = { showExpandedQrDialog = true },
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorDoradoOro),
+                                        modifier = Modifier.height(26.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Fullscreen,
+                                            contentDescription = "Ampliar QR",
+                                            modifier = Modifier.size(14.dp),
+                                            tint = Color.Black
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            "AMPLIAR QR",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color.Black
+                                        )
+                                    }
+                                    Text(
+                                        "TEAMTX-OK-2026",
+                                        color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario.copy(alpha = 0.8f) else Color(0xFF5A6E85),
+                                        fontSize = 8.sp,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Modal emergente de QR ampliado en alta definición
+                if (showExpandedQrDialog && qrImageLarge != null) {
+                    Dialog(
+                        onDismissRequest = { showExpandedQrDialog = false },
+                        properties = DialogProperties(usePlatformDefaultWidth = false)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (isLightTheme) Color.White else Color(0xFF141923),
+                            border = BorderStroke(2.dp, DashboardFondoConfig.ColorDoradoOro),
+                            modifier = Modifier
+                                .fillMaxWidth(0.92f)
+                                .padding(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            "CÓDIGO QR OFICIAL",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = DashboardFondoConfig.ColorDoradoOro
+                                        )
+                                        Text(
+                                            "${member.fullName} • ${member.memberNumber}",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isLightTheme) DashboardFondoConfig.ColorTextoPrimario else Color.White
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { showExpandedQrDialog = false },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Cerrar",
+                                            tint = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color.White
+                                        )
+                                    }
+                                }
+
+                                // Contenedor del QR de alto contraste
+                                Box(
+                                    modifier = Modifier
+                                        .size(280.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.White)
+                                        .border(2.dp, DashboardFondoConfig.ColorDoradoOro, RoundedCornerShape(12.dp))
+                                        .padding(12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Image(
+                                        bitmap = qrImageLarge.asImageBitmap(),
+                                        contentDescription = "Código QR de Carnet en Pantalla Completa",
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+
                                 Text(
-                                    "TEAMTX-OK-2026",
-                                    color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario.copy(alpha = 0.8f) else Color(0xFF5A6E85),
-                                    fontSize = 8.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    "Presenta este código en alcabalas, peajes y puntos de control para certificar tu membresía oficial.",
+                                    fontSize = 11.sp,
+                                    textAlign = TextAlign.Center,
+                                    color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFF94A3B8)
                                 )
+
+                                Button(
+                                    onClick = { showExpandedQrDialog = false },
+                                    colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("CERRAR", fontWeight = FontWeight.Bold, color = Color.White)
+                                }
                             }
                         }
                     }
@@ -986,10 +1083,10 @@ fun DigitalCredentialCard(
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            text = member.medicalNotes,
+                            text = "Alergias: ${member.medicalNotes.ifBlank { "Ninguna reportada" }}",
                             color = if (isLightTheme) DashboardFondoConfig.ColorTextoSecundario else Color(0xFFE2E8F0),
                             fontSize = 9.sp,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     }

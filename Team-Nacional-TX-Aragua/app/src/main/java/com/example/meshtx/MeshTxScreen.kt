@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -13,12 +14,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -73,10 +76,13 @@ fun MeshTxScreen(
     val saltosRelay by GestorMeshTx.totalSaltosRelay.collectAsState()
     val cascoBluetoothConectado by GestorMeshTx.cascoBluetoothConectado.collectAsState()
     val modoAltavozActivo by GestorMeshTx.modoAltavozActivo.collectAsState()
+    val salaPrivadaActiva by GestorMeshTx.salaPrivadaActiva.collectAsState()
+    val modoAlcabalaVivo by GestorMeshTx.modoAlcabalaEnVivoActivo.collectAsState()
 
     var mostrarDialogoSos by remember { mutableStateOf(false) }
     var mostrarAjustesAudio by remember { mutableStateOf(false) }
     var mostrarGuiaInteractiva by remember { mutableStateOf(false) }
+    var mostrarDialogoSalaPrivada by remember { mutableStateOf(false) }
 
     val contextoLocal = LocalContext.current
 
@@ -121,17 +127,17 @@ fun MeshTxScreen(
         }
     }
 
-    // Auto-arranque táctico inmediato al ingresar a la pantalla
-    LaunchedEffect(Unit) {
-        if (estadoConexion == MeshEstadoConexion.DESCONECTADO) {
-            val faltanPermisos = permisosRequeridos.any { permiso ->
-                ContextCompat.checkSelfPermission(contextoLocal, permiso) != PackageManager.PERMISSION_GRANTED
-            }
-            if (faltanPermisos) {
-                launcherPermisosMalla.launch(permisosRequeridos)
-            } else {
-                GestorMeshTx.iniciarMallaTactico()
-            }
+    // El inicio de la malla ahora espera la pulsación explícita del usuario en el botón superior
+
+    LaunchedEffect(currentMember) {
+        if (currentMember != null) {
+            val foto = currentMember.profilePhotoUri
+                ?: contextoLocal.getSharedPreferences("radar_prefs", android.content.Context.MODE_PRIVATE).getString("radar_avatar", "")
+                ?: ""
+            val alias = currentMember.nickname.ifBlank { currentMember.fullName.ifBlank { "Piloto TX" } }
+            val moto = currentMember.bikeModel.ifBlank { "Keeway TX 200" }
+            val ficha = currentMember.memberNumber
+            GestorMeshTx.actualizarPerfilLocal(alias, foto, moto, ficha)
         }
     }
 
@@ -452,17 +458,157 @@ fun MeshTxScreen(
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // 2. SELECTOR TÁCTIL DE CANALES VIRTUALES
+            // 2. SELECTOR TÁCTIL DE CANALES VIRTUALES Y SALA PRIVADA
             // ─────────────────────────────────────────────────────────────────
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "Frecuencia Táctica Virtual",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color(0xFF475569),
-                        letterSpacing = 0.3.sp
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Banner si hay transmisión de Alcabala en vivo activa
+                    if (modoAlcabalaVivo) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFFEE2E2),
+                            border = BorderStroke(2.dp, Color(0xFFDC2626)),
+                            shadowElevation = 2.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Podcasts,
+                                        contentDescription = null,
+                                        tint = Color(0xFFDC2626),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = "🚨 ALCABALA POLICIAL EN VIVO",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF991B1B)
+                                        )
+                                        Text(
+                                            text = "Micrófono transmitiendo continuamente por Mesh y Datos",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF7F1D1D)
+                                        )
+                                    }
+                                }
+                                Button(
+                                    onClick = { GestorMeshTx.desactivarModoAlcabalaSos() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text("Detener", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                    }
+
+                    // Banner si hay sala privada activa
+                    if (salaPrivadaActiva != null) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFEFF6FF),
+                            border = BorderStroke(1.dp, Color(0xFF3B82F6)),
+                            shadowElevation = 1.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = Color(0xFF2563EB),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = "SALA PRIVADA AISLADA",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF1D4ED8)
+                                        )
+                                        Text(
+                                            text = salaPrivadaActiva ?: "",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                    }
+                                }
+                                TextButton(
+                                    onClick = { GestorMeshTx.salirASalaGeneral() },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFDC2626))
+                                ) {
+                                    Text(
+                                        text = "Salir a General",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Frecuencia Táctica Virtual",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF475569),
+                            letterSpacing = 0.3.sp
+                        )
+
+                        // Botón de acceso rápido a Crear/Unirse a Sala Privada
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (salaPrivadaActiva != null) Color(0xFFDBEAFE) else Color(0xFFF1F5F9),
+                            modifier = Modifier.clickable { mostrarDialogoSalaPrivada = true }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = if (salaPrivadaActiva != null) Color(0xFF1D4ED8) else Color(0xFF475569),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = if (salaPrivadaActiva != null) "Sala: $salaPrivadaActiva" else "+ Sala Privada",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (salaPrivadaActiva != null) Color(0xFF1D4ED8) else Color(0xFF334155)
+                                )
+                            }
+                        }
+                    }
 
                     val scrollCanales = rememberScrollState()
                     Row(
@@ -471,117 +617,214 @@ fun MeshTxScreen(
                             .horizontalScroll(scrollCanales),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        CanalTactico.values().forEach { canal ->
-                            val seleccionado = canal == canalActual
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (seleccionado) Color(0xFFFFEDD5) else Color.White,
-                                border = BorderStroke(
-                                    width = if (seleccionado) 2.dp else 1.dp,
-                                    color = if (seleccionado) Color(0xFFFF6B00) else Color(0xFFE2E8F0)
-                                ),
-                                shadowElevation = if (seleccionado) 2.dp else 1.dp,
-                                modifier = Modifier
-                                    .width(115.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .clickable { GestorMeshTx.cambiarCanal(canal) }
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "CANAL ${canal.idCanal}",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (seleccionado) Color(0xFFC2410C) else Color(0xFF64748B)
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = when (canal) {
-                                            CanalTactico.GENERAL_TX -> "General"
-                                            CanalTactico.CARAVANA_CONVOY -> "Caravana"
-                                            CanalTactico.EMERGENCIA_SOS -> "SOS Vial"
-                                            CanalTactico.DIRECTIVA -> "Directiva"
-                                            CanalTactico.PERSONALIZADO -> "Privado"
-                                        },
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (seleccionado) Color(0xFF0F172A) else Color(0xFF334155),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ─────────────────────────────────────────────────────────────────
-            // 3. MONITOR EN VIVO: TRANSMISIÓN DE VOZ (QUIÉN HABLA AHORA)
-            // ─────────────────────────────────────────────────────────────────
-            item {
-                AnimatedVisibility(
-                    visible = pilotoHablando != null,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFEFF6FF),
-                        border = BorderStroke(1.dp, Color(0xFF93C5FD)),
-                        shadowElevation = 2.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
+                        // Canal 1: General
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (canalActual == CanalTactico.GENERAL_TX && salaPrivadaActiva == null) Color(0xFFFFEDD5) else Color.White,
+                            border = BorderStroke(
+                                width = if (canalActual == CanalTactico.GENERAL_TX && salaPrivadaActiva == null) 2.dp else 1.dp,
+                                color = if (canalActual == CanalTactico.GENERAL_TX && salaPrivadaActiva == null) Color(0xFFFF6B00) else Color(0xFFE2E8F0)
+                            ),
+                            shadowElevation = if (canalActual == CanalTactico.GENERAL_TX && salaPrivadaActiva == null) 2.dp else 1.dp,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFF0284C7),
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.VolumeUp,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                .width(115.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable {
+                                    GestorMeshTx.salirASalaGeneral()
+                                    GestorMeshTx.cambiarCanal(CanalTactico.GENERAL_TX)
                                 }
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
-                                    text = "EN EL CANAL AHORA:",
+                                    text = "CANAL 1",
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = Color(0xFF0369A1)
+                                    color = if (canalActual == CanalTactico.GENERAL_TX && salaPrivadaActiva == null) Color(0xFFC2410C) else Color(0xFF64748B)
                                 )
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = pilotoHablando ?: "",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = Color(0xFF0F172A)
+                                    text = "General",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (canalActual == CanalTactico.GENERAL_TX && salaPrivadaActiva == null) Color(0xFF0F172A) else Color(0xFF334155),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            if (saltosRelay > 0) {
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color(0xFFDBEAFE)
-                                ) {
+                        }
+
+                        // Canal 2: Sala Rodadas
+                        val esRodadas = (canalActual == CanalTactico.CARAVANA_CONVOY) && (salaPrivadaActiva == null)
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (esRodadas) Color(0xFFFEF3C7) else Color.White,
+                            border = BorderStroke(
+                                width = if (esRodadas) 2.dp else 1.dp,
+                                color = if (esRodadas) Color(0xFFD97706) else Color(0xFFE2E8F0)
+                            ),
+                            shadowElevation = if (esRodadas) 2.dp else 1.dp,
+                            modifier = Modifier
+                                .width(125.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { GestorMeshTx.activarCanalRodadas() }
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "$saltosRelay saltos",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF1D4ED8),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        text = "CANAL 2",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (esRodadas) Color(0xFFB45309) else Color(0xFF64748B)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.TwoWheeler,
+                                        contentDescription = null,
+                                        tint = if (esRodadas) Color(0xFFB45309) else Color(0xFF94A3B8),
+                                        modifier = Modifier.size(12.dp)
                                     )
                                 }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Rodadas",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (esRodadas) Color(0xFF0F172A) else Color(0xFF334155),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        // Canal 3: SOS Vial
+                        val esSos = canalActual == CanalTactico.EMERGENCIA_SOS && salaPrivadaActiva == null
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (esSos) Color(0xFFFEE2E2) else Color.White,
+                            border = BorderStroke(
+                                width = if (esSos) 2.dp else 1.dp,
+                                color = if (esSos) Color(0xFFDC2626) else Color(0xFFE2E8F0)
+                            ),
+                            shadowElevation = if (esSos) 2.dp else 1.dp,
+                            modifier = Modifier
+                                .width(115.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable {
+                                    GestorMeshTx.salirASalaGeneral()
+                                    GestorMeshTx.cambiarCanal(CanalTactico.EMERGENCIA_SOS)
+                                }
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "CANAL 3",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (esSos) Color(0xFFDC2626) else Color(0xFF64748B)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "SOS Vial",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (esSos) Color(0xFF7F1D1D) else Color(0xFF334155),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        // Canal 4: Directiva
+                        val esDirectiva = canalActual == CanalTactico.DIRECTIVA && salaPrivadaActiva == null
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (esDirectiva) Color(0xFFF3E8FF) else Color.White,
+                            border = BorderStroke(
+                                width = if (esDirectiva) 2.dp else 1.dp,
+                                color = if (esDirectiva) Color(0xFF9333EA) else Color(0xFFE2E8F0)
+                            ),
+                            shadowElevation = if (esDirectiva) 2.dp else 1.dp,
+                            modifier = Modifier
+                                .width(115.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable {
+                                    GestorMeshTx.salirASalaGeneral()
+                                    GestorMeshTx.cambiarCanal(CanalTactico.DIRECTIVA)
+                                }
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "CANAL 4",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (esDirectiva) Color(0xFF7E22CE) else Color(0xFF64748B)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Directiva",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (esDirectiva) Color(0xFF581C87) else Color(0xFF334155),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        // Botón Sala Privada
+                        val esPrivada = salaPrivadaActiva != null
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (esPrivada) Color(0xFFDBEAFE) else Color.White,
+                            border = BorderStroke(
+                                width = if (esPrivada) 2.dp else 1.dp,
+                                color = if (esPrivada) Color(0xFF2563EB) else Color(0xFFE2E8F0)
+                            ),
+                            shadowElevation = if (esPrivada) 2.dp else 1.dp,
+                            modifier = Modifier
+                                .width(135.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { mostrarDialogoSalaPrivada = true }
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = if (esPrivada) Color(0xFF1D4ED8) else Color(0xFF64748B),
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "CANAL PRIVADO",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (esPrivada) Color(0xFF1D4ED8) else Color(0xFF64748B)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = if (esPrivada) (salaPrivadaActiva ?: "Privada") else "Crear/Entrar",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (esPrivada) Color(0xFF1E3A8A) else Color(0xFF334155),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -589,7 +832,7 @@ fun MeshTxScreen(
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // 4. BOTÓN CENTRAL TÁCTICO PTT (GRANDE, CENTRADO Y ERGONÓMICO)
+            // 3. BOTÓN CENTRAL TÁCTICO PTT (GRANDE, CENTRADO Y ERGONÓMICO)
             // ─────────────────────────────────────────────────────────────────
             item {
                 Surface(
@@ -605,32 +848,39 @@ fun MeshTxScreen(
                             .padding(vertical = 16.dp, horizontal = 14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        val escalaTransmision by animateFloatAsState(
-                            targetValue = if (estaTransmitiendoPtt) 1.08f else 1.0f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
-                            label = "BotonPttEscala"
+                        val colorBotonPtt by animateColorAsState(
+                            targetValue = if (estaTransmitiendoPtt) Color(0xFFDC2626) else Color(0xFFFF6B00),
+                            animationSpec = tween(durationMillis = 150),
+                            label = "BotonPttColor"
                         )
 
-                        // Botón PTT circular ergonómico de 144 dp
+                        // Botón PTT circular ergonómico de 144 dp (Fijo verticalmente sin desplazamientos)
                         Surface(
                             shape = CircleShape,
-                            color = if (estaTransmitiendoPtt) Color(0xFFDC2626) else Color(0xFFFF6B00),
-                            shadowElevation = if (estaTransmitiendoPtt) 10.dp else 4.dp,
+                            color = colorBotonPtt,
+                            border = BorderStroke(
+                                width = if (estaTransmitiendoPtt) 4.dp else 2.dp,
+                                color = if (estaTransmitiendoPtt) Color.White else Color(0xFFFFD8A8)
+                            ),
+                            shadowElevation = if (estaTransmitiendoPtt) 8.dp else 3.dp,
                             modifier = Modifier
                                 .size(144.dp)
-                                .scale(escalaTransmision)
                                 .clip(CircleShape)
                                 .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onPress = {
+                                    awaitPointerEventScope {
+                                        while (true) {
+                                            awaitFirstDown(requireUnconsumed = false)
                                             GestorMeshTx.setTransmitiendoPtt(true)
-                                            tryAwaitRelease()
+                                            var presionado = true
+                                            while (presionado) {
+                                                val evento = awaitPointerEvent()
+                                                if (evento.changes.all { !it.pressed }) {
+                                                    presionado = false
+                                                }
+                                            }
                                             GestorMeshTx.setTransmitiendoPtt(false)
                                         }
-                                    )
+                                    }
                                 }
                         ) {
                             Column(
@@ -725,6 +975,94 @@ fun MeshTxScreen(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (!ajustes.modoPtt) Color(0xFF0F172A) else Color(0xFF64748B)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ─────────────────────────────────────────────────────────────────
+            // 4. MONITOR EN VIVO DEBAJO DEL BOTÓN: TRANSMISIÓN DE VOZ (QUIÉN HABLA)
+            // ─────────────────────────────────────────────────────────────────
+            item {
+                AnimatedVisibility(
+                    visible = pilotoHablando != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFEFF6FF),
+                        border = BorderStroke(1.dp, Color(0xFF93C5FD)),
+                        shadowElevation = 2.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            val esMiTransmision = pilotoHablando?.contains("Tú") == true || pilotoHablando == currentMember?.nickname || pilotoHablando == currentMember?.fullName
+                            val nodoHablando = if (!esMiTransmision) nodosEnRed.find { it.idMiembro == idPilotoHablando || it.aliasPiloto == pilotoHablando } else null
+                            val fotoHablando = if (esMiTransmision) {
+                                if (ajustes.mostrarFotoPerfil) GestorMeshTx.fotoPerfilLocal else ""
+                            } else {
+                                if (ajustes.mostrarFotoPerfil) (nodoHablando?.fotoUrl ?: "") else ""
+                            }
+
+                            Surface(
+                                shape = CircleShape,
+                                color = if (fotoHablando.isNotBlank()) Color.Transparent else Color(0xFF0284C7),
+                                border = if (fotoHablando.isNotBlank()) BorderStroke(1.5.dp, Color(0xFF0284C7)) else null,
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                if (fotoHablando.isNotBlank()) {
+                                    coil.compose.AsyncImage(
+                                        model = fotoHablando,
+                                        contentDescription = pilotoHablando,
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.TwoWheeler,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "EN EL CANAL AHORA:",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0369A1)
+                                )
+                                Text(
+                                    text = pilotoHablando ?: "",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
+                            if (saltosRelay > 0) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFFDBEAFE)
+                                ) {
+                                    Text(
+                                        text = "$saltosRelay saltos",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF1D4ED8),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
                             }
@@ -832,6 +1170,105 @@ fun MeshTxScreen(
                                         color = if (!ajustes.mostrarPerfilSincronizado) Color.White else Color(0xFF64748B)
                                     )
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 6. MI NODO LOCAL (Tú)
+            item {
+                val estaTransmitiendo = estaTransmitiendoPtt
+                val miFoto = if (ajustes.mostrarFotoPerfil) GestorMeshTx.fotoPerfilLocal else ""
+                val miAlias = currentMember?.nickname?.ifBlank { currentMember.fullName.ifBlank { "Piloto TX" } } ?: "Piloto TX"
+                val miMoto = GestorMeshTx.modeloMotoLocal
+                val miFicha = if (GestorMeshTx.fichaLocal.isNotBlank()) GestorMeshTx.fichaLocal else "Piloto Local"
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (estaTransmitiendo) Color(0xFFEFF6FF) else Color.White,
+                    border = BorderStroke(
+                        if (estaTransmitiendo) 2.dp else 1.dp,
+                        if (estaTransmitiendo) Color(0xFF3B82F6) else Color(0xFFE2E8F0)
+                    ),
+                    shadowElevation = if (estaTransmitiendo) 3.dp else 1.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = when {
+                                    estaTransmitiendo -> Color(0xFFDBEAFE)
+                                    ajustes.mostrarPerfilSincronizado -> Color(0xFFFFF7ED)
+                                    else -> Color(0xFFF1F5F9)
+                                },
+                                border = BorderStroke(
+                                    if (estaTransmitiendo) 2.dp else 1.dp,
+                                    if (estaTransmitiendo) Color(0xFF2563EB) else Color(0xFFFDBA74)
+                                ),
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                if (ajustes.mostrarFotoPerfil && miFoto.isNotBlank()) {
+                                    coil.compose.AsyncImage(
+                                        model = miFoto,
+                                        contentDescription = miAlias,
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = if (estaTransmitiendo) Icons.Default.VolumeUp else Icons.Default.TwoWheeler,
+                                            contentDescription = null,
+                                            tint = if (estaTransmitiendo) Color(0xFF1D4ED8) else Color(0xFFFF6B00),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        text = "$miAlias (Tú)",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 13.sp,
+                                        color = if (estaTransmitiendo) Color(0xFF1D4ED8) else Color(0xFF0F172A),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color(0xFFDCFCE7)
+                                    ) {
+                                        Text(
+                                            text = "MI NODO",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF15803D),
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = if (estaTransmitiendo)
+                                        "🎙️ TRANSMITIENDO TU VOZ AL CANAL"
+                                    else
+                                        "$miMoto • $miFicha • Transmisor Local",
+                                    fontSize = 10.sp,
+                                    color = if (estaTransmitiendo) Color(0xFF2563EB) else Color(0xFF64748B),
+                                    fontWeight = if (estaTransmitiendo) FontWeight.Bold else FontWeight.Medium
+                                )
                             }
                         }
                     }
@@ -946,21 +1383,30 @@ fun MeshTxScreen(
                                     ),
                                     modifier = Modifier.size(40.dp)
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = when {
-                                                estaHablando -> Icons.Default.VolumeUp
-                                                ajustes.mostrarPerfilSincronizado -> Icons.Default.TwoWheeler
-                                                else -> Icons.Default.Smartphone
-                                            },
-                                            contentDescription = null,
-                                            tint = when {
-                                                estaHablando -> Color(0xFF15803D)
-                                                ajustes.mostrarPerfilSincronizado -> Color(0xFFFF6B00)
-                                                else -> Color(0xFF475569)
-                                            },
-                                            modifier = Modifier.size(20.dp)
+                                    if (ajustes.mostrarFotoPerfil && nodo.fotoUrl.isNotBlank()) {
+                                        coil.compose.AsyncImage(
+                                            model = nodo.fotoUrl,
+                                            contentDescription = nodo.aliasPiloto,
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
                                         )
+                                    } else {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = when {
+                                                    estaHablando -> Icons.Default.VolumeUp
+                                                    ajustes.mostrarPerfilSincronizado -> Icons.Default.TwoWheeler
+                                                    else -> Icons.Default.Smartphone
+                                                },
+                                                contentDescription = null,
+                                                tint = when {
+                                                    estaHablando -> Color(0xFF15803D)
+                                                    ajustes.mostrarPerfilSincronizado -> Color(0xFFFF6B00)
+                                                    else -> Color(0xFF475569)
+                                                },
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
                                 }
                                 Column {
@@ -1073,7 +1519,10 @@ fun MeshTxScreen(
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
                     // Switch Modo PTT vs VOX
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1136,6 +1585,68 @@ fun MeshTxScreen(
 
                     Divider(color = Color(0xFFE2E8F0))
 
+                    // Switch Búfer Adaptativo Anti-Entrecorte (Jitter Buffer + PLC)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Búfer Anti-Entrecorte Táctico",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                "Jitter buffer adaptativo (120ms) y suavizado PLC para Wi-Fi",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ajustes.bufferAntiEntrecorte,
+                            onCheckedChange = { GestorMeshTx.alternarBufferAntiEntrecorte(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6B00)
+                            )
+                        )
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
+                    // Switch Supresión de Eco Acústico (AEC Hardware + Software Gate)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Cancelación Activa de Eco Acústico",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                "AEC por hardware y compuerta anti-retroalimentación de altavoz",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ajustes.supresionEcoAcustico,
+                            onCheckedChange = { GestorMeshTx.alternarSupresionEco(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6B00)
+                            )
+                        )
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
                     // Switch Visualización de Nodos en Convoy (Amigable vs Técnico)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1161,6 +1672,40 @@ fun MeshTxScreen(
                         Switch(
                             checked = ajustes.mostrarPerfilSincronizado,
                             onCheckedChange = { GestorMeshTx.alternarVisualizacionPerfil(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6B00)
+                            )
+                        )
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
+                    // Switch Mostrar Foto de Perfil en Malla
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Mostrar Foto de Perfil en Malla",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                if (ajustes.mostrarFotoPerfil)
+                                    "Activo: Muestra tu foto y las fotos de los compañeros conectados"
+                                else
+                                    "Inactivo: Oculta tu foto y muestra el icono de moto táctica en todos los dispositivos",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ajustes.mostrarFotoPerfil,
+                            onCheckedChange = { GestorMeshTx.alternarMostrarFotoPerfil(it) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = Color(0xFFFF6B00)
@@ -1198,6 +1743,142 @@ fun MeshTxScreen(
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = Color(0xFF16A34A)
+                            )
+                        )
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
+                    // Switch Botón Flotante PTT en Pantalla (Nube Flotante Táctica)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "🔘 Nube / Botón PTT Flotante en Pantalla",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                if (ajustes.botonFlotantePttActivo)
+                                    "Activo: Muestra una burbuja movible para hablar PTT desde cualquier pantalla de la app"
+                                else
+                                    "Inactivo: El botón PTT solo se muestra dentro de esta pantalla de Mesh TX",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ajustes.botonFlotantePttActivo,
+                            onCheckedChange = { GestorMeshTx.alternarBotonFlotantePtt(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6B00)
+                            )
+                        )
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
+                    // Switch Ayuda con Datos (Firebase Sync)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "📶 Ayuda con Datos (Firebase Sync)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                if (ajustes.ayudaConDatosFirebase)
+                                    "Activo: Puente VoIP celular habilitado para enlazar islas y caravanas sin límite de distancia"
+                                else
+                                    "Inactivo: Operación 100% offline local por Wi-Fi Direct y radio P2P",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ajustes.ayudaConDatosFirebase,
+                            onCheckedChange = { GestorMeshTx.alternarAyudaConDatos(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF2563EB)
+                            )
+                        )
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
+                    // Switch Ruido de Confort Táctico (CNG)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "📻 Ruido de Confort Táctico (CNG)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                if (ajustes.cngRuidoConfort)
+                                    "Activo: Sutil estática de línea (-48 dBFS) que confirma enlace auditivo con el convoy"
+                                else
+                                    "Inactivo: Silencio absoluto entre transmisiones de voz",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ajustes.cngRuidoConfort,
+                            onCheckedChange = { GestorMeshTx.alternarCngRuidoConfort(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6B00)
+                            )
+                        )
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
+                    // Switch Corrección de Errores (FEC Redundancia N + N-1)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "🛡️ Corrección de Errores (FEC Redundante)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                if (ajustes.fecRedundanciaActiva)
+                                    "Activo: Entrelaza copia de respaldo anterior (N-1) para rescatar paquetes perdidos por viento o distancia"
+                                else
+                                    "Inactivo: Envío simple de un único frame sin redundancia",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ajustes.fecRedundanciaActiva,
+                            onCheckedChange = { GestorMeshTx.alternarFecRedundancia(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6B00)
                             )
                         )
                     }
@@ -1279,6 +1960,16 @@ fun MeshTxScreen(
     if (mostrarGuiaInteractiva) {
         DialogoGuiaInteractivaMeshTx(
             onDismiss = { mostrarGuiaInteractiva = false }
+        )
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DIÁLOGO DE SALA PRIVADA AISLADA (OFFLINE)
+    // ─────────────────────────────────────────────────────────────────────────
+    if (mostrarDialogoSalaPrivada) {
+        DialogoCrearOUnirseASalaPrivada(
+            salaActual = salaPrivadaActiva,
+            onDismiss = { mostrarDialogoSalaPrivada = false }
         )
     }
 }
@@ -1492,6 +2183,174 @@ fun DialogoGuiaInteractivaMeshTx(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cerrar", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+/**
+ * Diálogo para crear o unirse a una Sala Privada / Sub-grupo offline.
+ * Mapea el nombre o PIN a un canal numérico aislado para que únicamente
+ * los pilotos con el mismo código puedan escucharse e intercambiar audio.
+ */
+@Composable
+fun DialogoCrearOUnirseASalaPrivada(
+    salaActual: String?,
+    onDismiss: () -> Unit
+) {
+    var codigoIngresado by remember { mutableStateOf(salaActual ?: "") }
+    val sugerencias = listOf("CARAVANA-1", "GRUPO-VIP", "PUNTEROS", "BARREDORAS", "RODADA-DOMINGO")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFDBEAFE),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = Color(0xFF1D4ED8),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        text = "Sala Privada Offline",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp,
+                        color = Color(0xFF0F172A)
+                    )
+                    Text(
+                        text = "CANAL EXCLUSIVO CIFRADO",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF2563EB)
+                    )
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Ingresa un código, PIN o nombre de sala. Todos los compañeros que coloquen este mismo valor quedarán enlazados en su propio canal de radiofrecuencia aislado.",
+                    fontSize = 11.sp,
+                    color = Color(0xFF475569),
+                    lineHeight = 16.sp
+                )
+
+                OutlinedTextField(
+                    value = codigoIngresado,
+                    onValueChange = { codigoIngresado = it.uppercase() },
+                    label = { Text("Nombre o Código de Sala") },
+                    placeholder = { Text("Ej: VIP-2026 ó 4455") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF2563EB),
+                        unfocusedBorderColor = Color(0xFFCBD5E1)
+                    )
+                )
+
+                Text(
+                    text = "Sugerencias rápidas:",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF64748B)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    sugerencias.forEach { sugerencia ->
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFF1F5F9),
+                            modifier = Modifier.clickable { codigoIngresado = sugerencia }
+                        ) {
+                            Text(
+                                text = sugerencia,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF334155),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                if (salaActual != null) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFEF2F2),
+                        border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Actualmente en: $salaActual",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFDC2626)
+                            )
+                            TextButton(
+                                onClick = {
+                                    GestorMeshTx.salirASalaGeneral()
+                                    onDismiss()
+                                }
+                            ) {
+                                Text(
+                                    text = "Salir a General",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFFDC2626)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (codigoIngresado.isNotBlank()) {
+                        GestorMeshTx.entrarASalaPrivada(codigoIngresado)
+                    }
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                shape = RoundedCornerShape(8.dp),
+                enabled = codigoIngresado.isNotBlank()
+            ) {
+                Text(
+                    text = if (salaActual != null) "Cambiar Sala" else "Entrar a Sala",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
             }
         },
         containerColor = Color.White,

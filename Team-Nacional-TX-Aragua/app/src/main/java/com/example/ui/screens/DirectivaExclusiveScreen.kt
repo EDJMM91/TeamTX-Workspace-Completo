@@ -45,6 +45,13 @@ import com.example.ui.theme.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.meshtx.GestorMeshTx
+import com.example.meshtx.CanalTactico
+import com.example.meshtx.MeshEstadoConexion
+import com.example.meshtx.NodoMeshPiloto
+import com.example.ui.preferences.PreferenciasApp
+import coil.compose.SubcomposeAsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTES DE DISEÑO - TEMA CLARO PREMIUM DIRECTIVA TX
@@ -107,14 +114,15 @@ fun DirectivaExclusiveScreen(
     allPrivateGroups: List<PrivateGroup> = emptyList(),
     onToggleBlockPrivateGroup: (groupId: String, isBlocked: Boolean, reason: String) -> Unit = { _, _, _ -> },
     onDeletePrivateGroup: (groupId: String) -> Unit = {},
+    onCreateOfficialNotice: ((title: String, content: String, priority: String, isPinned: Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val hasDirectivaAccess = isDirectivaMode || isLeaderSuperAdmin || (currentMember?.isDirectiva == true) || (currentMember?.role?.canManageApp == true)
 
-    // Sub-tab selection: 0 = Codigos, 1 = Solicitudes, 2 = Cargos, 3 = Chat Directiva, 4 = Salas Privadas
-    var selectedSection by remember { mutableStateOf(0) }
+    // Sección seleccionada: null = Hub Principal de Tarjetas Interactivas, 0..9 = Sub-módulos
+    var selectedSection by remember { mutableStateOf<Int?>(null) }
 
     // Dialog states
     var showGenerateCodeDialog by remember { mutableStateOf(false) }
@@ -463,112 +471,79 @@ fun DirectivaExclusiveScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // ── Pestañas de Navegación del Panel (Tabs) ──
-                        ScrollableTabRow(
-                            selectedTabIndex = selectedSection,
-                            containerColor = LightCardBg,
-                            contentColor = MotoOrangePrimary,
-                            edgePadding = 0.dp,
-                            divider = { HorizontalDivider(color = LightBorder) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                        ) {
-                            Tab(
-                                selected = selectedSection == 0,
-                                onClick = { selectedSection = 0 },
-                                text = { Text("CÓDIGOS (24H)", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                                icon = { Icon(Icons.Default.Key, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                selectedContentColor = MotoOrangePrimary,
-                                unselectedContentColor = LightTextMuted
-                            )
-                            Tab(
-                                selected = selectedSection == 1,
-                                onClick = { selectedSection = 1 },
-                                text = {
-                                    val pendingCount = accessRequests.count { it.status == "PENDIENTE" }
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text("SOLICITUDES", fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                        if (pendingCount > 0) {
-                                            Surface(
-                                                shape = CircleShape,
-                                                color = StatusError,
-                                                modifier = Modifier.size(18.dp)
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Text("$pendingCount", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                                                }
-                                            }
+                        // ── Barra Superior de Navegación Táctica (Visible cuando se entra a un módulo) ──
+                        if (selectedSection != null) {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { selectedSection = null },
+                                color = LightCardBg,
+                                border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.6f)),
+                                shadowElevation = 2.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MotoOrangePrimary.copy(alpha = 0.15f),
+                                        modifier = Modifier.size(34.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                Icons.Default.ArrowBack,
+                                                contentDescription = "Volver",
+                                                tint = MotoOrangePrimary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
                                         }
                                     }
-                                },
-                                icon = { Icon(Icons.Default.Inbox, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                selectedContentColor = MotoOrangePrimary,
-                                unselectedContentColor = LightTextMuted
-                            )
-                            Tab(
-                                selected = selectedSection == 2,
-                                onClick = { selectedSection = 2 },
-                                text = { Text("CARGOS & MIEMBROS", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                                icon = { Icon(Icons.Default.WorkspacePremium, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                selectedContentColor = MotoOrangePrimary,
-                                unselectedContentColor = LightTextMuted
-                            )
-                            Tab(
-                                selected = selectedSection == 3,
-                                onClick = {
-                                    selectedSection = 3
-                                    onMarkChannelAsRead("DIRECTIVA")
-                                },
-                                text = {
-                                    val unreadDirectiva = remember(directivaChatMessages, currentMember) {
-                                        val memberId = currentMember?.id ?: 0L
-                                        if (memberId <= 0L) 0
-                                        else directivaChatMessages.count { it.channelId == "DIRECTIVA" && it.senderMemberId != memberId && !it.readBy.contains(memberId) }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "← VOLVER AL CENTRO DE MANDO",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = MotoOrangePrimary,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                        Text(
+                                            text = when (selectedSection) {
+                                                0 -> "Gestión de Códigos de Acceso (24H)"
+                                                1 -> "Solicitudes de Ingreso Pendientes"
+                                                2 -> "Cargos, Miembros y Disciplina"
+                                                3 -> "Canal Seguro Directiva TX"
+                                                4 -> "Auditoría de Salas Privadas"
+                                                5 -> "Gestión de Malla Mesh y Caravana"
+                                                6 -> "Emisión de Comunicados Oficiales"
+                                                7 -> "Gestor Rápido de Solvencia TX"
+                                                8 -> "Monitor Central de Emergencias SOS"
+                                                9 -> "Parámetros Institucionales del Club"
+                                                else -> "Módulo de Directiva"
+                                            },
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LightTextPrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text("CHAT DIRECTIVA", fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                        if (unreadDirectiva > 0) {
-                                            Surface(
-                                                shape = CircleShape,
-                                                color = StatusError,
-                                                modifier = Modifier.size(18.dp)
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Text(if (unreadDirectiva > 99) "99+" else "$unreadDirectiva", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                icon = { Icon(Icons.Default.Forum, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                selectedContentColor = MotoOrangePrimary,
-                                unselectedContentColor = LightTextMuted
-                            )
-                            Tab(
-                                selected = selectedSection == 4,
-                                onClick = { selectedSection = 4 },
-                                text = {
-                                    val totalCount = allPrivateGroups.size
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text("SALAS PRIVADAS", fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                        if (totalCount > 0) {
-                                            Surface(
-                                                shape = CircleShape,
-                                                color = LightBorderHover,
-                                                modifier = Modifier.size(18.dp)
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Text("$totalCount", color = LightTextPrimary, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                icon = { Icon(Icons.Default.Groups, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                selectedContentColor = MotoOrangePrimary,
-                                unselectedContentColor = LightTextMuted
-                            )
+                                    AssistChip(
+                                        onClick = { selectedSection = null },
+                                        label = { Text("Hub", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                        leadingIcon = { Icon(Icons.Default.Dashboard, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = LightCardSubtle,
+                                            labelColor = LightTextPrimary
+                                        ),
+                                        border = BorderStroke(1.dp, LightBorder)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -583,9 +558,23 @@ fun DirectivaExclusiveScreen(
                     }
                 }
 
-                // ── Contenido de la Sub-Sección Activa ──
+                // ── Contenido Principal: Hub de Tarjetas o Sub-Sección Activa ──
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     when (selectedSection) {
+                        null -> DirectivaDashboardHubView(
+                            invitationCodes = invitationCodes,
+                            accessRequests = accessRequests,
+                            allMembers = allMembers,
+                            directivaChatMessages = directivaChatMessages,
+                            allPrivateGroups = allPrivateGroups,
+                            currentMember = currentMember,
+                            onSelectSection = { sectionIndex ->
+                                selectedSection = sectionIndex
+                                if (sectionIndex == 3) {
+                                    onMarkChannelAsRead("DIRECTIVA")
+                                }
+                            }
+                        )
                         0 -> DirectivaCodigosSection(
                             invitationCodes = invitationCodes,
                             allMembers = allMembers,
@@ -660,6 +649,33 @@ fun DirectivaExclusiveScreen(
                             allMembers = allMembers,
                             onToggleBlockGroup = onToggleBlockPrivateGroup,
                             onDeleteGroup = onDeletePrivateGroup
+                        )
+                        5 -> DirectivaMeshCaravanaSection(
+                            context = context
+                        )
+                        6 -> DirectivaComunicadosSection(
+                            context = context,
+                            onCreateOfficialNotice = onCreateOfficialNotice
+                        )
+                        7 -> DirectivaSolvenciaRapidaSection(
+                            allMembers = allMembers,
+                            onToggleSolvency = onToggleSolvency
+                        )
+                        8 -> DirectivaSosMonitorSection(
+                            context = context,
+                            allMembers = allMembers
+                        )
+                        9 -> DirectivaConfiguracionClubSection(
+                            context = context
+                        )
+                        else -> DirectivaDashboardHubView(
+                            invitationCodes = invitationCodes,
+                            accessRequests = accessRequests,
+                            allMembers = allMembers,
+                            directivaChatMessages = directivaChatMessages,
+                            allPrivateGroups = allPrivateGroups,
+                            currentMember = currentMember,
+                            onSelectSection = { selectedSection = it }
                         )
                     }
                 }
@@ -3222,3 +3238,1274 @@ fun DirectivaPrivateGroupsSection(
         )
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// VISTA PRINCIPAL: HUB DE TARJETAS INTERACTIVAS DE DIRECTIVA
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun DirectivaDashboardHubView(
+    invitationCodes: List<InvitationCode>,
+    accessRequests: List<AccessRequest>,
+    allMembers: List<MemberProfile>,
+    directivaChatMessages: List<ChatMessage>,
+    allPrivateGroups: List<PrivateGroup>,
+    currentMember: MemberProfile?,
+    onSelectSection: (Int) -> Unit
+) {
+    val pendingRequestsCount = accessRequests.count { it.status == "PENDIENTE" }
+    val activeCodesCount = invitationCodes.count { !it.isUsed && it.expiresAt > System.currentTimeMillis() }
+    val unreadDirectivaCount = remember(directivaChatMessages, currentMember) {
+        val memberId = currentMember?.id ?: 0L
+        if (memberId <= 0L) 0
+        else directivaChatMessages.count { it.channelId == "DIRECTIVA" && it.senderMemberId != memberId && !it.readBy.contains(memberId) }
+    }
+    val solventesCount = allMembers.count { it.solvencyStatus }
+    val morososCount = allMembers.count { !it.solvencyStatus }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        // Encabezado Banner Informativo
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = DirectivaGoldPrimary.copy(alpha = 0.12f),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Shield,
+                                contentDescription = null,
+                                tint = DirectivaGoldPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "CENTRO DE GOBERNANZA TX",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black,
+                            color = LightTextPrimary,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = "Selecciona un módulo para gestionar y monitorear las operaciones del club.",
+                            fontSize = 11.sp,
+                            color = LightTextSecondary,
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // Título de Sección: Gestión Institucional y Miembros
+        item {
+            Text(
+                text = "MIEMBROS & ACCESOS",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                color = LightTextMuted,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+            )
+        }
+
+        // 1. Solicitudes de Ingreso
+        item {
+            DirectivaHubCard(
+                title = "Solicitudes de Ingreso",
+                subtitle = "Postulaciones de aspirantes y nuevos pilotos TX",
+                icon = Icons.Default.Inbox,
+                iconTint = Color(0xFFD97706),
+                badgeText = if (pendingRequestsCount > 0) "$pendingRequestsCount PENDIENTES" else "Al día",
+                isBadgeUrgent = pendingRequestsCount > 0,
+                onClick = { onSelectSection(1) }
+            )
+        }
+
+        // 0. Códigos de Invitación (24H)
+        item {
+            DirectivaHubCard(
+                title = "Códigos de Acceso (24H)",
+                subtitle = "Emisión de pases temporales e invitados especiales",
+                icon = Icons.Default.Key,
+                iconTint = Color(0xFF2563EB),
+                badgeText = "$activeCodesCount activos",
+                onClick = { onSelectSection(0) }
+            )
+        }
+
+        // 2. Cargos, Rangos & Disciplina
+        item {
+            DirectivaHubCard(
+                title = "Cargos, Miembros & Disciplina",
+                subtitle = "Jerarquía directiva, sanciones y suspensiones de pilotos",
+                icon = Icons.Default.WorkspacePremium,
+                iconTint = Color(0xFF7C3AED),
+                badgeText = "${allMembers.size} miembros",
+                onClick = { onSelectSection(2) }
+            )
+        }
+
+        // 7. Gestor Rápido de Solvencia
+        item {
+            DirectivaHubCard(
+                title = "Gestor Rápido de Solvencia TX",
+                subtitle = "Actualización instantánea de estado de solvencia / morosidad",
+                icon = Icons.Default.AccountBalanceWallet,
+                iconTint = Color(0xFF16A34A),
+                badgeText = "$solventesCount Solv / $morososCount Mor",
+                isBadgeUrgent = morososCount > 0,
+                onClick = { onSelectSection(7) }
+            )
+        }
+
+        // Título de Sección: Operaciones & Comunicación
+        item {
+            Text(
+                text = "COMUNICACIONES & CARAVANA",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                color = LightTextMuted,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+            )
+        }
+
+        // 3. Chat Seguro Directiva
+        item {
+            DirectivaHubCard(
+                title = "Canal Seguro Directiva TX",
+                subtitle = "Mesa de deliberación interna confidencial de líderes",
+                icon = Icons.Default.Forum,
+                iconTint = Color(0xFF059669),
+                badgeText = if (unreadDirectivaCount > 0) "$unreadDirectivaCount no leídos" else "Encriptado",
+                isBadgeUrgent = unreadDirectivaCount > 0,
+                onClick = { onSelectSection(3) }
+            )
+        }
+
+        // 5. Malla Mesh & Caravana
+        item {
+            DirectivaHubCard(
+                title = "Malla Mesh & Modo Caravana",
+                subtitle = "Frecuencia de rodada, radio inter-casco y filtros de audio",
+                icon = Icons.Default.Sensors,
+                iconTint = Color(0xFF0284C7),
+                badgeText = "Control Malla",
+                onClick = { onSelectSection(5) }
+            )
+        }
+
+        // 6. Comunicados Oficiales al Feed
+        item {
+            DirectivaHubCard(
+                title = "Emisión de Comunicados Oficiales",
+                subtitle = "Redactar y fijar avisos institucionales directamente en el Feed",
+                icon = Icons.Default.Campaign,
+                iconTint = Color(0xFFDC2626),
+                badgeText = "Avisos Feed",
+                onClick = { onSelectSection(6) }
+            )
+        }
+
+        // 4. Salas Privadas de Pilotos
+        item {
+            DirectivaHubCard(
+                title = "Auditoría de Salas Privadas",
+                subtitle = "Supervisión y control de grupos creados por pilotos",
+                icon = Icons.Default.Groups,
+                iconTint = Color(0xFF475569),
+                badgeText = "${allPrivateGroups.size} salas",
+                onClick = { onSelectSection(4) }
+            )
+        }
+
+        // Título de Sección: Seguridad & Parámetros
+        item {
+            Text(
+                text = "SEGURIDAD & CLUB",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                color = LightTextMuted,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+            )
+        }
+
+        // 8. Monitor SOS & Rescate Vial
+        item {
+            DirectivaHubCard(
+                title = "Monitor Central SOS & Rescate Vial",
+                subtitle = "Protocolos de emergencia en ruta, ficha médica y auxilio",
+                icon = Icons.Default.Emergency,
+                iconTint = Color(0xFFEF4444),
+                badgeText = "Protocolo SOS",
+                onClick = { onSelectSection(8) }
+            )
+        }
+
+        // 9. Parámetros del Club
+        item {
+            DirectivaHubCard(
+                title = "Parámetros Institucionales del Club",
+                subtitle = "Lema del capítulo, cuota de membresía y políticas globales",
+                icon = Icons.Default.AdminPanelSettings,
+                iconTint = Color(0xFFD97706),
+                badgeText = "Configuración",
+                onClick = { onSelectSection(9) }
+            )
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPONENTE: TARJETA INTERACTIVA DE HUB
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun DirectivaHubCard(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    badgeText: String? = null,
+    isBadgeUrgent: Boolean = false,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = LightCardBg),
+        border = BorderStroke(1.dp, LightBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = iconTint.copy(alpha = 0.12f),
+                modifier = Modifier.size(46.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LightTextPrimary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = LightTextSecondary,
+                    lineHeight = 14.sp
+                )
+
+                if (!badgeText.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isBadgeUrgent) StatusError.copy(alpha = 0.12f) else iconTint.copy(alpha = 0.10f),
+                        border = BorderStroke(1.dp, if (isBadgeUrgent) StatusError.copy(alpha = 0.4f) else iconTint.copy(alpha = 0.25f))
+                    ) {
+                        Text(
+                            text = badgeText,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (isBadgeUrgent) StatusError else iconTint,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = "Abrir",
+                tint = LightTextMuted,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECCIÓN 5: GESTIÓN DE MALLA MESH Y MODO CARAVANA
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun DirectivaMeshCaravanaSection(
+    context: Context
+) {
+    val estadoConexion by GestorMeshTx.estadoConexion.collectAsState()
+    val canalActual by GestorMeshTx.canalActual.collectAsState()
+    val nodosEnRed by GestorMeshTx.nodosEnRed.collectAsState()
+    val ajustes by GestorMeshTx.ajustes.collectAsState()
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        // Estado General de la Malla Táctica
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Sensors, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Red Táctica Inter-Casco Mesh TX", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LightTextPrimary)
+                        }
+                        Surface(
+                            shape = CircleShape,
+                            color = when (estadoConexion) {
+                                MeshEstadoConexion.ENLACE_DIRECTO, MeshEstadoConexion.ENMALLADO_RELAY -> StatusSuccess.copy(alpha = 0.15f)
+                                MeshEstadoConexion.ESCANEANDO, MeshEstadoConexion.CONECTANDO -> DirectivaGoldPrimary.copy(alpha = 0.15f)
+                                else -> LightTextMuted.copy(alpha = 0.15f)
+                            }
+                        ) {
+                            Text(
+                                text = estadoConexion.name,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (estadoConexion) {
+                                    MeshEstadoConexion.ENLACE_DIRECTO, MeshEstadoConexion.ENMALLADO_RELAY -> StatusSuccess
+                                    MeshEstadoConexion.ESCANEANDO, MeshEstadoConexion.CONECTANDO -> DirectivaGoldPrimary
+                                    else -> LightTextMuted
+                                },
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                if (estadoConexion == MeshEstadoConexion.DESCONECTADO) {
+                                    GestorMeshTx.iniciarMallaTactico()
+                                } else {
+                                    GestorMeshTx.detenerMallaTactico()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (estadoConexion == MeshEstadoConexion.DESCONECTADO) Color(0xFF0284C7) else StatusError
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                if (estadoConexion == MeshEstadoConexion.DESCONECTADO) Icons.Default.PlayArrow else Icons.Default.Stop,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (estadoConexion == MeshEstadoConexion.DESCONECTADO) "Activar Malla" else "Desconectar Malla",
+                                fontSize = 12.sp,
+                                color = Color.White
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = { GestorMeshTx.activarCanalRodadas() },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MotoOrangePrimary),
+                            border = BorderStroke(1.dp, MotoOrangePrimary),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.TwoWheeler, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Modo Caravana", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Selección del Canal Táctico Operativo
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Canal Táctico Operativo", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LightTextPrimary)
+                    Text("Establece la frecuencia virtual para rodadas o enlace cerrado de líderes.", fontSize = 11.sp, color = LightTextSecondary)
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    CanalTactico.values().forEach { canal ->
+                        val isSelected = canalActual == canal
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { GestorMeshTx.cambiarCanal(canal) },
+                            color = if (isSelected) MotoOrangePrimary.copy(alpha = 0.12f) else LightCardSubtle,
+                            border = BorderStroke(1.dp, if (isSelected) MotoOrangePrimary else LightBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = { GestorMeshTx.cambiarCanal(canal) },
+                                    colors = RadioButtonDefaults.colors(selectedColor = MotoOrangePrimary)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text(canal.nombre, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (isSelected) MotoOrangePrimary else LightTextPrimary)
+                                    Text(canal.descripcion, fontSize = 10.sp, color = LightTextSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Parámetros de Calidad de Audio en Rodada
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Filtros de Audio para Ruta", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LightTextPrimary)
+                    Text("Optimizaciones acústicas para intercomunicadores de casco a alta velocidad.", fontSize = 11.sp, color = LightTextSecondary)
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Filtro de Viento Dinámico", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LightTextPrimary)
+                            Text("Atenúa turbulencias en micrófono de casco (>60 km/h)", fontSize = 10.sp, color = LightTextSecondary)
+                        }
+                        Switch(
+                            checked = ajustes.cancelacionRuidoViento,
+                            onCheckedChange = { GestorMeshTx.alternarFiltroViento(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = MotoOrangePrimary, checkedTrackColor = MotoOrangePrimary.copy(alpha = 0.4f))
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = LightBorder)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Supresión de Eco Acústico", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LightTextPrimary)
+                            Text("Elimina retroalimentación en altavoces de casco", fontSize = 10.sp, color = LightTextSecondary)
+                        }
+                        Switch(
+                            checked = ajustes.supresionEcoAcustico,
+                            onCheckedChange = { GestorMeshTx.alternarSupresionEco(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = MotoOrangePrimary, checkedTrackColor = MotoOrangePrimary.copy(alpha = 0.4f))
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = LightBorder)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Búfer Anti-Entrecorte", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LightTextPrimary)
+                            Text("Compensa micro-pérdidas de paquetes en curvas o distancia", fontSize = 10.sp, color = LightTextSecondary)
+                        }
+                        Switch(
+                            checked = ajustes.bufferAntiEntrecorte,
+                            onCheckedChange = { GestorMeshTx.alternarBufferAntiEntrecorte(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = MotoOrangePrimary, checkedTrackColor = MotoOrangePrimary.copy(alpha = 0.4f))
+                        )
+                    }
+                }
+            }
+        }
+
+        // Nodos y Pilotos en Malla Táctica
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Pilotos en Malla (${nodosEnRed.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LightTextPrimary)
+                        Text("Actualización en vivo", fontSize = 10.sp, color = LightTextMuted)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (nodosEnRed.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No hay otros pilotos conectados a la malla cercana.", fontSize = 11.sp, color = LightTextMuted)
+                        }
+                    } else {
+                        nodosEnRed.forEach { nodo ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFF0284C7).copy(alpha = 0.15f),
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(nodo.aliasPiloto, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                                    Text("${nodo.nombreMoto} • ${nodo.modeloTelefonoHardware}", fontSize = 10.sp, color = LightTextSecondary)
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = LightCardSubtle,
+                                    border = BorderStroke(1.dp, LightBorder)
+                                ) {
+                                    Text("${nodo.intensidadSenalDbm} dBm", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = LightTextSecondary, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECCIÓN 6: EMISIÓN DE COMUNICADOS OFICIALES AL FEED
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun DirectivaComunicadosSection(
+    context: Context,
+    onCreateOfficialNotice: ((title: String, content: String, priority: String, isPinned: Boolean) -> Unit)?
+) {
+    var noticeTitle by remember { mutableStateOf("") }
+    var noticeContent by remember { mutableStateOf("") }
+    var selectedPriority by remember { mutableStateOf("NORMAL") }
+    var isPinned by remember { mutableStateOf(true) }
+    var isSubmitting by remember { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Campaign, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(22.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("Redactor de Comunicados Oficiales", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LightTextPrimary)
+                            Text("Se publicará en el muro principal de todos los miembros del club.", fontSize = 11.sp, color = LightTextSecondary)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = noticeTitle,
+                        onValueChange = { noticeTitle = it },
+                        label = { Text("Título del Comunicado", fontSize = 11.sp) },
+                        placeholder = { Text("Ej: Directrices para la Rodada Nacional", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFDC2626),
+                            unfocusedBorderColor = LightBorder,
+                            focusedContainerColor = LightCardBg,
+                            unfocusedContainerColor = LightCardSubtle
+                        ),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = noticeContent,
+                        onValueChange = { noticeContent = it },
+                        label = { Text("Contenido / Resolución de la Directiva", fontSize = 11.sp) },
+                        placeholder = { Text("Escribe aquí el cuerpo del comunicado oficial...", fontSize = 11.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 120.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFDC2626),
+                            unfocusedBorderColor = LightBorder,
+                            focusedContainerColor = LightCardBg,
+                            unfocusedContainerColor = LightCardSubtle
+                        ),
+                        maxLines = 10
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text("Nivel de Prioridad del Comunicado:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("NORMAL", "IMPORTANTE", "URGENTE").forEach { prio ->
+                            val isSelected = selectedPriority == prio
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { selectedPriority = prio },
+                                color = if (isSelected) {
+                                    if (prio == "URGENTE") StatusError.copy(alpha = 0.15f) else MotoOrangePrimary.copy(alpha = 0.15f)
+                                } else LightCardSubtle,
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isSelected) {
+                                        if (prio == "URGENTE") StatusError else MotoOrangePrimary
+                                    } else LightBorder
+                                )
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = prio,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (isSelected) {
+                                            if (prio == "URGENTE") StatusError else MotoOrangePrimary
+                                        } else LightTextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Fijar al inicio del Feed (Pinned)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LightTextPrimary)
+                            Text("Permanecerá en la parte superior para lectura obligatoria", fontSize = 10.sp, color = LightTextSecondary)
+                        }
+                        Switch(
+                            checked = isPinned,
+                            onCheckedChange = { isPinned = it },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFDC2626), checkedTrackColor = Color(0xFFDC2626).copy(alpha = 0.4f))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Button(
+                        onClick = {
+                            if (noticeTitle.trim().isBlank() || noticeContent.trim().isBlank()) {
+                                Toast.makeText(context, "Ingresa el título y contenido del comunicado", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            isSubmitting = true
+                            if (onCreateOfficialNotice != null) {
+                                onCreateOfficialNotice(noticeTitle.trim(), noticeContent.trim(), selectedPriority, isPinned)
+                                Toast.makeText(context, "📢 Comunicado oficial emitido con éxito", Toast.LENGTH_LONG).show()
+                                noticeTitle = ""
+                                noticeContent = ""
+                            } else {
+                                Toast.makeText(context, "Comunicado registrado en el sistema", Toast.LENGTH_SHORT).show()
+                            }
+                            isSubmitting = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isSubmitting
+                    ) {
+                        Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Emitir Comunicado Oficial TX", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECCIÓN 7: GESTOR RÁPIDO DE SOLVENCIA TX
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun DirectivaSolvenciaRapidaSection(
+    allMembers: List<MemberProfile>,
+    onToggleSolvency: (MemberProfile) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var filterMode by remember { mutableStateOf("TODOS") } // "TODOS", "SOLVENTES", "MOROSOS"
+
+    val solventesCount = allMembers.count { it.solvencyStatus }
+    val morososCount = allMembers.count { !it.solvencyStatus }
+
+    val filteredMembers = remember(allMembers, searchQuery, filterMode) {
+        allMembers.filter { member ->
+            val matchesQuery = searchQuery.isBlank() ||
+                    member.fullName.contains(searchQuery, ignoreCase = true) ||
+                    member.bikeBrand.contains(searchQuery, ignoreCase = true) ||
+                    member.bikeModel.contains(searchQuery, ignoreCase = true) ||
+                    member.bloodType.contains(searchQuery, ignoreCase = true) ||
+                    member.medicalNotes.contains(searchQuery, ignoreCase = true)
+
+            val matchesFilter = when (filterMode) {
+                "SOLVENTES" -> member.solvencyStatus
+                "MOROSOS" -> !member.solvencyStatus
+                else -> true
+            }
+            matchesQuery && matchesFilter
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        // Tarjetas métricas de solvencia
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, StatusSuccess.copy(alpha = 0.4f))
+            ) {
+                Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("$solventesCount", fontSize = 18.sp, fontWeight = FontWeight.Black, color = StatusSuccess)
+                    Text("SOLVENTES", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = LightTextSecondary)
+                }
+            }
+
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, StatusError.copy(alpha = 0.4f))
+            ) {
+                Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("$morososCount", fontSize = 18.sp, fontWeight = FontWeight.Black, color = StatusError)
+                    Text("MOROSOS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = LightTextSecondary)
+                }
+            }
+
+            Card(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder)
+            ) {
+                Column(modifier = Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("${allMembers.size}", fontSize = 18.sp, fontWeight = FontWeight.Black, color = LightTextPrimary)
+                    Text("TOTAL PILOTOS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = LightTextSecondary)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Buscador
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Buscar piloto por nombre, moto...", fontSize = 11.sp) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp), tint = LightTextMuted) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MotoOrangePrimary,
+                unfocusedBorderColor = LightBorder,
+                focusedContainerColor = LightCardBg,
+                unfocusedContainerColor = LightCardSubtle
+            ),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Pestañas filtro: Todos / Solventes / Morosos
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            listOf("TODOS", "SOLVENTES", "MOROSOS").forEach { mode ->
+                val isSelected = filterMode == mode
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { filterMode = mode },
+                    color = if (isSelected) MotoOrangePrimary else LightCardBg,
+                    border = BorderStroke(1.dp, if (isSelected) MotoOrangePrimary else LightBorder)
+                ) {
+                    Box(modifier = Modifier.padding(vertical = 5.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = mode,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) Color.White else LightTextSecondary
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Lista de Miembros con conmutador de solvencia
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            items(filteredMembers, key = { it.id }) { member ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                    border = BorderStroke(1.dp, if (member.solvencyStatus) StatusSuccess.copy(alpha = 0.3f) else StatusError.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        PilotAvatar(
+                            member = member,
+                            size = 38.dp
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = member.fullName,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LightTextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${member.role.displayName} • ${member.bikeBrand} ${member.bikeModel}",
+                                fontSize = 10.sp,
+                                color = LightTextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Botón de alternancia de solvencia
+                        Button(
+                            onClick = { onToggleSolvency(member) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (member.solvencyStatus) StatusSuccess else StatusError
+                            ),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.height(30.dp)
+                        ) {
+                            Text(
+                                text = if (member.solvencyStatus) "✓ SOLVENTE" else "✕ MOROSO",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECCIÓN 8: MONITOR CENTRAL SOS & RESCATE VIAL
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun DirectivaSosMonitorSection(
+    context: Context,
+    allMembers: List<MemberProfile>
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        // Banner Central de Emergencias
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFEF4444).copy(alpha = 0.15f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Emergency, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text("Monitor Central SOS & Protocolo Vial", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LightTextPrimary)
+                            Text("Respuesta inmediata de líderes ante contingencias en ruta.", fontSize = 11.sp, color = LightTextSecondary)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Button(
+                        onClick = {
+                            GestorMeshTx.emitirAlertaSos("🚨 ALERTA DIRECTIVA: Verificación de caravana activa en curso", null)
+                            Toast.makeText(context, "Baliza de alerta emitida por Malla Mesh TX", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Emitir Baliza de Control a la Caravana", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // Directorio de Rescate y Emergencias Oficiales
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Líneas de Auxilio y Cuerpos de Seguridad", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LightTextPrimary)
+                    Text("Acceso de discado directo de emergencia para los directivos.", fontSize = 11.sp, color = LightTextSecondary)
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    listOf(
+                        Triple("Emergencias Nacional VEN 911", "911", Icons.Default.LocalPolice),
+                        Triple("Bomberos de Aragua (Rescate)", "02432470123", Icons.Default.FireTruck),
+                        Triple("Tránsito Terrestre CPNB", "08007654242", Icons.Default.CarCrash)
+                    ).forEach { (label, phone, icon) ->
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    val dialIntent = Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:$phone"))
+                                    context.startActivity(dialIntent)
+                                },
+                            color = LightCardSubtle,
+                            border = BorderStroke(1.dp, LightBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(icon, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                                    Text("Tel: $phone", fontSize = 10.sp, color = LightTextSecondary)
+                                }
+                                Icon(Icons.Default.Phone, contentDescription = "Llamar", tint = StatusSuccess, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Ficha Rápida Médica de Pilotos Registrados
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text("Historial de Salud de Pilotos (${allMembers.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LightTextPrimary)
+                    Text("Datos críticos para paramédicos y atención en carretera.", fontSize = 11.sp, color = LightTextSecondary)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    allMembers.take(8).forEach { member ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(member.fullName, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                                Text(
+                                    text = "Sangre: ${member.bloodType.ifBlank { "No especificado" }} | Notas: ${member.medicalNotes.ifBlank { "Ninguna" }}",
+                                    fontSize = 10.sp,
+                                    color = LightTextSecondary
+                                )
+                            }
+                            if (member.emergencyContactPhone.isNotBlank()) {
+                                IconButton(
+                                    onClick = {
+                                        val intent = Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:${member.emergencyContactPhone}"))
+                                        context.startActivity(intent)
+                                    },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(Icons.Default.ContactPhone, contentDescription = "Contacto", tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                        HorizontalDivider(color = LightBorder)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECCIÓN 9: PARÁMETROS INSTITUCIONALES DEL CLUB
+// ═══════════════════════════════════════════════════════════════
+@Composable
+fun DirectivaConfiguracionClubSection(
+    context: Context
+) {
+    PreferenciasApp.init(context)
+    var lemaClubInput by remember { mutableStateOf(PreferenciasApp.lemaClub) }
+    var cuotaRefInput by remember { mutableStateOf(PreferenciasApp.cuotaMembresiaRef) }
+    var soloDirectivaFeed by remember { mutableStateOf(PreferenciasApp.soloDirectivaPublicaFeed) }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = LightCardBg),
+                border = BorderStroke(1.dp, LightBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = DirectivaGoldPrimary, modifier = Modifier.size(22.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text("Parámetros Institucionales del Capítulo", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = LightTextPrimary)
+                            Text("Ajustes generales que aplican a toda la aplicación.", fontSize = 11.sp, color = LightTextSecondary)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    OutlinedTextField(
+                        value = lemaClubInput,
+                        onValueChange = { lemaClubInput = it },
+                        label = { Text("Lema Oficial del Club", fontSize = 11.sp) },
+                        placeholder = { Text("Ej: Hermandad, Ruta y Respeto", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DirectivaGoldPrimary,
+                            unfocusedBorderColor = LightBorder,
+                            focusedContainerColor = LightCardBg,
+                            unfocusedContainerColor = LightCardSubtle
+                        ),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = cuotaRefInput,
+                        onValueChange = { cuotaRefInput = it },
+                        label = { Text("Cuota Referencial de Membresía", fontSize = 11.sp) },
+                        placeholder = { Text("Ej: 5 USD / Mensual", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DirectivaGoldPrimary,
+                            unfocusedBorderColor = LightBorder,
+                            focusedContainerColor = LightCardBg,
+                            unfocusedContainerColor = LightCardSubtle
+                        ),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Modo Feed Solo Directiva", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LightTextPrimary)
+                            Text("Si se activa, únicamente los directivos podrán crear posts en el feed", fontSize = 10.sp, color = LightTextSecondary)
+                        }
+                        Switch(
+                            checked = soloDirectivaFeed,
+                            onCheckedChange = { soloDirectivaFeed = it }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            PreferenciasApp.lemaClub = lemaClubInput.trim()
+                            PreferenciasApp.cuotaMembresiaRef = cuotaRefInput.trim()
+                            PreferenciasApp.soloDirectivaPublicaFeed = soloDirectivaFeed
+                            Toast.makeText(context, "✅ Parámetros del club guardados correctamente", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = DirectivaGoldPrimary),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Guardar Parámetros Directiva", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+

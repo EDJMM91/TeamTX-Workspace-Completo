@@ -90,6 +90,13 @@ data class DatosCarnet(
     // ─── FOTOS DE PERFIL ───────────────────────────────────────
     val fotoPerfilUri: String? = null,
 
+    // ─── CALIFICACIONES Y RANKING ─────────────────────────────
+    val calificacionesPositivas: Int = 0,
+    val calificacionesNegativas: Int = 0,
+    val puntosReputacion: Int = 0,
+    val puntosMerito: Int = 0,
+    val tituloRango: String = "Piloto TX",
+
     // ─── ESTADO EN VIVO ────────────────────────────────────────
     val estaEnLinea: Boolean = true,
     val ultimoActivoTimestamp: Long = System.currentTimeMillis()
@@ -225,6 +232,11 @@ object BaseDatosCarnet {
             eventosGrandes = profile.bigEventsCount,
             inicioProspectoTimestamp = profile.prospectStartDate,
             fotoPerfilUri = profile.profilePhotoUri,
+            calificacionesPositivas = profile.positiveRatingsCount,
+            calificacionesNegativas = profile.negativeRatingsCount,
+            puntosReputacion = profile.reputationPoints,
+            puntosMerito = profile.meritPoints,
+            tituloRango = profile.rankingTitle,
             estaEnLinea = profile.isOnline,
             ultimoActivoTimestamp = profile.lastActiveTimestamp
         )
@@ -285,6 +297,11 @@ object BaseDatosCarnet {
             bigEventsCount = datos.eventosGrandes,
             prospectStartDate = datos.inicioProspectoTimestamp,
             profilePhotoUri = datos.fotoPerfilUri,
+            positiveRatingsCount = datos.calificacionesPositivas,
+            negativeRatingsCount = datos.calificacionesNegativas,
+            reputationPoints = datos.puntosReputacion,
+            meritPoints = datos.puntosMerito,
+            rankingTitle = datos.tituloRango.ifBlank { "Piloto TX" },
             isOnline = datos.estaEnLinea,
             lastActiveTimestamp = datos.ultimoActivoTimestamp
         )
@@ -422,6 +439,12 @@ object BaseDatosCarnet {
         "inicioProspectoTimestamp" to datos.inicioProspectoTimestamp,
         // Fotos
         "fotoPerfilUri" to datos.fotoPerfilUri,
+        // Calificaciones y Gamificación
+        "calificacionesPositivas" to datos.calificacionesPositivas,
+        "calificacionesNegativas" to datos.calificacionesNegativas,
+        "puntosReputacion" to datos.puntosReputacion,
+        "puntosMerito" to datos.puntosMerito,
+        "tituloRango" to datos.tituloRango,
         // Estado
         "estaEnLinea" to datos.estaEnLinea,
         "ultimoActivoTimestamp" to System.currentTimeMillis()

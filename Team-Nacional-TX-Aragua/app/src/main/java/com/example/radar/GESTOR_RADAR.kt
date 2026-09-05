@@ -1,5 +1,7 @@
 package com.example.radar
 
+import android.content.Context
+import android.content.ClipboardManager
 import android.util.Log
 import com.example.data.model.MemberProfile
 import com.example.data.model.BikerCalendarEvent
@@ -22,6 +24,7 @@ object GestorRadar {
     private var eventosLayer: EventosMapLayer? = null
     private var directorioLayer: DirectorioMapLayer? = null
     private var mapaActivityRef: java.lang.ref.WeakReference<net.osmand.plus.activities.MapActivity>? = null
+    private var clipListener: ClipboardManager.OnPrimaryClipChangedListener? = null
     private val alcance = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var escuchando = false
     private var miUserId: String = ""
@@ -31,11 +34,41 @@ object GestorRadar {
 
     @JvmStatic
     fun registrarMapActivity(activity: net.osmand.plus.activities.MapActivity?) {
+        val currentActivity = (activity as Any?) as? android.app.Activity
+        // Remover listener previo si existía
+        try {
+            val oldAct = (mapaActivityRef?.get() as Any?) as? android.app.Activity
+            if (oldAct != null && clipListener != null) {
+                val clipManager = oldAct.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                clipManager?.removePrimaryClipChangedListener(clipListener)
+            }
+        } catch (_: Exception) {}
+
         mapaActivityRef = if (activity != null) java.lang.ref.WeakReference(activity) else null
         mapaLayer?.setMapActivity(activity)
         eventosLayer?.setMapActivity(activity)
         directorioLayer?.setMapActivity(activity)
         Log.d(ETIQUETA, "MapActivity registrada en GestorRadar: ${activity != null}")
+
+        // Si el usuario está buscando una dirección para un aviso o evento, escuchar copias de coordenadas
+        if (currentActivity != null) {
+            try {
+                val clipboard = currentActivity.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                clipListener = ClipboardManager.OnPrimaryClipChangedListener {
+                    if (com.example.mapa.GestorSeleccionMapa.modoBuscandoCoordenada) {
+                        val coords = com.example.mapa.GestorPortapapeles.leerCoordenadaValida(currentActivity)
+                        if (coords != null) {
+                            com.example.mapa.GestorSeleccionMapa.registrarCoordenadaDetectada(currentActivity, coords) {
+                                currentActivity.finish()
+                            }
+                        }
+                    }
+                }
+                clipboard?.addPrimaryClipChangedListener(clipListener)
+            } catch (e: Exception) {
+                Log.e(ETIQUETA, "Error registrando escucha de portapapeles en mapa", e)
+            }
+        }
     }
 
     @JvmStatic

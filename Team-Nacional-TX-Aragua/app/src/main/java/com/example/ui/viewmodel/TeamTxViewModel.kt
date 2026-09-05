@@ -353,8 +353,32 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun toggleMemberSolvency(member: MemberProfile) {
-        viewModelScope.launch {
-            repository.updateMember(member.copy(solvencyStatus = !member.solvencyStatus))
+        viewModelScope.launch(Dispatchers.IO) {
+            val updated = member.copy(solvencyStatus = !member.solvencyStatus)
+            repository.updateMember(updated)
+            val targetUid = member.firebaseUid
+            if (!targetUid.isNullOrBlank()) {
+                try {
+                    com.example.data.remote.BaseDatosCarnet.sincronizarHaciaNube(targetUid, updated)
+                } catch (e: Exception) {
+                    Log.e(TAG_DIRECTIVA, "Error al sincronizar solvencia en nube: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun setMemberSolvency(member: MemberProfile, isSolvent: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val updated = member.copy(solvencyStatus = isSolvent)
+            repository.updateMember(updated)
+            val targetUid = member.firebaseUid
+            if (!targetUid.isNullOrBlank()) {
+                try {
+                    com.example.data.remote.BaseDatosCarnet.sincronizarHaciaNube(targetUid, updated)
+                } catch (e: Exception) {
+                    Log.e(TAG_DIRECTIVA, "Error al fijar solvencia en nube: ${e.message}")
+                }
+            }
         }
     }
 
@@ -2096,6 +2120,33 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             } catch (_: Exception) {}
             detenerSincronizacionDePerfil()
             clearSession()
+
+            // 1. Limpiar fotos y preferencias de carnet
+            com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+            com.example.ui.preferences.PreferenciasApp.carnetTipoFoto = "LOCAL"
+
+            // 2. Limpiar preferencias de radar (avatar y alias)
+            val app = getApplication<Application>()
+            try {
+                app.getSharedPreferences("radar_prefs", Context.MODE_PRIVATE).edit()
+                    .remove("radar_avatar")
+                    .remove("radar_alias")
+                    .remove("radar_piloto_foto")
+                    .apply()
+            } catch (_: Exception) {}
+
+            // 3. Resetear perfil local en Mesh TX
+            try {
+                com.example.meshtx.GestorMeshTx.actualizarPerfilLocal("Piloto TX", "")
+            } catch (_: Exception) {}
+
+            // 4. Purgar caché en memoria de Coil para que no persista la foto anterior
+            try {
+                coil.Coil.imageLoader(app).memoryCache?.clear()
+            } catch (_: Exception) {}
+
+            // 5. Resetear estados de sesión reactivos
+            _currentMemberId.value = -1L
             _isAuthenticated.value = false
             _isLeaderSuperAdmin.value = false
             _isDirectivaMode.value = false

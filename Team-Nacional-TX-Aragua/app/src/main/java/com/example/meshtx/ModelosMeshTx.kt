@@ -92,9 +92,15 @@ data class AjustesIntercomunicadorTactico(
     val umbralVoxSensibilidad: Float = 0.65f, // Sensibilidad del micrófono para activación por voz
     val cancelacionRuidoViento: Boolean = true,
     val supresionEcoAcustico: Boolean = true,
+    val bufferAntiEntrecorte: Boolean = true, // Algoritmo Adaptive Jitter Buffer + Pre-roll + PLC anti-entrecorte
     val gananciaMicrofonoCasco: Float = 1.2f,
     val codecSeleccionado: String = "OPUS_LOW_LATENCY",
     val canalActivo: CanalTactico = CanalTactico.GENERAL_TX,
     val mostrarPerfilSincronizado: Boolean = true, // true: ver foto, moto TX y nombre real; false: ver modelo teléfono hardware y MAC
-    val modoAltavozActivo: Boolean = true // true: altavoz exterior potente (manos libres); false: auricular privado/casco
+    val mostrarFotoPerfil: Boolean = true, // true: comparte y muestra foto de perfil de carnet/cuenta; false: solo icono de moto
+    val modoAltavozActivo: Boolean = true, // true: altavoz exterior potente (manos libres); false: auricular privado/casco
+    val botonFlotantePttActivo: Boolean = false, // true: muestra nube/burbuja flotante de PTT movible en pantalla fuera de Mesh TX
+    val ayudaConDatosFirebase: Boolean = false, // Sincronización híbrida de apoyo con datos móviles/WiFi
+    val cngRuidoConfort: Boolean = true, // Generador de Ruido de Confort (-48 dBFS) para confirmación de enlace
+    val fecRedundanciaActiva: Boolean = true // FEC intrapaquete N + (N-1) para tolerancia a pérdidas
 )

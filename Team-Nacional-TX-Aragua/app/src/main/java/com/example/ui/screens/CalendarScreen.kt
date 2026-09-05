@@ -49,6 +49,7 @@ import com.example.ui.theme.*
 import com.example.mapa.PuenteMapa
 import com.example.mapa.GestorPortapapeles
 import com.example.mapa.AnalizadorCoordenadas
+import com.example.mapa.GestorSeleccionMapa
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -2946,6 +2947,19 @@ fun CreateEditCalendarEventDialog(
     var remindDaysStr by remember { mutableStateOf(existingEvent?.remindDaysBefore?.toString() ?: "1") }
     var selectedFlyerUri by remember { mutableStateOf<Uri?>(null) }
 
+    // 🗺️ Auto-captura y retorno asistido desde el Mapa TX
+    LaunchedEffect(GestorSeleccionMapa.coordenadaSeleccionada) {
+        val coord = GestorSeleccionMapa.consumirCoordenada()
+        if (!coord.isNullOrBlank()) {
+            val partes = coord.split(",")
+            if (partes.size >= 2) {
+                originLatStr = partes[0].trim()
+                originLngStr = partes[1].trim()
+                Toast.makeText(context, "📍 ¡Coordenadas capturadas del mapa: $coord!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     val photoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         selectedFlyerUri = uri
     }
@@ -3119,7 +3133,13 @@ fun CreateEditCalendarEventDialog(
                         onClick = {
                             val lat = originLatStr.toDoubleOrNull() ?: 10.2319
                             val lng = originLngStr.toDoubleOrNull() ?: -67.5744
-                            PuenteMapa.mostrarUbicacionEnMapa(context, "$lat,$lng", title.ifBlank { "Punto de Encuentro" })
+                            GestorSeleccionMapa.iniciarSeleccion(
+                                contexto = context,
+                                origen = "CALENDAR",
+                                coordenadasIniciales = "$lat,$lng",
+                                titulo = title.ifBlank { "Punto de Encuentro" }
+                            )
+                            Toast.makeText(context, "👉 En el mapa: copia la coordenada deseada y volverás automáticamente aquí pegándola", Toast.LENGTH_LONG).show()
                         },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
@@ -3127,7 +3147,7 @@ fun CreateEditCalendarEventDialog(
                     ) {
                         Icon(Icons.Default.Explore, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF0284C7))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("🗺️ Ver en Mapa TX", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                        Text("🗺️ Ver en Mapa TX (Auto-retorno)", fontSize = 10.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                     }
                 }
 

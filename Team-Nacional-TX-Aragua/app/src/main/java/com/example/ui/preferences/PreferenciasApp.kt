@@ -191,4 +191,34 @@ object PreferenciasApp {
     var odometroGlobalActivo: Boolean
         get() = prefs.getBoolean("odometro_global_activo", false)
         set(value) = prefs.edit().putBoolean("odometro_global_activo", value).apply()
+
+    // ─── ACCESOS RÁPIDOS BARRA INFERIOR (PERSISTENCIA TOTAL) ─────────────────
+    private const val KEY_BOTTOM_TABS = "accesos_rapidos_bottom_tabs_config"
+
+    fun guardarBottomTabs(tabs: List<String>) {
+        prefs.edit().putString(KEY_BOTTOM_TABS, tabs.joinToString(",")).apply()
+    }
+
+    fun obtenerBottomTabs(): List<String>? {
+        if (!::prefs.isInitialized) return null
+        val guardado = prefs.getString(KEY_BOTTOM_TABS, null) ?: return null
+        val items = guardado.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        return if (items.size == 5) items else null
+    }
+
+    // ─── GOBERNANZA & DIRECTIVA INSTITUCIONAL ──────────────────────────────────
+    /** Lema oficial o comunicado de cabecera del Capítulo */
+    var lemaClub: String
+        get() = if (::prefs.isInitialized) prefs.getString("directiva_lema_club", "Team Nacional TX Aragua • Hermandad y Asfalto") ?: "Team Nacional TX Aragua • Hermandad y Asfalto" else "Team Nacional TX Aragua • Hermandad y Asfalto"
+        set(value) { if (::prefs.isInitialized) prefs.edit().putString("directiva_lema_club", value).apply() }
+
+    /** Monto referencial mensual de membresía */
+    var cuotaMembresiaRef: String
+        get() = if (::prefs.isInitialized) prefs.getString("directiva_cuota_ref", "5 $") ?: "5 $" else "5 $"
+        set(value) { if (::prefs.isInitialized) prefs.edit().putString("directiva_cuota_ref", value).apply() }
+
+    /** Política del Feed: solo directiva puede publicar avisos */
+    var soloDirectivaPublicaFeed: Boolean
+        get() = if (::prefs.isInitialized) prefs.getBoolean("directiva_solo_publica_feed", false) else false
+        set(value) { if (::prefs.isInitialized) prefs.edit().putBoolean("directiva_solo_publica_feed", value).apply() }
 }

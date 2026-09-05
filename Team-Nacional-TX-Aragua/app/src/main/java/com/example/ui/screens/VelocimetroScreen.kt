@@ -44,10 +44,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.zIndex
+import coil.compose.SubcomposeAsyncImage
+import android.content.Intent
+import android.widget.Toast
 import com.example.data.model.MemberProfile
 import com.example.ui.preferences.PreferenciasApp
 import com.example.ui.theme.*
+import com.example.mapa.GestorPortapapeles
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.*
 
 enum class SpeedometerMode(val displayName: String, val shortName: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
@@ -91,17 +100,42 @@ fun VelocimetroScreen(
     var tripDistanceMeters by remember { mutableDoubleStateOf(0.0) }
     var totalOdoKm by remember { mutableDoubleStateOf(PreferenciasApp.odometroTotalKm) }
 
-    // Métricas de Viaje
+    // Métricas de Viaje y Telemetría Avanzada
     var altitudeMeters by remember { mutableDoubleStateOf(0.0) }
+    var maxAltitudeMeters by remember { mutableDoubleStateOf(0.0) }
     var bearingDegrees by remember { mutableFloatStateOf(0f) }
     var gForceInstant by remember { mutableFloatStateOf(0f) }
+    var maxGForceSession by remember { mutableFloatStateOf(0f) }
+    var arrancadaGForce by remember { mutableFloatStateOf(0f) }
     var instantAccelMss by remember { mutableFloatStateOf(0f) }
+    var maxAccelMssSession by remember { mutableFloatStateOf(0f) }
     var isGpsActive by remember { mutableStateOf(false) }
     var isGpsSearching by remember { mutableStateOf(true) }
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var isTracking by remember { mutableStateOf(true) }
     var lastLocation by remember { mutableStateOf<Location?>(null) }
     var lastAccelTimestamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val sessionStartTimeMillis = remember { System.currentTimeMillis() }
+
+    // Variables detectoras de arrancada (0 -> >20 km/h)
+    var wasStopped by remember { mutableStateOf(true) }
+    var launchPeakG by remember { mutableFloatStateOf(0f) }
+
+    // 📣 Avisos Interactivos y Animaciones Flotantes
+    var avisoActualTitulo by remember { mutableStateOf<String?>(null) }
+    var avisoActualSubtitulo by remember { mutableStateOf<String?>(null) }
+    var avisoActualIcono by remember { mutableStateOf(Icons.Default.Speed) }
+    var avisoActualColor by remember { mutableStateOf(MotoOrangePrimary) }
+    var lastAlertedMilestone by remember { mutableIntStateOf(0) }
+    var showReportDialog by remember { mutableStateOf(false) }
+
+    // Temporizador para auto-descartar aviso flotante interactivo
+    LaunchedEffect(avisoActualTitulo) {
+        if (avisoActualTitulo != null) {
+            delay(4200L)
+            avisoActualTitulo = null
+        }
+    }
 
     // Estados de Intercomunicador Mesh TX en Malla
     val estadoMalla by com.example.meshtx.GestorMeshTx.estadoConexion.collectAsState()
@@ -182,7 +216,18 @@ fun VelocimetroScreen(
                 // Magnitud vectorial de aceleración instantánea y Fuerza G
                 val totalAccel = sqrt(ax * ax + ay * ay + az * az)
                 instantAccelMss = totalAccel
-                gForceInstant = (totalAccel / 9.80665f).coerceIn(0f, 6.0f)
+                val currentG = (totalAccel / 9.80665f).coerceIn(0f, 6.0f)
+                gForceInstant = currentG
+
+                if (currentG > maxGForceSession) {
+                    maxGForceSession = currentG
+                }
+                if (totalAccel > maxAccelMssSession) {
+                    maxAccelMssSession = totalAccel
+                }
+                if (wasStopped && currentG > launchPeakG) {
+                    launchPeakG = currentG
+                }
             }
 
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -242,8 +287,56 @@ fun VelocimetroScreen(
                     tripMaxSpeedKmh = filteredSpeed
                 }
 
-                // Récord histórico persistente del piloto
+                val speedUnitLabel = if (isMph) "MPH" else "KM/H"
+                val displayCurrentSpeed = if (isMph) filteredSpeed * 0.621371f else filteredSpeed
+
+                // Detección de Arrancada (Fuerza G de despegue desde 0 km/h)
+                if (filteredSpeed < 4f) {
+                    wasStopped = true
+                } else if (wasStopped && filteredSpeed >= 20f) {
+                    wasStopped = false
+                    val gArrancada = if (launchPeakG > 0.25f) launchPeakG else (gForceInstant.coerceAtLeast(0.42f))
+                    arrancadaGForce = gArrancada
+                    launchPeakG = 0f
+                    avisoActualTitulo = "🚀 ¡ARRANCADA TÁCTICA TX!"
+                    avisoActualSubtitulo = "Tu moto tiene una fuerza de ${String.format(Locale.US, "%.2f", gArrancada)} G de arrancada"
+                    avisoActualIcono = Icons.Default.RocketLaunch
+                    avisoActualColor = MotoOrangePrimary
+                }
+
+                // Detección de Hitos de Velocidad (40, 60, 80, 100, 120, 140)
+                val curSpeedInt = displayCurrentSpeed.toInt()
+                val milestones = listOf(40, 60, 80, 100, 120, 140)
+                for (m in milestones) {
+                    if (curSpeedInt >= m && lastAlertedMilestone < m) {
+                        lastAlertedMilestone = m
+                        val (msgSub, iconoHito) = when (m) {
+                            40 -> Pair("Ritmo urbano fluido en caravana 🏍️", Icons.Default.TwoWheeler)
+                            60 -> Pair("Velocidad de crucero avenida 💨", Icons.Default.Speed)
+                            80 -> Pair("Modo carretera y curvas interurbanas 🛣️", Icons.Default.AltRoute)
+                            100 -> Pair("Convoy rápido en autopista regional ⚡", Icons.Default.Bolt)
+                            120 -> Pair("¡Velocidad crucero de ruta TX alcanzada! 🔥", Icons.Default.LocalFireDepartment)
+                            else -> Pair("⚠️ Alerta táctica de alta velocidad en asfalto", Icons.Default.Warning)
+                        }
+                        avisoActualTitulo = "¡HAS ALCANZADO $m $speedUnitLabel!"
+                        avisoActualSubtitulo = msgSub
+                        avisoActualIcono = iconoHito
+                        avisoActualColor = if (m >= 100) TxFlameRed else MotoOrangePrimary
+                        break
+                    }
+                }
+                if (curSpeedInt < 25 && lastAlertedMilestone > 0) {
+                    lastAlertedMilestone = 0
+                }
+
+                // Récord histórico persistente del piloto con aviso interactivo
                 if (filteredSpeed > persistentRecordKmh && filteredSpeed < 300f) {
+                    if (persistentRecordKmh > 10f && !isNewRecordAchieved) {
+                        avisoActualTitulo = "🏆 ¡PASASTE EL RÉCORD!"
+                        avisoActualSubtitulo = "¡Nueva marca histórica: ${String.format(Locale.US, "%.1f", displayCurrentSpeed)} $speedUnitLabel! 🏁"
+                        avisoActualIcono = Icons.Default.EmojiEvents
+                        avisoActualColor = MotoGoldSecondary
+                    }
                     persistentRecordKmh = filteredSpeed
                     PreferenciasApp.topSpeedRecordKmh = filteredSpeed
                     isNewRecordAchieved = true
@@ -251,6 +344,9 @@ fun VelocimetroScreen(
                 }
 
                 altitudeMeters = loc.altitude
+                if (loc.altitude > maxAltitudeMeters) {
+                    maxAltitudeMeters = loc.altitude
+                }
                 bearingDegrees = loc.bearing
 
                 // Odómetro: Sumar distancia acumulada si hay movimiento real (>1.2 km/h)
@@ -385,6 +481,16 @@ fun VelocimetroScreen(
 
                         Spacer(modifier = Modifier.width(4.dp))
 
+                        // Botón Reporte de Telemetría
+                        IconButton(
+                            onClick = { showReportDialog = true },
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Icon(Icons.Default.Assessment, contentDescription = "Generar Reporte Telemetría", tint = MotoGoldSecondary, modifier = Modifier.size(20.dp))
+                        }
+
+                        Spacer(modifier = Modifier.width(2.dp))
+
                         // Botón Expandir Pantalla Completa
                         IconButton(
                             onClick = { isFullscreen = true },
@@ -473,6 +579,66 @@ fun VelocimetroScreen(
                 .padding(if (isFullscreen) PaddingValues(0.dp) else padding)
                 .background(Color.Black)
         ) {
+            // ═══════════════════════════════════════════════
+            // 📣 AVISOS INTERACTIVOS & ANIMACIONES FLOTANTES (HUD)
+            // ═══════════════════════════════════════════════
+            AnimatedVisibility(
+                visible = avisoActualTitulo != null,
+                enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = if (isFullscreen) 56.dp else 8.dp)
+                    .zIndex(30f)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF10141E).copy(alpha = 0.95f),
+                    border = BorderStroke(1.5.dp, avisoActualColor),
+                    shadowElevation = 10.dp,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .clickable { avisoActualTitulo = null }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(avisoActualColor.copy(alpha = 0.2f), CircleShape)
+                                .border(1.dp, avisoActualColor, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = avisoActualIcono,
+                                contentDescription = null,
+                                tint = avisoActualColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = avisoActualTitulo ?: "",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                color = avisoActualColor
+                            )
+                            avisoActualSubtitulo?.let { sub ->
+                                Text(
+                                    text = sub,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -480,7 +646,82 @@ fun VelocimetroScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // ═══════════════════════════════════════════════
-                // BARRA SELECTORA DE MODOS (4 Modos Uniformes y Proporcionados)
+                // BARRA SUPERIOR EXCLUSIVA PANTALLA COMPLETA
+                // SOLO 2 BOTONES: [KM/H - MPH] Y [VOLVER A PANTALLA NORMAL]
+                // ═══════════════════════════════════════════════
+                if (isFullscreen) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 1. Selector de KM/H a MPH
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = TxCarbonDark.copy(alpha = 0.85f),
+                            border = BorderStroke(1.dp, if (isMph) MotoGoldSecondary else MotoOrangePrimary),
+                            modifier = Modifier
+                                .height(36.dp)
+                                .clickable {
+                                    isMph = !isMph
+                                    PreferenciasApp.velocidadEnMph = isMph
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Speed,
+                                    contentDescription = null,
+                                    tint = if (isMph) MotoGoldSecondary else MotoOrangePrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (isMph) "MPH" else "KM/H",
+                                    color = if (isMph) MotoGoldSecondary else MotoOrangePrimary,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+
+                        // 2. Volver a Pantalla Normal
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = TxCarbonDark.copy(alpha = 0.85f),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
+                            modifier = Modifier
+                                .height(36.dp)
+                                .clickable { isFullscreen = false }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FullscreenExit,
+                                    contentDescription = "Volver a Pantalla Normal",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Normal",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // ═══════════════════════════════════════════════
+                // BARRA SELECTORA DE MODOS (Solo en Vista Normal)
                 // ═══════════════════════════════════════════════
                 if (!isFullscreen) {
                     Surface(
@@ -532,116 +773,161 @@ fun VelocimetroScreen(
                     }
                 }
 
-                // 🎙️ BANDA TÁCTICA INTERCOMUNICADOR MESH TX
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) Color(0xFF1E293B) else Color(0xFF121620),
-                    border = BorderStroke(1.dp, if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) MotoOrangePrimary else Color(0xFF334155)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp)
-                ) {
-                    Row(
+                // 🎙️ BANDA TÁCTICA INTERCOMUNICADOR MESH TX (Solo en Vista Normal)
+                if (!isFullscreen) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) Color(0xFF1E293B) else Color(0xFF121620),
+                        border = BorderStroke(1.dp, if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) MotoOrangePrimary else Color(0xFF334155)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(vertical = 2.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(
-                                Icons.Default.Podcasts,
-                                contentDescription = null,
-                                tint = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) MotoOrangePrimary else Color.Gray,
-                                modifier = Modifier.size(15.dp)
-                            )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(
+                                    Icons.Default.Podcasts,
+                                    contentDescription = null,
+                                    tint = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) MotoOrangePrimary else Color.Gray,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Text(
+                                    text = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO)
+                                        "Mesh TX • ${canalMalla.nombre}"
+                                    else
+                                        "Mesh TX Apagado",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
                             Text(
                                 text = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO)
-                                    "Mesh TX • ${canalMalla.nombre}"
+                                    "${nodosMalla.size} pilotos en convoy"
                                 else
-                                    "Mesh TX Apagado",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                    "Offline",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) Color(0xFF38BDF8) else Color.Gray
                             )
                         }
-                        Text(
-                            text = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO)
-                                "${nodosMalla.size} pilotos en convoy"
-                            else
-                                "Offline",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (estadoMalla != com.example.meshtx.MeshEstadoConexion.DESCONECTADO) Color(0xFF38BDF8) else Color.Gray
-                        )
                     }
                 }
 
-                // 🛡️ BANDA DE IDENTIFICACIÓN DE PILOTO (Carnet TX Sincronizado)
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF121620),
-                    border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.5f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 3.dp)
-                ) {
-                    Row(
+                // 🛡️ BANDA DE IDENTIFICACIÓN DE PILOTO CON FOTO DE CARNET TX (Solo en Vista Normal)
+                if (!isFullscreen) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF121620),
+                        border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.5f)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(vertical = 3.dp)
                     ) {
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.weight(1f)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Badge,
-                                contentDescription = "Carnet TX",
-                                tint = MotoOrangePrimary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Piloto:",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TxSteelSilver
-                            )
-                            Text(
-                                text = currentMember?.fullName?.ifBlank { "Piloto Oficial TX" } ?: "Piloto Oficial TX",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            if (!currentMember?.nickname.isNullOrBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                // Foto del piloto sincronizada de Carnet TX
+                                val fotoPiloto = currentMember?.profilePhotoUri?.ifBlank { null } ?: PreferenciasApp.carnetGooglePhotoUrl?.ifBlank { null }
+                                if (!fotoPiloto.isNullOrBlank()) {
+                                    SubcomposeAsyncImage(
+                                        model = fotoPiloto,
+                                        contentDescription = "Foto Piloto",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .border(1.5.dp, MotoOrangePrimary, CircleShape),
+                                        loading = {
+                                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                CircularProgressIndicator(modifier = Modifier.size(12.dp), color = MotoOrangePrimary, strokeWidth = 2.dp)
+                                            }
+                                        },
+                                        error = {
+                                            Icon(
+                                                imageVector = Icons.Default.TwoWheeler,
+                                                contentDescription = null,
+                                                tint = MotoOrangePrimary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    )
+                                } else {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MotoOrangePrimary.copy(alpha = 0.2f),
+                                        border = BorderStroke(1.dp, MotoOrangePrimary),
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.TwoWheeler,
+                                                contentDescription = "Piloto TX",
+                                                tint = MotoOrangePrimary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(
+                                            text = "Piloto:",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TxSteelSilver
+                                        )
+                                        Text(
+                                            text = currentMember?.fullName?.ifBlank { "Piloto Oficial TX" } ?: "Piloto Oficial TX",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color.White,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    if (!currentMember?.nickname.isNullOrBlank()) {
+                                        Text(
+                                            text = "\"${currentMember?.nickname}\"",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MotoOrangePrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MotoOrangePrimary.copy(alpha = 0.15f),
+                                border = BorderStroke(0.5.dp, MotoOrangePrimary)
+                            ) {
                                 Text(
-                                    text = "(\"${currentMember?.nickname}\")",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    text = currentMember?.memberNumber?.ifBlank { "TX-CARNET" } ?: "TX-CARNET",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
                                     color = MotoOrangePrimary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MotoOrangePrimary.copy(alpha = 0.15f),
-                            border = BorderStroke(0.5.dp, MotoOrangePrimary)
-                        ) {
-                            Text(
-                                text = currentMember?.memberNumber?.ifBlank { "TX-CARNET" } ?: "TX-CARNET",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MotoOrangePrimary,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
                         }
                     }
                 }
@@ -745,12 +1031,28 @@ fun VelocimetroScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "TELEMETRÍA & ODÓMETRO",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TxSteelSilver
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "TELEMETRÍA & ODÓMETRO",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TxSteelSilver
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MotoOrangePrimary.copy(alpha = 0.15f),
+                                border = BorderStroke(0.8.dp, MotoOrangePrimary),
+                                modifier = Modifier
+                                    .clickable { showReportDialog = true }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Assessment, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(11.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text("Reporte", fontSize = 9.sp, fontWeight = FontWeight.Black, color = MotoOrangePrimary)
+                                }
+                            }
+                        }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             TextButton(
@@ -900,7 +1202,7 @@ fun VelocimetroScreen(
                                 HorizontalDivider(color = TxSteelSilver.copy(alpha = 0.15f))
                                 Spacer(modifier = Modifier.height(6.dp))
 
-                                // Fila 3: FUERZA G + ACELERACIÓN + ALTITUD / RUMBO
+                                // Fila 3: FUERZA G + ARRANCADA + ACELERACIÓN + RUMBO / ALT
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -911,6 +1213,13 @@ fun VelocimetroScreen(
                                         value = String.format("%.2f G", gForceInstant),
                                         icon = Icons.Default.Compress,
                                         valueColor = if (gForceInstant > 0.4f) MotoOrangePrimary else Color.White
+                                    )
+
+                                    TripStatItem(
+                                        title = "ARRANCADA",
+                                        value = if (arrancadaGForce > 0f) String.format("%.2f G", arrancadaGForce) else "-- G",
+                                        icon = Icons.Default.RocketLaunch,
+                                        valueColor = MotoGoldSecondary
                                     )
 
                                     TripStatItem(
@@ -934,67 +1243,54 @@ fun VelocimetroScreen(
             }
 
             // ═══════════════════════════════════════════════
-            // CONTROLES FLOTANTES EN MODO PANTALLA COMPLETA
+            // CONTROLES INFERIORES EN PANTALLA COMPLETA
+            // SOLO LOS DATOS MOSTRADOS ABAJO (SIN BOTONES QUE TAPEN ARRIBA)
             // ═══════════════════════════════════════════════
             if (isFullscreen) {
-                // Botón Reducir a Normal
-                Surface(
-                    shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.7f),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .size(44.dp)
-                        .clickable { isFullscreen = false }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.FullscreenExit, contentDescription = "Salir de Pantalla Completa", tint = Color.White, modifier = Modifier.size(24.dp))
-                    }
-                }
-
-                // Botón Toggle KM/H / MPH flotante
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.Black.copy(alpha = 0.7f),
-                    border = BorderStroke(1.dp, if (isMph) MotoGoldSecondary else MotoOrangePrimary),
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(16.dp)
-                        .height(34.dp)
-                        .clickable {
-                            isMph = !isMph
-                            PreferenciasApp.velocidadEnMph = isMph
-                        }
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 10.dp)) {
-                        Text(text = if (isMph) "MPH" else "KM/H", color = if (isMph) MotoGoldSecondary else MotoOrangePrimary, fontWeight = FontWeight.Black, fontSize = 12.sp)
-                    }
-                }
-
-                // Mini Barra de TRIP / MÁXIMA flotante abajo
                 val distUnitTrip = if (isMph) (tripDistanceMeters / 1000.0) * 0.621371 else tripDistanceMeters / 1000.0
                 val unitLabel = if (isMph) "MI" else "KM"
                 val speedUnit = if (isMph) "MPH" else "KM/H"
 
+                val hours = elapsedSeconds / 3600
+                val minutes = (elapsedSeconds % 3600) / 60
+                val seconds = elapsedSeconds % 60
+                val timeFormatted = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.Black.copy(alpha = 0.8f),
-                    border = BorderStroke(1.dp, TxSteelSilver.copy(alpha = 0.25f)),
+                    color = Color.Black.copy(alpha = 0.85f),
+                    border = BorderStroke(1.dp, TxSteelSilver.copy(alpha = 0.3f)),
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(16.dp)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "TRIP: ${String.format("%.2f %s", distUnitTrip, unitLabel)}", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Text(text = "•", color = Color.Gray)
-                        Text(text = "MÁX: ${String.format("%.0f %s", displayTripMax, speedUnit)}", color = MotoOrangePrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Text(text = "•", color = Color.Gray)
-                        Text(text = "G: ${String.format("%.2f G", gForceInstant)}", color = MotoGoldSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "TRIP: ${String.format("%.2f %s", distUnitTrip, unitLabel)}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "•", color = Color.DarkGray)
+                        Text(text = "MÁX: ${String.format("%.0f %s", displayTripMax, speedUnit)}", color = MotoOrangePrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "•", color = Color.DarkGray)
+                        Text(text = "G: ${String.format("%.2f G", gForceInstant)}", color = MotoGoldSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "•", color = Color.DarkGray)
+                        Text(text = timeFormatted, color = Color.LightGray, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text(text = "•", color = Color.DarkGray)
+                        Surface(
+                            shape = RoundedCornerShape(5.dp),
+                            color = MotoOrangePrimary.copy(alpha = 0.2f),
+                            border = BorderStroke(0.8.dp, MotoOrangePrimary),
+                            modifier = Modifier
+                                .clickable { showReportDialog = true }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Assessment, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(11.dp))
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text("Reporte", fontSize = 9.sp, fontWeight = FontWeight.Black, color = MotoOrangePrimary)
+                            }
+                        }
                     }
                 }
             }
@@ -1026,6 +1322,23 @@ fun VelocimetroScreen(
                 }
             },
             containerColor = TxCarbonDark
+        )
+    }
+
+    // Diálogo de Reporte Táctico de Telemetría
+    if (showReportDialog) {
+        ReporteTelemetriaDialog(
+            member = currentMember,
+            distanceMeters = tripDistanceMeters,
+            elapsedSeconds = elapsedSeconds,
+            maxSpeedKmh = tripMaxSpeedKmh,
+            avgSpeedKmh = avgSpeed.toFloat(),
+            arrancadaGForce = arrancadaGForce,
+            maxGForce = maxGForceSession,
+            maxAccelMss = maxAccelMssSession,
+            maxAltitude = maxAltitudeMeters,
+            isMph = isMph,
+            onDismiss = { showReportDialog = false }
         )
     }
 }
@@ -1517,5 +1830,246 @@ fun TripStatItem(
             fontWeight = FontWeight.Black,
             color = valueColor
         )
+    }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 📊 DIÁLOGO DE REPORTE TÁCTICO DE TELEMETRÍA & RENDIMIENTO TX
+ * ═══════════════════════════════════════════════════════════════════════════════
+ */
+@Composable
+fun ReporteTelemetriaDialog(
+    member: MemberProfile?,
+    distanceMeters: Double,
+    elapsedSeconds: Long,
+    maxSpeedKmh: Float,
+    avgSpeedKmh: Float,
+    arrancadaGForce: Float,
+    maxGForce: Float,
+    maxAccelMss: Float,
+    maxAltitude: Double,
+    isMph: Boolean,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val unitDist = if (isMph) "MI" else "KM"
+    val unitSpeed = if (isMph) "MPH" else "KM/H"
+    val distVal = if (isMph) (distanceMeters / 1000.0) * 0.621371 else distanceMeters / 1000.0
+    val maxSpeedVal = if (isMph) maxSpeedKmh * 0.621371f else maxSpeedKmh
+    val avgSpeedVal = if (isMph) avgSpeedKmh * 0.621371f else avgSpeedKmh
+
+    val hours = elapsedSeconds / 3600
+    val minutes = (elapsedSeconds % 3600) / 60
+    val seconds = elapsedSeconds % 60
+    val timeFormatted = String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
+    val fechaHora = remember {
+        SimpleDateFormat("dd/MM/yyyy - hh:mm a", Locale.getDefault()).format(Date())
+    }
+
+    val textoReporte = remember(member, distanceMeters, elapsedSeconds, maxSpeedKmh, avgSpeedKmh, arrancadaGForce) {
+        buildString {
+            appendLine("🏍️ *REPORTE DE TELEMETRÍA TÁCTICO - TEAM TX* 🏍️")
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+            appendLine("👤 *Piloto:* ${member?.fullName?.ifBlank { "Piloto Oficial TX" } ?: "Piloto Oficial TX"}")
+            if (!member?.nickname.isNullOrBlank()) {
+                appendLine("🏷️ *Apodo:* \"${member?.nickname}\"")
+            }
+            appendLine("💳 *Carnet:* ${member?.memberNumber?.ifBlank { "TX-OFICIAL" } ?: "TX-OFICIAL"}")
+            appendLine("📅 *Fecha:* $fechaHora")
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+            appendLine("🏁 *Distancia:* ${String.format(Locale.US, "%.2f %s", distVal, unitDist)}")
+            appendLine("⏱️ *Tiempo en Marcha:* $timeFormatted")
+            appendLine("⚡ *Velocidad Máxima:* ${String.format(Locale.US, "%.1f %s", maxSpeedVal, unitSpeed)}")
+            appendLine("📈 *Velocidad Promedio:* ${String.format(Locale.US, "%.1f %s", avgSpeedVal, unitSpeed)}")
+            appendLine("🚀 *Arrancada Táctica:* ${if (arrancadaGForce > 0f) String.format(Locale.US, "%.2f G", arrancadaGForce) else "-- G"}")
+            appendLine("💥 *Fuerza G Máx:* ${String.format(Locale.US, "%.2f G", maxGForce)}")
+            appendLine("⏩ *Aceleración Máx:* ${String.format(Locale.US, "+%.1f m/s²", maxAccelMss)}")
+            appendLine("⛰️ *Altitud Máx:* ${maxAltitude.toInt()} m")
+            appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+            appendLine("_Generado por Tablero Táctico Team TX_")
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Assessment, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(22.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "REPORTE DE TELEMETRÍA",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 15.sp,
+                    color = Color.White
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Ficha del Piloto
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF10141E),
+                    border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        val fotoPiloto = member?.profilePhotoUri?.ifBlank { null } ?: PreferenciasApp.carnetGooglePhotoUrl?.ifBlank { null }
+                        if (!fotoPiloto.isNullOrBlank()) {
+                            SubcomposeAsyncImage(
+                                model = fotoPiloto,
+                                contentDescription = "Foto",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .border(1.5.dp, MotoOrangePrimary, CircleShape),
+                                loading = {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator(modifier = Modifier.size(14.dp), color = MotoOrangePrimary, strokeWidth = 2.dp)
+                                    }
+                                },
+                                error = {
+                                    Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(24.dp))
+                                }
+                            )
+                        } else {
+                            Surface(
+                                shape = CircleShape,
+                                color = MotoOrangePrimary.copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, MotoOrangePrimary),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.TwoWheeler, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(20.dp))
+                                }
+                            }
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = member?.fullName?.ifBlank { "Piloto Oficial TX" } ?: "Piloto Oficial TX",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Carnet: ${member?.memberNumber?.ifBlank { "TX-OFICIAL" } ?: "TX-OFICIAL"} • $fechaHora",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = TxSteelSilver
+                            )
+                        }
+                    }
+                }
+
+                // Cuadrícula de Métricas
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = TxCarbonDark,
+                    border = BorderStroke(1.dp, TxSteelSilver.copy(alpha = 0.25f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            ReportItem(title = "DISTANCIA", value = String.format(Locale.US, "%.2f %s", distVal, unitDist), icon = Icons.Default.DirectionsBike, color = Color.White)
+                            ReportItem(title = "TIEMPO", value = timeFormatted, icon = Icons.Default.Timer, color = Color.White)
+                        }
+                        HorizontalDivider(color = TxSteelSilver.copy(alpha = 0.15f))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            ReportItem(title = "VEL. MÁXIMA", value = String.format(Locale.US, "%.1f %s", maxSpeedVal, unitSpeed), icon = Icons.Default.Speed, color = MotoOrangePrimary)
+                            ReportItem(title = "VEL. PROMEDIO", value = String.format(Locale.US, "%.1f %s", avgSpeedVal, unitSpeed), icon = Icons.Default.TrendingUp, color = Color.White)
+                        }
+                        HorizontalDivider(color = TxSteelSilver.copy(alpha = 0.15f))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            ReportItem(title = "G ARRANCADA", value = if (arrancadaGForce > 0f) String.format(Locale.US, "%.2f G", arrancadaGForce) else "-- G", icon = Icons.Default.RocketLaunch, color = MotoGoldSecondary)
+                            ReportItem(title = "G MÁXIMA", value = String.format(Locale.US, "%.2f G", maxGForce), icon = Icons.Default.Compress, color = MotoGoldSecondary)
+                        }
+                        HorizontalDivider(color = TxSteelSilver.copy(alpha = 0.15f))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            ReportItem(title = "ACEL. MÁXIMA", value = String.format(Locale.US, "+%.1f m/s²", maxAccelMss), icon = Icons.Default.FastForward, color = Color.White)
+                            ReportItem(title = "ALTITUD MÁX", value = "${maxAltitude.toInt()} m", icon = Icons.Default.Terrain, color = Color.White)
+                        }
+                    }
+                }
+
+                // Botones de Acción: Compartir en WhatsApp y Copiar
+                Button(
+                    onClick = {
+                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, textoReporte)
+                            setPackage("com.whatsapp")
+                        }
+                        try {
+                            context.startActivity(sendIntent)
+                        } catch (_: Exception) {
+                            val chooser = Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, textoReporte)
+                            }, "Compartir Reporte Telemetría TX")
+                            context.startActivity(chooser)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().height(42.dp)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Compartir por WhatsApp", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        GestorPortapapeles.copiarTexto(context, "Reporte Telemetría TX", textoReporte)
+                        Toast.makeText(context, "📋 Reporte copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                    },
+                    border = BorderStroke(1.dp, MotoOrangePrimary),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().height(38.dp)
+                ) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(15.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Copiar Reporte Texto", color = MotoOrangePrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = Color(0xFF141824)
+    )
+}
+
+@Composable
+private fun ReportItem(
+    title: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color
+) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = TxSteelSilver, modifier = Modifier.size(11.dp))
+            Spacer(modifier = Modifier.width(3.dp))
+            Text(text = title, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = TxSteelSilver)
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(text = value, fontSize = 12.sp, fontWeight = FontWeight.Black, color = color)
     }
 }

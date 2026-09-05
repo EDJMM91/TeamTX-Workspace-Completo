@@ -360,8 +360,7 @@ fun RidesScreen(
                 Button(
                     onClick = {
                         try {
-                            com.example.meshtx.GestorMeshTx.iniciarMallaTactico()
-                            com.example.meshtx.GestorMeshTx.cambiarCanal(com.example.meshtx.CanalTactico.GENERAL_TX)
+                            com.example.meshtx.GestorMeshTx.activarCanalRodadas()
                         } catch (_: Exception) {}
                         onUpdateRideStatus(rideToStart, targetStatus)
                         rideForMeshActivationDialog = null
@@ -369,7 +368,7 @@ fun RidesScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B00)),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Sí, Activar Mesh TX", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Sí, Activar Sala Rodadas", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -785,8 +784,7 @@ fun RideItemCard(
                             .fillMaxWidth()
                             .clickable {
                                 try {
-                                    com.example.meshtx.GestorMeshTx.iniciarMallaTactico()
-                                    com.example.meshtx.GestorMeshTx.cambiarCanal(com.example.meshtx.CanalTactico.GENERAL_TX)
+                                    com.example.meshtx.GestorMeshTx.activarCanalRodadas()
                                 } catch (_: Exception) {}
                             }
                     ) {
@@ -797,11 +795,11 @@ fun RideItemCard(
                         ) {
                             Icon(Icons.Default.Podcasts, contentDescription = null, tint = Color(0xFFFF6B00), modifier = Modifier.size(20.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("🎙️ Caravana en Ruta (Mesh TX)", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF0F172A))
-                                Text("Toca para sintonizar el intercomunicador offline con el convoy", fontSize = 10.sp, color = Color(0xFF64748B))
+                                Text("🎙️ Sala Rodadas Mesh TX (Convoy Activo)", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF0F172A))
+                                Text("Toca para activar la sala de rodadas en el intercomunicador", fontSize = 10.sp, color = Color(0xFF64748B))
                             }
                             Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFFF6B00)) {
-                                Text("Sintonizar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                                Text("Activar Rodada", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                             }
                         }
                     }

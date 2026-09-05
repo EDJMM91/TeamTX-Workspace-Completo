@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.NetworkInfo
+import android.net.wifi.WpsInfo
 import android.net.wifi.aware.*
 import android.net.wifi.p2p.*
 import android.os.Build
@@ -81,6 +82,14 @@ class BuscadorMalla(
     private var canalWifiP2p: WifiP2pManager.Channel? = null
     private var receptorWifiDirect: ReceptorWifiDirectMesh? = null
     private var estaWifiDirectRegistrado = false
+
+    // Estado y negociación Wi-Fi Direct (PASO 2)
+    var alActualizarConexionP2p: ((esPropietario: Boolean, ipPropietario: String) -> Unit)? = null
+    @Volatile private var estaConectadoP2p = false
+    @Volatile private var enNegociacionP2p = false
+    @Volatile private var ipPropietarioGrupoP2p = ""
+    @Volatile private var esPropietarioGrupoP2p = false
+    @Volatile private var ultimoIntentoConexionP2pMs = 0L
 
     // Tareas periódicas de limpieza y escaneo
     private var tareaLimpiezaNodos: Job? = null
@@ -507,8 +516,48 @@ class BuscadorMalla(
                 contexto.unregisterReceiver(receptorWifiDirect)
                 estaWifiDirectRegistrado = false
             }
+            gestorWifiP2p?.removeGroup(canalWifiP2p, null)
+            gestorWifiP2p?.cancelConnect(canalWifiP2p, null)
             gestorWifiP2p?.stopPeerDiscovery(canalWifiP2p, null)
+            estaConectadoP2p = false
+            enNegociacionP2p = false
+            ipPropietarioGrupoP2p = ""
+            esPropietarioGrupoP2p = false
         } catch (_: Exception) {}
+    }
+
+    /**
+     * Negocia y establece la conexión Wi-Fi Direct P2P con el par seleccionado (PASO 2).
+     */
+    @SuppressLint("MissingPermission")
+    fun conectarConPeerP2p(dispositivo: WifiP2pDevice, idVirtual: Long) {
+        val gestor = gestorWifiP2p ?: return
+        val canal = canalWifiP2p ?: return
+        if (estaConectadoP2p || enNegociacionP2p) return
+
+        val ahora = System.currentTimeMillis()
+        if (ahora - ultimoIntentoConexionP2pMs < 10000L) return
+        ultimoIntentoConexionP2pMs = ahora
+        enNegociacionP2p = true
+
+        val config = WifiP2pConfig().apply {
+            deviceAddress = dispositivo.deviceAddress
+            wps.setup = WpsInfo.PBC
+            // Desempate determinista por ID para que un dispositivo asuma GO y no colisionen
+            groupOwnerIntent = if (idPilotoLocal > idVirtual) 14 else 1
+        }
+
+        Log.i(etiquetaLog, "Iniciando negociación Wi-Fi Direct con ${dispositivo.deviceName} (${dispositivo.deviceAddress}), GO_Intent=${config.groupOwnerIntent}")
+        gestor.connect(canal, config, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {
+                Log.i(etiquetaLog, "Negociación Wi-Fi Direct aceptada para ${dispositivo.deviceName}")
+            }
+
+            override fun onFailure(reasonCode: Int) {
+                enNegociacionP2p = false
+                Log.w(etiquetaLog, "Fallo al conectar Wi-Fi Direct con ${dispositivo.deviceName}. Código: $reasonCode")
+            }
+        })
     }
 
     /**
@@ -531,40 +580,65 @@ class BuscadorMalla(
                 WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> {
                     gestor.requestPeers(canal) { listaPares ->
                         val pares = listaPares.deviceList
+                        var mejorPeerDisponible: Pair<WifiP2pDevice, Long>? = null
+
                         for (dispositivo in pares) {
                             val idVirtual = (dispositivo.deviceAddress.hashCode().toLong() and 0x7FFFFFFF)
-                                val previo = _nodosDetectados.value[idVirtual]
-                                val aliasAsignado = if (previo != null && previo.aliasPiloto.isNotBlank() && previo.aliasPiloto != dispositivo.deviceName) {
-                                    previo.aliasPiloto
-                                } else {
-                                    "Piloto TX"
-                                }
-                                val nodoP2p = NodoMeshPiloto(
-                                    idMiembro = idVirtual,
-                                    aliasPiloto = aliasAsignado,
-                                    modeloTelefonoHardware = dispositivo.deviceName.ifBlank { "Dispositivo Android" },
-                                    direccionNodo = dispositivo.deviceAddress,
-                                    intensidadSenalDbm = -50,
-                                    distanciaAproximadaMetros = 12.0,
-                                    ultimoPingTimestamp = System.currentTimeMillis()
-                                )
+                            val previo = _nodosDetectados.value[idVirtual]
+                            val aliasAsignado = if (previo != null && previo.aliasPiloto.isNotBlank() && previo.aliasPiloto != dispositivo.deviceName) {
+                                previo.aliasPiloto
+                            } else {
+                                "Piloto TX"
+                            }
+                            val nodoP2p = NodoMeshPiloto(
+                                idMiembro = idVirtual,
+                                aliasPiloto = aliasAsignado,
+                                modeloTelefonoHardware = dispositivo.deviceName.ifBlank { "Dispositivo Android" },
+                                direccionNodo = dispositivo.deviceAddress,
+                                intensidadSenalDbm = -50,
+                                distanciaAproximadaMetros = 12.0,
+                                ultimoPingTimestamp = System.currentTimeMillis()
+                            )
 
-                                val mapaActual = _nodosDetectados.value.toMutableMap()
-                                mapaActual[idVirtual] = nodoP2p
-                                _nodosDetectados.value = mapaActual
-                                alDetectarNodo(nodoP2p)
+                            val mapaActual = _nodosDetectados.value.toMutableMap()
+                            mapaActual[idVirtual] = nodoP2p
+                            _nodosDetectados.value = mapaActual
+                            alDetectarNodo(nodoP2p)
+
+                            if (dispositivo.status == WifiP2pDevice.AVAILABLE && mejorPeerDisponible == null) {
+                                mejorPeerDisponible = Pair(dispositivo, idVirtual)
                             }
                         }
+
+                        // Negociación automática (PASO 2): Si no estamos conectados ni negociando, conectar
+                        if (!estaConectadoP2p && !enNegociacionP2p && mejorPeerDisponible != null) {
+                            conectarConPeerP2p(mejorPeerDisponible.first, mejorPeerDisponible.second)
+                        }
                     }
+                }
 
                 WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
                     val infoRed = intent.getParcelableExtra<NetworkInfo>(WifiP2pManager.EXTRA_NETWORK_INFO)
                     if (infoRed?.isConnected == true) {
                         gestor.requestConnectionInfo(canal) { infoConexion ->
-                            val esPropietarioGrupo = infoConexion.isGroupOwner
+                            val esPropietario = infoConexion.isGroupOwner
                             val ipPropietario = infoConexion.groupOwnerAddress?.hostAddress ?: ""
-                            Log.i(etiquetaLog, "Wi-Fi Direct conectado. EsPropietario=$esPropietarioGrupo, IP=$ipPropietario")
+                            estaConectadoP2p = true
+                            enNegociacionP2p = false
+                            esPropietarioGrupoP2p = esPropietario
+                            ipPropietarioGrupoP2p = ipPropietario
+                            Log.i(etiquetaLog, "✅ Wi-Fi Direct conectado exitosamente. EsPropietario=$esPropietario, IP_GO=$ipPropietario")
+                            alActualizarConexionP2p?.invoke(esPropietario, ipPropietario)
                         }
+                    } else {
+                        if (estaConectadoP2p) {
+                            Log.w(etiquetaLog, "Wi-Fi Direct desconectado.")
+                        }
+                        estaConectadoP2p = false
+                        enNegociacionP2p = false
+                        esPropietarioGrupoP2p = false
+                        ipPropietarioGrupoP2p = ""
+                        alActualizarConexionP2p?.invoke(false, "")
                     }
                 }
             }

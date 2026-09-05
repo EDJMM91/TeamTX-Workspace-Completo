@@ -64,6 +64,7 @@ import com.example.ui.theme.*
 import com.example.mapa.PuenteMapa
 import com.example.mapa.GestorPortapapeles
 import com.example.mapa.AnalizadorCoordenadas
+import com.example.mapa.GestorSeleccionMapa
 import com.example.chat.GestorUbicacion
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleEventObserver
@@ -121,6 +122,9 @@ fun FeedScreen(
     uploadError: String? = null,
     uploadSuccess: Boolean = false,
     onDismissUploadStatus: () -> Unit = {},
+    allWorkshops: List<WorkshopDirectoryItem> = emptyList(),
+    allPrivateGroups: List<PrivateGroup> = emptyList(),
+    onNavigateToTab: ((com.example.NavigationTab) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedCategoryFilter by remember { mutableStateOf<NoticeCategory?>(null) }
@@ -129,12 +133,12 @@ fun FeedScreen(
     var viewingFlyerPublication by remember { mutableStateOf<Publication?>(null) }
     var sharingPublication by remember { mutableStateOf<Publication?>(null) }
     val context = LocalContext.current
-    val isLight = DashboardFondoConfig.tipoFondo == TipoFondoDashboard.TEMA_CLARO_ESTANDAR
-    val isDark = !isLight
-    val screenBg = if (isLight) DashboardFondoConfig.ColorFondoClaro else Color(0xFF121212)
-    val cardBg = if (isLight) DashboardFondoConfig.ColorTarjetaClara else TxCarbonDark
-    val textColorPrimary = if (isLight) DashboardFondoConfig.ColorTextoPrimario else Color.White
-    val textColorSecondary = if (isLight) DashboardFondoConfig.ColorTextoSecundario else TxSteelSilver
+    val isLight = true
+    val isDark = false
+    val screenBg = DashboardFondoConfig.ColorFondoClaro
+    val cardBg = DashboardFondoConfig.ColorTarjetaClara
+    val textColorPrimary = DashboardFondoConfig.ColorTextoPrimario
+    val textColorSecondary = DashboardFondoConfig.ColorTextoSecundario
 
     // Auto-dismiss upload status banner after 4 seconds
     LaunchedEffect(uploadError, uploadSuccess) {
@@ -281,6 +285,19 @@ fun FeedScreen(
                 }
             }
 
+            // ═══════════════════════════════════════════════════════════════
+            // PANEL DE AVISOS INTELIGENTES: GAMIFICACIÓN, RÉCORDS Y SERVICIOS
+            // ═══════════════════════════════════════════════════════════════
+            item {
+                AvisosComunidadInteligentesSection(
+                    allMembers = allMembers,
+                    allWorkshops = allWorkshops,
+                    allPrivateGroups = allPrivateGroups,
+                    currentMember = currentMember,
+                    onNavigateToTab = onNavigateToTab
+                )
+            }
+
             // Birthdays of the Month
             val currentMonth = Calendar.getInstance().get(Calendar.MONTH) + 1
             val birthdaysThisMonth = allMembers.filter { member ->
@@ -310,8 +327,9 @@ fun FeedScreen(
                         shape = RoundedCornerShape(12.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+                            containerColor = DashboardFondoConfig.ColorTarjetaClara
                         ),
+                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -731,21 +749,14 @@ fun FeedFilterChip(
     onClick: () -> Unit,
     label: String
 ) {
-    val isDark = isSystemInDarkTheme()
-    val bgColor = if (selected) {
-        TxFlameRed
-    } else {
-        if (isDark) Color(0xFF2C2C2C) else Color(0xFFE0E0E0)
-    }
-    val textColor = if (selected) {
-        Color.White
-    } else {
-        if (isDark) Color(0xFF9E9E9E) else Color(0xFF757575)
-    }
+    val bgColor = if (selected) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTarjetaClara
+    val textColor = if (selected) Color.White else DashboardFondoConfig.ColorTextoSecundario
 
     Surface(
         shape = RoundedCornerShape(50),
         color = bgColor,
+        border = if (selected) null else BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+        shadowElevation = if (selected) 2.dp else 0.dp,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onClick)
@@ -779,7 +790,7 @@ fun NoticeCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
+    val isDark = false
     var isCommentsExpanded by remember { mutableStateOf(false) }
     var commentInputText by remember { mutableStateOf("") }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -825,13 +836,14 @@ fun NoticeCard(
         SimpleDateFormat("dd/MM/yyyy • hh:mm a", Locale.getDefault()).format(Date(pub.timestamp))
     }
 
-    val cardBg = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+    val cardBg = DashboardFondoConfig.ColorTarjetaClara
 
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = cardBg
         ),
+        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
         elevation = CardDefaults.cardElevation(defaultElevation = if (pub.isPinned) 4.dp else 2.dp),
         modifier = modifier
             .fillMaxWidth()
@@ -1523,7 +1535,17 @@ fun CreateNoticeDialog(
     val coroutineScope = rememberCoroutineScope()
     val gestorUbicacion = remember { GestorUbicacion(context) }
 
-    // 📋 Detección automática de coordenadas desde el portapapeles al regresar del Mapa TX
+    // 🗺️ Auto-captura y retorno asistido desde el Mapa TX
+    LaunchedEffect(GestorSeleccionMapa.coordenadaSeleccionada) {
+        val coord = GestorSeleccionMapa.consumirCoordenada()
+        if (!coord.isNullOrBlank()) {
+            locationCoordinates = coord
+            autoDetectedCoordsMsg = "¡Coordenada autopegada del Mapa TX: $coord!"
+            Toast.makeText(context, "📍 ¡Coordenada pegada automáticamente: $coord!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 📋 Detección automática de coordenadas desde el portapapeles al regresar del Mapa TX (Fallback)
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -1567,10 +1589,12 @@ fun CreateNoticeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = DashboardFondoConfig.ColorTarjetaClara,
         title = {
             Text(
                 text = "Nueva Publicación Directiva",
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = DashboardFondoConfig.ColorTextoPrimario
             )
         },
         text = {
@@ -1787,16 +1811,17 @@ fun CreateNoticeDialog(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            // Botón para ir al Mapa TX
+                            // Botón para ir al Mapa TX con retorno y auto-pegado automático
                             OutlinedButton(
                                 onClick = {
                                     val coordsActuales = if (locationCoordinates.isNotBlank()) locationCoordinates else "10.228,-67.475"
-                                    PuenteMapa.mostrarUbicacionEnMapa(
+                                    GestorSeleccionMapa.iniciarSeleccion(
                                         contexto = context,
-                                        coordenadas = coordsActuales,
-                                        tituloEtiqueta = locationName.ifBlank { "Punto de Evento" }
+                                        origen = "FEED_CREATE",
+                                        coordenadasIniciales = coordsActuales,
+                                        titulo = locationName.ifBlank { "Punto de Evento" }
                                     )
-                                    Toast.makeText(context, "👉 En el mapa: toque prolongado en el lugar -> 'Copiar' o 'Compartir'", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, "👉 En el mapa: copia la coordenada deseada y volverás automáticamente aquí pegándola", Toast.LENGTH_LONG).show()
                                 },
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00B0FF)),
                                 border = BorderStroke(1.dp, Color(0xFF00B0FF).copy(alpha = 0.6f)),
@@ -1804,7 +1829,7 @@ fun CreateNoticeDialog(
                             ) {
                                 Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("🗺️ Seleccionar Ubicación en Mapa TX", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("🗺️ Seleccionar Ubicación en Mapa TX (Auto-retorno)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
 
                             // Botones de acción rápida: Pegar y GPS
@@ -2060,7 +2085,17 @@ fun EditNoticeDialog(
     val coroutineScope = rememberCoroutineScope()
     val gestorUbicacion = remember { GestorUbicacion(context) }
 
-    // 📋 Detección automática de coordenadas desde el portapapeles al regresar del Mapa TX
+    // 🗺️ Auto-captura y retorno asistido desde el Mapa TX
+    LaunchedEffect(GestorSeleccionMapa.coordenadaSeleccionada) {
+        val coord = GestorSeleccionMapa.consumirCoordenada()
+        if (!coord.isNullOrBlank()) {
+            locationCoordinates = coord
+            autoDetectedCoordsMsg = "¡Coordenada autopegada del Mapa TX: $coord!"
+            Toast.makeText(context, "📍 ¡Coordenada pegada automáticamente: $coord!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // 📋 Detección automática de coordenadas desde el portapapeles al regresar del Mapa TX (Fallback)
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -2104,10 +2139,12 @@ fun EditNoticeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = DashboardFondoConfig.ColorTarjetaClara,
         title = {
             Text(
                 text = "Editar Publicación Directiva",
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = DashboardFondoConfig.ColorTextoPrimario
             )
         },
         text = {
@@ -2320,16 +2357,17 @@ fun EditNoticeDialog(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            // Botón para ir al Mapa TX
+                            // Botón para ir al Mapa TX con retorno y auto-pegado automático
                             OutlinedButton(
                                 onClick = {
                                     val coordsActuales = if (locationCoordinates.isNotBlank()) locationCoordinates else "10.228,-67.475"
-                                    PuenteMapa.mostrarUbicacionEnMapa(
+                                    GestorSeleccionMapa.iniciarSeleccion(
                                         contexto = context,
-                                        coordenadas = coordsActuales,
-                                        tituloEtiqueta = locationName.ifBlank { "Punto de Evento" }
+                                        origen = "FEED_EDIT",
+                                        coordenadasIniciales = coordsActuales,
+                                        titulo = locationName.ifBlank { "Punto de Evento" }
                                     )
-                                    Toast.makeText(context, "👉 En el mapa: toque prolongado en el lugar -> 'Copiar' o 'Compartir'", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, "👉 En el mapa: copia la coordenada deseada y volverás automáticamente aquí pegándola", Toast.LENGTH_LONG).show()
                                 },
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF00B0FF)),
                                 border = BorderStroke(1.dp, Color(0xFF00B0FF).copy(alpha = 0.6f)),
@@ -2337,7 +2375,7 @@ fun EditNoticeDialog(
                             ) {
                                 Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("🗺️ Seleccionar Ubicación en Mapa TX", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("🗺️ Seleccionar Ubicación en Mapa TX (Auto-retorno)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
 
                             // Botones de acción rápida: Pegar y GPS
@@ -3424,4 +3462,324 @@ fun EventDateCountdownBadge(
         }
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// COMPONENTE: PANEL DE AVISOS INTELIGENTES DE COMUNIDAD TX
+// ═══════════════════════════════════════════════════════════════
+data class ItemAvisoInteligente(
+    val id: String,
+    val titulo: String,
+    val subtitulo: String,
+    val consejoOSlogan: String? = null,
+    val categoriaTag: String,
+    val icono: androidx.compose.ui.graphics.vector.ImageVector,
+    val colorAcento: Color,
+    val textoBoton: String? = null,
+    val accionBoton: (() -> Unit)? = null
+)
+
+@Composable
+fun AvisosComunidadInteligentesSection(
+    allMembers: List<MemberProfile>,
+    allWorkshops: List<WorkshopDirectoryItem>,
+    allPrivateGroups: List<PrivateGroup>,
+    currentMember: MemberProfile?,
+    onNavigateToTab: ((com.example.NavigationTab) -> Unit)?
+) {
+    // 1. Detección del piloto más rápido del equipo
+    val fastestPilot = remember(allMembers) {
+        allMembers.filter { it.topSpeedRecordKmh > 0f }.maxByOrNull { it.topSpeedRecordKmh }
+    }
+
+    // 2. Detección del líder de kilometraje en carretera
+    val topMileagePilot = remember(allMembers) {
+        allMembers.filter { it.totalKmRidden > 0.0 }.maxByOrNull { it.totalKmRidden }
+    }
+
+    // 3. Detección de aliados comerciales / talleres con Cashea
+    val casheaWorkshop = remember(allWorkshops) {
+        allWorkshops.find { it.hasCredit || it.creditPlatforms.contains("Cashea", ignoreCase = true) }
+            ?: allWorkshops.firstOrNull()
+    }
+
+    // 4. Detección de última sala privada creada
+    val latestPrivateRoom = remember(allPrivateGroups) {
+        allPrivateGroups.lastOrNull { !it.isDeleted && !it.isBlockedByDirectiva }
+    }
+
+    val avisos = remember(fastestPilot, topMileagePilot, casheaWorkshop, latestPrivateRoom, currentMember) {
+        val list = mutableListOf<ItemAvisoInteligente>()
+
+        // AVISO A: RÉCORD DE VELOCIDAD
+        if (fastestPilot != null) {
+            val nombre = fastestPilot.fullName.ifBlank { fastestPilot.nickname.ifBlank { "Piloto TX" } }
+            list.add(
+                ItemAvisoInteligente(
+                    id = "velocidad_record",
+                    titulo = "⚡ PILOTO MÁS RÁPIDO DEL EQUIPO",
+                    subtitulo = "El piloto $nombre es el más veloz del equipo registrando ${"%.1f".format(fastestPilot.topSpeedRecordKmh)} km/h en su ${fastestPilot.bikeBrand} ${fastestPilot.bikeModel}.",
+                    consejoOSlogan = "⚠️ ¡Maneja con prudencia! Usa siempre casco certificado, guantes y equipo de protección en carretera.",
+                    categoriaTag = "Telemetría & Récord",
+                    icono = Icons.Default.Speed,
+                    colorAcento = Color(0xFFE11D48),
+                    textoBoton = "Ver Velocímetro",
+                    accionBoton = { onNavigateToTab?.invoke(com.example.NavigationTab.VELOCIMETRO) }
+                )
+            )
+        }
+
+        // AVISO B: MAYOR KILOMETRAJE
+        if (topMileagePilot != null) {
+            val nombreKm = topMileagePilot.fullName.ifBlank { topMileagePilot.nickname.ifBlank { "Piloto TX" } }
+            list.add(
+                ItemAvisoInteligente(
+                    id = "kilometraje_record",
+                    titulo = "🏆 LEYENDA DEL ASFALTO: MAYOR KM",
+                    subtitulo = "¡Felicidades al piloto $nombreKm! Lidera el ranking con ${"%.1f".format(topMileagePilot.totalKmRidden)} km acumulados en carretera.",
+                    consejoOSlogan = "🔥 ¡Cada kilómetro en rodada cuenta para ascender en el escalafón del club!",
+                    categoriaTag = "Ranking Rutero",
+                    icono = Icons.Default.WorkspacePremium,
+                    colorAcento = Color(0xFFD97706),
+                    textoBoton = "Ver Ranking",
+                    accionBoton = { onNavigateToTab?.invoke(com.example.NavigationTab.RANKING) }
+                )
+            )
+        }
+
+        // AVISO C: DIRECTORIO Y TALLERES CON CASHEA EN MAPA
+        if (casheaWorkshop != null) {
+            val hasCashea = casheaWorkshop.hasCredit || casheaWorkshop.creditPlatforms.contains("Cashea", ignoreCase = true)
+            list.add(
+                ItemAvisoInteligente(
+                    id = "taller_mapa",
+                    titulo = "🛠️ AGENDA DE SERVICIOS & MAPA TX",
+                    subtitulo = "Nuevo aliado disponible: '${casheaWorkshop.name}' (${casheaWorkshop.type}) en ${casheaWorkshop.city.ifBlank { "Aragua" }}.${if (hasCashea) " ¡Con financiamiento Cashea disponible!" else ""}",
+                    consejoOSlogan = "📍 Consulta puntos mecánicos, caucheras y auxilio vial directamente en el mapa.",
+                    categoriaTag = if (hasCashea) "Cashea Disponible" else "Directorio & Mapa",
+                    icono = Icons.Default.Storefront,
+                    colorAcento = Color(0xFF0284C7),
+                    textoBoton = "Ver en el Mapa",
+                    accionBoton = { onNavigateToTab?.invoke(com.example.NavigationTab.MAPA) }
+                )
+            )
+        }
+
+        // AVISO D: SALA PRIVADA MESH TX
+        if (latestPrivateRoom != null) {
+            list.add(
+                ItemAvisoInteligente(
+                    id = "sala_mesh",
+                    titulo = "🎙️ SALA PRIVADA DE COMUNICACIÓN MESH",
+                    subtitulo = "Se ha creado la sala táctica '${latestPrivateRoom.name}'. Solicita el código de acceso a tus compañeros de ruta para entrar a la frecuencia.",
+                    consejoOSlogan = "📡 Comunicación inter-casco PTT sin internet ni datos en modo caravana.",
+                    categoriaTag = "Malla Mesh TX",
+                    icono = Icons.Default.Sensors,
+                    colorAcento = Color(0xFF059669),
+                    textoBoton = "Frecuencia Táctica",
+                    accionBoton = { onNavigateToTab?.invoke(com.example.NavigationTab.CHAT) }
+                )
+            )
+        }
+
+        // AVISO E: ESTATUS DE SOLVENCIA Y CARNET TX
+        if (currentMember != null) {
+            val isSolvent = currentMember.solvencyStatus
+            list.add(
+                ItemAvisoInteligente(
+                    id = "carnet_solvencia",
+                    titulo = if (isSolvent) "🛡️ CARNET TX VALIDADO & SOLVENTE" else "⚠️ FICHA CON CUOTA PENDIENTE",
+                    subtitulo = if (isSolvent) {
+                        "¡Ficha de Piloto Solvente! Tu carnet digital QR está verificado para rodadas, parches y eventos nacionales."
+                    } else {
+                        "Tu ficha registra cuota pendiente en el capítulo. Acércate a la directiva para estar al día y disfrutar de todos los beneficios."
+                    },
+                    consejoOSlogan = "🪪 Mantén tu QR disponible para escaneo en puntos de control y eventos.",
+                    categoriaTag = if (isSolvent) "Piloto Solvente" else "Directiva TX",
+                    icono = Icons.Default.Badge,
+                    colorAcento = if (isSolvent) Color(0xFF16A34A) else Color(0xFFDC2626),
+                    textoBoton = "Ver Carnet TX",
+                    accionBoton = { onNavigateToTab?.invoke(com.example.NavigationTab.PROFILE) }
+                )
+            )
+        }
+
+        list
+    }
+
+    if (avisos.isEmpty()) return
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
+                Text(
+                    text = "RADAR DE NOVEDADES & COMUNIDAD TX",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = DashboardFondoConfig.ColorTextoPrimario,
+                    letterSpacing = 0.5.sp
+                )
+            }
+            Surface(
+                shape = CircleShape,
+                color = MotoOrangePrimary.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    text = "${avisos.size} AVISOS",
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MotoOrangePrimary,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Carrusel Horizontal de Avisos Inteligentes
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(avisos, key = { it.id }) { aviso ->
+                AvisoInteligenteCard(
+                    aviso = aviso,
+                    modifier = Modifier.width(310.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AvisoInteligenteCard(
+    aviso: ItemAvisoInteligente,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+        border = BorderStroke(1.dp, aviso.colorAcento.copy(alpha = 0.35f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = aviso.colorAcento.copy(alpha = 0.12f),
+                    modifier = Modifier.size(34.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = aviso.icono,
+                            contentDescription = null,
+                            tint = aviso.colorAcento,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = aviso.colorAcento.copy(alpha = 0.10f),
+                    border = BorderStroke(1.dp, aviso.colorAcento.copy(alpha = 0.25f))
+                ) {
+                    Text(
+                        text = aviso.categoriaTag,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        color = aviso.colorAcento,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = aviso.titulo,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Black,
+                color = DashboardFondoConfig.ColorTextoPrimario,
+                letterSpacing = 0.3.sp
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = aviso.subtitulo,
+                fontSize = 11.sp,
+                color = DashboardFondoConfig.ColorTextoSecundario,
+                lineHeight = 15.sp
+            )
+
+            if (!aviso.consejoOSlogan.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = DashboardFondoConfig.ColorFondoClaro,
+                    border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = aviso.consejoOSlogan,
+                        fontSize = 10.sp,
+                        color = DashboardFondoConfig.ColorTextoSecundario,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        lineHeight = 13.sp
+                    )
+                }
+            }
+
+            if (!aviso.textoBoton.isNullOrBlank() && aviso.accionBoton != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = aviso.accionBoton,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = aviso.colorAcento),
+                    border = BorderStroke(1.dp, aviso.colorAcento.copy(alpha = 0.8f)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                ) {
+                    Text(
+                        text = aviso.textoBoton,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = aviso.colorAcento
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        Icons.Default.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(13.dp),
+                        tint = aviso.colorAcento
+                    )
+                }
+            }
+        }
+    }
+}
+
 

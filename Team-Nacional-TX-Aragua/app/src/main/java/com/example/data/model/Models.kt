@@ -387,6 +387,16 @@ enum class EmergencyType(
         iconType = "security",
         recommendedSpecialist = "Oficiales de Seguridad Vial",
         actionProtocol = "Agrupación preventiva de caravana y reporte a capitanes de ruta."
+    ),
+    ALCABALA_RETEN(
+        label = "Alcabala / Retén Policial (Audio en Vivo)",
+        levelNumber = 3,
+        levelTag = "ALCABALA",
+        levelName = "Retén Policial / Alcabala",
+        severityColorHex = 0xFF7C3AED,
+        iconType = "security",
+        recommendedSpecialist = "Directiva / Asesor Jurídico / Seguridad",
+        actionProtocol = "Transmisión de audio en vivo activada vía Mesh TX y datos móviles. El club escucha en tiempo real ante cualquier irregularidad."
     )
 }
 

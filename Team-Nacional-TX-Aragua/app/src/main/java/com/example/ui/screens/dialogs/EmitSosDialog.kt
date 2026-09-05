@@ -34,6 +34,7 @@ fun EmitSosDialog(
     onBroadcast: (type: EmergencyType, location: String, details: String, blood: String?, lat: Double, lng: Double) -> Unit
 ) {
     val primaryTypes = listOf(
+        EmergencyType.ALCABALA_RETEN,
         EmergencyType.ACCIDENTADO_GASOLINA,
         EmergencyType.ACCIDENTADO_MECANICO,
         EmergencyType.CAIDA,
@@ -113,6 +114,7 @@ fun EmitSosDialog(
                 item {
                     Text("Sugerencias rápidas para el reporte:", fontSize = 11.sp, color = Color(0xFF475569), fontWeight = FontWeight.SemiBold)
                     val quickPresets = when (selectedType) {
+                        EmergencyType.ALCABALA_RETEN -> listOf("Retén policial en vía", "Matraca / Retención indebida", "Punto de control sin identificación", "Revisión preventiva de papeles")
                         EmergencyType.ACCIDENTADO_GASOLINA -> listOf("Sin 95 octanos en hombrillo", "Tanque seco, requiere 3L", "Falla de medidor flotante")
                         EmergencyType.ACCIDENTADO_MECANICO -> listOf("Guaya de embrague rota", "Caucho espichado", "Cadena rota", "Falla eléctrica / batería")
                         EmergencyType.CAIDA -> listOf("Deslizamiento en asfalto húmedo", "Piloto consciente / Raspaduras", "Manubrio doblado")
@@ -130,6 +132,38 @@ fun EmitSosDialog(
                                 },
                                 label = { Text(preset, fontSize = 10.sp, color = Color(0xFF1E293B)) }
                             )
+                        }
+                    }
+
+                    if (selectedType == EmergencyType.ALCABALA_RETEN) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFEDE9FE),
+                            border = BorderStroke(1.dp, Color(0xFFC4B5FD)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Default.Podcasts, contentDescription = null, tint = Color(0xFF7C3AED), modifier = Modifier.size(18.dp))
+                                Column {
+                                    Text(
+                                        text = "🎙️ Transmisión de Audio en Vivo Automática",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF5B21B6)
+                                    )
+                                    Text(
+                                        text = "Al pulsar emitir, el micrófono transmitirá continuamente por Mesh TX y datos móviles para que el convoy escuche todo en tiempo real.",
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF4C1D95),
+                                        lineHeight = 14.sp
+                                    )
+                                }
+                            }
                         }
                     }
                 }

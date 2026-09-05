@@ -277,16 +277,23 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
     var readOnlyCarnetMember by remember { mutableStateOf<MemberProfile?>(null) }
     var isBottomNavVisible by remember { mutableStateOf(true) }
 
-    // 🎛️ Estado para los 5 accesos rápidos principales de la barra inferior (personalizables por long-press)
+    // 🎛️ Estado para los 5 accesos rápidos principales de la barra inferior (personalizables y persistentes)
     var bottomTabs by remember {
+        val guardados = PreferenciasApp.obtenerBottomTabs()?.mapNotNull { nombre ->
+            try { NavigationTab.valueOf(nombre) } catch (_: Exception) { null }
+        }
         mutableStateOf(
-            listOf(
-                NavigationTab.DASHBOARD,
-                NavigationTab.MAPA,
-                NavigationTab.CHAT,
-                NavigationTab.SOS,
-                NavigationTab.NOTIFICACIONES
-            )
+            if (guardados != null && guardados.size == 5) {
+                guardados
+            } else {
+                listOf(
+                    NavigationTab.DASHBOARD,
+                    NavigationTab.MAPA,
+                    NavigationTab.CHAT,
+                    NavigationTab.SOS,
+                    NavigationTab.NOTIFICACIONES
+                )
+            }
         )
     }
     var slotToEditIndex by remember { mutableStateOf<Int?>(null) }
@@ -317,11 +324,25 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             100000L + hardwareHash
         }
         val aliasBase = miembro?.nickname?.ifBlank { miembro.fullName.ifBlank { "Piloto TX" } } ?: "Piloto TX"
+        val fotoPerfil = miembro?.profilePhotoUri
+            ?: appCtx.getSharedPreferences("radar_prefs", android.content.Context.MODE_PRIVATE).getString("radar_avatar", "")
+            ?: ""
+        val modeloMoto = miembro?.bikeModel?.ifBlank { "Keeway TX 200" } ?: "Keeway TX 200"
+        val fichaMiembro = miembro?.memberNumber ?: ""
 
         com.example.meshtx.GestorMeshTx.inicializar(
             contexto = appCtx,
             idPiloto = idPilotoUnico,
-            aliasPiloto = aliasBase
+            aliasPiloto = aliasBase,
+            fotoPerfil = fotoPerfil,
+            modeloMoto = modeloMoto,
+            ficha = fichaMiembro
+        )
+        com.example.meshtx.GestorMeshTx.actualizarPerfilLocal(
+            alias = aliasBase,
+            fotoPerfil = fotoPerfil,
+            modeloMoto = modeloMoto,
+            ficha = fichaMiembro
         )
     }
 
@@ -516,6 +537,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                             val updated = bottomTabs.toMutableList()
                                             updated[idx] = candidateTab
                                             bottomTabs = updated
+                                            PreferenciasApp.guardarBottomTabs(updated.map { it.name })
                                             slotToEditIndex = null
                                         }
                                 ) {
@@ -594,7 +616,10 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onRefresh = { viewModel.refreshFeed() },
                         uploadError = uploadError,
                         uploadSuccess = uploadSuccess,
-                        onDismissUploadStatus = { viewModel.clearPublicationUploadStatus() }
+                        onDismissUploadStatus = { viewModel.clearPublicationUploadStatus() },
+                        allWorkshops = allWorkshops,
+                        allPrivateGroups = allPrivateGroups,
+                        onNavigateToTab = { selectedTab = it }
                     )
                 }
                 NavigationTab.CHAT -> {
@@ -1004,7 +1029,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                 viewModel.ratePilotMember(target.id, isPos, cat, pts, comm) { _, msg ->
                                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                 }
-                            }
+                            },
+                            onLogout = { viewModel.logout() }
                         )
                     }
                 }
@@ -1059,6 +1085,15 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         },
                         onDeletePrivateGroup = { groupId ->
                             viewModel.deletePrivateGroup(groupId)
+                        },
+                        onCreateOfficialNotice = { title, content, prio, pinned ->
+                            viewModel.createPublication(
+                                title = title,
+                                content = content,
+                                category = NoticeCategory.AVISO_OFICIAL,
+                                priority = if (prio == "URGENTE") NoticePriority.URGENTE else if (prio == "IMPORTANTE") NoticePriority.IMPORTANTE else NoticePriority.NORMAL,
+                                isPinned = pinned
+                            )
                         }
                     )
                 }
@@ -1132,7 +1167,11 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             onBroadcast = { type, loc, details, blood, lat, lng ->
                 viewModel.broadcastSosEmergency(type, loc, details, blood, lat, lng)
                 try {
-                    com.example.meshtx.GestorMeshTx.emitirAlertaSos("🚨 SOS ${type.name}: $loc - $details", if (lat != 0.0) "$lat,$lng" else null)
+                    if (type == com.example.data.model.EmergencyType.ALCABALA_RETEN) {
+                        com.example.meshtx.GestorMeshTx.activarModoAlcabalaSos("Ubicación: $loc. $details")
+                    } else {
+                        com.example.meshtx.GestorMeshTx.emitirAlertaSos("🚨 SOS ${type.name}: $loc - $details", if (lat != 0.0) "$lat,$lng" else null)
+                    }
                 } catch (_: Exception) {}
                 showQuickSosModal = false
                 selectedTab = NavigationTab.SOS
@@ -1144,8 +1183,14 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
     if (readOnlyCarnetMember != null) {
         com.example.ui.screens.dialogs.ReadOnlyCarnetDialog(
             member = readOnlyCarnetMember!!,
+            currentMember = currentMember,
             currentLoggedInMemberId = currentMember?.id ?: 0L,
-            onDismiss = { readOnlyCarnetMember = null }
+            onDismiss = { readOnlyCarnetMember = null },
+            onConfirmRate = { target, isPos, cat, pts, comm ->
+                viewModel.ratePilotMember(target.id, isPos, cat, pts, comm) { _, msg ->
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                }
+            }
         )
     }
 
@@ -1164,5 +1209,13 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             onAbrirReproductor = { selectedTab = NavigationTab.PLAYER },
             onActualizarPosicion = { x, y -> com.example.reproductor.GESTOR_AUDIO_TX.actualizarPosicionNube(x, y) }
         )
+    }
+
+    // 🔘 Botón PTT Flotante ("Nube Flotante Táctica") de Mesh TX fuera de la pantalla de intercomunicador
+    val ajustesMesh by com.example.meshtx.GestorMeshTx.ajustes.collectAsState()
+    val modoAlcabalaVivo by com.example.meshtx.GestorMeshTx.modoAlcabalaEnVivoActivo.collectAsState()
+
+    if (selectedTab != NavigationTab.MESHTX && (ajustesMesh.botonFlotantePttActivo || modoAlcabalaVivo)) {
+        com.example.meshtx.BotonPttFlotanteOverlay()
     }
 }

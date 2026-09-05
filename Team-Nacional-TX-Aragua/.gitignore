@@ -24,4 +24,5 @@ my-upload-key.jks
 !apk/*.apk
 apks/
 graphify-out/
+.graphify/
 .artifacts/

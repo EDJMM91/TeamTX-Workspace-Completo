@@ -284,6 +284,7 @@ class NubeMalla(
                     "sensibilidadVox" to ajustes.umbralVoxSensibilidad,
                     "cancelacionViento" to ajustes.cancelacionRuidoViento,
                     "supresionEco" to ajustes.supresionEcoAcustico,
+                    "bufferAntiEntrecorte" to ajustes.bufferAntiEntrecorte,
                     "canalFavorito" to ajustes.canalActivo.name,
                     "ultimaActualizacion" to System.currentTimeMillis()
                 )

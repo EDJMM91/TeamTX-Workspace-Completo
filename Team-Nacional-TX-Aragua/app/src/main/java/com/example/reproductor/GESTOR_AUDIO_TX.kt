@@ -444,27 +444,10 @@ object GESTOR_AUDIO_TX {
         logDiagnostico("▶ reproducirCancion: ${cancion.titulo} | $uriAudio")
 
         try {
-            val mp = try {
-                val existente = mediaPlayer
-                if (existente != null) {
-                    existente.apply {
-                        setOnPreparedListener(null)
-                        setOnCompletionListener(null)
-                        setOnErrorListener(null)
-                        setOnInfoListener(null)
-                        setOnSeekCompleteListener(null)
-                        if (isPlaying) {
-                            try { stop() } catch (_: Exception) {}
-                        }
-                        reset()
-                    }
-                } else {
-                    MediaPlayer().also { mediaPlayer = it }
-                }
-            } catch (e: Exception) {
-                liberarMediaPlayer()
-                MediaPlayer().also { mediaPlayer = it }
-            }
+            // Liberar siempre limpiamente la instancia previa de MediaPlayer y los efectos
+            // para evitar colisiones de estado nativo (-38, 1, audioSession) al pasar canción
+            liberarMediaPlayer()
+            val mp = MediaPlayer().also { mediaPlayer = it }
 
             mp.apply {
                 setAudioAttributes(
@@ -605,6 +588,20 @@ object GESTOR_AUDIO_TX {
                     }
 
                     logDiagnostico("❌ ON_ERROR [what=$what extra=$extra]: ${cancion.titulo}")
+
+                    // Si es un error transitorio al cambiar de canción, reintentar UNA sola vez
+                    // de forma limpia y transparente sin bloquear ni caer en bucle
+                    if (intentosErrorConsecutivos < 1) {
+                        intentosErrorConsecutivos++
+                        logDiagnostico("🔄 Reintentando reproducción limpia de '${cancion.titulo}' (intento 1)...")
+                        liberarMediaPlayer()
+                        scopeCoroutine.launch(Dispatchers.Main) {
+                            delay(120)
+                            reproducirCancion(cancion)
+                        }
+                        return@setOnErrorListener true
+                    }
+
                     liberarMediaPlayer()
                     _estado.value = EstadoReproductor.DETENIDO
                     jobProgreso?.cancel()

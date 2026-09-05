@@ -69,10 +69,12 @@ fun ProfileAndAdminScreen(
     onVincularGoogle: (String, String, String?) -> Unit = { _, _, _ -> },
     onUnlockWithMasterCode: suspend (String) -> Pair<Boolean, String> = { _ -> Pair(false, "") },
     onRateMember: (MemberProfile, Boolean, String, Int, String) -> Unit = { _, _, _, _, _ -> },
+    onLogout: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showMemberSelectorDialog by remember { mutableStateOf(false) }
+    var showLogoutConfirmDialog by remember { mutableStateOf(false) }
     var ratingTargetMember by remember { mutableStateOf<MemberProfile?>(null) }
     var isGoogleAuthLoading by remember { mutableStateOf(false) }
     var tipoFotoSeleccionada by remember { mutableStateOf(PreferenciasApp.carnetTipoFoto) }
@@ -415,9 +417,13 @@ fun ProfileAndAdminScreen(
                 }
             }
 
-            // Quick Actions: Edit Profile + Switch Demo Member
+            // Quick Actions: Edit Profile + Switch Demo Member (Estrictamente Directivos o Desarrolladores)
             item {
-                val isDeveloper = currentMember?.role == MemberRole.DESARROLLADOR || (currentMember?.role == MemberRole.PRESIDENTE && isDirectivaMode) || isLeaderSuperAdmin || currentMember?.memberNumber == "TX-001" || currentMember?.memberNumber?.startsWith("TX-DEV-") == true
+                val canSwitchPilot = currentMember?.isDirectiva == true ||
+                        currentMember?.role == MemberRole.DESARROLLADOR ||
+                        isDirectivaMode ||
+                        isLeaderSuperAdmin
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -426,14 +432,14 @@ fun ProfileAndAdminScreen(
                         onClick = { showEditProfileDialog = true },
                         colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera),
                         shape = RoundedCornerShape(10.dp),
-                        modifier = if (isDeveloper) Modifier.weight(1f).testTag("btn_edit_profile") else Modifier.fillMaxWidth().testTag("btn_edit_profile")
+                        modifier = if (canSwitchPilot) Modifier.weight(1f).testTag("btn_edit_profile") else Modifier.fillMaxWidth().testTag("btn_edit_profile")
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Editar Mi Perfil", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    if (isDeveloper) {
+                    if (canSwitchPilot) {
                         OutlinedButton(
                             onClick = { showMemberSelectorDialog = true },
                             shape = RoundedCornerShape(10.dp),
@@ -773,7 +779,94 @@ fun ProfileAndAdminScreen(
                 }
             }
 
+            // ─── CERRAR SESIÓN DEL PILOTO ─────────────────────────────────
+            item {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorContenedorRojo),
+                    border = BorderStroke(1.dp, DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Logout,
+                                contentDescription = null,
+                                tint = DashboardFondoConfig.ColorRojoCarrera,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "SESIÓN DE USUARIO",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                color = DashboardFondoConfig.ColorRojoCarrera
+                            )
+                        }
+                        Text(
+                            text = "Al cerrar sesión, la aplicación limpiará el perfil activo y volverá a la pantalla de inicio para que puedas ingresar con otra cuenta.",
+                            fontSize = 11.sp,
+                            color = DashboardFondoConfig.ColorTextoSecundario
+                        )
+                        Button(
+                            onClick = { showLogoutConfirmDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Cerrar Sesión", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+
         }
+    }
+
+    if (showLogoutConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirmDialog = false },
+            containerColor = DashboardFondoConfig.ColorTarjetaClara,
+            title = {
+                Text(
+                    "¿Cerrar Sesión?",
+                    fontWeight = FontWeight.Black,
+                    color = DashboardFondoConfig.ColorTextoPrimario
+                )
+            },
+            text = {
+                Text(
+                    "Se cerrará la sesión del piloto actual y la aplicación quedará lista para ingresar con una nueva cuenta, sin dejar fotos ni datos anteriores.",
+                    fontSize = 13.sp,
+                    color = DashboardFondoConfig.ColorTextoSecundario
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutConfirmDialog = false
+                        onLogout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = DashboardFondoConfig.ColorRojoCarrera)
+                ) {
+                    Text("Sí, Cerrar Sesión", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirmDialog = false }) {
+                    Text("Cancelar", color = DashboardFondoConfig.ColorTextoSecundario)
+                }
+            }
+        )
     }
 
     if (showEditProfileDialog && currentMember != null) {
