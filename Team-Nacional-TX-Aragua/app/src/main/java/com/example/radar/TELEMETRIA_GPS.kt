@@ -39,12 +39,13 @@ class TelemetriaGps : Service() {
 
         fun activar(contexto: Context, userId: String, nombre: String = "", rango: String = "", avatarUrl: String = "", alertaSos: String = "") {
             val prefs = contexto.getSharedPreferences(PREFS_NOMBRE, Context.MODE_PRIVATE)
+            val avatarProcesado = RadarFirebase.obtenerAvatarComoBase64(contexto, avatarUrl)
             prefs.edit()
                 .putBoolean(PREFS_ACTIVO, true)
                 .putString(PREFS_USER_ID, userId)
                 .putString(PREFS_NOMBRE_PILOTO, nombre)
                 .putString(PREFS_RANGO, rango)
-                .putString(PREFS_AVATAR_URL, avatarUrl)
+                .putString(PREFS_AVATAR_URL, avatarProcesado)
                 .putString(PREFS_ALERTA_SOS, alertaSos)
                 .apply()
             val intent = Intent(contexto, TelemetriaGps::class.java)
@@ -152,6 +153,8 @@ class TelemetriaGps : Service() {
         if (userId.isBlank()) return
 
         val alertaSos = prefs.getString(PREFS_ALERTA_SOS, "") ?: ""
+        val avatarAEnviar = RadarFirebase.obtenerAvatarComoBase64(this, avatarUrlPiloto)
+
         val datos = hashMapOf(
             "id" to userId,
             "lat" to lat,
@@ -160,7 +163,7 @@ class TelemetriaGps : Service() {
             "activo" to true,
             "nombre" to nombrePiloto,
             "rango" to rangoPiloto,
-            "avatarUrl" to avatarUrlPiloto,
+            "avatarUrl" to avatarAEnviar,
             "alertaSos" to alertaSos
         )
 

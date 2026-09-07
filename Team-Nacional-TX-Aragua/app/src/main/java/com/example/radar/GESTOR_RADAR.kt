@@ -95,7 +95,7 @@ object GestorRadar {
         miUserId = userId
         miNombre = nombre
         miRango = rango
-        miAvatarUrl = avatarUrl
+        miAvatarUrl = RadarFirebase.obtenerAvatarComoBase64(app, avatarUrl)
 
         RadarFirebase.init(app)
         RadarFirebase.obtenerAvatarLocal(app)

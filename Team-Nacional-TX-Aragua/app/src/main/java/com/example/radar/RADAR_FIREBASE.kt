@@ -139,6 +139,11 @@ object RadarFirebase {
         val ctx = context ?: appContext
         return try {
             when {
+                uriString.startsWith("data:image/") || uriString.startsWith("data:application/") -> {
+                    val base64Data = uriString.substringAfter("base64,")
+                    val bytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                }
                 uriString.startsWith("content://") && ctx != null -> {
                     ctx.contentResolver.openInputStream(Uri.parse(uriString))?.use { input ->
                         BitmapFactory.decodeStream(input)
@@ -150,20 +155,38 @@ object RadarFirebase {
                 }
                 uriString.startsWith("http://") || uriString.startsWith("https://") -> {
                     val url = URL(uriString)
-                    val conn = url.openConnection()
-                    conn.connectTimeout = 8000
-                    conn.readTimeout = 8000
-                    conn.getInputStream().use { input ->
-                        BitmapFactory.decodeStream(input)
+                    val conn = url.openConnection() as java.net.HttpURLConnection
+                    conn.connectTimeout = 10000
+                    conn.readTimeout = 10000
+                    conn.instanceFollowRedirects = true
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) TeamTX/1.0")
+                    conn.connect()
+                    if (conn.responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                        conn.inputStream.use { input ->
+                            BitmapFactory.decodeStream(input)
+                        }
+                    } else {
+                        Log.w(ETIQUETA, "HTTP ${conn.responseCode} descargando avatar desde $uriString")
+                        null
                     }
                 }
                 else -> {
-                    val f = File(uriString)
-                    if (f.exists()) BitmapFactory.decodeFile(f.absolutePath) else null
+                    if (uriString.length > 100 && !uriString.contains("/")) {
+                        try {
+                            val bytes = android.util.Base64.decode(uriString, android.util.Base64.DEFAULT)
+                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        } catch (_: Exception) {
+                            val f = File(uriString)
+                            if (f.exists()) BitmapFactory.decodeFile(f.absolutePath) else null
+                        }
+                    } else {
+                        val f = File(uriString)
+                        if (f.exists()) BitmapFactory.decodeFile(f.absolutePath) else null
+                    }
                 }
             }
         } catch (e: Exception) {
-            Log.w(ETIQUETA, "Error decodificando imagen desde $uriString: ${e.message}")
+            Log.w(ETIQUETA, "Error decodificando imagen desde ${uriString.take(40)}...: ${e.message}")
             null
         }
     }
@@ -268,6 +291,29 @@ object RadarFirebase {
     }
 
     fun obtenerAvatarCacheado(url: String): Bitmap? = avataresCache[url]
+
+    fun obtenerAvatarComoBase64(context: Context?, avatarUrlStr: String): String {
+        if (avatarUrlStr.startsWith("http://") || avatarUrlStr.startsWith("https://") || avatarUrlStr.startsWith("data:image/")) {
+            return avatarUrlStr
+        }
+        val bitmap = if (avatarUrlStr.isNotBlank()) {
+            cargarAvatarDeDisco(avatarUrlStr) ?: obtenerAvatarLocal(context)
+        } else {
+            obtenerAvatarLocal(context)
+        } ?: return avatarUrlStr
+
+        return try {
+            val escalado = escalarBitmap(bitmap, 150)
+            val baos = java.io.ByteArrayOutputStream()
+            escalado.compress(Bitmap.CompressFormat.JPEG, 65, baos)
+            val bytes = baos.toByteArray()
+            val base64Str = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+            "data:image/jpeg;base64,$base64Str"
+        } catch (e: Exception) {
+            Log.w(ETIQUETA, "Error convirtiendo avatar a Base64: ${e.message}")
+            avatarUrlStr
+        }
+    }
 
     fun obtenerAvatar(id: String, url: String, context: Context?): Bitmap? {
         if (url.isNotBlank()) {
