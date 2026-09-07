@@ -390,16 +390,63 @@ object GestorActualizaciones {
      * y la base de datos Firestore.
      */
     suspend fun verificarActualizacion(): InformacionOta = withContext(Dispatchers.IO) {
-        val urlOficialFirebaseStorage = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd"
+        val urlOficialFirebaseStorage = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk"
+        val urlInfoOtaJson = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/ota_info.json"
 
-        // 1. Consultar PRIMERO el archivo real subido a Firebase Storage
+        // 1. Consultar PRIMERO el archivo real subido a GitHub (ota_info.json)
         var versionStorage: StorageApkVersion? = null
         try {
-            val lista = obtenerListaVersionesStorage()
-            versionStorage = lista.firstOrNull { it.isRecommendedLatest }
-                ?: lista.maxByOrNull { it.versionCode }
+            // Intentar cargar desde el JSON de GitHub primero (el más actualizado)
+            val connection = URL(urlInfoOtaJson).openConnection() as HttpURLConnection
+            connection.connectTimeout = 8000
+            connection.readTimeout = 8000
+            connection.connect()
+            
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val jsonStr = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = org.json.JSONObject(jsonStr)
+                val code = json.optInt("versionCode", 0)
+                val name = json.optString("versionName", "")
+                val urlDesc = json.optString("urlDescarga", urlOficialFirebaseStorage)
+                val notasJson = json.optString("notas", "")
+                
+                val listaNovedades = mutableListOf<String>()
+                val jsonNov = json.optJSONArray("novedades")
+                if (jsonNov != null) {
+                    for (i in 0 until jsonNov.length()) listaNovedades.add(jsonNov.getString(i))
+                }
+                
+                val listaCorrecciones = mutableListOf<String>()
+                val jsonCorr = json.optJSONArray("correcciones")
+                if (jsonCorr != null) {
+                    for (i in 0 until jsonCorr.length()) listaCorrecciones.add(jsonCorr.getString(i))
+                }
+                
+                versionStorage = StorageApkVersion(
+                    fileName = "TeamTX-latest.apk",
+                    downloadUrl = urlDesc,
+                    versionCode = code,
+                    versionName = name,
+                    titulo = "Actualización Oficial (GitHub)",
+                    notas = notasJson,
+                    novedades = listaNovedades,
+                    correcciones = listaCorrecciones,
+                    isRecommendedLatest = true
+                )
+                Log.d(TAG, "Versión detectada en GitHub: $name (Build $code)")
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Error consultando versiones en Storage: ${e.message}")
+            Log.e(TAG, "Error consultando ota_info.json en GitHub: ${e.message}")
+        }
+
+        if (versionStorage == null) {
+            try {
+                val lista = obtenerListaVersionesStorage()
+                versionStorage = lista.firstOrNull { it.isRecommendedLatest }
+                    ?: lista.maxByOrNull { it.versionCode }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error consultando versiones en Storage: ${e.message}")
+            }
         }
 
         // 2. Consultar Firestore en colección 'configuracion' / 'OTA'
