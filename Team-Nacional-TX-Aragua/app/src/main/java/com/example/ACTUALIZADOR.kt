@@ -315,14 +315,21 @@ object GestorActualizaciones {
                                 val match = Regex("""v\d+(\.\d+)*(-[a-zA-Z0-9]+)?""").find(item.name)
                                 match?.value ?: item.name.removeSuffix(".apk")
                             }
-                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v1.3.5-beta (Última)"
+                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v1.3.7-beta (Última)"
                             else -> item.name.removeSuffix(".apk")
                         }
 
                         val estimatedCode = when {
-                            isLatest -> 16
-                            item.name.contains("1.4") -> 14
+                            item.name.contains("1.3.7") -> 18
+                            isLatest -> 18
+                            item.name.contains("1.3.6") -> 17
                             item.name.contains("1.3.5") -> 16
+                            item.name.contains("1.4") -> 14
+                            item.name.contains("1.3.4") -> 14
+                            item.name.contains("1.3.3") -> 14
+                            item.name.contains("1.3.2") -> 14
+                            item.name.contains("1.3.1") -> 13
+                            item.name.contains("1.3.0") -> 12
                             item.name.contains("1.3") -> 12
                             item.name.contains("1.2") -> 11
                             else -> 10
@@ -358,17 +365,17 @@ object GestorActualizaciones {
             versions.sortWith(compareByDescending<StorageApkVersion> { it.isRecommendedLatest }.thenByDescending { it.updatedTimestamp })
 
             if (versions.isEmpty()) {
-                val detalleTop = obtenerDetalleVersion(16, "1.3.5-beta")
+                val detalleTop = obtenerDetalleVersion(18, "1.3.7-beta")
                 versions.add(
                     StorageApkVersion(
                         fileName = "TeamTX-latest.apk",
                         downloadUrl = fallbackUrl,
-                        sizeBytes = 390525647L,
-                        formattedSize = "372.4 MB",
+                        sizeBytes = 395443512L,
+                        formattedSize = "377.1 MB",
                         updatedTimestamp = System.currentTimeMillis(),
-                        formattedDate = "07 sep 2026, 09:00 PM",
-                        versionName = "v1.3.5-beta (Recomendada)",
-                        versionCode = 16,
+                        formattedDate = "07 sep 2026, 11:30 AM",
+                        versionName = "v1.3.7-beta (Recomendada)",
+                        versionCode = 18,
                         titulo = detalleTop.titulo,
                         notas = detalleTop.descripcionCorta,
                         novedades = detalleTop.novedades,
@@ -383,17 +390,17 @@ object GestorActualizaciones {
             versions
         } catch (e: Exception) {
             Log.e(TAG, "Error listando versiones de Firebase Storage: ${e.message}", e)
-            val detalleTop = obtenerDetalleVersion(16, "1.3.5-beta")
+            val detalleTop = obtenerDetalleVersion(18, "1.3.7-beta")
             listOf(
                 StorageApkVersion(
                     fileName = "TeamTX-latest.apk",
                     downloadUrl = fallbackUrl,
-                    sizeBytes = 426246144L,
-                    formattedSize = "406.5 MB",
+                    sizeBytes = 395443512L,
+                    formattedSize = "377.1 MB",
                     updatedTimestamp = System.currentTimeMillis(),
-                    formattedDate = "07 sep 2026, 09:00 PM",
-                    versionName = "v1.3.5-beta (Recomendada)",
-                    versionCode = 16,
+                    formattedDate = "07 sep 2026, 11:30 AM",
+                    versionName = "v1.3.7-beta (Recomendada)",
+                    versionCode = 18,
                     titulo = detalleTop.titulo,
                     notas = detalleTop.descripcionCorta,
                     novedades = detalleTop.novedades,

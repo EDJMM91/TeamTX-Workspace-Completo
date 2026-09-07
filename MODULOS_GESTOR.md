@@ -149,6 +149,23 @@ Registro: Queda guardado en el gestor para que cualquier otro agente sepa que es
    ◦
    Cambio: Retornará true directamente. Identifica a la app como "Versión de Pago" en todo el sistema.
 
-   ahora cada modulo de manera visual nos enfocaremos en usar tema claro usado en el dashboad evitar siempre usar tarjetas o fondos colores oscuros y , letras blancas en fondos claros
+    ahora cada modulo de manera visual nos enfocaremos en usar tema claro usado en el dashboad evitar siempre usar tarjetas o fondos colores oscuros y , letras blancas en fondos claros
 
-   al culminar utilizar comando am start a los dispositivos conectados por adb o por red local para que funcione con el wifi-enabled wifiadb 
+    al culminar utilizar comando am start a los dispositivos conectados por adb o por red local para que funcione con el wifi-enabled wifiadb 
+
+---
+
+## ☁️ Regla Obligatoria: Subida de Cada Versión APK a Firebase Storage (`updates/`)
+
+> **REGLA INMUTABLE PARA TODOS LOS AGENTES:**
+> Cada vez que se compile y genere una nueva versión APK de la aplicación:
+> 1. **Subida Obligatoria a Firebase Storage (`updates/`)**:
+>    - Cada APK compilado (`TeamTX-latest.apk` y el versionado específico como `TeamTX-vX.Y.Z-beta.apk`) debe subirse obligatoriamente al bucket de Firebase Storage en la ruta `gs://teamnacionaltx.firebasestorage.app/updates/`.
+>    - Debe incluir el metadato con token de descarga (`--custom-metadata=firebaseStorageDownloadTokens=603836bb-71a4-4e90-99b3-866242f10257`) para permitir la descarga directa in-app.
+> 2. **Historial de Versiones y Soporte Rollback**:
+>    - Esto garantiza que el módulo `VISTA_INFO.kt` (`StorageVersionsHistoryDialog`) y `ACTUALIZADOR.kt` puedan listar todas las versiones históricas disponibles en tiempo real, permitiendo a los pilotos y a la directiva consultar las novedades de cada release y realizar rollback a versiones anteriores si fuera necesario.
+> 3. **Comando oficial de subida**:
+>    ```bash
+>    gcloud storage cp Team-Nacional-TX-Aragua\apk\TeamTX-vX.Y.Z-beta.apk gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-vX.Y.Z-beta.apk --custom-metadata=firebaseStorageDownloadTokens=603836bb-71a4-4e90-99b3-866242f10257
+>    gcloud storage cp Team-Nacional-TX-Aragua\apk\TeamTX-latest.apk gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-latest.apk --custom-metadata=firebaseStorageDownloadTokens=603836bb-71a4-4e90-99b3-866242f10257
+>    ```
