@@ -237,4 +237,17 @@ object PreferenciasApp {
         val clave = if (memberId > 0) "compromiso_biker_aceptado_$memberId" else "compromiso_biker_aceptado_global"
         prefs.edit().putBoolean(clave, aceptado).apply()
     }
+
+    // ─── CONTROL DE SESIÓN Y DISPOSITIVO ÚNICO (ANTI-TRAMPAS) ───────────────────
+
+    /** Identificador único persistente para este dispositivo */
+    fun obtenerDeviceId(): String {
+        if (!::prefs.isInitialized) return "DEV_DEFAULT"
+        var id = prefs.getString("dispositivo_unico_uuid", null)
+        if (id.isNullOrBlank()) {
+            id = java.util.UUID.randomUUID().toString()
+            prefs.edit().putString("dispositivo_unico_uuid", id).apply()
+        }
+        return id
+    }
 }

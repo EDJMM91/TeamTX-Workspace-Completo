@@ -292,6 +292,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
         ?.collectAsState(initial = 0)
         ?: remember { mutableStateOf(0) }
 
+    val sesionDesplazada by viewModel.sesionDesplazadaPorOtroDispositivo.collectAsStateWithLifecycle()
+
     var showQuickSosModal by remember { mutableStateOf(false) }
     var readOnlyCarnetMember by remember { mutableStateOf<MemberProfile?>(null) }
     var isBottomNavVisible by remember { mutableStateOf(true) }
@@ -693,7 +695,17 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                 }
                 NavigationTab.NOTIFICACIONES -> {
                     VistaNotificaciones(
-                        onBack = { selectedTab = NavigationTab.DASHBOARD }
+                        onBack = { selectedTab = NavigationTab.DASHBOARD },
+                        onNotificacionClick = { notif ->
+                            when (notif.tipo) {
+                                "ACTUALIZACION", "OTA" -> selectedTab = NavigationTab.INFO
+                                "MURO" -> selectedTab = NavigationTab.FEED
+                                "CHAT" -> selectedTab = NavigationTab.CHAT
+                                "SOS" -> selectedTab = NavigationTab.SOS
+                                "PERFIL" -> selectedTab = NavigationTab.PROFILE
+                                else -> {}
+                            }
+                        }
                     )
                 }
                 NavigationTab.CALENDARIO -> {
@@ -1043,6 +1055,12 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                     Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
                                 }
                             },
+                            onDesvincularGoogle = {
+                                kotlinx.coroutines.MainScope().launch {
+                                    val (exito, mensaje) = viewModel.desvincularGoogle()
+                                    Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
+                                }
+                            },
                             onUnlockWithMasterCode = { code -> viewModel.loginWithCode(code) },
                             onRateMember = { target, isPos, cat, pts, comm ->
                                 viewModel.ratePilotMember(target.id, isPos, cat, pts, comm) { _, msg ->
@@ -1141,6 +1159,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     VistaInfoScreen(
                         currentMember = currentMember,
                         allMembers = allMembers,
+                        viewModel = viewModel,
+                        onNavigateToAvisos = { selectedTab = NavigationTab.FEED },
                         onOpenPrivateChatWithDeveloper = {
                             val devMember = allMembers.find {
                                 it.phone.contains("04243769999") || it.phone.contains("4243769999") ||
@@ -1242,5 +1262,49 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
 
     if (selectedTab != NavigationTab.MESHTX && (ajustesMesh.botonFlotantePttActivo || modoAlcabalaVivo)) {
         com.example.meshtx.BotonPttFlotanteOverlay()
+    }
+
+    // 🛡️ Modal de Alerta de Sesión Desplazada por Otro Dispositivo (Anti-trampas en gamificación)
+    if (sesionDesplazada) {
+        AlertDialog(
+            onDismissRequest = { /* Bloqueante para evitar trampas en gamificación */ },
+            containerColor = DashboardFondoConfig.ColorTarjetaClara,
+            icon = {
+                Icon(
+                    Icons.Default.Security,
+                    contentDescription = null,
+                    tint = TxFlameRed,
+                    modifier = Modifier.size(36.dp)
+                )
+            },
+            title = {
+                Text(
+                    "Sesión Activa en Otro Dispositivo",
+                    fontWeight = FontWeight.Black,
+                    color = DashboardFondoConfig.ColorTextoPrimario,
+                    fontSize = 17.sp
+                )
+            },
+            text = {
+                Text(
+                    "Se ha detectado el inicio de sesión de tu cuenta en otro celular.\n\nPara proteger la integridad de los retos moteros, odómetro y puntuaciones en el ranking, esta sesión se ha pausado en este equipo.",
+                    fontSize = 13.sp,
+                    color = DashboardFondoConfig.ColorTextoSecundario
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.reclamarSesionEnEsteDispositivo() },
+                    colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
+                ) {
+                    Text("Reclamar Sesión Aquí", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { viewModel.cerrarSesionPorDesplazamiento() }) {
+                    Text("Cerrar Sesión", color = DashboardFondoConfig.ColorTextoSecundario)
+                }
+            }
+        )
     }
 }

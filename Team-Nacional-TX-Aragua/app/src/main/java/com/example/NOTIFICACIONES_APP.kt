@@ -76,6 +76,19 @@ object GestorNotificacionesApp {
     }
 
     /**
+     * Notificación de actualización OTA disponible sincronizada con Avisos.
+     */
+    fun notificarActualizacionDisponible(versionName: String, titulo: String, novedades: String = "") {
+        crearNotificacion(
+            tipo = "ACTUALIZACION",
+            titulo = "🚀 Nueva versión v$versionName disponible",
+            mensaje = if (novedades.isNotBlank()) novedades.take(140) else "Nueva actualización oficial lista en el módulo Info: $titulo",
+            referenciaId = "OTA_$versionName",
+            icono = "update"
+        )
+    }
+
+    /**
      * Notificación de alerta SOS activa.
      */
     fun notificarAlertaSOS(remitente: String, ubicacion: String) {

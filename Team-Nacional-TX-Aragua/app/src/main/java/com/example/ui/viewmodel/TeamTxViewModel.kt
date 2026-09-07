@@ -11,8 +11,11 @@ import com.example.data.model.*
 import com.example.data.remote.InvitationCodeCleanupJob
 import com.example.data.remote.FirebaseChatSync
 import com.example.data.remote.PerfilNube
+import com.example.data.remote.VinculacionGoogle
 import com.example.data.repository.TeamTxRepository
 import com.example.GestorNotificacionesApp
+import com.example.SEGURIDAD_CUENTAS
+import com.example.VINCULACION
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
@@ -97,6 +100,19 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             repository.refreshPublications()
         }
 
+        // Verificación y sincronización en segundo plano de actualizaciones oficiales con Avisos
+        viewModelScope.launch(Dispatchers.IO) {
+            kotlinx.coroutines.delay(5000)
+            try {
+                val ota = com.example.GestorActualizaciones.verificarActualizacion()
+                if (ota != null && ota.versionCode > com.aistudio.teamtxvzla.BuildConfig.VERSION_CODE) {
+                    sincronizarAvisoActualizacionOta(ota, forzar = false)
+                }
+            } catch (e: Exception) {
+                Log.e("OTA_AVISOS", "Error en verificación inicial de actualización: ${e.message}")
+            }
+        }
+
         checkAndRestoreSession()
     }
 
@@ -114,6 +130,10 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             _isDirectivaMode.value = !_isDirectivaMode.value
         }
     }
+
+    // Control de Sesión Única por Dispositivo (Anti-trampas en gamificación)
+    private val _sesionDesplazadaPorOtroDispositivo = MutableStateFlow(false)
+    val sesionDesplazadaPorOtroDispositivo: StateFlow<Boolean> = _sesionDesplazadaPorOtroDispositivo.asStateFlow()
 
     // Exchange rate USD -> VES
     private val _bcvRate = MutableStateFlow(36.00)
@@ -933,6 +953,77 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 Log.i(TAG_FEED, "✅ Publicación $id eliminada exitosamente de Room y Firestore")
             } catch (e: Exception) {
                 Log.e(TAG_FEED, "❌ Error eliminando publicación $id", e)
+            }
+        }
+    }
+
+    /**
+     * Sincroniza automáticamente la disponibilidad de una actualización OTA con el Muro de Avisos
+     * y el Centro de Notificaciones, garantizando que todos los pilotos estén informados con el changelog.
+     */
+    fun sincronizarAvisoActualizacionOta(
+        infoOta: com.example.GestorActualizaciones.InformacionOta,
+        forzar: Boolean = false
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val versionTag = "v${infoOta.versionName.trim()}"
+
+                // Evitar duplicados a menos que se fuerce la sincronización manual
+                if (!forzar) {
+                    val yaExiste = publications.value.any { pub: Publication ->
+                        pub.title.contains(versionTag, ignoreCase = true) ||
+                        (pub.category == NoticeCategory.AVISO_OFICIAL && pub.content.contains(versionTag, ignoreCase = true))
+                    }
+                    if (yaExiste) {
+                        Log.d("OTA_AVISOS", "El aviso para $versionTag ya se encuentra publicado en el Muro.")
+                        return@launch
+                    }
+                }
+
+                val tituloAviso = "🚀 ¡Nueva Versión Oficial $versionTag! (${infoOta.titulo})"
+                val cuerpoAviso = buildString {
+                    appendLine("🏍️ ATENCIÓN HERMANDAD MOTERA - TEAM NACIONAL TX:")
+                    appendLine()
+                    appendLine("Se encuentra disponible la actualización oficial $versionTag en el módulo INFO de la aplicación.")
+                    appendLine()
+                    if (infoOta.notas.isNotBlank()) {
+                        appendLine("📝 Resumen del Release:")
+                        appendLine(infoOta.notas)
+                        appendLine()
+                    }
+                    if (infoOta.novedades.isNotEmpty()) {
+                        appendLine("✨ Novedades Principales:")
+                        infoOta.novedades.forEach { appendLine("• $it") }
+                        appendLine()
+                    }
+                    if (infoOta.correcciones.isNotEmpty()) {
+                        appendLine("🛠️ Correcciones y Mejoras:")
+                        infoOta.correcciones.forEach { appendLine("✓ $it") }
+                        appendLine()
+                    }
+                    appendLine("📲 Abre el módulo INFO (icono ℹ️) para descargar e instalar la actualización oficial.")
+                }
+
+                // 1. Publicar en el Muro (Avisos Oficiales)
+                postSystemNotice(
+                    title = tituloAviso,
+                    content = cuerpoAviso,
+                    category = NoticeCategory.AVISO_OFICIAL,
+                    priority = NoticePriority.IMPORTANTE,
+                    isPinned = true
+                )
+
+                // 2. Notificación en Centro de Avisos
+                GestorNotificacionesApp.notificarActualizacionDisponible(
+                    versionName = infoOta.versionName,
+                    titulo = infoOta.titulo,
+                    novedades = if (infoOta.novedades.isNotEmpty()) infoOta.novedades.first() else infoOta.notas
+                )
+
+                Log.i("OTA_AVISOS", "📢 Aviso de actualización $versionTag sincronizado exitosamente con el Muro y Notificaciones.")
+            } catch (e: Exception) {
+                Log.e("OTA_AVISOS", "❌ Error sincronizando aviso de actualización: ${e.message}", e)
             }
         }
     }
@@ -1979,19 +2070,30 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         perfilListener?.remove()
         perfilSyncJob?.cancel()
 
-        perfilListener = PerfilNube.escucharPerfil(uid) { remoto ->
-            viewModelScope.launch(Dispatchers.IO) {
-                val mid = _currentMemberId.value
-                val local = repository.allMembers.first().find { it.id == mid }
-                if (local != null && local.firebaseUid == uid) {
-                    val fusionado = mezclarRemotoEnLocal(local, remoto)
-                    if (fusionado != local) {
-                        repository.updateMember(fusionado.copy(id = local.id, firebaseUid = uid))
-                        Log.d("PERFIL_SYNC", "Perfil fusionado desde la nube en vivo")
+        val app = getApplication<Application>()
+        perfilListener = PerfilNube.escucharPerfil(
+            contexto = app,
+            uid = uid,
+            alDetectarDispositivoDistinto = { mensaje ->
+                viewModelScope.launch(Dispatchers.Main) {
+                    _sesionDesplazadaPorOtroDispositivo.value = true
+                    Log.w("PERFIL_SYNC", "🚨 $mensaje")
+                }
+            },
+            alCambiar = { remoto, _ ->
+                viewModelScope.launch(Dispatchers.IO) {
+                    val mid = _currentMemberId.value
+                    val local = repository.allMembers.first().find { it.id == mid }
+                    if (local != null && local.firebaseUid == uid) {
+                        val fusionado = mezclarRemotoEnLocal(local, remoto)
+                        if (fusionado != local) {
+                            repository.updateMember(fusionado.copy(id = local.id, firebaseUid = uid))
+                            Log.d("PERFIL_SYNC", "Perfil fusionado desde la nube en vivo")
+                        }
                     }
                 }
             }
-        }
+        )
 
         perfilSyncJob = viewModelScope.launch(Dispatchers.IO) {
             combine(repository.allMembers, _currentMemberId) { miembros, id ->
@@ -2115,6 +2217,27 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
 
     fun logout() {
         viewModelScope.launch(Dispatchers.IO) {
+            // 🛡️ PASO 0: RESPALDO FINAL OBLIGATORIO EN FIREBASE ANTES DE CERRAR SESIÓN
+            val current = currentMember.value
+            if (current != null) {
+                try {
+                    // Respaldo en colección members de Firestore
+                    FirebaseFirestore.getInstance().collection("members")
+                        .document(current.id.toString())
+                        .set(current)
+                        .await()
+
+                    // Respaldo en usuarios/{uid} si está vinculado con Google
+                    val uid = current.firebaseUid
+                    if (!uid.isNullOrBlank()) {
+                        PerfilNube.subirPerfil(uid, current)
+                    }
+                    Log.i("LOGOUT_TX", "💾 Respaldo seguro en Firebase completado para: ${current.memberNumber} (${current.fullName})")
+                } catch (e: Exception) {
+                    Log.e("LOGOUT_TX", "Error en respaldo preventivo previo al logout: ${e.message}")
+                }
+            }
+
             try {
                 com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
             } catch (_: Exception) {}
@@ -3144,24 +3267,116 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
      * 5. Se sincroniza con Firestore via PerfilNube
      */
     suspend fun vincularGoogle(uid: String, email: String, googlePhotoUrl: String? = null): Pair<Boolean, String> {
-        val member = currentMember.value
-        if (member == null) {
-            return Pair(false, "No hay perfil activo para vincular.")
+        val member = currentMember.value ?: return Pair(false, "No hay perfil activo para vincular.")
+        val emailTrim = email.trim().lowercase()
+        val idDispositivoLocal = SEGURIDAD_CUENTAS.obtenerIdDispositivo(getApplication())
+
+        // 1. Llamar primero a VINCULACION.vincularCuentaGoogle (transacción atómica en Firestore)
+        val (exitoVinculacion, mensajeVinculacion) = VINCULACION.vincularCuentaGoogle(
+            correo = emailTrim,
+            uidFirebase = uid,
+            numeroMiembro = member.memberNumber,
+            nombrePiloto = member.fullName,
+            idDispositivo = idDispositivoLocal
+        )
+
+        // Solo si esta función retorna éxito, procede a guardar los datos locales en Room y SharedPreferences
+        if (!exitoVinculacion) {
+            try {
+                com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+            } catch (_: Exception) {}
+            return Pair(false, mensajeVinculacion)
         }
 
-        // Actualizar el perfil local con los datos de Google
+        // 2. Guardar los datos locales en Room y SharedPreferences
         val actualizado = member.copy(
             firebaseUid = uid,
-            email = email,
+            email = emailTrim,
             profilePhotoUri = member.profilePhotoUri ?: googlePhotoUrl
         )
         repository.updateMember(actualizado)
+        saveSession(actualizado.id, emailTrim, uid)
 
-        // Forzar sincronización con Firestore
+        // 3. Forzar sincronización con Firestore y activar escucha en vivo
         forceSyncFromFirebase(uid)
+        iniciarSincronizacionDePerfil(uid)
+        _sesionDesplazadaPorOtroDispositivo.value = false
 
-        Log.i("GOOGLE_LINK", "✅ Cuenta Google vinculada al perfil: ${member.nickname} (UID: $uid)")
-        return Pair(true, "¡Cuenta Google vinculada exitosamente! Tus datos se sincronizan con la nube.")
+        Log.i("GOOGLE_LINK", "✅ Cuenta Google $emailTrim vinculada exitosamente a ${member.memberNumber}")
+        return Pair(true, mensajeVinculacion)
+    }
+
+    /**
+     * Desvincula la cuenta de Google llamando a VINCULACION.desvincularCuentaGoogle.
+     * Si es exitosa, limpia los datos del correo localmente y desconecta el perfil.
+     */
+    suspend fun desvincularGoogle(): Pair<Boolean, String> {
+        val member = currentMember.value ?: return Pair(false, "No hay perfil activo para desvincular.")
+        val email = member.email ?: ""
+        val uid = member.firebaseUid ?: ""
+
+        if (uid.isBlank() && email.isBlank()) {
+            return Pair(false, "Este perfil no tiene ninguna cuenta Google vinculada.")
+        }
+
+        // 1. Llamar a VINCULACION.desvincularCuentaGoogle
+        val (exitoDesvinculacion, mensajeDesvinculacion) = VINCULACION.desvincularCuentaGoogle(
+            correo = email,
+            uidFirebase = uid
+        )
+
+        if (!exitoDesvinculacion) {
+            return Pair(false, mensajeDesvinculacion)
+        }
+
+        try {
+            // 2. Detener escucha de sincronización remota
+            detenerSincronizacionDePerfil()
+
+            // 3. Limpiar los datos del correo localmente y desconectar el perfil
+            val desvinculado = member.copy(
+                firebaseUid = null,
+                email = "" // Se limpia para liberar el correo
+            )
+            repository.updateMember(desvinculado)
+
+            // 4. Limpiar sesión en SharedPreferences
+            saveSession(desvinculado.id, "", null)
+            com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+
+            // 5. Cierre forzoso de sesión de Google
+            SEGURIDAD_CUENTAS.forzarCierreSesion(getApplication())
+
+            _sesionDesplazadaPorOtroDispositivo.value = false
+            Log.i("GOOGLE_LINK", "✅ Cuenta Google desvinculada exitosamente del perfil: ${member.memberNumber}")
+            return Pair(true, mensajeDesvinculacion)
+        } catch (e: Exception) {
+            Log.e("GOOGLE_LINK", "Error al desvincular cuenta Google localmente: ${e.message}", e)
+            return Pair(false, "Error al desconectar perfil localmente: ${e.message}")
+        }
+    }
+
+    /** Reclama la sesión activa para este dispositivo físico */
+    fun reclamarSesionEnEsteDispositivo() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val member = currentMember.value ?: return@launch
+            val email = member.email ?: ""
+            val uid = member.firebaseUid ?: ""
+            val localDeviceId = SEGURIDAD_CUENTAS.obtenerIdDispositivo(getApplication())
+
+            if (email.isNotBlank() && uid.isNotBlank()) {
+                PerfilNube.actualizarDispositivoActivo(email, uid, localDeviceId)
+            }
+            _sesionDesplazadaPorOtroDispositivo.value = false
+            iniciarSincronizacionDePerfil(uid)
+            Log.i("SESION_TX", "Sesión reclamada con éxito en este dispositivo ($localDeviceId)")
+        }
+    }
+
+    /** Cierra sesión cuando el usuario decide salir ante un desplazamiento de sesión */
+    fun cerrarSesionPorDesplazamiento() {
+        _sesionDesplazadaPorOtroDispositivo.value = false
+        logout()
     }
 
     suspend fun signInWithGoogle(uid: String, email: String, googlePhotoUrl: String? = null): Pair<Boolean, String> {

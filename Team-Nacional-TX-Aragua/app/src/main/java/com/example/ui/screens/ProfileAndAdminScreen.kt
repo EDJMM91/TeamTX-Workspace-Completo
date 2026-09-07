@@ -67,6 +67,7 @@ fun ProfileAndAdminScreen(
     onSelectMember: (Long) -> Unit,
     onUpdateProfile: (MemberProfile) -> Unit,
     onVincularGoogle: (String, String, String?) -> Unit = { _, _, _ -> },
+    onDesvincularGoogle: () -> Unit = {},
     onUnlockWithMasterCode: suspend (String) -> Pair<Boolean, String> = { _ -> Pair(false, "") },
     onRateMember: (MemberProfile, Boolean, String, Int, String) -> Unit = { _, _, _, _, _ -> },
     onLogout: () -> Unit = {},
@@ -75,6 +76,7 @@ fun ProfileAndAdminScreen(
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showMemberSelectorDialog by remember { mutableStateOf(false) }
     var showLogoutConfirmDialog by remember { mutableStateOf(false) }
+    var showDesvincularConfirmDialog by remember { mutableStateOf(false) }
     var ratingTargetMember by remember { mutableStateOf<MemberProfile?>(null) }
     var isGoogleAuthLoading by remember { mutableStateOf(false) }
     var tipoFotoSeleccionada by remember { mutableStateOf(PreferenciasApp.carnetTipoFoto) }
@@ -574,6 +576,24 @@ fun ProfileAndAdminScreen(
                                             Text("Cambiar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4285F4))
                                         }
                                     }
+
+                                    // Botón Desvincular Cuenta Google (Libera el correo en Firestore)
+                                    OutlinedButton(
+                                        onClick = { showDesvincularConfirmDialog = true },
+                                        enabled = !isGoogleAuthLoading,
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, Color(0xFFFECDD3)),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            containerColor = Color(0xFFFFF1F2)
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.LinkOff, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFFE11D48))
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text("Desvincular", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE11D48))
+                                    }
+
                                     Icon(Icons.Default.CheckCircle, contentDescription = "Vinculado", tint = Color(0xFF15803D), modifier = Modifier.size(20.dp))
                                 }
                             }
@@ -863,6 +883,51 @@ fun ProfileAndAdminScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutConfirmDialog = false }) {
+                    Text("Cancelar", color = DashboardFondoConfig.ColorTextoSecundario)
+                }
+            }
+        )
+    }
+
+    if (showDesvincularConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDesvincularConfirmDialog = false },
+            containerColor = DashboardFondoConfig.ColorTarjetaClara,
+            icon = {
+                Icon(
+                    Icons.Default.LinkOff,
+                    contentDescription = null,
+                    tint = Color(0xFFE11D48),
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    "¿Desvincular Cuenta Google?",
+                    fontWeight = FontWeight.Black,
+                    color = DashboardFondoConfig.ColorTextoPrimario
+                )
+            },
+            text = {
+                Text(
+                    "¿Estás seguro de desvincular tu cuenta Google? El correo quedará libre. Tus datos locales se mantendrán.",
+                    fontSize = 13.sp,
+                    color = DashboardFondoConfig.ColorTextoSecundario
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDesvincularConfirmDialog = false
+                        onDesvincularGoogle()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE11D48))
+                ) {
+                    Text("Sí, Desvincular", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDesvincularConfirmDialog = false }) {
                     Text("Cancelar", color = DashboardFondoConfig.ColorTextoSecundario)
                 }
             }

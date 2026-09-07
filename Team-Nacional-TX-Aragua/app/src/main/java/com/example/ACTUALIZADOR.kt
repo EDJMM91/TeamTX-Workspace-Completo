@@ -104,6 +104,25 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 16,
+            versionName = "1.3.5-beta",
+            titulo = "Seguridad de Cuentas, Sesión Única Anti-Trampas y Vinculación 1-a-1",
+            fecha = "07 sep 2026",
+            descripcionCorta = "Nuevo sistema de seguridad de cuentas con UUID por dispositivo, sesión única anti-trampas en tiempo real, vinculación 1-a-1 con transacciones atómicas en Firestore y opción de desvinculación libre.",
+            novedades = listOf(
+                "🛡️ Seguridad de Cuentas: Identificador persistente único de dispositivo ('id_dispositivo_activo_unico').",
+                "🚨 Anti-Trampa en Vivo: Detección automática en tiempo real de apertura de sesión en otro celular con cierre forzoso inmediato.",
+                "🔗 Vinculación 1-a-1 Atómica: Transacciones en 'vinculos_google' que garantizan que un correo pertenezca únicamente a un piloto a la vez.",
+                "🔓 Desvinculación de Google: Nuevo botón [Desvincular] en Carnet TX con advertencia de confirmación para liberar el correo sin borrar datos locales.",
+                "🔒 Hard Logout: Cierre seguro total con revocación de tokens de Google Sign-In, limpieza de SharedPreferences y purga de caché de fotos."
+            ),
+            correcciones = listOf(
+                "Eliminado el riesgo de cruce o sobreescritura de cuentas entre celulares con perfiles distintos.",
+                "Optimizado el listener en tiempo real de Firestore para detener sincronización cuando la sesión no corresponde al dispositivo local."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 14,
             versionName = "1.4.0",
             titulo = "Módulo Reproductor TX Pro & Calendario Avanzado",
@@ -253,13 +272,14 @@ object GestorActualizaciones {
                                 val match = Regex("""v\d+(\.\d+)*(-[a-zA-Z0-9]+)?""").find(item.name)
                                 match?.value ?: item.name.removeSuffix(".apk")
                             }
-                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v1.4.0 (Última)"
+                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v1.3.5-beta (Última)"
                             else -> item.name.removeSuffix(".apk")
                         }
 
                         val estimatedCode = when {
-                            item.name.contains("1.4") || isLatest -> 14
-                            item.name.contains("1.3.5") -> 13
+                            isLatest -> 16
+                            item.name.contains("1.4") -> 14
+                            item.name.contains("1.3.5") -> 16
                             item.name.contains("1.3") -> 12
                             item.name.contains("1.2") -> 11
                             else -> 10
@@ -295,7 +315,7 @@ object GestorActualizaciones {
             versions.sortWith(compareByDescending<StorageApkVersion> { it.isRecommendedLatest }.thenByDescending { it.updatedTimestamp })
 
             if (versions.isEmpty()) {
-                val detalleTop = obtenerDetalleVersion(14, "1.4.0")
+                val detalleTop = obtenerDetalleVersion(16, "1.3.5-beta")
                 versions.add(
                     StorageApkVersion(
                         fileName = "TeamTX-latest.apk",
@@ -303,9 +323,9 @@ object GestorActualizaciones {
                         sizeBytes = 390525647L,
                         formattedSize = "372.4 MB",
                         updatedTimestamp = System.currentTimeMillis(),
-                        formattedDate = "30 ago 2026, 06:00 PM",
-                        versionName = "v1.4.0 (Recomendada)",
-                        versionCode = 14,
+                        formattedDate = "07 sep 2026, 09:00 PM",
+                        versionName = "v1.3.5-beta (Recomendada)",
+                        versionCode = 16,
                         titulo = detalleTop.titulo,
                         notas = detalleTop.descripcionCorta,
                         novedades = detalleTop.novedades,

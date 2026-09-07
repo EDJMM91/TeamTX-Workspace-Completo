@@ -2,5 +2,5 @@
   "versionCode": 16,
   "versionName": "1.3.5-beta",
   "urlDescarga": "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd",
-  "notas": "Versión 1.3.5-beta: Modernización integral a Tema Claro Puro de los módulos Calendario, Rodadas y Caravanas, Bitácora de Mantenimiento, Retos y Desafíos, Directorio Comercial (filas independientes sin solapamientos) y Pasaporte Motero. Botón institucional de retorno al Inicio en TopAppBar."
+  "notas": "Versión 1.3.5-beta (Seguridad y Sesión Única): Seguridad de cuentas con UUID local, vinculación 1-a-1 atómica en Firestore ('vinculos_google'), detección anti-trampas de sesión duplicada en vivo, botón [Desvincular] en Carnet TX y Hard Logout seguro."
 }

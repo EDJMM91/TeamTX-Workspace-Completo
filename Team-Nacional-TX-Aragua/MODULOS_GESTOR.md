@@ -64,6 +64,10 @@ EL LOGCAST DE ANDROID STUDIO Y VER CADA ERROR ALLI
 | 14 | **Notificaciones** | 🔜 En camino |
 | 15 | **Estadísticas del Grupo** | 🔜 En camino |
 
+
+(((((((( regla despues de tocar o editar en modulos o cosaas visuales de la app incluyendo textos ))))))))
+
+cada modulo o interfaz visual el usuario final no debe ver cosas tecnicas de desaarrollador o codigo, de la app o cosaas teccnicas inecesarias al usuario final , el usuario no tiene necesidad de ver textos o explicaciones de osas de codigo del desarrollo o cosas tecnicas poco entendibles para personas no desarrolladoras . cada modulo debe ser simple y entendible para el usuario final , si se necesita algo tecnico se pondra en un menu oculto para usuarios desarrolladores  o si inicio con codigo de desARROLLADOR .
 ### Módulo Nuevo a Integrar — Paso 1
 
 **Configuraciones (⚙️ Engranaje)**: Se encarga de contener configuraciones previas de toda la app, cosas a ajustar, temas, etc., y configuraciones específicas de cada módulo.

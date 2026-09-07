@@ -148,6 +148,7 @@ fun NotificacionItem(
         "CHAT" -> Pair(Icons.Default.Chat, Color(0xFF42A5F5))
         "MURO" -> Pair(Icons.Default.Campaign, Color(0xFFFFA726))
         "SOS" -> Pair(Icons.Default.Emergency, Color(0xFFEF5350))
+        "ACTUALIZACION", "OTA" -> Pair(Icons.Default.SystemUpdate, MotoOrangePrimary)
         "PERFIL" -> Pair(Icons.Default.Badge, Color(0xFFAB47BC))
         "VINCULAR_GOOGLE" -> Pair(Icons.Default.AccountCircle, Color(0xFF66BB6A))
         else -> Pair(Icons.Default.Notifications, Color(0xFF78909C))

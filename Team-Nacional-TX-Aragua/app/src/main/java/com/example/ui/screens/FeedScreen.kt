@@ -653,7 +653,8 @@ fun FeedScreen(
                                     onSave(pub)
                                 }
                             }
-                        }
+                        },
+                        onNavigateToTab = onNavigateToTab
                     )
                 }
             }
@@ -787,6 +788,7 @@ fun NoticeCard(
     onDismissNotice: () -> Unit = {},
     onNavigateToCalendar: (String) -> Unit = {},
     onToggleEventFinished: () -> Unit = {},
+    onNavigateToTab: ((com.example.NavigationTab) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -989,6 +991,64 @@ fun NoticeCard(
                     color = if (isDark) Color(0xFFB0BEC5) else Color(0xFF475569),
                     lineHeight = 20.sp
                 )
+
+                // 🚀 Enlace Directo al Módulo INFO si es un Aviso Oficial de Actualización
+                val esAvisoActualizacion = pub.title.contains("Actualización", ignoreCase = true) ||
+                    pub.title.contains("Actualizacion", ignoreCase = true) ||
+                    pub.title.contains("Nueva Versión", ignoreCase = true) ||
+                    pub.title.contains("v1.", ignoreCase = true) ||
+                    pub.content.contains("módulo INFO", ignoreCase = true) ||
+                    pub.content.contains("modulo INFO", ignoreCase = true)
+
+                if (esAvisoActualizacion && onNavigateToTab != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFFF7ED),
+                        border = BorderStroke(1.dp, Color(0xFFFDBA74)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToTab(com.example.NavigationTab.INFO) }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    Icons.Default.SystemUpdate,
+                                    contentDescription = "Actualizar",
+                                    tint = MotoOrangePrimary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Column {
+                                    Text(
+                                        "Actualización Oficial Disponible",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFFC2410C)
+                                    )
+                                    Text(
+                                        "Toca aquí para ver detalles y descargar en el módulo Info",
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF9A3412)
+                                    )
+                                }
+                            }
+                            Icon(
+                                Icons.Default.ArrowForward,
+                                contentDescription = "Ir a Info",
+                                tint = MotoOrangePrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             // Flyer / Imagen de la publicación (Ancho completo con soporte para tocar y ver pantalla completa)

@@ -43,6 +43,8 @@ private const val TAG_LOGCAT = "TEAM_TX_INFO"
 fun VistaInfoScreen(
     currentMember: MemberProfile? = null,
     allMembers: List<MemberProfile> = emptyList(),
+    viewModel: com.example.ui.viewmodel.TeamTxViewModel? = null,
+    onNavigateToAvisos: () -> Unit = {},
     onOpenPrivateChatWithDeveloper: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
@@ -106,7 +108,82 @@ fun VistaInfoScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 📢 Tarjeta de Sincronización con Muro de Avisos
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.Default.Campaign, contentDescription = "Avisos", tint = MotoOrangePrimary, modifier = Modifier.size(18.dp))
+                        Text("Sincronización con Avisos", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                    }
+                    Surface(
+                        color = Color(0xFFDCFCE7),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text("CONECTADO", color = Color(0xFF15803D), fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
+                Text(
+                    text = "Las notas de cada actualización oficial se publican en el Muro de Avisos con su lista de novedades y mejoras para toda la hermandad.",
+                    fontSize = 11.sp,
+                    color = Color(0xFF64748B),
+                    lineHeight = 15.sp
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onNavigateToAvisos,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF475569))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Ver Muro", fontSize = 11.sp, color = Color(0xFF334155), fontWeight = FontWeight.SemiBold)
+                    }
+
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                val ota = GestorActualizaciones.verificarActualizacion()
+                                if (ota != null) {
+                                    viewModel?.sincronizarAvisoActualizacionOta(ota, forzar = true)
+                                    Toast.makeText(context, "📢 Aviso de versión ${ota.versionName} publicado en el Muro de Avisos", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "No se pudo obtener información de la versión", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                        modifier = Modifier.weight(1.3f),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Publicar Aviso", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
@@ -118,6 +195,8 @@ fun VistaInfoScreen(
                         if (ota.versionCode > BuildConfig.VERSION_CODE) {
                             infoOta = ota
                             mostrarDialogo = true
+                            // Sincronización automática con Avisos
+                            viewModel?.sincronizarAvisoActualizacionOta(ota)
                         } else {
                             Toast.makeText(context, "¡Ya tienes la última versión instalada!", Toast.LENGTH_SHORT).show()
                         }
