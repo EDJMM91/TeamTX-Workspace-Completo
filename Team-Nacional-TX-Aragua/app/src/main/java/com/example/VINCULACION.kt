@@ -69,14 +69,20 @@ object VINCULACION {
                     val docNumero = instantanea.getString("numero_miembro") ?: ""
                     val pilotoExistente = instantanea.getString("nombre_piloto") ?: docNumero.ifBlank { "Otro piloto" }
 
-                    // Bloquear si el correo pertenece a OTRO miembro distinto
-                    if (docNumero.isNotBlank() && !docNumero.equals(numeroMiembro, ignoreCase = true)) {
+                    // 🛡️ BYPASS PARA DESARROLLADORES: Permitir reclamar el correo si es uno de los correos maestros
+                    val esCorreoDesarrollador = correoSanitizado == "eduardo.androide.em@gmail.com" || 
+                                               correoSanitizado == "eduardo.jose.marquez.matos@gmail.com"
+                    
+                    val esMismoMiembro = docNumero.equals(numeroMiembro, ignoreCase = true)
+
+                    // Bloquear si el correo pertenece a OTRO miembro distinto (y no es bypass de Dev)
+                    if (!esMismoMiembro && docNumero.isNotBlank() && !esCorreoDesarrollador) {
                         throw IllegalStateException(
                             "Este correo ya está vinculado al perfil de $pilotoExistente ($docNumero). Para usarlo aquí, primero debes desvincularlo desde ese perfil."
                         )
                     }
 
-                    // Si pertenece al mismo miembro o no tenía miembro registrado, renovamos vínculo
+                    // Si pertenece al mismo miembro, es correo dev o no tenía miembro registrado, renovamos vínculo
                     val datosActualizacion = hashMapOf<String, Any>(
                         "correo" to correoSanitizado,
                         "uid_firebase" to uidFirebase,

@@ -74,6 +74,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun cancionLocalDao(): CancionLocalDao
     abstract fun listaReproduccionDao(): ListaReproduccionDao
     abstract fun estadoReproductorDao(): EstadoReproductorDao
+    abstract fun globalNukeDao(): GlobalNukeDao
 
     companion object {
         @Volatile

@@ -2299,7 +2299,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             clearSession()
 
             // 🛡️ LIMPIEZA PROFUNDA DE DATOS LOCALES: No dejar rastros para el siguiente usuario
-            repository.nukeAllProfiles()
+            repository.nukeEverything()
 
             // 1. Limpiar fotos y preferencias de carnet
             com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
@@ -2507,7 +2507,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         _sesionDesplazadaPorOtroDispositivo.value = false
         
         // Limpieza profunda preventiva de Room y Prefs locales
-        repository.nukeAllProfiles()
+        repository.nukeEverything()
         clearSession()
 
         val isDev1 = codeTrim == "DESARROLLO1" || codeTrim == "TX19554402SB"

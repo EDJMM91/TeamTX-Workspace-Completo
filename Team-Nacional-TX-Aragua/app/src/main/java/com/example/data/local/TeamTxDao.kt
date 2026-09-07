@@ -504,3 +504,54 @@ interface CalendarDao {
     @Query("DELETE FROM biker_calendar_events WHERE id = :id")
     suspend fun deleteEventById(id: Long)
 }
+
+@Dao
+interface GlobalNukeDao {
+    @Query("DELETE FROM member_profiles")
+    suspend fun nukeMembers()
+
+    @Query("DELETE FROM app_notifications")
+    suspend fun nukeNotifications()
+
+    @Query("DELETE FROM club_chat_messages")
+    suspend fun nukeChat()
+
+    @Query("DELETE FROM ride_registrations")
+    suspend fun nukeRideRegistrations()
+
+    @Query("DELETE FROM emergency_alerts")
+    suspend fun nukeEmergency()
+
+    @Query("DELETE FROM invitation_codes")
+    suspend fun nukeInvitations()
+
+    @Query("DELETE FROM access_requests")
+    suspend fun nukeRequests()
+
+    @Query("DELETE FROM marketplace_items")
+    suspend fun nukeMarketplace()
+
+    @Query("DELETE FROM maintenance_logs")
+    suspend fun nukeMaintenance()
+
+    @Query("DELETE FROM passport_stamps")
+    suspend fun nukePassportStamps()
+
+    @Query("DELETE FROM user_challenge_progress")
+    suspend fun nukeChallengeProgress()
+
+    @Transaction
+    suspend fun nukeSensitiveData() {
+        nukeMembers()
+        nukeNotifications()
+        nukeChat()
+        nukeRideRegistrations()
+        nukeEmergency()
+        nukeInvitations()
+        nukeRequests()
+        nukeMarketplace()
+        nukeMaintenance()
+        nukePassportStamps()
+        nukeChallengeProgress()
+    }
+}
