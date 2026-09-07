@@ -109,6 +109,14 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         avataresCache[url] = bitmap
     }
 
+    fun obtenerPilotosEnPosicion(lat: Double, lon: Double, zoom: Int): List<PilotoRadar> {
+        val radioGrados = 0.0001 * (20 - zoom).coerceAtLeast(1)
+        return pilotos.filter { p ->
+            val dist = Math.sqrt(Math.pow(p.lat - lat, 2.0) + Math.pow(p.lon - lon, 2.0))
+            dist < radioGrados
+        }
+    }
+
     private fun obtenerIconoEmergencia(): Bitmap? {
         if (iconoEmergencia == null || iconoEmergencia?.isRecycled == true) {
             try {
@@ -179,11 +187,24 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
             tileBox.centerPixelY.toFloat()
         )
 
-        for (piloto in pilotos) {
+        // Agrupar pilotos por proximidad visual para manejar solapamiento
+        val pilotosAgrupados = mutableMapOf<String, MutableList<PilotoRadar>>()
+        for (p in pilotos) {
+            val pixX = tileBox.getPixXFromLatLon(p.lat, p.lon)
+            val pixY = tileBox.getPixYFromLatLon(p.lat, p.lon)
+            if (pixX < 0 || pixX > tileBox.pixWidth || pixY < 0 || pixY > tileBox.pixHeight) continue
+            
+            // Llave basada en proximidad de 40 píxeles
+            val key = "${(pixX / 40).toInt()},${(pixY / 40).toInt()}"
+            pilotosAgrupados.getOrPut(key) { mutableListOf() }.add(p)
+        }
+
+        for (grupo in pilotosAgrupados.values) {
+            val piloto = grupo.first()
             val x = tileBox.getPixXFromLatLon(piloto.lat, piloto.lon)
             val y = tileBox.getPixYFromLatLon(piloto.lat, piloto.lon)
-            val esLocal = piloto.id == miUserId && miUserId.isNotBlank()
-            val esSos = !piloto.alertaSos.isNullOrBlank()
+            val esLocal = grupo.any { it.id == miUserId && miUserId.isNotBlank() }
+            val esSos = grupo.any { !it.alertaSos.isNullOrBlank() }
 
             val avatar = if (esLocal) {
                 RadarFirebase.obtenerAvatarLocal(context) 
@@ -198,17 +219,9 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
 
             if (hasOffset) {
                 if (esSos) {
-                    val alertText = piloto.alertaSos ?: ""
-                    val esChoque = alertText.contains("CHOQUE", ignoreCase = true) ||
-                                   alertText.contains("COLISION", ignoreCase = true) ||
-                                   alertText.contains("ACCIDENTE", ignoreCase = true)
-                    val colorAlerta = if (esChoque) Color.parseColor("#FF1744") else Color.parseColor("#FF9100")
-
-                    // Punto de coordenadas exactas del incidente en el asfalto/vía
+                    val colorAlerta = Color.parseColor("#FF1744")
                     paintPuntoAccidente.color = colorAlerta
                     canvas.drawCircle(x, y, 7f * density, paintPuntoAccidente)
-
-                    // Línea conectora entre el punto del incidente y el disco de info
                     paintLinea.color = colorAlerta
                     paintLinea.strokeWidth = 3.5f * density
                     canvas.drawLine(x, y, avatarCx, avatarCy, paintLinea)
@@ -225,10 +238,9 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
                 dibujarPlaceholder(canvas, avatarCx, avatarCy, radio.toFloat(), piloto)
             }
 
-            val labelTexto = if (esSos) "🚨 SOS ${piloto.nombre}" else piloto.nombre
+            val labelTexto = if (grupo.size > 1) "👥 ${grupo.size} Pilotos" else if (esLocal && grupo.size == 1) "Tú" else piloto.nombre
             dibujarLabel(canvas, avatarCx, avatarCy + radio + 16 * density, labelTexto, esSos = esSos)
 
-            // Si está en SOS: dibujar icono (emergencia.png o precaucion.png) al lado del disco de info del usuario conectado por una línea
             if (esSos) {
                 dibujarIconoEmergencia(canvas, avatarCx, avatarCy, radio.toFloat(), density, piloto)
             }
@@ -316,13 +328,22 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         val density = tileBox.density
         val radius = (getScaledTouchRadius(app, tileBox.defaultRadiusPoi) * TOUCH_RADIUS_MULTIPLIER * 2.2f).toFloat()
 
-        for (piloto in pilotos) {
-            val esSos = !piloto.alertaSos.isNullOrBlank()
-            val esLocal = piloto.id == miUserId && miUserId.isNotBlank()
-            val hasOffset = esLocal || esSos
+        // Agrupar para detectar toques en grupos
+        val pilotosAgrupados = mutableMapOf<String, MutableList<PilotoRadar>>()
+        for (p in pilotos) {
+            val pixX = tileBox.getPixXFromLatLon(p.lat, p.lon)
+            val pixY = tileBox.getPixYFromLatLon(p.lat, p.lon)
+            val key = "${(pixX / 40).toInt()},${(pixY / 40).toInt()}"
+            pilotosAgrupados.getOrPut(key) { mutableListOf() }.add(p)
+        }
 
-            val px = tileBox.getPixXFromLatLon(piloto.lat, piloto.lon)
-            val py = tileBox.getPixYFromLatLon(piloto.lat, piloto.lon)
+        for (grupo in pilotosAgrupados.values) {
+            val p = grupo.first()
+            val esLocal = grupo.any { it.id == miUserId }
+            val hasOffset = esLocal || grupo.any { !it.alertaSos.isNullOrBlank() }
+
+            val px = tileBox.getPixXFromLatLon(p.lat, p.lon)
+            val py = tileBox.getPixYFromLatLon(p.lat, p.lon)
 
             val avatarCx = if (hasOffset) px + OFFSET_LOCAL_X_DP * density else px
             val avatarCy = if (hasOffset) py + OFFSET_LOCAL_Y_DP * density else py
@@ -331,21 +352,33 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
             val dy = point.y - avatarCy
             val touchDistSq = dx * dx + dy * dy
             val isNearAvatar = touchDistSq <= (radius * radius * 1.5f)
-            val isNearBase = tileBox.isLatLonNearPixel(piloto.lat, piloto.lon, point.x, point.y, radius)
+            val isNearBase = tileBox.isLatLonNearPixel(p.lat, p.lon, point.x, point.y, radius)
 
             if (isNearAvatar || isNearBase) {
-                pilotoSeleccionado?.invoke(piloto)
-                result.collect(piloto, this)
+                if (grupo.size > 1) {
+                    result.collect(grupo, this) // Enviar el objeto grupo (List)
+                } else {
+                    result.collect(p, this)
+                }
             }
         }
     }
 
     override fun runExclusiveAction(o: Any?, unknownLocation: Boolean): Boolean {
-        if (o is PilotoRadar) {
-            val act: android.app.Activity = (mapActivity as? android.app.Activity)
-                ?: (GestorRadar.obtenerMapActivity() as? android.app.Activity)
-                ?: (application?.osmandMap?.mapView?.context as? android.app.Activity)
-                ?: return false
+        val act: android.app.Activity = (mapActivity as? android.app.Activity)
+            ?: (GestorRadar.obtenerMapActivity() as? android.app.Activity)
+            ?: (application?.osmandMap?.mapView?.context as? android.app.Activity)
+            ?: return false
+
+        if (o is List<*>) {
+            val grupo = o.filterIsInstance<PilotoRadar>()
+            if (grupo.isNotEmpty()) {
+                act.runOnUiThread {
+                    DialogosMapaTx.mostrarListaPilotos(act, grupo)
+                }
+                return true
+            }
+        } else if (o is PilotoRadar) {
             act.runOnUiThread {
                 DialogosMapaTx.mostrarPiloto(act, o)
             }

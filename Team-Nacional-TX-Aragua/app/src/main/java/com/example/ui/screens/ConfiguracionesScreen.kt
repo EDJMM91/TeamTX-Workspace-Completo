@@ -526,6 +526,7 @@ fun ConfiguracionesScreen(
                     onCheckedChange = {
                         radarActivo = it
                         if (it) {
+                            PreferenciasApp.radarActivo = true
                             val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
                             if (uid != null) {
                                 kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -537,6 +538,7 @@ fun ConfiguracionesScreen(
                                 }
                             }
                         } else {
+                            PreferenciasApp.radarActivo = false
                             com.example.radar.TelemetriaGps.desactivar(context)
                         }
                     }

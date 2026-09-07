@@ -84,7 +84,7 @@ fun TxMapLauncher(
                         com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, avatar)
                     }
 
-                    if (com.example.radar.TelemetriaGps.estaActivo(context)) {
+                    if (com.example.radar.TelemetriaGps.estaActivo(context) || com.example.ui.preferences.PreferenciasApp.radarActivo) {
                         com.example.radar.TelemetriaGps.activar(context, uid, nombre, rango, avatar)
                     }
 

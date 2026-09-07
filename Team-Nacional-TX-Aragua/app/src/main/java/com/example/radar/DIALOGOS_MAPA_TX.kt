@@ -302,6 +302,115 @@ object DialogosMapaTx {
     }
 
     /**
+     * Muestra una lista de pilotos agrupados en la misma ubicación.
+     */
+    @JvmStatic
+    fun mostrarListaPilotos(activity: Activity, grupo: List<PilotoRadar>) {
+        val dialog = Dialog(activity)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val density = activity.resources.displayMetrics.density
+        val root = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 16 * density
+                setColor(Color.parseColor("#161616"))
+            }
+            setPadding((16 * density).toInt(), (16 * density).toInt(), (16 * density).toInt(), (16 * density).toInt())
+        }
+
+        val tvTitle = TextView(activity).apply {
+            text = "👥 PILOTOS AGRUPADOS (${grupo.size})"
+            setTextColor(Color.WHITE)
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, (12 * density).toInt())
+        }
+        root.addView(tvTitle)
+
+        val scrollView = ScrollView(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (300 * density).toInt())
+        }
+        
+        val listContainer = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
+
+        grupo.forEach { piloto ->
+            val row = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding((8 * density).toInt(), (10 * density).toInt(), (8 * density).toInt(), (10 * density).toInt())
+                isClickable = true
+                isFocusable = true
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 10 * density
+                }
+                setOnClickListener {
+                    dialog.dismiss()
+                    mostrarPiloto(activity, piloto)
+                }
+            }
+
+            val icon = ImageView(activity).apply {
+                layoutParams = LinearLayout.LayoutParams((36 * density).toInt(), (36 * density).toInt())
+                val bmp = RadarFirebase.obtenerAvatar(piloto.id, piloto.avatarUrl, activity)
+                if (bmp != null) setImageBitmap(bmp) else {
+                    val resId = activity.resources.getIdentifier("logoteam", "drawable", activity.packageName)
+                    if (resId != 0) setImageResource(resId)
+                }
+            }
+            row.addView(icon)
+
+            val nameCol = LinearLayout(activity).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding((12 * density).toInt(), 0, 0, 0)
+            }
+            
+            val tvName = TextView(activity).apply {
+                text = piloto.nombre
+                setTextColor(Color.WHITE)
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            nameCol.addView(tvName)
+
+            val tvRange = TextView(activity).apply {
+                text = piloto.rango
+                setTextColor(Color.parseColor("#FF9800"))
+                textSize = 11f
+            }
+            nameCol.addView(tvRange)
+            row.addView(nameCol)
+
+            listContainer.addView(row)
+            
+            // Separador
+            val sep = View(activity).apply {
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (1 * density).toInt())
+                setBackgroundColor(Color.parseColor("#333333"))
+            }
+            listContainer.addView(sep)
+        }
+
+        scrollView.addView(listContainer)
+        root.addView(scrollView)
+
+        val btnClose = Button(activity).apply {
+            text = "CERRAR"
+            setOnClickListener { dialog.dismiss() }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (12 * density).toInt()
+            }
+        }
+        root.addView(btnClose)
+
+        dialog.setContentView(root)
+        dialog.show()
+    }
+
+    /**
      * Muestra el detalle interactivo al tocar cualquier marcador de aviso o evento en el mapa.
      */
     @JvmStatic

@@ -2080,6 +2080,12 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     Log.w("PERFIL_SYNC", "🚨 $mensaje")
                 }
             },
+            alSerBloqueado = {
+                viewModelScope.launch(Dispatchers.Main) {
+                    Log.w("PERFIL_SYNC", "🚨 Bloqueo detectado: Cerrando sesión forzosamente.")
+                    logout()
+                }
+            },
             alCambiar = { remoto, _ ->
                 viewModelScope.launch(Dispatchers.IO) {
                     val mid = _currentMemberId.value

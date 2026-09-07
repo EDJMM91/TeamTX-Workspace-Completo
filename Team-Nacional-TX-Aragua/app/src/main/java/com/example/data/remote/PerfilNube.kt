@@ -178,6 +178,7 @@ object PerfilNube {
         contexto: Context,
         uid: String,
         alDetectarDispositivoDistinto: (mensaje: String) -> Unit = {},
+        alSerBloqueado: () -> Unit = {},
         alCambiar: (perfil: MemberProfile, idDispositivoActivo: String?) -> Unit
     ): ListenerRegistration? {
         return try {
@@ -188,14 +189,30 @@ object PerfilNube {
                         Log.e(ETIQUETA_LOG, "Escucha en vivo usuarios/$uid falló: ${error.message}", error)
                         return@addSnapshotListener
                     }
-                    if (snapshot == null || !snapshot.exists()) return@addSnapshotListener
+                    
+                    if (snapshot == null || !snapshot.exists()) {
+                        Log.w(ETIQUETA_LOG, "🚨 Documento de perfil usuarios/$uid no existe (posible borrado)")
+                        alSerBloqueado()
+                        return@addSnapshotListener
+                    }
+
+                    val perfil = snapshot.toObject(MemberProfile::class.java)
+                    if (perfil == null) {
+                        alSerBloqueado()
+                        return@addSnapshotListener
+                    }
+
+                    // Verificar suspensión en tiempo real
+                    if (perfil.isSuspended) {
+                        Log.w(ETIQUETA_LOG, "🚨 Piloto suspendido detectado en vivo")
+                        alSerBloqueado()
+                        return@addSnapshotListener
+                    }
 
                     // Las sesiones anónimas (invitados/testers) no aplican control de desplazamiento
                     val esAnonimo = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.isAnonymous == true
                     if (esAnonimo) {
-                        snapshot.toObject(MemberProfile::class.java)?.let {
-                            alCambiar(it.copy(id = 0L), null)
-                        }
+                        alCambiar(perfil.copy(id = 0L), null)
                         return@addSnapshotListener
                     }
 
@@ -221,9 +238,7 @@ object PerfilNube {
                     }
 
                     // Mapeo continuo si es el mismo dispositivo
-                    snapshot.toObject(MemberProfile::class.java)?.let {
-                        alCambiar(it.copy(id = 0L), idDispositivoRemoto)
-                    }
+                    alCambiar(perfil.copy(id = 0L), idDispositivoRemoto)
                 }
             listenerRegistration
         } catch (error: Exception) {

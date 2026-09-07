@@ -192,6 +192,11 @@ object PreferenciasApp {
         get() = prefs.getBoolean("odometro_global_activo", false)
         set(value) = prefs.edit().putBoolean("odometro_global_activo", value).apply()
 
+    /** Radar Táctico / Compartir ubicación persistente */
+    var radarActivo: Boolean
+        get() = prefs.getBoolean("radar_activo_persistente", false)
+        set(value) = prefs.edit().putBoolean("radar_activo_persistente", value).apply()
+
     // ─── ACCESOS RÁPIDOS BARRA INFERIOR (PERSISTENCIA TOTAL) ─────────────────
     private const val KEY_BOTTOM_TABS = "accesos_rapidos_bottom_tabs_config"
 

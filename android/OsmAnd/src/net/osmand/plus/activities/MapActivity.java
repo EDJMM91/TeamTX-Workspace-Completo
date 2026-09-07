@@ -445,6 +445,10 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 							String avatar = prefs.getString("radar_avatar", "");
 							telClass.getMethod("activar", Context.class, String.class, String.class, String.class, String.class)
 								.invoke(null, MapActivity.this, uid, nombre, rango, avatar);
+							
+							// Persistir globalmente para que al reabrir la app siga activo
+							getSharedPreferences("team_tx_app_preferences", MODE_PRIVATE).edit().putBoolean("radar_activo_persistente", true).apply();
+
 							net.osmand.plus.OsmandApplication osmApp = (net.osmand.plus.OsmandApplication) getApplication();
 							gestorClass.getMethod("iniciar",
 								Class.forName("net.osmand.plus.OsmandApplication"),
@@ -454,11 +458,30 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 						} else {
 							telClass.getMethod("desactivar", Context.class).invoke(null, MapActivity.this);
 							gestorClass.getMethod("detener").invoke(null);
+
+							// Persistir globalmente la desactivación
+							getSharedPreferences("team_tx_app_preferences", MODE_PRIVATE).edit().putBoolean("radar_activo_persistente", false).apply();
+							
 							android.widget.Toast.makeText(MapActivity.this, "📡 Radar Táctico: DESACTIVADO", android.widget.Toast.LENGTH_SHORT).show();
 						}
 					} catch (Exception e) {
 						android.util.Log.w("MAPA_TX", "Error al alternar radar: " + e.getMessage());
 					}
+				});
+			}
+
+			// 6. Botón Radio Mesh (Alineado debajo del radar)
+			View btnRadio = findViewById(R.id.btn_team_tx_radio_mesh);
+			if (btnRadio != null) {
+				final GradientDrawable bgRadio = new GradientDrawable();
+				bgRadio.setShape(GradientDrawable.OVAL);
+				bgRadio.setColor(Color.parseColor("#FF6B00")); // Naranja Mesh
+				btnRadio.setBackground(bgRadio);
+
+				btnRadio.setOnClickListener(v -> {
+					Intent intent = new Intent("com.example.meshtx.ACTIVAR_BURBUJA");
+					sendBroadcast(intent);
+					android.widget.Toast.makeText(MapActivity.this, "🎙️ Intercomunicador Mesh TX (Malla) Activado", android.widget.Toast.LENGTH_SHORT).show();
 				});
 			}
 		} catch (Exception ignored) {}
