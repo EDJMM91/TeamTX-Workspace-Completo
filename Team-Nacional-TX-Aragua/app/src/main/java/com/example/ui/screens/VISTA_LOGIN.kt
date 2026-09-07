@@ -52,6 +52,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun VistaLogin(
     onRequestCodeLogin: suspend (code: String) -> Pair<Boolean, String>,
+    onLoginWithEmailAndCode: suspend (email: String, code: String) -> Pair<Boolean, String> = { _, _ -> Pair(false, "") },
+    onVerificarEstadoCorreo: suspend (email: String) -> Triple<Boolean, String, String> = { Triple(false, "", "") },
     onSubmitAccessRequest: (name: String, phone: String, dni: String, brand: String, model: String, color: String, plate: String, chapter: String, reason: String, birthDate: String, role: String) -> Boolean,
     onSolicitarCodigoPorCorreo: suspend (email: String) -> Pair<Boolean, String> = { Pair(false, "") },
     attemptsLeft: Int,
@@ -69,6 +71,7 @@ fun VistaLogin(
     var showIconMenuDialog by remember { mutableStateOf(false) }
     var showRequestCodeDialog by remember { mutableStateOf(false) }
     var showEmailRecoveryDialog by remember { mutableStateOf(false) }
+    var correoPrellenadoSolicitud by remember { mutableStateOf("") }
 
     fun ejecutarLogin() {
         val codigoLimpio = inviteCode.trim()
@@ -503,12 +506,19 @@ fun VistaLogin(
     }
 
     // ==========================================
-    // DIALOG: RECUPERAR ACCESO CON CORREO SINCRONIZADO
+    // DIALOG: ACCESO CON CORREO VINCULADO (CÓDIGO COMO CONTRASEÑA)
     // ==========================================
     if (showEmailRecoveryDialog) {
-        DialogoRecuperarPorCorreo(
+        DialogoAccesoPorCorreo(
             onDismiss = { showEmailRecoveryDialog = false },
-            onSolicitarCodigoPorCorreo = onSolicitarCodigoPorCorreo
+            onVerificarEstadoCorreo = onVerificarEstadoCorreo,
+            onLoginWithEmailAndCode = onLoginWithEmailAndCode,
+            onSolicitarCodigoDirectiva = onSolicitarCodigoPorCorreo,
+            onAbrirSolicitudDirectiva = { email ->
+                correoPrellenadoSolicitud = email
+                showEmailRecoveryDialog = false
+                showRequestCodeDialog = true
+            }
         )
     }
 
@@ -562,8 +572,8 @@ fun VistaLogin(
                     )
 
                     ListItem(
-                        headlineContent = { Text("Recuperar con Correo Sincronizado", fontWeight = FontWeight.Bold, color = MotoOrangePrimary, fontSize = 13.5.sp) },
-                        supportingContent = { Text("Si ya eres miembro, verifica tu correo", fontSize = 11.sp, color = Color(0xFF64748B)) },
+                        headlineContent = { Text("Ingresar con Correo Vinculado", fontWeight = FontWeight.Bold, color = MotoOrangePrimary, fontSize = 13.5.sp) },
+                        supportingContent = { Text("Si ya tienes tu cuenta vinculada, accede con tu código", fontSize = 11.sp, color = Color(0xFF64748B)) },
                         leadingContent = { Icon(Icons.Default.AlternateEmail, contentDescription = null, tint = MotoOrangePrimary) },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable {
@@ -620,20 +630,33 @@ fun VistaLogin(
 }
 
 // ==========================================
-// DIALOG: RECUPERACIÓN CON CORREO
+// DIALOG: ACCESO / RECUPERACIÓN CON CORREO (CÓDIGO COMO CONTRASEÑA)
 // ==========================================
+
+private enum class PasoAccesoCorreo {
+    VERIFICAR_CORREO,
+    INGRESAR_CODIGO_PASSWORD,
+    CORREO_NO_VINCULADO
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DialogoRecuperarPorCorreo(
+private fun DialogoAccesoPorCorreo(
     onDismiss: () -> Unit,
-    onSolicitarCodigoPorCorreo: suspend (email: String) -> Pair<Boolean, String>
+    onVerificarEstadoCorreo: suspend (email: String) -> Triple<Boolean, String, String>,
+    onLoginWithEmailAndCode: suspend (email: String, code: String) -> Pair<Boolean, String>,
+    onSolicitarCodigoDirectiva: suspend (email: String) -> Pair<Boolean, String>,
+    onAbrirSolicitudDirectiva: (email: String) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
+    var pasoActual by remember { mutableStateOf(PasoAccesoCorreo.VERIFICAR_CORREO) }
     var emailInput by remember { mutableStateOf("") }
+    var codigoInput by remember { mutableStateOf("") }
+    var mostrarCodigo by remember { mutableStateOf(false) }
+    var nombrePilotoDetectado by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
-    var resultadoMensaje by remember { mutableStateOf<String?>(null) }
-    var esExitoso by remember { mutableStateOf(false) }
+    var errorMensaje by remember { mutableStateOf<String?>(null) }
+    var exitoMensaje by remember { mutableStateOf<String?>(null) }
 
     val tfColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Color(0xFF0F172A),
@@ -652,8 +675,8 @@ private fun DialogoRecuperarPorCorreo(
             shape = RoundedCornerShape(22.dp),
             color = Color.White,
             border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-            shadowElevation = 12.dp,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            shadowElevation = 14.dp,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -662,6 +685,7 @@ private fun DialogoRecuperarPorCorreo(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                // Cabecera del diálogo
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -677,118 +701,310 @@ private fun DialogoRecuperarPorCorreo(
                             modifier = Modifier.size(34.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.AlternateEmail, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.AlternateEmail,
+                                    contentDescription = null,
+                                    tint = MotoOrangePrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                         Text(
-                            text = "RECUPERAR ACCESO",
+                            text = if (pasoActual == PasoAccesoCorreo.INGRESAR_CODIGO_PASSWORD) "CONTRASEÑA DE ACCESO" else "ACCESO CON CORREO",
                             fontWeight = FontWeight.Black,
                             color = Color(0xFF0F172A),
-                            fontSize = 15.sp
+                            fontSize = 14.sp
                         )
                     }
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
                         Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color(0xFF64748B))
                     }
                 }
 
-                Text(
-                    text = "Ingresa el correo electrónico con el que te registraste en Team TX. Verificaremos tu cuenta en el servidor de Firebase y solicitaremos tu nuevo código a la directiva.",
-                    fontSize = 12.sp,
-                    color = Color(0xFF64748B),
-                    lineHeight = 16.sp
-                )
-
-                OutlinedTextField(
-                    value = emailInput,
-                    onValueChange = {
-                        emailInput = it
-                        resultadoMensaje = null
-                    },
-                    label = { Text("Correo Electrónico Sincronizado") },
-                    placeholder = { Text("ejemplo@gmail.com") },
-                    colors = tfColors,
-                    leadingIcon = {
-                        Icon(Icons.Default.Email, contentDescription = null, tint = MotoOrangePrimary)
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Done
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                AnimatedVisibility(visible = resultadoMensaje != null) {
+                // Alertas de error o éxito
+                AnimatedVisibility(visible = errorMensaje != null) {
                     Surface(
-                        color = if (esExitoso) Color(0xFFF0FDF4) else Color(0xFFFEF2F2),
-                        border = BorderStroke(1.dp, if (esExitoso) Color(0xFF86EFAC) else Color(0xFFFCA5A5)),
+                        color = Color(0xFFFEF2F2),
+                        border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.Top,
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = if (esExitoso) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
-                                contentDescription = null,
-                                tint = if (esExitoso) Color(0xFF16A34A) else Color(0xFFDC2626),
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = resultadoMensaje ?: "",
-                                color = if (esExitoso) Color(0xFF15803D) else Color(0xFFB91C1C),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                lineHeight = 16.sp
-                            )
+                            Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                            Text(text = errorMensaje ?: "", color = Color(0xFFB91C1C), fontSize = 11.5.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
 
-                Button(
-                    onClick = {
-                        if (emailInput.isBlank()) {
-                            resultadoMensaje = "Ingresa tu correo electrónico."
-                            esExitoso = false
-                            return@Button
-                        }
-                        isLoading = true
-                        resultadoMensaje = null
-                        coroutineScope.launch {
-                            val (ok, msg) = onSolicitarCodigoPorCorreo(emailInput)
-                            isLoading = false
-                            esExitoso = ok
-                            resultadoMensaje = msg
-                        }
-                    },
-                    enabled = !isLoading,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MotoOrangePrimary,
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                    } else {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("VERIFICAR Y SOLICITAR CÓDIGO", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
-                }
-
-                if (esExitoso) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        shape = RoundedCornerShape(12.dp),
+                AnimatedVisibility(visible = exitoMensaje != null) {
+                    Surface(
+                        color = Color(0xFFF0FDF4),
+                        border = BorderStroke(1.dp, Color(0xFF86EFAC)),
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("IR A INGRESAR CÓDIGO", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(18.dp))
+                            Text(text = exitoMensaje ?: "", color = Color(0xFF15803D), fontSize = 11.5.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+
+                when (pasoActual) {
+                    PasoAccesoCorreo.VERIFICAR_CORREO -> {
+                        Text(
+                            text = "Ingresa tu correo vinculado. El código asignado por la directiva funciona como tu contraseña exclusiva.",
+                            fontSize = 12.sp,
+                            color = Color(0xFF64748B),
+                            lineHeight = 16.sp
+                        )
+
+                        OutlinedTextField(
+                            value = emailInput,
+                            onValueChange = {
+                                emailInput = it
+                                errorMensaje = null
+                                exitoMensaje = null
+                            },
+                            label = { Text("Correo Electrónico") },
+                            placeholder = { Text("ejemplo@gmail.com") },
+                            colors = tfColors,
+                            leadingIcon = {
+                                Icon(Icons.Default.Email, contentDescription = null, tint = MotoOrangePrimary)
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Button(
+                            onClick = {
+                                val correoLimpio = emailInput.trim().lowercase()
+                                if (correoLimpio.isBlank() || !correoLimpio.contains("@")) {
+                                    errorMensaje = "Ingresa un correo electrónico válido."
+                                    return@Button
+                                }
+                                isLoading = true
+                                errorMensaje = null
+                                coroutineScope.launch {
+                                    try {
+                                        val (vinculado, nombre, _) = onVerificarEstadoCorreo(correoLimpio)
+                                        isLoading = false
+                                        if (vinculado) {
+                                            nombrePilotoDetectado = nombre
+                                            pasoActual = PasoAccesoCorreo.INGRESAR_CODIGO_PASSWORD
+                                        } else {
+                                            pasoActual = PasoAccesoCorreo.CORREO_NO_VINCULADO
+                                        }
+                                    } catch (e: Exception) {
+                                        isLoading = false
+                                        errorMensaje = "Error al verificar correo en servidor: ${e.message}"
+                                    }
+                                }
+                            },
+                            enabled = !isLoading,
+                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary, contentColor = Color.White),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("VERIFICAR CORREO", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    PasoAccesoCorreo.INGRESAR_CODIGO_PASSWORD -> {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFF1F5F9),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "CUENTA ENCONTRADA EN FIREBASE",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MotoOrangePrimary
+                                )
+                                Text(
+                                    text = emailInput.trim().lowercase(),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A)
+                                )
+                                if (nombrePilotoDetectado.isNotBlank()) {
+                                    Text(
+                                        text = "Piloto: $nombrePilotoDetectado",
+                                        fontSize = 11.5.sp,
+                                        color = Color(0xFF475569)
+                                    )
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = "Ingresa tu código de acceso exclusivo (contraseña de tu cuenta vinculada):",
+                            fontSize = 12.sp,
+                            color = Color(0xFF64748B)
+                        )
+
+                        OutlinedTextField(
+                            value = codigoInput,
+                            onValueChange = {
+                                codigoInput = it
+                                errorMensaje = null
+                            },
+                            label = { Text("Código de Acceso (Contraseña)") },
+                            placeholder = { Text("Ej: TX-XXXX o código asignado") },
+                            visualTransformation = if (mostrarCodigo) VisualTransformation.None else PasswordVisualTransformation(),
+                            colors = tfColors,
+                            trailingIcon = {
+                                IconButton(onClick = { mostrarCodigo = !mostrarCodigo }) {
+                                    Icon(
+                                        if (mostrarCodigo) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = null,
+                                        tint = Color(0xFF64748B)
+                                    )
+                                }
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Button(
+                            onClick = {
+                                val codigoLimpio = codigoInput.trim()
+                                if (codigoLimpio.isBlank()) {
+                                    errorMensaje = "Ingresa tu código de acceso."
+                                    return@Button
+                                }
+                                isLoading = true
+                                errorMensaje = null
+                                coroutineScope.launch {
+                                    val (ok, msg) = onLoginWithEmailAndCode(emailInput.trim().lowercase(), codigoLimpio)
+                                    isLoading = false
+                                    if (ok) {
+                                        onDismiss()
+                                    } else {
+                                        errorMensaje = msg
+                                    }
+                                }
+                            },
+                            enabled = !isLoading,
+                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary, contentColor = Color.White),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("ACCEDER A TEAM TX", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+
+                        TextButton(
+                            onClick = {
+                                pasoActual = PasoAccesoCorreo.VERIFICAR_CORREO
+                                codigoInput = ""
+                                errorMensaje = null
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Usar otro correo electrónico", color = Color(0xFF64748B), fontSize = 12.sp)
+                        }
+                    }
+
+                    PasoAccesoCorreo.CORREO_NO_VINCULADO -> {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFFFFBEB),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = "CORREO NO VINCULADO",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFB45309)
+                                )
+                                Text(
+                                    text = "El correo ${emailInput.trim()} no posee un código asignado ni se encuentra vinculado en Firebase.",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF92400E),
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                isLoading = true
+                                errorMensaje = null
+                                exitoMensaje = null
+                                coroutineScope.launch {
+                                    val (ok, msg) = onSolicitarCodigoDirectiva(emailInput.trim().lowercase())
+                                    isLoading = false
+                                    if (ok) {
+                                        exitoMensaje = msg
+                                    } else {
+                                        errorMensaje = msg
+                                    }
+                                }
+                            },
+                            enabled = !isLoading,
+                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary, contentColor = Color.White),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("SOLICITAR CÓDIGO A LA DIRECTIVA", fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                onAbrirSolicitudDirectiva(emailInput.trim())
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF0F172A))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("LLENAR FORMULARIO DE INGRESO", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
+                        }
+
+                        TextButton(
+                            onClick = {
+                                pasoActual = PasoAccesoCorreo.VERIFICAR_CORREO
+                                errorMensaje = null
+                                exitoMensaje = null
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Probar con otro correo", color = Color(0xFF64748B), fontSize = 12.sp)
+                        }
                     }
                 }
             }

@@ -68,6 +68,8 @@ fun ProfileAndAdminScreen(
     onUpdateProfile: (MemberProfile) -> Unit,
     onVincularGoogle: (String, String, String?) -> Unit = { _, _, _ -> },
     onDesvincularGoogle: () -> Unit = {},
+    onCambiarCodigoAcceso: suspend (String) -> Pair<Boolean, String> = { _ -> Pair(false, "") },
+    onCambiarCuentaDev: suspend (String) -> Pair<Boolean, String> = { _ -> Pair(false, "") },
     onUnlockWithMasterCode: suspend (String) -> Pair<Boolean, String> = { _ -> Pair(false, "") },
     onRateMember: (MemberProfile, Boolean, String, Int, String) -> Unit = { _, _, _, _, _ -> },
     onLogout: () -> Unit = {},
@@ -77,10 +79,13 @@ fun ProfileAndAdminScreen(
     var showMemberSelectorDialog by remember { mutableStateOf(false) }
     var showLogoutConfirmDialog by remember { mutableStateOf(false) }
     var showDesvincularConfirmDialog by remember { mutableStateOf(false) }
+    var showCambiarCodigoDialog by remember { mutableStateOf(false) }
+    var showCambiarDevDialog by remember { mutableStateOf(false) }
     var ratingTargetMember by remember { mutableStateOf<MemberProfile?>(null) }
     var isGoogleAuthLoading by remember { mutableStateOf(false) }
     var tipoFotoSeleccionada by remember { mutableStateOf(PreferenciasApp.carnetTipoFoto) }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // ═══════════════════════════════════════════════
     // GOOGLE SIGN-IN: Usando módulo centralizado
@@ -596,6 +601,43 @@ fun ProfileAndAdminScreen(
 
                                     Icon(Icons.Default.CheckCircle, contentDescription = "Vinculado", tint = Color(0xFF15803D), modifier = Modifier.size(20.dp))
                                 }
+
+                                // Opciones de Seguridad y Credenciales: Código Personalizado y Switch Dev
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DashboardFondoConfig.ColorBordeClaro)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { showCambiarCodigoDialog = true },
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF8FAFC)),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f).height(34.dp)
+                                    ) {
+                                        Icon(Icons.Default.Key, contentDescription = null, modifier = Modifier.size(14.dp), tint = MotoOrangePrimary)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Código de Acceso", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
+                                    }
+
+                                    val esDev = currentMember?.role == MemberRole.DESARROLLADOR
+                                    if (esDev) {
+                                        OutlinedButton(
+                                            onClick = { showCambiarDevDialog = true },
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, Color(0xFF93C5FD)),
+                                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFEFF6FF)),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                            modifier = Modifier.weight(1f).height(34.dp)
+                                        ) {
+                                            Icon(Icons.Default.ManageAccounts, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF2563EB))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Cambiar Cuenta Dev", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1D4ED8))
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -903,14 +945,14 @@ fun ProfileAndAdminScreen(
             },
             title = {
                 Text(
-                    "¿Desvincular Cuenta Google?",
+                    "¿Desvincular Cuenta?",
                     fontWeight = FontWeight.Black,
                     color = DashboardFondoConfig.ColorTextoPrimario
                 )
             },
             text = {
                 Text(
-                    "¿Estás seguro de desvincular tu cuenta Google? El correo quedará libre. Tus datos locales se mantendrán.",
+                    "¿Estás seguro de desvincular tu cuenta? Al hacerlo, tu correo y código quedarán 100% libres para nuevas vinculaciones y se cerrará la sesión de forma limpia para evitar cruce de datos con otros dispositivos.",
                     fontSize = 13.sp,
                     color = DashboardFondoConfig.ColorTextoSecundario
                 )
@@ -929,6 +971,193 @@ fun ProfileAndAdminScreen(
             dismissButton = {
                 OutlinedButton(onClick = { showDesvincularConfirmDialog = false }) {
                     Text("Cancelar", color = DashboardFondoConfig.ColorTextoSecundario)
+                }
+            }
+        )
+    }
+
+    // Diálogo para Cambiar Código de Acceso Personalizado
+    if (showCambiarCodigoDialog) {
+        var nuevoCodigoInput by remember { mutableStateOf("") }
+        var isSavingCode by remember { mutableStateOf(false) }
+        var errorCodeMsg by remember { mutableStateOf<String?>(null) }
+
+        AlertDialog(
+            onDismissRequest = { if (!isSavingCode) showCambiarCodigoDialog = false },
+            containerColor = Color.White,
+            icon = {
+                Icon(
+                    Icons.Default.Key,
+                    contentDescription = null,
+                    tint = MotoOrangePrimary,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    "Personalizar Código de Acceso",
+                    fontWeight = FontWeight.Black,
+                    color = DashboardFondoConfig.ColorTextoPrimario,
+                    fontSize = 16.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "Ingresa tu nuevo código personal (mínimo 5 caracteres). Este código quedará vinculado a tu correo y servirá como tu contraseña única de acceso.",
+                        fontSize = 12.5.sp,
+                        color = DashboardFondoConfig.ColorTextoSecundario
+                    )
+
+                    OutlinedTextField(
+                        value = nuevoCodigoInput,
+                        onValueChange = {
+                            nuevoCodigoInput = it.uppercase()
+                            errorCodeMsg = null
+                        },
+                        label = { Text("Nuevo Código") },
+                        placeholder = { Text("Ej: MI-CLAVE-2026") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MotoOrangePrimary,
+                            focusedLabelColor = MotoOrangePrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (errorCodeMsg != null) {
+                        Text(
+                            text = errorCodeMsg ?: "",
+                            color = Color(0xFFE11D48),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val codigoLimpio = nuevoCodigoInput.trim()
+                        if (codigoLimpio.length < 5) {
+                            errorCodeMsg = "El código debe tener al menos 5 caracteres."
+                            return@Button
+                        }
+                        isSavingCode = true
+                        errorCodeMsg = null
+                        coroutineScope.launch {
+                            val (exito, mensaje) = onCambiarCodigoAcceso(codigoLimpio)
+                            isSavingCode = false
+                            if (exito) {
+                                Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
+                                showCambiarCodigoDialog = false
+                            } else {
+                                errorCodeMsg = mensaje
+                            }
+                        }
+                    },
+                    enabled = !isSavingCode,
+                    colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
+                ) {
+                    if (isSavingCode) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Guardar Código", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showCambiarCodigoDialog = false },
+                    enabled = !isSavingCode
+                ) {
+                    Text("Cancelar", color = DashboardFondoConfig.ColorTextoSecundario)
+                }
+            }
+        )
+    }
+
+    // Diálogo Switch de Cuenta Exclusivo para Desarrolladores
+    if (showCambiarDevDialog) {
+        var isSwitching by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { if (!isSwitching) showCambiarDevDialog = false },
+            containerColor = Color.White,
+            icon = {
+                Icon(
+                    Icons.Default.ManageAccounts,
+                    contentDescription = null,
+                    tint = Color(0xFF2563EB),
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    "Cambiar de Cuenta (Dev Switch)",
+                    fontWeight = FontWeight.Black,
+                    color = DashboardFondoConfig.ColorTextoPrimario,
+                    fontSize = 16.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Selecciona la cuenta de desarrollador a la que deseas alternar. El sistema ejecutará un reinicio absoluto para cargar los datos limpios de la cuenta elegida.",
+                        fontSize = 12.5.sp,
+                        color = DashboardFondoConfig.ColorTextoSecundario
+                    )
+
+                    // Opción Dev 1
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9)),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier.fillMaxWidth().clickable(enabled = !isSwitching) {
+                            isSwitching = true
+                            coroutineScope.launch {
+                                val (ok, msg) = onCambiarCuentaDev("DESARROLLO1")
+                                isSwitching = false
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                if (ok) showCambiarDevDialog = false
+                            }
+                        }
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("👑 Desarrollador 1 (Dev EM)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("eduardo.androide.em@gmail.com • Ficha: TX-DEV-001", fontSize = 11.sp, color = Color(0xFF64748B))
+                        }
+                    }
+
+                    // Opción Dev 2
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9)),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier.fillMaxWidth().clickable(enabled = !isSwitching) {
+                            isSwitching = true
+                            coroutineScope.launch {
+                                val (ok, msg) = onCambiarCuentaDev("DESARROLLO2")
+                                isSwitching = false
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                if (ok) showCambiarDevDialog = false
+                            }
+                        }
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("👑 Desarrollador 2 (Dev Matos)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                            Text("eduardo.jose.marquez.matos@gmail.com • Ficha: TX-DEV-002", fontSize = 11.sp, color = Color(0xFF64748B))
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showCambiarDevDialog = false },
+                    enabled = !isSwitching
+                ) {
+                    Text("Cerrar", color = DashboardFondoConfig.ColorTextoSecundario)
                 }
             }
         )

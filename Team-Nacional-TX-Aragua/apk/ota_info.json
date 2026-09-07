@@ -1,17 +1,19 @@
 {
-  "versionCode": 17,
-  "versionName": "1.3.6-beta",
+  "versionCode": 18,
+  "versionName": "1.3.7-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "notas": "🚀 Release v1.3.6-beta (Seguridad y Sesión Única): Seguridad de cuentas con Reinicio Absoluto automático al cambiar de código, vinculación 1-a-1 atómica en Firestore, visualización de avatares universales (Base64/HTTPS) en el mapa Radar y depuración de perfiles locales.",
+  "notas": "🚀 Release v1.3.7-beta (Vinculación Estricta 1-a-1 y Código como Contraseña): Autenticación estricta donde el código actúa como contraseña única por correo, personalización de código en Carnet TX, cambio de cuenta de desarrollo, limpieza integral de Firebase y fin de conflictos multi-dispositivo en Chat y Radar.",
   "novedades": [
-    "🆕 Reinicio Absoluto: Al cambiar de cuenta o código, la app borra automáticamente datos locales, preferencias y caché de imágenes para evitar mezcla de perfiles.",
-    "📸 Avatares Universales: Solución al bug de fotos en el mapa Radar; ahora todos los pilotos ven las fotos de los demás mediante conversión automática a Base64/HTTPS.",
-    "🛡️ Limpieza de Cuentas Fijas: Reducción a 2 cuentas de desarrollador y 1 de presidente para mayor control dinámico.",
-    "🔗 Sincronización OTA: Activación de la conexión automática entre el módulo Info y el sistema de avisos del club."
+    "🔑 Código como Contraseña: Cada correo vinculado posee estrictamente su código único como contraseña de acceso en Firebase.",
+    "📱 Fin a Conflictos Multi-dispositivo: Eliminación de sesiones cruzadas en Chat y Radar; radar_en_vivo purgado y saneado en tiempo real.",
+    "🎛️ Código Personalizado en Carnet TX: Nueva opción en el Carnet para cambiar el código de acceso y sincronizarlo inmediatamente a la cuenta de Firebase.",
+    "🔄 Cambio de Cuenta para Desarrollador: Selector rápido en Carnet TX exclusivo para desarrolladores para alternar entre DESARROLLO1 y DESARROLLO2 sin residuos locales.",
+    "🧹 Purga Absoluta al Desvincular: Al desvincular o cerrar sesión, se detiene la telemetría en vivo, se eliminan los rastros en Firestore y se limpian Room, SharedPreferences y caché de Coil.",
+    "📧 Flujo Renovado de Acceso por Correo: Pantalla de login de 2 pasos; si el correo está vinculado solicita su código/contraseña, si no está vinculado permite solicitarlo directamente a la directiva."
   ],
   "correcciones": [
-    "Corregido: Error de visualización de fotos de otros pilotos en el mapa (antes se veía solo la letra inicial).",
-    "Corregido: Mezcla de datos entre dispositivos al usar códigos de credenciales guardados.",
-    "Corregido: Crash residual en el módulo de notificaciones al filtrar por categorías vacías."
+    "Corregido: Detección errónea de sesiones previas en otro dispositivo y fantasmas en el mapa Radar.",
+    "Corregido: Cruce de identidad en el chat entre dispositivos de prueba con códigos compartidos.",
+    "Corregido: Residuos en Firebase Firestore (vinculos_google, usuarios, radar_en_vivo) reseteados a estado base limpio con únicamente 2 cuentas maestras de desarrollo."
   ]
 }

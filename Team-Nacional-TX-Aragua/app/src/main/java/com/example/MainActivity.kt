@@ -195,6 +195,8 @@ fun AppEntryPoint(
     } else if (!isAuthenticated) {
         VistaLogin(
             onRequestCodeLogin = { code -> viewModel.loginWithCode(code) },
+            onLoginWithEmailAndCode = { email, code -> viewModel.loginWithEmailAndCode(email, code) },
+            onVerificarEstadoCorreo = { email -> viewModel.verificarEstadoCorreoParaLogin(email) },
             onSubmitAccessRequest = { name, phone, dni, brand, model, color, plate, chapter, reason, birthDate, role ->
                 viewModel.submitAccessRequest(name, phone, dni, brand, model, color, plate, chapter, reason, birthDate, role)
             },
@@ -1061,6 +1063,8 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                     Toast.makeText(context, mensaje, Toast.LENGTH_LONG).show()
                                 }
                             },
+                            onCambiarCodigoAcceso = { code -> viewModel.cambiarCodigoAcceso(code) },
+                            onCambiarCuentaDev = { code -> viewModel.cambiarCuentaDesarrollador(code) },
                             onUnlockWithMasterCode = { code -> viewModel.loginWithCode(code) },
                             onRateMember = { target, isPos, cat, pts, comm ->
                                 viewModel.ratePilotMember(target.id, isPos, cat, pts, comm) { _, msg ->

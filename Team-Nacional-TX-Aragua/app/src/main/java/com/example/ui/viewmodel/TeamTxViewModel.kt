@@ -2565,7 +2565,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 role = MemberRole.DESARROLLADOR,
                 isDirectiva = true,
                 solvencyStatus = true,
-                avatarInitials = "EM"
+                avatarInitials = "EM",
+                email = "eduardo.androide.em@gmail.com"
             )
             isDev2 -> MemberProfile(
                 id = 1002L,
@@ -2575,7 +2576,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 role = MemberRole.DESARROLLADOR,
                 isDirectiva = true,
                 solvencyStatus = true,
-                avatarInitials = "JM"
+                avatarInitials = "JM",
+                email = "eduardo.jose.marquez.matos@gmail.com"
             )
             isPresident -> MemberProfile(
                 id = 1000L,
@@ -2611,24 +2613,199 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         if (newProfile != null) {
+            val emailFinal = newProfile.email?.ifBlank { null }
             repository.insertMember(newProfile)
             _currentMemberId.value = newProfile.id
             _isAuthenticated.value = true
             _isDirectivaMode.value = newProfile.isDirectiva
-            _isLeaderSuperAdmin.value = newProfile.role == MemberRole.PRESIDENTE
+            _isLeaderSuperAdmin.value = newProfile.role == MemberRole.PRESIDENTE || newProfile.role == MemberRole.DESARROLLADOR
             
-            // Login anónimo preventivo
+            // Login anónimo preventivo si no hay sesión
             if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
                 try {
                     com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously().await()
                 } catch (_: Exception) {}
             }
             
-            saveSession(newProfile.id, null, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+            saveSession(newProfile.id, emailFinal, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
             return Pair(true, "¡Acceso concedido como ${newProfile.role.displayName}!")
         }
 
         return Pair(false, "Error inesperado al validar credenciales.")
+    }
+
+    /**
+     * Consulta si un correo ya posee código asignado o si es un correo nuevo que requiere solicitud a la Directiva.
+     * Retorna Triple(estaVinculado: Boolean, codigoRegistrado: String, nombrePiloto: String)
+     */
+    suspend fun verificarEstadoCorreoParaLogin(email: String): Triple<Boolean, String, String> {
+        return VINCULACION.consultarEstadoCorreo(email)
+    }
+
+    /**
+     * Inicia sesión validando el par único Correo <-> Código (el código es la contraseña del correo).
+     */
+    suspend fun loginWithEmailAndCode(email: String, inputCode: String): Pair<Boolean, String> {
+        val cleanEmail = email.trim().lowercase()
+        val codeTrim = inputCode.trim().uppercase()
+
+        if (cleanEmail.isBlank() || codeTrim.isBlank()) {
+            return Pair(false, "Debes ingresar tu correo y el código asignado.")
+        }
+
+        // 1. Validar si el código corresponde al correo en Firestore / Credenciales maestras
+        val (esValido, mensajeValidacion) = VINCULACION.validarCodigoParaCorreo(cleanEmail, codeTrim)
+        if (!esValido) {
+            return Pair(false, mensajeValidacion)
+        }
+
+        // 2. REINICIO ABSOLUTO previo: Limpiar sesión previa para no cruzar perfiles
+        detenerSincronizacionDePerfil()
+        _sesionDesplazadaPorOtroDispositivo.value = false
+        repository.nukeEverything()
+        clearSession()
+
+        // 3. Perfiles de desarrollador
+        val isDev1 = cleanEmail == "eduardo.androide.em@gmail.com"
+        val isDev2 = cleanEmail == "eduardo.jose.marquez.matos@gmail.com"
+
+        var perfilCargado: MemberProfile? = when {
+            isDev1 -> MemberProfile(
+                id = 1001L,
+                fullName = "Eduardo Marquez (EM)",
+                nickname = "Dev EM",
+                memberNumber = "TX-DEV-001",
+                role = MemberRole.DESARROLLADOR,
+                isDirectiva = true,
+                solvencyStatus = true,
+                avatarInitials = "EM",
+                email = cleanEmail
+            )
+            isDev2 -> MemberProfile(
+                id = 1002L,
+                fullName = "Eduardo Marquez (Matos)",
+                nickname = "Dev Matos",
+                memberNumber = "TX-DEV-002",
+                role = MemberRole.DESARROLLADOR,
+                isDirectiva = true,
+                solvencyStatus = true,
+                avatarInitials = "JM",
+                email = cleanEmail
+            )
+            else -> null
+        }
+
+        // 4. Si no es desarrollador, consultar vínculo en Firestore para obtener UID y perfil
+        var uidFirebase = ""
+        try {
+            val vinculo = PerfilNube.consultarVinculacionPorEmail(cleanEmail)
+            if (vinculo != null) {
+                uidFirebase = vinculo.uid_firebase.ifBlank { vinculo.firebaseUid }
+                val numMiembro = vinculo.numero_miembro.ifBlank { vinculo.memberNumber }.ifBlank { "TX-MIEMBRO" }
+                val nomPiloto = vinculo.nombre_piloto.ifBlank { vinculo.memberName }.ifBlank { "Piloto TX" }
+
+                // Intentar descargar perfil completo de usuarios/{uid}
+                if (uidFirebase.isNotBlank() && perfilCargado == null) {
+                    val remoto = PerfilNube.descargarPerfil(uidFirebase)
+                    if (remoto != null) {
+                        perfilCargado = remoto.copy(
+                            email = cleanEmail,
+                            firebaseUid = uidFirebase,
+                            memberNumber = numMiembro
+                        )
+                    }
+                }
+
+                if (perfilCargado == null) {
+                    perfilCargado = MemberProfile(
+                        id = vinculo.memberId.takeIf { it > 0 } ?: System.currentTimeMillis(),
+                        fullName = nomPiloto,
+                        nickname = nomPiloto.split(" ").firstOrNull() ?: nomPiloto,
+                        memberNumber = numMiembro,
+                        role = MemberRole.MIEMBRO_ACTIVO,
+                        solvencyStatus = true,
+                        email = cleanEmail,
+                        firebaseUid = uidFirebase.ifBlank { null }
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("LOGIN_EMAIL_CODE", "Error consultando perfil remoto: ${e.message}")
+        }
+
+        if (perfilCargado == null) {
+            // Fallback: perfil base limpio vinculado
+            perfilCargado = MemberProfile(
+                id = System.currentTimeMillis(),
+                fullName = "Piloto TX",
+                memberNumber = "TX-PILOTO",
+                role = MemberRole.MIEMBRO_ACTIVO,
+                solvencyStatus = true,
+                email = cleanEmail
+            )
+        }
+
+        val idDispositivoLocal = SEGURIDAD_CUENTAS.obtenerIdDispositivo(getApplication())
+
+        // Actualizar dispositivo activo en Firestore
+        if (uidFirebase.isNotBlank()) {
+            PerfilNube.actualizarDispositivoActivo(cleanEmail, uidFirebase, idDispositivoLocal)
+        }
+
+        // Guardar perfil en Room
+        repository.insertMember(perfilCargado)
+        _currentMemberId.value = perfilCargado.id
+        _isAuthenticated.value = true
+        _isDirectivaMode.value = perfilCargado.isDirectiva || perfilCargado.role == MemberRole.DESARROLLADOR || perfilCargado.role == MemberRole.PRESIDENTE
+        _isLeaderSuperAdmin.value = perfilCargado.role == MemberRole.PRESIDENTE || perfilCargado.role == MemberRole.DESARROLLADOR
+
+        // Asegurar Auth anónima preventiva si no hay Auth activa
+        if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
+            try {
+                com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously().await()
+            } catch (_: Exception) {}
+        }
+
+        saveSession(perfilCargado.id, cleanEmail, uidFirebase.ifBlank { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid })
+
+        if (uidFirebase.isNotBlank()) {
+            iniciarSincronizacionDePerfil(uidFirebase)
+        }
+
+        return Pair(true, "¡Acceso concedido exitosamente a ${perfilCargado.fullName}!")
+    }
+
+    /**
+     * Permite al usuario personalizar su código de acceso en Carnet TX, sincronizándolo en Firebase.
+     */
+    suspend fun cambiarCodigoAcceso(nuevoCodigo: String): Pair<Boolean, String> {
+        val member = currentMember.value ?: return Pair(false, "No hay perfil activo.")
+        val email = member.email ?: ""
+        val uid = member.firebaseUid ?: ""
+        if (email.isBlank()) {
+            return Pair(false, "Debes vincular un correo a tu carnet antes de personalizar tu código.")
+        }
+        return VINCULACION.actualizarCodigoAccesoPersonalizado(email, nuevoCodigo, uid)
+    }
+
+    /**
+     * Switch de cuenta exclusivo para Desarrolladores desde Carnet TX.
+     */
+    suspend fun cambiarCuentaDesarrollador(codigoDev: String): Pair<Boolean, String> {
+        val member = currentMember.value
+        val esDev = member?.role == MemberRole.DESARROLLADOR || _isLeaderSuperAdmin.value
+        if (!esDev) {
+            return Pair(false, "Función exclusiva para cuentas con rol Desarrollador.")
+        }
+
+        val codeTrim = codigoDev.trim().uppercase()
+        val emailTarget = when (codeTrim) {
+            "DESARROLLO1", "TX19554402SB" -> "eduardo.androide.em@gmail.com"
+            "DESARROLLO2", "19554402SB" -> "eduardo.jose.marquez.matos@gmail.com"
+            else -> return Pair(false, "Código desarrollador inválido. Usa DESARROLLO1 o DESARROLLO2.")
+        }
+
+        return loginWithEmailAndCode(emailTarget, codeTrim)
     }
 
     fun submitAccessRequest(
@@ -3189,27 +3366,38 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         try {
-            // 2. Detener escucha de sincronización remota
+            // 2. Apagar telemetría GPS y eliminar posición en radar
+            try {
+                com.example.radar.TelemetriaGps.desactivar(getApplication())
+            } catch (_: Exception) {}
+
+            // 3. Detener escucha de sincronización remota
             detenerSincronizacionDePerfil()
 
-            // 3. Limpiar los datos del correo localmente y desconectar el perfil
-            val desvinculado = member.copy(
-                firebaseUid = null,
-                email = "", // Se limpia para liberar el correo
-                profilePhotoUri = null
-            )
-            repository.updateMember(desvinculado)
-
-            // 4. Limpiar sesión en SharedPreferences
-            saveSession(desvinculado.id, "", null)
+            // 4. Limpiar datos locales y cerrar sesión por completo
+            clearSession()
+            repository.nukeEverything()
             com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+            com.example.ui.preferences.PreferenciasApp.carnetTipoFoto = "LOCAL"
 
-            // 5. Cierre forzoso de sesión de Google
+            // 5. Purgar cachés de imágenes
+            try {
+                coil.Coil.imageLoader(getApplication()).memoryCache?.clear()
+                coil.Coil.imageLoader(getApplication()).diskCache?.clear()
+            } catch (_: Exception) {}
+
+            // 6. Cierre forzoso de sesión de Google
             SEGURIDAD_CUENTAS.forzarCierreSesion(getApplication())
 
+            // 7. Resetear estados de sesión reactivos
+            _currentMemberId.value = -1L
+            _isAuthenticated.value = false
+            _isLeaderSuperAdmin.value = false
+            _isDirectivaMode.value = false
             _sesionDesplazadaPorOtroDispositivo.value = false
-            Log.i("GOOGLE_LINK", "✅ Cuenta Google desvinculada exitosamente del perfil: ${member.memberNumber}")
-            return Pair(true, mensajeDesvinculacion)
+
+            Log.i("GOOGLE_LINK", "✅ Cuenta Google desvinculada exitosamente. Sistema reiniciado en 0.")
+            return Pair(true, "✅ Cuenta desvinculada exitosamente. El correo y código han quedado completamente libres.")
         } catch (e: Exception) {
             Log.e("GOOGLE_LINK", "Error al desvincular cuenta Google localmente: ${e.message}", e)
             return Pair(false, "Error al desconectar perfil localmente: ${e.message}")

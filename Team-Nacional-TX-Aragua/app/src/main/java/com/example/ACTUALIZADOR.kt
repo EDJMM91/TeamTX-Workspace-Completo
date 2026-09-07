@@ -104,6 +104,27 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 18,
+            versionName = "1.3.7-beta",
+            titulo = "Vinculación Estricta 1-a-1 (Código como Contraseña), Personalización en Carnet TX y Purga Cero Residuos",
+            fecha = "07 sep 2026",
+            descripcionCorta = "Autenticación 1-a-1 estricta: el código de acceso actúa como la contraseña del correo. Personalización de código en Carnet TX, cambio de cuenta de desarrollo, limpieza integral de Firebase y resolución definitiva de conflictos de sesión entre múltiples dispositivos.",
+            novedades = listOf(
+                "🔑 Código como Contraseña: Cada correo vinculado posee estrictamente su código único como contraseña de acceso en Firebase.",
+                "📱 Fin a Conflictos Multi-dispositivo: Eliminación de sesiones cruzadas en Chat y Radar; radar_en_vivo purgado y saneado en tiempo real.",
+                "🎛️ Código Personalizado en Carnet TX: Nueva opción en el Carnet para cambiar el código de acceso y sincronizarlo inmediatamente a la cuenta de Firebase.",
+                "🔄 Cambio de Cuenta para Desarrollador: Selector rápido en Carnet TX exclusivo para desarrolladores para alternar entre DESARROLLO1 y DESARROLLO2 sin residuos locales.",
+                "🧹 Purga Absoluta al Desvincular: Al desvincular o cerrar sesión, se detiene la telemetría en vivo, se eliminan los rastros en Firestore y se limpian Room, SharedPreferences y caché de Coil.",
+                "📧 Flujo Renovado de Acceso por Correo: Pantalla de login de 2 pasos; si el correo está vinculado solicita su código/contraseña, si no está vinculado permite solicitarlo directamente a la directiva."
+            ),
+            correcciones = listOf(
+                "Corregido: Detección errónea de sesiones previas en otro dispositivo y fantasmas en el mapa Radar.",
+                "Corregido: Cruce de identidad en el chat entre dispositivos de prueba con códigos compartidos.",
+                "Corregido: Residuos en Firebase Firestore (vinculos_google, usuarios, radar_en_vivo) reseteados a estado base limpio con únicamente 2 cuentas maestras de desarrollo."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 17,
             versionName = "1.3.6-beta",
             titulo = "Perfil Desde Cero, Directorio Real y Limpieza Total de Sesión",
@@ -123,7 +144,7 @@ object GestorActualizaciones {
                 "Corregido: correos @teamtx.com ya no aparecen como correos Google vinculados del perfil.",
                 "Corregido: la pantalla login ya no sugiere códigos activos reales como ejemplos."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 16,

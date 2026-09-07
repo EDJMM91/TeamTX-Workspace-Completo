@@ -19,15 +19,26 @@ import kotlinx.coroutines.tasks.await
  */
 data class VinculacionGoogle(
     var email: String = "",
+    var correo: String = "",
     var firebaseUid: String = "",
+    var uid_firebase: String = "",
     var memberNumber: String = "",
+    var numero_miembro: String = "",
     var memberName: String = "",
+    var nombre_piloto: String = "",
     var memberId: Long = 0L,
     var accessCode: String = "",
+    var codigo_acceso: String = "",
     var activeDeviceId: String = "",
+    var id_dispositivo_activo: String = "",
     var linkedAt: Long = 0L,
     var lastActiveTimestamp: Long = 0L
-)
+) {
+    val emailEfectivo: String get() = if (email.isNotBlank()) email else correo
+    val memberNumberEfectivo: String get() = if (memberNumber.isNotBlank()) memberNumber else numero_miembro
+    val codigoAccesoEfectivo: String get() = if (codigo_acceso.isNotBlank()) codigo_acceso else accessCode
+    val activeDeviceIdEfectivo: String get() = if (activeDeviceId.isNotBlank()) activeDeviceId else id_dispositivo_activo
+}
 
 object PerfilNube {
 
@@ -46,7 +57,11 @@ object PerfilNube {
     suspend fun consultarVinculacionPorEmail(correo: String): VinculacionGoogle? {
         return try {
             val idDocumento = sanitizarEmailDocId(correo)
-            val documento = db.collection(COLECCION_VINCULOS).document(idDocumento).get().await()
+            val correoLimpio = correo.trim().lowercase()
+            var documento = db.collection(COLECCION_VINCULOS).document(idDocumento).get().await()
+            if (!documento.exists() && idDocumento != correoLimpio) {
+                documento = db.collection(COLECCION_VINCULOS).document(correoLimpio).get().await()
+            }
             if (documento.exists()) {
                 documento.toObject(VinculacionGoogle::class.java)
             } else {
