@@ -1,18 +1,20 @@
 {
-  "versionCode": 20,
-  "versionName": "1.3.9-beta",
+  "versionCode": 21,
+  "versionName": "1.4.0-beta",
   "urlDescarga": "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=e4b308dc-36e2-45e0-8113-d499ec76fce0",
-  "notas": "🚀 Release v1.3.9-beta (Geolocalización Satelital Precisa SOS, Captura Multi-Proveedor y Centrado en Mapa TX): Eliminación total de coordenadas fijas de Caracas en el sistema SOS. Detección en vivo multi-proveedor (FusedLocation, LocationManager, OsmAnd y Radar TX) con geocodificación inversa real de Venezuela y centrado automático en el mapa sobre la posición exacta del piloto.",
+  "titulo": "Botón SOS Rápido en Mapa TX + Contactos Reales de Especialistas",
+  "notas": "🚀 Release v1.4.0-beta (Botón SOS Rápido en Mapa TX + Contactos Reales de Especialistas): Nuevo botón SOS rápido en la pantalla del Mapa TX. Toca para emitir, mantén presionado para cambiar el tipo. Limpieza total de datos simulados en el módulo SOS: Médico, Mecánico y Seguridad Vial ahora muestran miembros reales registrados en la app.",
   "novedades": [
-    "📍 Coordenadas Exactas del Piloto: El sistema SOS captura satelitalmente en tiempo real la ubicación exacta del piloto donde ocurrió la emergencia.",
-    "🚫 Eliminación de Coordenadas Fijas de Caracas: Cero ubicaciones falsas en Tazón o Caracas; si el dispositivo no tiene GPS al instante, consulta múltiples proveedores satelitales y de red.",
-    "🗺️ Centrado Inmediato en Mapa TX: Al emitir o tocar la alerta SOS, el mapa se enfoca y centra de forma automática en el punto satelital del piloto.",
-    "🔄 Botón de Re-captura GPS en Diálogo: Indicador visual en vivo con spinner de detección y botón para refrescar satélites al instante.",
-    "📋 Copia Satelital al Portapapeles: Copia automática de latitud y longitud exactas para compartir a grupos de rescate y convoyes.",
-    "🇻🇪 Geocodificación Inversa Venezolana: Identificación automática de tramos viales, municipios y referencias viales locales basada en las coordenadas del dispositivo."
+    "🚨 Botón SOS Rápido en Mapa TX: Toca para emitir alerta directamente desde la pantalla del mapa. Mantén presionado para elegir el tipo de emergencia (Gasolina, Mecánico, Caída, Choque, Médico, Seguridad, Alcabala).",
+    "💾 Tipo de Alerta Persistente: El tipo de alerta elegido en el mapa se recuerda entre sesiones para emisión más rápida.",
+    "👨‍⚕️ Contactos Especialistas Reales: El Módulo SOS muestra el nombre y teléfono real del Mecánico Oficial, Médico del Club y Oficial de Seguridad registrados en la app.",
+    "📵 Botones Deshabilitados si No hay Especialista: Si no hay miembro con ese rol, el botón aparece en gris indicando 'Sin asignar' en lugar de marcar un número falso.",
+    "📞 Contacto Familiar Real: El botón de contacto familiar muestra el nombre real del contacto de emergencia registrado en el perfil del piloto.",
+    "📲 Compartir APK por WhatsApp: Desde Vista Info puedes enviar el enlace de descarga a cualquier contacto por WhatsApp."
   ],
   "correcciones": [
-    "Corregido: Alertas SOS reportaban erróneamente Caracas/Tazón al emitirse en otras regiones como Aragua.",
-    "Corregido: Fallback de EmergencyAlert y TeamTxViewModel configurados a resolución satelital dinámica en lugar de valores fijos."
+    "Eliminados números de teléfono falsos: +584129904433 (P. Torrealba), +584245551290 (Dra. Gómez), +584128887766 (Seguridad), +584141234567 (Familiar fijo).",
+    "Corregido fallback de contacto familiar: ya no usa número hardcoded sino emergencyContactPhone real del perfil.",
+    "Corregido bug de navegación inferior: los botones de módulos reconocen inmediatamente el cambio de pantalla."
   ]
 }
