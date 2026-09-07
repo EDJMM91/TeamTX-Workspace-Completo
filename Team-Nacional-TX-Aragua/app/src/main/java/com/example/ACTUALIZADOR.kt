@@ -340,17 +340,17 @@ object GestorActualizaciones {
             versions
         } catch (e: Exception) {
             Log.e(TAG, "Error listando versiones de Firebase Storage: ${e.message}", e)
-            val detalleTop = obtenerDetalleVersion(14, "1.4.0")
+            val detalleTop = obtenerDetalleVersion(16, "1.3.5-beta")
             listOf(
                 StorageApkVersion(
                     fileName = "TeamTX-latest.apk",
                     downloadUrl = fallbackUrl,
-                    sizeBytes = 390525647L,
-                    formattedSize = "372.4 MB",
+                    sizeBytes = 426246144L,
+                    formattedSize = "406.5 MB",
                     updatedTimestamp = System.currentTimeMillis(),
-                    formattedDate = "30 ago 2026, 06:00 PM",
-                    versionName = "v1.4.0 (Recomendada)",
-                    versionCode = 14,
+                    formattedDate = "07 sep 2026, 09:00 PM",
+                    versionName = "v1.3.5-beta (Recomendada)",
+                    versionCode = 16,
                     titulo = detalleTop.titulo,
                     notas = detalleTop.descripcionCorta,
                     novedades = detalleTop.novedades,
@@ -364,13 +364,24 @@ object GestorActualizaciones {
     }
 
     /**
-     * Consulta Firestore en la colección 'configuracion' / documento 'OTA'
-     * con resolución de changelog dinámico por versión.
+     * Consulta las actualizaciones OTA sincronizando en tiempo real con Firebase Storage
+     * y la base de datos Firestore.
      */
     suspend fun verificarActualizacion(): InformacionOta = withContext(Dispatchers.IO) {
         val urlOficialFirebaseStorage = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd"
 
-        // 1. Intentar por Firestore
+        // 1. Consultar PRIMERO el archivo real subido a Firebase Storage
+        var versionStorage: StorageApkVersion? = null
+        try {
+            val lista = obtenerListaVersionesStorage()
+            versionStorage = lista.firstOrNull { it.isRecommendedLatest }
+                ?: lista.maxByOrNull { it.versionCode }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error consultando versiones en Storage: ${e.message}")
+        }
+
+        // 2. Consultar Firestore en colección 'configuracion' / 'OTA'
+        var infoFirestore: InformacionOta? = null
         try {
             val db = FirebaseFirestore.getInstance()
             var doc = db.collection("configuracion").document("OTA").get().await()
@@ -389,7 +400,6 @@ object GestorActualizaciones {
                 val customNotas = doc.getString("notas") ?: ""
                 val customTitulo = doc.getString("titulo") ?: ""
 
-                // Extraer novedades de Firestore si existen como Array o String multilínea
                 val listaNovedadesFirestore = mutableListOf<String>()
                 val rawNovedades = doc.get("novedades")
                 if (rawNovedades is List<*>) {
@@ -404,48 +414,78 @@ object GestorActualizaciones {
                     rawCorrecciones.filterIsInstance<String>().forEach { listaCorreccionesFirestore.add(it) }
                 }
 
-                // Si la URL en Firestore estaba vacía o apuntaba a GitHub privado, usar Firebase Storage
                 if (url.isBlank() || url.contains("github.com")) {
                     url = urlOficialFirebaseStorage
                 }
 
                 if (code > 0) {
                     val detalleOficial = obtenerDetalleVersion(code, versionName)
-                    val novedadesFinales = if (listaNovedadesFirestore.isNotEmpty()) listaNovedadesFirestore else detalleOficial.novedades
-                    val correccionesFinales = if (listaCorreccionesFirestore.isNotEmpty()) listaCorreccionesFirestore else detalleOficial.correcciones
-                    val tituloFinal = if (customTitulo.isNotBlank()) customTitulo else detalleOficial.titulo
-                    val notasFinales = if (customNotas.isNotBlank()) customNotas else detalleOficial.descripcionCorta
-
-                    Log.i(TAG, "✅ OTA obtenido desde Firestore -> code: $code, vName: $versionName, titulo: $tituloFinal")
-                    return@withContext InformacionOta(
+                    infoFirestore = InformacionOta(
                         versionCode = code,
                         versionName = versionName,
-                        titulo = tituloFinal,
+                        titulo = if (customTitulo.isNotBlank()) customTitulo else detalleOficial.titulo,
                         urlDescarga = url,
-                        notas = notasFinales,
-                        novedades = novedadesFinales,
-                        correcciones = correccionesFinales,
+                        notas = if (customNotas.isNotBlank()) customNotas else detalleOficial.descripcionCorta,
+                        novedades = if (listaNovedadesFirestore.isNotEmpty()) listaNovedadesFirestore else detalleOficial.novedades,
+                        correcciones = if (listaCorreccionesFirestore.isNotEmpty()) listaCorreccionesFirestore else detalleOficial.correcciones,
                         fechaPublicacion = detalleOficial.fecha
                     )
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Consulta Firestore OTA falló: ${e.message}. Activando release oficial...")
+            Log.e(TAG, "Consulta Firestore OTA falló: ${e.message}")
         }
 
-        // 2. Fallback Oficial Firebase Storage Garantizado (v1.4.0 / Build 14)
-        val detalleV14 = obtenerDetalleVersion(14, "1.4.0")
-        Log.i(TAG, "✅ Activando release oficial de Firebase Storage (v1.4.0 - Build 14)")
-        return@withContext InformacionOta(
-            versionCode = 14,
-            versionName = "1.4.0",
-            titulo = detalleV14.titulo,
-            urlDescarga = urlOficialFirebaseStorage,
-            notas = detalleV14.descripcionCorta,
-            novedades = detalleV14.novedades,
-            correcciones = detalleV14.correcciones,
-            fechaPublicacion = detalleV14.fecha
-        )
+        // 3. Determinar la versión ganadora (priorizando la real más reciente de Storage)
+        val codeStorage = versionStorage?.versionCode ?: 0
+        val codeFirestore = infoFirestore?.versionCode ?: 0
+
+        val resultadoFinal: InformacionOta = if (versionStorage != null && codeStorage >= codeFirestore) {
+            val detalle = obtenerDetalleVersion(codeStorage, versionStorage.versionName)
+            InformacionOta(
+                versionCode = codeStorage,
+                versionName = versionStorage.versionName.ifBlank { detalle.versionName },
+                titulo = versionStorage.titulo.ifBlank { detalle.titulo },
+                urlDescarga = versionStorage.downloadUrl.ifBlank { urlOficialFirebaseStorage },
+                notas = versionStorage.notas.ifBlank { detalle.descripcionCorta },
+                novedades = if (versionStorage.novedades.isNotEmpty()) versionStorage.novedades else detalle.novedades,
+                correcciones = if (versionStorage.correcciones.isNotEmpty()) versionStorage.correcciones else detalle.correcciones,
+                fechaPublicacion = versionStorage.formattedDate.ifBlank { detalle.fecha }
+            )
+        } else if (infoFirestore != null) {
+            infoFirestore
+        } else {
+            val detalleV16 = obtenerDetalleVersion(16, "1.3.5-beta")
+            InformacionOta(
+                versionCode = 16,
+                versionName = "1.3.5-beta",
+                titulo = detalleV16.titulo,
+                urlDescarga = urlOficialFirebaseStorage,
+                notas = detalleV16.descripcionCorta,
+                novedades = detalleV16.novedades,
+                correcciones = detalleV16.correcciones,
+                fechaPublicacion = detalleV16.fecha
+            )
+        }
+
+        // 4. Sincronizar automáticamente hacia Firestore para actualizar la nube
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val datosSincronizados = hashMapOf(
+                "versionCode" to resultadoFinal.versionCode,
+                "versionName" to resultadoFinal.versionName,
+                "urlDescarga" to resultadoFinal.urlDescarga,
+                "titulo" to resultadoFinal.titulo,
+                "notas" to resultadoFinal.notas,
+                "novedades" to resultadoFinal.novedades,
+                "correcciones" to resultadoFinal.correcciones
+            )
+            db.collection("configuracion").document("OTA").set(datosSincronizados, com.google.firebase.firestore.SetOptions.merge())
+            db.collection("Configuracion").document("OTA").set(datosSincronizados, com.google.firebase.firestore.SetOptions.merge())
+        } catch (_: Exception) {}
+
+        Log.i(TAG, "✅ OTA sincronizado: Build ${resultadoFinal.versionCode} (${resultadoFinal.versionName})")
+        return@withContext resultadoFinal
     }
 
     /**

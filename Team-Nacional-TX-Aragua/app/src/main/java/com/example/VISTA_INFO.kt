@@ -192,13 +192,11 @@ fun VistaInfoScreen(
                     val ota = GestorActualizaciones.verificarActualizacion()
                     buscando = false
                     if (ota != null) {
+                        infoOta = ota
+                        mostrarDialogo = true
                         if (ota.versionCode > BuildConfig.VERSION_CODE) {
-                            infoOta = ota
-                            mostrarDialogo = true
                             // Sincronización automática con Avisos
                             viewModel?.sincronizarAvisoActualizacionOta(ota)
-                        } else {
-                            Toast.makeText(context, "¡Ya tienes la última versión instalada!", Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         Toast.makeText(context, "Error al buscar actualizaciones o no hay conexión.", Toast.LENGTH_SHORT).show()
@@ -418,16 +416,28 @@ fun VistaInfoScreen(
     // Diálogo si se encuentra una actualización manualmente
     if (mostrarDialogo && infoOta != null) {
         val ota = infoOta!!
+        val esNueva = ota.versionCode > BuildConfig.VERSION_CODE
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.Update, contentDescription = null, tint = MotoOrangePrimary)
-                    Text("¡Versión ${ota.versionName} Disponible!", fontWeight = FontWeight.Bold, color = MotoOrangePrimary)
+                    Text(
+                        if (esNueva) "¡Versión ${ota.versionName} Disponible!" else "Versión Oficial ${ota.versionName}",
+                        fontWeight = FontWeight.Bold,
+                        color = MotoOrangePrimary
+                    )
                 }
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!esNueva) {
+                        Text(
+                            "Tu teléfono tiene instalada la versión ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE}). Puedes descargar o reinstalar el paquete oficial más reciente desde Firebase Storage si lo deseas.",
+                            fontSize = 11.sp,
+                            color = MotoGoldSecondary
+                        )
+                    }
                     if (ota.titulo.isNotBlank()) {
                         Text(ota.titulo, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
                     }
@@ -477,7 +487,7 @@ fun VistaInfoScreen(
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Descargar e Instalar")
+                    Text(if (esNueva) "Descargar e Instalar" else "Reinstalar / Descargar")
                 }
             },
             dismissButton = {
