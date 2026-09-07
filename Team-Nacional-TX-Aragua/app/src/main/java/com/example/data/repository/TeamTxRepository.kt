@@ -48,6 +48,7 @@ class TeamTxRepository(
     }
     suspend fun updateMember(member: MemberProfile) = memberSync.insertOrUpdate(member)
     suspend fun deleteMember(member: MemberProfile) = memberSync.delete(member)
+    suspend fun nukeAllProfiles() = database.memberDao().deleteAllProfiles()
 
     // Publications & Retos - Synced with Firestore
     val allPublications: Flow<List<Publication>> = publicationSync.getAll()

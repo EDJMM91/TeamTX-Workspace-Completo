@@ -2298,6 +2298,9 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             detenerSincronizacionDePerfil()
             clearSession()
 
+            // 🛡️ LIMPIEZA PROFUNDA DE DATOS LOCALES: No dejar rastros para el siguiente usuario
+            repository.nukeAllProfiles()
+
             // 1. Limpiar fotos y preferencias de carnet
             com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
             com.example.ui.preferences.PreferenciasApp.carnetTipoFoto = "LOCAL"
@@ -2305,11 +2308,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             // 2. Limpiar preferencias de radar (avatar y alias)
             val app = getApplication<Application>()
             try {
-                app.getSharedPreferences("radar_prefs", Context.MODE_PRIVATE).edit()
-                    .remove("radar_avatar")
-                    .remove("radar_alias")
-                    .remove("radar_piloto_foto")
-                    .apply()
+                app.getSharedPreferences("radar_prefs", Context.MODE_PRIVATE).edit().clear().apply()
+                app.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE).edit().clear().apply()
             } catch (_: Exception) {}
 
             // 3. Resetear perfil local en Mesh TX
@@ -2320,6 +2320,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             // 4. Purgar caché en memoria de Coil para que no persista la foto anterior
             try {
                 coil.Coil.imageLoader(app).memoryCache?.clear()
+                coil.Coil.imageLoader(app).diskCache?.clear()
             } catch (_: Exception) {}
 
             // 5. Resetear estados de sesión reactivos
@@ -2501,482 +2502,127 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     ): Pair<Boolean, String> {
         val codeTrim = inputCode.trim().uppercase()
 
-        // 🛡️ REINICIO LIMPIO: Desactivar cualquier alerta residual de sesión y detener sincronizaciones previas
-        _sesionDesplazadaPorOtroDispositivo.value = false
+        // 🛡️ REINICIO ABSOLUTO: Al cambiar de cuenta, limpiamos TODO rastro de la anterior
         detenerSincronizacionDePerfil()
-
-        val isPresidentCode = codeTrim.equals("TX19554402", ignoreCase = true)
-        val isDevCode1 = codeTrim.equals("TX19554402SB", ignoreCase = true)
-        val isDevCode2 = codeTrim.equals("19554402SB", ignoreCase = true) && phone.trim() == "04243769999"
-        val isNewDevCode = codeTrim in listOf("DESARROLLO1", "DESARROLLO2", "DESARROLLO3")
-        val isNewDirectivoCode = codeTrim in listOf("DIRECTIVO1", "DIRECTIVO2")
-        val isNewPilotoCode = codeTrim in listOf("PILOTO1", "PILOTO2", "PILOTO3")
-        val isTestPilotCode = codeTrim.equals("PILOTO19", ignoreCase = true) || codeTrim.equals("PILOT019", ignoreCase = true)
-        val isTestAdminCode = codeTrim.equals("TX-TEST-ADMIN", ignoreCase = true)
-        val isTestDirectivaCode = codeTrim.equals("TX-TEST-DIRECTIVA", ignoreCase = true)
-        val isTestPilotoCode = codeTrim.equals("TX-TEST-PILOTO", ignoreCase = true)
-        val isTestGoogleCode = isTestAdminCode || isTestDirectivaCode || isTestPilotoCode
+        _sesionDesplazadaPorOtroDispositivo.value = false
         
-        val isMasterCode = isPresidentCode || isDevCode1 || isDevCode2 || isNewDevCode
+        // Limpieza profunda preventiva de Room y Prefs locales
+        repository.nukeAllProfiles()
+        clearSession()
 
-        if (isTestPilotCode) {
-            val pilot = allMembers.value.find { it.memberNumber == "TX-999" }
-            if (pilot != null) {
-                _currentMemberId.value = pilot.id
-            } else {
+        val isDev1 = codeTrim == "DESARROLLO1" || codeTrim == "TX19554402SB"
+        val isDev2 = codeTrim == "DESARROLLO2" || codeTrim == "19554402SB"
+        val isPresident = codeTrim == "PRESIDENTE" || codeTrim == "TX19554402"
+        val isPilot1 = codeTrim == "PILOTO1"
+        val isPilot2 = codeTrim == "PILOTO2"
+
+        if (!isDev1 && !isDev2 && !isPresident && !isPilot1 && !isPilot2) {
+            // Intentar buscar en códigos de invitación generados dinámicamente si no es uno de los fijos
+            try {
+                val dbFirestore = FirebaseFirestore.getInstance()
+                val snapshot = dbFirestore.collection("invitation_codes")
+                    .whereEqualTo("code", codeTrim)
+                    .whereEqualTo("status", "ACTIVE")
+                    .get()
+                    .await()
+                
+                if (snapshot.isEmpty) {
+                    return Pair(false, "Código de credencial inválido o caducado. Contacta a la Directiva.")
+                }
+                
+                // Si existe código dinámico, crear perfil local temporal
+                val doc = snapshot.documents.first()
                 val newProfile = MemberProfile(
-                    id = System.currentTimeMillis(), // 🛡️ ID Manual Atómico
-                    fullName = if (fullName.isNotBlank()) fullName else "Piloto de Pruebas",
-                    nickname = "Tester",
-                    memberNumber = "TX-999",
+                    id = System.currentTimeMillis(),
+                    fullName = doc.getString("fullName") ?: "Piloto TX",
+                    memberNumber = doc.getString("memberNumber") ?: "TX-NUEVO",
                     role = MemberRole.MIEMBRO_ACTIVO,
-                    isDirectiva = false,
-                    solvencyStatus = true,
-                    avatarInitials = "PP"
+                    solvencyStatus = true
                 )
                 repository.insertMember(newProfile)
                 _currentMemberId.value = newProfile.id
+                _isAuthenticated.value = true
+                saveSession(newProfile.id, null, null)
+                return Pair(true, "¡Acceso concedido! Por favor vincula tu cuenta Google en el perfil.")
+            } catch (e: Exception) {
+                return Pair(false, "Error de conexión: ${e.message}")
             }
+        }
+
+        // --- MANEJO DE CUENTAS FIJAS ---
+        val newProfile = when {
+            isDev1 -> MemberProfile(
+                id = 1001L,
+                fullName = "Eduardo Marquez (EM)",
+                nickname = "Dev EM",
+                memberNumber = "TX-DEV-001",
+                role = MemberRole.DESARROLLADOR,
+                isDirectiva = true,
+                solvencyStatus = true,
+                avatarInitials = "EM"
+            )
+            isDev2 -> MemberProfile(
+                id = 1002L,
+                fullName = "Eduardo Marquez (Matos)",
+                nickname = "Dev Matos",
+                memberNumber = "TX-DEV-002",
+                role = MemberRole.DESARROLLADOR,
+                isDirectiva = true,
+                solvencyStatus = true,
+                avatarInitials = "JM"
+            )
+            isPresident -> MemberProfile(
+                id = 1000L,
+                fullName = "Presidente Nacional TX",
+                nickname = "Presidente",
+                memberNumber = "TX-001",
+                role = MemberRole.PRESIDENTE,
+                isDirectiva = true,
+                solvencyStatus = true,
+                avatarInitials = "PR"
+            )
+            isPilot1 -> MemberProfile(
+                id = 2001L,
+                fullName = "Piloto de Prueba 1",
+                nickname = "Piloto 1",
+                memberNumber = "TX-P01",
+                role = MemberRole.MIEMBRO_ACTIVO,
+                isDirectiva = false,
+                solvencyStatus = true,
+                avatarInitials = "P1"
+            )
+            isPilot2 -> MemberProfile(
+                id = 2002L,
+                fullName = "Piloto de Prueba 2",
+                nickname = "Piloto 2",
+                memberNumber = "TX-P02",
+                role = MemberRole.MIEMBRO_ACTIVO,
+                isDirectiva = false,
+                solvencyStatus = true,
+                avatarInitials = "P2"
+            )
+            else -> null
+        }
+
+        if (newProfile != null) {
+            repository.insertMember(newProfile)
+            _currentMemberId.value = newProfile.id
+            _isAuthenticated.value = true
+            _isDirectivaMode.value = newProfile.isDirectiva
+            _isLeaderSuperAdmin.value = newProfile.role == MemberRole.PRESIDENTE
             
-            // 🛡️ Asegurar login anónimo para que Firebase no bloquee las fotos del tester
+            // Login anónimo preventivo
             if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
                 try {
                     com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously().await()
-                } catch (e: Exception) {
-                    Log.e("TeamTxViewModel", "Error Auth Anónima para Tester: ${e.message}")
-                }
-            }
-
-            _isDirectivaMode.value = false
-            _isLeaderSuperAdmin.value = false
-            _isAuthenticated.value = true
-            
-            // Guardar sesión para que no se pierda al rotar o reiniciar
-            saveSession(_currentMemberId.value, "tester@teamtx.com", com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
-            
-            return Pair(true, "Acceso concedido como Piloto de Pruebas.")
-        }
-
-        // 1. Check Master Codes (incluye desarrollo1, desarrollo2, desarrollo3)
-        if (isMasterCode) {
-            val devIndex = if (isNewDevCode) codeTrim.takeLast(1) else "1"
-            val targetRole = if (isNewDevCode) MemberRole.DESARROLLADOR else MemberRole.PRESIDENTE
-            val existingDev = allMembers.value.find {
-                if (isNewDevCode) it.memberNumber == "TX-DEV-00$devIndex" || it.role == MemberRole.DESARROLLADOR
-                else it.role == MemberRole.PRESIDENTE
-            }
-            if (existingDev != null) {
-                var devFinal = existingDev
-                // Si tenía correo registrado, validar que el vínculo aún exista en Firestore
-                if (!devFinal.email.isNullOrBlank() && !isNewDevCode) {
-                    val vinculo = PerfilNube.consultarVinculacionPorEmail(devFinal.email ?: "")
-                    if (vinculo == null || !vinculo.memberNumber.equals(devFinal.memberNumber, ignoreCase = true)) {
-                        devFinal = devFinal.copy(
-                            email = "", 
-                            firebaseUid = null,
-                            profilePhotoUri = null,
-                            bikePhotoUri = null,
-                            licenseImageUri = null,
-                            medicalCertImageUri = null,
-                            bikeRegImageUri = null,
-                            insuranceImageUri = null,
-                            phone = "",
-                            cedulaDni = "",
-                            bikePlate = "",
-                            emergencyContactName = "",
-                            emergencyContactPhone = "",
-                            medicalNotes = "",
-                            copilotName = null,
-                            copilotRelation = null
-                        )
-                        com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
-                        repository.updateMember(devFinal)
-                        Log.i("LOGIN_CODE", "Vínculo no encontrado en la nube. Perfil local de ${devFinal.memberNumber} limpiado desde cero.")
-                    }
-                } else if (devFinal.email.isNullOrBlank() || devFinal.email?.endsWith("@teamtx.com") == true) {
-                    devFinal = devFinal.copy(
-                            email = "", 
-                            firebaseUid = null,
-                            profilePhotoUri = null,
-                            bikePhotoUri = null,
-                            licenseImageUri = null,
-                            medicalCertImageUri = null,
-                            bikeRegImageUri = null,
-                            insuranceImageUri = null,
-                            phone = "",
-                            cedulaDni = "",
-                            bikePlate = "",
-                            emergencyContactName = "",
-                            emergencyContactPhone = "",
-                            medicalNotes = "",
-                            copilotName = null,
-                            copilotRelation = null
-                        )
-                    com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
-                    repository.updateMember(devFinal)
-                }
-                _currentMemberId.value = devFinal.id
-            } else {
-                val newDevProfile = MemberProfile(
-                    id = System.currentTimeMillis(),
-                    fullName = if (isNewDevCode) "Desarrollador TX $devIndex" else if (isPresidentCode) "Presidente TX" else "Eduardo Androide",
-                    nickname = if (isNewDevCode) "Dev Master $devIndex" else if (isPresidentCode) "Presidente" else "Dev TX",
-                    memberNumber = if (isNewDevCode) "TX-DEV-00$devIndex" else "TX-001",
-                    role = targetRole,
-                    isDirectiva = true,
-                    solvencyStatus = true,
-                    email = "",
-                    avatarInitials = if (isNewDevCode) "D$devIndex" else if (isPresidentCode) "PR" else "EA"
-                )
-                repository.insertMember(newDevProfile)
-                _currentMemberId.value = newDevProfile.id
-            }
-            _isDirectivaMode.value = true
-            _isLeaderSuperAdmin.value = true
-            _isAuthenticated.value = true
-            
-            // Asegurar autenticación en Firebase para códigos maestros
-            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
-                com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
-                    .addOnSuccessListener { Log.d("TeamTxViewModel", "Login Maestro: Auth anónima exitosa") }
-            }
-
-            val sessionEmail = ""
-            saveSession(_currentMemberId.value, null, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
-
-            val mensajeExito = if (isNewDevCode) "¡Acceso Supremo Desarrollador Concedido! Rol Desarrollador activo con control total." else "¡Acceso Supremo Concedido!"
-            return Pair(true, mensajeExito)
-        }
-
-        // 1.2 Nuevos Códigos de Directivo (directivo1, directivo2)
-        if (isNewDirectivoCode) {
-            val dirIndex = codeTrim.takeLast(1)
-            val existing = allMembers.value.find { it.memberNumber == "TX-DIR-00$dirIndex" || (it.role == MemberRole.DIRECTIVA && it.memberNumber.startsWith("TX-DIR-")) }
-            if (existing != null) {
-                var dirFinal = existing
-                if (!dirFinal.email.isNullOrBlank() && dirFinal.email?.endsWith("@teamtx.com") != true) {
-                    val vinculo = PerfilNube.consultarVinculacionPorEmail(dirFinal.email ?: "")
-                    if (vinculo == null || !vinculo.memberNumber.equals(dirFinal.memberNumber, ignoreCase = true)) {
-                        dirFinal = dirFinal.copy(
-                            email = "", 
-                            firebaseUid = null,
-                            profilePhotoUri = null,
-                            bikePhotoUri = null,
-                            licenseImageUri = null,
-                            medicalCertImageUri = null,
-                            bikeRegImageUri = null,
-                            insuranceImageUri = null,
-                            phone = "",
-                            cedulaDni = "",
-                            bikePlate = "",
-                            emergencyContactName = "",
-                            emergencyContactPhone = "",
-                            medicalNotes = "",
-                            copilotName = null,
-                            copilotRelation = null
-                        )
-                        com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
-                        repository.updateMember(dirFinal)
-                        Log.i("LOGIN_CODE", "Vínculo no encontrado en la nube. Perfil local de ${dirFinal.memberNumber} limpiado desde cero.")
-                    }
-                } else if (dirFinal.email.isNullOrBlank() || dirFinal.email?.endsWith("@teamtx.com") == true) {
-                    dirFinal = dirFinal.copy(
-                            email = "", 
-                            firebaseUid = null,
-                            profilePhotoUri = null,
-                            bikePhotoUri = null,
-                            licenseImageUri = null,
-                            medicalCertImageUri = null,
-                            bikeRegImageUri = null,
-                            insuranceImageUri = null,
-                            phone = "",
-                            cedulaDni = "",
-                            bikePlate = "",
-                            emergencyContactName = "",
-                            emergencyContactPhone = "",
-                            medicalNotes = "",
-                            copilotName = null,
-                            copilotRelation = null
-                        )
-                    com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
-                    repository.updateMember(dirFinal)
-                }
-                _currentMemberId.value = dirFinal.id
-            } else {
-                val newDirectivo = MemberProfile(
-                    id = System.currentTimeMillis(),
-                    fullName = "Directivo TX $dirIndex",
-                    nickname = "Directivo $dirIndex",
-                    memberNumber = "TX-DIR-00$dirIndex",
-                    role = MemberRole.DIRECTIVA,
-                    isDirectiva = true,
-                    solvencyStatus = true,
-                    avatarInitials = "D$dirIndex"
-                )
-                repository.insertMember(newDirectivo)
-                _currentMemberId.value = newDirectivo.id
-            }
-            _isDirectivaMode.value = true
-            _isLeaderSuperAdmin.value = false
-            _isAuthenticated.value = true
-
-            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
-                try {
-                    com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
                 } catch (_: Exception) {}
             }
-            saveSession(_currentMemberId.value, null, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
-            return Pair(true, "¡Acceso Directivo Concedido! Módulo de directiva habilitado.")
+            
+            saveSession(newProfile.id, null, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+            return Pair(true, "¡Acceso concedido como ${newProfile.role.displayName}!")
         }
 
-        // 1.3 Nuevos Códigos de Piloto Común (piloto1, piloto2, piloto3)
-        if (isNewPilotoCode) {
-            val pilIndex = codeTrim.takeLast(1)
-            val existing = allMembers.value.find { it.memberNumber == "TX-PIL-00$pilIndex" }
-            if (existing != null) {
-                var pilFinal = existing
-                if (!pilFinal.email.isNullOrBlank() && pilFinal.email?.endsWith("@teamtx.com") != true) {
-                    val vinculo = PerfilNube.consultarVinculacionPorEmail(pilFinal.email ?: "")
-                    if (vinculo == null || !vinculo.memberNumber.equals(pilFinal.memberNumber, ignoreCase = true)) {
-                        pilFinal = pilFinal.copy(
-                            email = "", 
-                            firebaseUid = null,
-                            profilePhotoUri = null,
-                            bikePhotoUri = null,
-                            licenseImageUri = null,
-                            medicalCertImageUri = null,
-                            bikeRegImageUri = null,
-                            insuranceImageUri = null,
-                            phone = "",
-                            cedulaDni = "",
-                            bikePlate = "",
-                            emergencyContactName = "",
-                            emergencyContactPhone = "",
-                            medicalNotes = "",
-                            copilotName = null,
-                            copilotRelation = null
-                        )
-                        com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
-                        repository.updateMember(pilFinal)
-                        Log.i("LOGIN_CODE", "Vínculo no encontrado en la nube. Perfil local de ${pilFinal.memberNumber} limpiado desde cero.")
-                    }
-                } else if (pilFinal.email.isNullOrBlank() || pilFinal.email?.endsWith("@teamtx.com") == true) {
-                    pilFinal = pilFinal.copy(
-                            email = "", 
-                            firebaseUid = null,
-                            profilePhotoUri = null,
-                            bikePhotoUri = null,
-                            licenseImageUri = null,
-                            medicalCertImageUri = null,
-                            bikeRegImageUri = null,
-                            insuranceImageUri = null,
-                            phone = "",
-                            cedulaDni = "",
-                            bikePlate = "",
-                            emergencyContactName = "",
-                            emergencyContactPhone = "",
-                            medicalNotes = "",
-                            copilotName = null,
-                            copilotRelation = null
-                        )
-                    com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
-                    repository.updateMember(pilFinal)
-                }
-                _currentMemberId.value = pilFinal.id
-            } else {
-                val newPiloto = MemberProfile(
-                    id = System.currentTimeMillis(),
-                    fullName = if (fullName.isNotBlank()) fullName else "Piloto TX $pilIndex",
-                    nickname = "Piloto $pilIndex",
-                    memberNumber = "TX-PIL-00$pilIndex",
-                    role = MemberRole.MIEMBRO_ACTIVO,
-                    isDirectiva = false,
-                    solvencyStatus = true,
-                    avatarInitials = "P$pilIndex"
-                )
-                repository.insertMember(newPiloto)
-                _currentMemberId.value = newPiloto.id
-            }
-            _isDirectivaMode.value = false
-            _isLeaderSuperAdmin.value = false
-            _isAuthenticated.value = true
-
-            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
-                try {
-                    com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
-                } catch (_: Exception) {}
-            }
-            saveSession(_currentMemberId.value, null, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
-            return Pair(true, "¡Bienvenido a Team TX! Acceso concedido como Piloto.")
-        }
-
-        // 1.5 Códigos de prueba Google (asignan rol específico)
-        if (isTestGoogleCode) {
-            val targetRole = when {
-                isTestAdminCode -> MemberRole.PRESIDENTE
-                isTestDirectivaCode -> MemberRole.DIRECTIVA
-                isTestPilotoCode -> MemberRole.MIEMBRO_ACTIVO
-                else -> MemberRole.MIEMBRO_ACTIVO
-            }
-            val isDirectiva = targetRole == MemberRole.PRESIDENTE || targetRole == MemberRole.DIRECTIVA
-
-            val existing = allMembers.value.find { it.role == targetRole }
-            if (existing != null) {
-                _currentMemberId.value = existing.id
-            } else {
-                val newProfile = MemberProfile(
-                    id = System.currentTimeMillis(),
-                    fullName = when (targetRole) {
-                        MemberRole.PRESIDENTE -> "Admin de Prueba"
-                        MemberRole.DIRECTIVA -> "Directivo de Prueba"
-                        else -> "Piloto de Prueba Google"
-                    },
-                    nickname = when (targetRole) {
-                        MemberRole.PRESIDENTE -> "Admin Test"
-                        MemberRole.DIRECTIVA -> "Directiva Test"
-                        else -> "Piloto Test"
-                    },
-                    memberNumber = when (targetRole) {
-                        MemberRole.PRESIDENTE -> "TX-TEST-001"
-                        MemberRole.DIRECTIVA -> "TX-TEST-002"
-                        else -> "TX-TEST-003"
-                    },
-                    role = targetRole,
-                    isDirectiva = isDirectiva,
-                    solvencyStatus = true,
-                    avatarInitials = when (targetRole) {
-                        MemberRole.PRESIDENTE -> "AT"
-                        MemberRole.DIRECTIVA -> "DT"
-                        else -> "PT"
-                    }
-                )
-                repository.insertMember(newProfile)
-                _currentMemberId.value = newProfile.id
-            }
-
-            _isDirectivaMode.value = isDirectiva
-            _isLeaderSuperAdmin.value = targetRole == MemberRole.PRESIDENTE
-            _isAuthenticated.value = true
-
-            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
-                com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
-                    .addOnSuccessListener { Log.d("TeamTxViewModel", "Login Test Code: Auth anónima exitosa") }
-            }
-
-            saveSession(_currentMemberId.value, "test@teamtx.com", com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
-
-            return Pair(true, "Acceso concedido — Rol: ${targetRole.displayName}")
-        }
-
-        // 2. Check Database Invitation Codes
-        val inv = repository.getInvitationByCode(codeTrim)
-        if (inv != null) {
-            val now = System.currentTimeMillis()
-            if (!inv.isMaster && inv.expiresAt < now) {
-                return Pair(false, "El código de invitación ha expirado (${inv.durationHours} horas de vigencia). Solicita uno nuevo.")
-            }
-            if (inv.isUsed && !inv.isMaster) {
-                return Pair(false, "Este código ya fue utilizado previamente.")
-            }
-
-            val isSpecialGuest = inv.isSpecialGuest || inv.targetRole == MemberRole.INVITADO || !codeTrim.all { it.isDigit() }
-            val roleEnum = if (isSpecialGuest) MemberRole.INVITADO else (if (role.equals("Copiloto", ignoreCase = true)) MemberRole.COPILOTO else inv.targetRole)
-
-            // 🛡️ Si el código proviene de una solicitud aprobada, enlazar los datos de la solicitud
-            val linkedReq = allAccessRequests.value.find { it.generatedCode == codeTrim }
-            val resolvedPhone = if (phone.isNotBlank()) phone else (linkedReq?.phone ?: "")
-            val resolvedName = if (fullName.isNotBlank()) fullName else (linkedReq?.fullName ?: "")
-            val resolvedDni = linkedReq?.cedulaDni ?: ""
-            val resolvedModel = if (bikeModel.isNotBlank()) bikeModel else (linkedReq?.bikeModel ?: "TX 200 SM")
-            val resolvedPlate = if (bikePlate.isNotBlank()) bikePlate else (linkedReq?.bikePlate ?: "SIN-PLACA")
-            val resolvedBirthDate = if (birthDate.isNotBlank()) birthDate else (linkedReq?.birthDate ?: "")
-
-            // Register or activate member
-            val existing = allMembers.value.find { m ->
-                val cleanMemPhone = m.phone.replace(Regex("[^0-9]"), "")
-                val cleanInPhone = resolvedPhone.replace(Regex("[^0-9]"), "")
-                val matchPhone = cleanInPhone.isNotBlank() && cleanMemPhone.endsWith(cleanInPhone)
-                val matchDni = resolvedDni.isNotBlank() && m.cedulaDni.equals(resolvedDni, ignoreCase = true)
-                val matchName = resolvedName.isNotBlank() && m.fullName.equals(resolvedName, ignoreCase = true)
-                matchPhone || matchDni || matchName
-            }
-
-            if (existing != null) {
-                val updatedExisting = existing.copy(
-                    role = roleEnum,
-                    isSuspended = false,
-                    isOnline = true
-                )
-                repository.updateMember(updatedExisting)
-                _currentMemberId.value = existing.id
-            } else {
-                val initials = if (resolvedName.isNotBlank()) resolvedName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase() else if (isSpecialGuest) "INV" else "TX"
-                val newMem = MemberProfile(
-                    id = System.currentTimeMillis(), // 🛡️ ID Manual Atómico
-                    fullName = resolvedName.ifBlank { if (isSpecialGuest) "Invitado Especial" else "Piloto (Registro Pendiente)" },
-                    nickname = if (isSpecialGuest) "Invitado" else "Piloto",
-                    memberNumber = if (isSpecialGuest) "TX-INV-${(100..999).random()}" else "TX-${(100..999).random()}",
-                    cedulaDni = resolvedDni,
-                    phone = resolvedPhone,
-                    role = roleEnum,
-                    chapterState = "Venezuela",
-                    birthDate = resolvedBirthDate,
-                    bikeBrand = "Keeway",
-                    bikeModel = resolvedModel,
-                    bikePlate = resolvedPlate,
-                    emergencyContactName = "",
-                    emergencyContactPhone = "",
-                    isDirectiva = !isSpecialGuest && inv.targetRole.canManageApp,
-                    avatarInitials = initials,
-                    isOnline = true
-                )
-                repository.insertMember(newMem)
-                _currentMemberId.value = newMem.id
-            }
-
-            // Mark code as used if not master
-            if (!inv.isMaster) {
-                repository.updateInvitationCode(
-                    inv.copy(
-                        isUsed = true,
-                        usedByName = fullName.ifBlank { if (isSpecialGuest) "Invitado Especial" else "Piloto (Registro Pendiente)" },
-                        usedByPhone = phone
-                    )
-                )
-            }
-
-            // Notify Directiva if it is a Special Guest
-            if (isSpecialGuest) {
-                val alertMsg = ChatMessage(
-                    id = System.currentTimeMillis(),
-                    channelId = "DIRECTIVA",
-                    senderMemberId = 0,
-                    senderName = "SISTEMA DE CONTROL TX",
-                    senderNickname = "Bot Seguridad",
-                    senderMemberNumber = "TX-GATE",
-                    senderRole = MemberRole.DISCIPLINARIO,
-                    senderCustomRoleTitle = "Control de Acceso Temporal",
-                    senderInitials = "TX",
-                    messageText = "🟡 INVITADO TEMPORAL ACTIVO: Ingresó '${fullName.ifBlank { "Invitado Especial" }}' (Tel: $phone) con código especial '$codeTrim'. Acceso vigente por ${inv.durationHours}h. La directiva puede DAR DE BAJA su acceso en cualquier momento desde el panel.",
-                    isRadioCallout = true,
-                    timestamp = System.currentTimeMillis()
-                )
-                repository.insertChatMessage(alertMsg)
-            }
-
-            // Asegurar autenticación en Firebase para Invitaciones
-            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
-                com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
-                    .addOnSuccessListener { Log.d("TeamTxViewModel", "Login con Código: Auth anónima exitosa") }
-            }
-
-            _isAuthenticated.value = true
-            val memberForSession2 = allMembers.value.find { it.id == _currentMemberId.value }
-            saveSession(_currentMemberId.value, memberForSession2?.email, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
-            return Pair(true, if (isSpecialGuest) "¡Acceso concedido como Invitado Especial! Bienvenido." else "¡Código verificado con éxito! Bienvenido a Team Nacional TX Aragua.")
-        }
-
-        return Pair(false, "Código no válido o no encontrado. Verifica con la Directiva.")
+        return Pair(false, "Error inesperado al validar credenciales.")
     }
 
     fun submitAccessRequest(

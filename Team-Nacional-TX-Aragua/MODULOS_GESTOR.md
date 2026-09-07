@@ -180,7 +180,10 @@ Registro: Queda guardado en el gestor para que cualquier otro agente sepa que es
 >      - Qué bugs o problemas fueron corregidos.
 >      - La versión y fecha del build.
 >    - De esta manera el administrador y los pilotos siempre sabrán con total certeza qué versión están eligiendo, qué contiene y qué cambios trae respecto a la anterior.
->
+>   
+>    - cada Modulo debe tener su coleccion en firebase
+>    - para lo que necesite sincronizar y aprobechar 
+>    - 
 > 3. **Disponibilidad para el Módulo Info / OTA:**
 >    - El archivo `TeamTX-latest.apk` es el binario que descarga el sistema de actualización interno de la app (módulo Info). Por ende, debe mantenerse siempre como la versión más reciente, estable y testeada.
  

@@ -26,6 +26,9 @@ interface MemberDao {
 
     @Query("DELETE FROM member_profiles WHERE id = :id")
     suspend fun deleteMemberById(id: Long)
+
+    @Query("DELETE FROM member_profiles")
+    suspend fun deleteAllProfiles()
 }
 
 @Dao
