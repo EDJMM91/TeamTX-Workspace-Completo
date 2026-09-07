@@ -187,9 +187,6 @@ fun AppEntryPoint(
     
     // Manejo automático de notificaciones
     SolicitadorNotificaciones()
-    
-    // Verificación de actualizaciones OTA
-    VerificadorOta()
 
     if (showSplash) {
         SplashScreen(onComplete = { showSplash = false })
@@ -201,12 +198,33 @@ fun AppEntryPoint(
             onSubmitAccessRequest = { name, phone, dni, brand, model, color, plate, chapter, reason, birthDate, role ->
                 viewModel.submitAccessRequest(name, phone, dni, brand, model, color, plate, chapter, reason, birthDate, role)
             },
+            onSolicitarCodigoPorCorreo = { email ->
+                viewModel.solicitarCodigoPorCorreoSincronizado(email)
+            },
             attemptsLeft = attemptsLeft
         )
     } else {
         val currentMember by viewModel.currentMember.collectAsStateWithLifecycle()
         val context = LocalContext.current
         var skipOnboarding by remember { mutableStateOf(false) }
+
+        // Inicializar preferencias y verificar Pacto de Honor Biker (se muestra una sola vez por piloto)
+        PreferenciasApp.init(context)
+        var mostrarCompromisoHonor by remember(currentMember?.id) {
+            mutableStateOf(
+                currentMember != null && !PreferenciasApp.haAceptadoCompromisoBiker(currentMember!!.id)
+            )
+        }
+
+        if (mostrarCompromisoHonor && currentMember != null) {
+            com.example.ui.components.DialogoCompromisoHonorBiker(
+                nombrePiloto = currentMember?.nickname?.ifBlank { currentMember?.fullName } ?: "Hermano Motero",
+                onAceptarCompromiso = {
+                    PreferenciasApp.setCompromisoBikerAceptado(currentMember!!.id, true)
+                    mostrarCompromisoHonor = false
+                }
+            )
+        }
 
         // 🛡️ Si el perfil está incompleto, mostrar notificación (no bloquear)
         LaunchedEffect(currentMember) {
@@ -1210,6 +1228,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             cancionActual = cancionNubeAudio,
             estado = estadoNubeAudio,
             config = configNubeAudio,
+            onAnterior = { com.example.reproductor.GESTOR_AUDIO_TX.anteriorCancion() },
             onAlternarPlayPausa = { com.example.reproductor.GESTOR_AUDIO_TX.alternarPlayPausa() },
             onSiguiente = { com.example.reproductor.GESTOR_AUDIO_TX.siguienteCancion() },
             onAbrirReproductor = { selectedTab = NavigationTab.PLAYER },

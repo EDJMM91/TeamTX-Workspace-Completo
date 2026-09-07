@@ -85,38 +85,55 @@ object MOTOR_AUDIO_NATIVO {
         liberarEfectos()
         ultimoAudioSessionId = audioSessionId
 
+        // 1. Ecualizador Multibanda
         try {
-            // 1. Ecualizador Multibanda
             ecualizadorHardware = Equalizer(0, audioSessionId).apply {
                 enabled = true
                 aplicarBandasEcualizador(config.bandasEcualizador)
             }
+        } catch (e: Exception) {
+            Log.w(ETIQUETA_LOG, "Equalizer hardware no disponible: ${e.message}")
+        }
 
-            // 2. Super Bass (Bass Boost)
+        // 2. Super Bass (Bass Boost)
+        try {
             bassBoostHardware = BassBoost(0, audioSessionId).apply {
                 enabled = true
                 aplicarSuperBass(config.superBassNivel)
             }
+        } catch (e: Exception) {
+            Log.w(ETIQUETA_LOG, "BassBoost hardware no disponible: ${e.message}")
+        }
 
-            // 3. Espacialidad 3D (Virtualizer)
+        // 3. Espacialidad 3D (Virtualizer)
+        try {
             virtualizadorHardware = Virtualizer(0, audioSessionId).apply {
                 enabled = true
                 aplicarEspacialidad(config.espacialidadNivel)
             }
+        } catch (e: Exception) {
+            Log.w(ETIQUETA_LOG, "Virtualizer hardware no disponible: ${e.message}")
+        }
 
-            // 4. Ultra Volumen (Loudness Enhancer en Android 4.4+)
+        // 4. Ultra Volumen (Loudness Enhancer en Android 4.4+)
+        try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 ultraVolumenHardware = LoudnessEnhancer(audioSessionId).apply {
                     enabled = true
                     aplicarUltraVolumen(config.ultraVolumenNivel)
                 }
             }
-
-            Log.d(ETIQUETA_LOG, "🎛️ Pipeline de Efectos Biker Pro vinculado a sesión: $audioSessionId")
         } catch (e: Exception) {
-            Log.e(ETIQUETA_LOG, "Error al vincular AudioFX: ${e.message}")
+            Log.w(ETIQUETA_LOG, "LoudnessEnhancer hardware no disponible: ${e.message}")
         }
+
+        Log.d(ETIQUETA_LOG, "🎛️ Pipeline de Efectos Biker Pro vinculado a sesión: $audioSessionId")
     }
+
+    /**
+     * Retorna verdadero si la biblioteca nativa C++ está cargada en memoria.
+     */
+    fun esNativoDisponible(): Boolean = libreriaNativaCargada
 
     /**
      * Aplica ganancia de Ultra Volumen (+100% hasta +300%).

@@ -79,10 +79,17 @@ fun MeshTxScreen(
     val salaPrivadaActiva by GestorMeshTx.salaPrivadaActiva.collectAsState()
     val modoAlcabalaVivo by GestorMeshTx.modoAlcabalaEnVivoActivo.collectAsState()
 
+    val estadoEnlaceCopiloto by GestorMeshTx.estadoEnlaceCopiloto.collectAsState()
+    val rolEnMoto by GestorMeshTx.rolEnMoto.collectAsState()
+    val nombreCopilotoConectado by GestorMeshTx.nombreCopilotoConectado.collectAsState()
+    val estaHablandoCopiloto by GestorMeshTx.estaHablandoCopiloto.collectAsState()
+    val modoEnlaceIntramoto by GestorMeshTx.modoEnlaceIntramoto.collectAsState()
+
     var mostrarDialogoSos by remember { mutableStateOf(false) }
     var mostrarAjustesAudio by remember { mutableStateOf(false) }
     var mostrarGuiaInteractiva by remember { mutableStateOf(false) }
     var mostrarDialogoSalaPrivada by remember { mutableStateOf(false) }
+    var mostrarDialogoCopiloto by remember { mutableStateOf(false) }
 
     val contextoLocal = LocalContext.current
 
@@ -187,6 +194,26 @@ fun MeshTxScreen(
                     }
                 },
                 actions = {
+                    // Botón de Ajustes Previos del Intercomunicador (disponible sin conectar)
+                    IconButton(
+                        onClick = { mostrarAjustesAudio = true }
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFF1F5F9),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Tune,
+                                    contentDescription = "Ajustes del Intercomunicador",
+                                    tint = Color(0xFF0F172A),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+
                     // Botón de Guía Interactiva Táctica (Manual del Piloto)
                     IconButton(
                         onClick = { mostrarGuiaInteractiva = true }
@@ -451,6 +478,417 @@ fun MeshTxScreen(
                                     ),
                                     modifier = Modifier.scale(0.85f)
                                 )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ─────────────────────────────────────────────────────────────────
+            // 1.5. TARJETA INTERCOM INTRAMOTO: ENLACE PILOTO & COPILOTO (MICRO-MALLA PRIVADA)
+            // ─────────────────────────────────────────────────────────────────
+            item {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Encabezado
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = when (estadoEnlaceCopiloto) {
+                                        EstadoEnlaceCopiloto.CONECTADO -> Color(0xFFDCFCE7)
+                                        EstadoEnlaceCopiloto.ESPERANDO_COPILOTO, EstadoEnlaceCopiloto.CONECTANDO -> Color(0xFFFEF3C7)
+                                        else -> Color(0xFFF1F5F9)
+                                    },
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Bluetooth,
+                                            contentDescription = "Bluetooth Intramoto",
+                                            tint = when (estadoEnlaceCopiloto) {
+                                                EstadoEnlaceCopiloto.CONECTADO -> Color(0xFF16A34A)
+                                                EstadoEnlaceCopiloto.ESPERANDO_COPILOTO, EstadoEnlaceCopiloto.CONECTANDO -> Color(0xFFD97706)
+                                                else -> Color(0xFF64748B)
+                                            },
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+
+                                Column {
+                                    Text(
+                                        text = "Intercom Intramoto (Piloto-Copiloto)",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Text(
+                                        text = "MICRO-MALLA PRIVADA • NODO PUENTE",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFF2563EB),
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                            }
+
+                            // Badge de modo activo
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = when (modoEnlaceIntramoto) {
+                                    ModoEnlaceIntramoto.SOLO_BLUETOOTH -> Color(0xFFDCFCE7)
+                                    ModoEnlaceIntramoto.SOLO_WIFI -> Color(0xFFEFF6FF)
+                                    ModoEnlaceIntramoto.HIBRIDO_TRIMODAL -> Color(0xFFFFEDD5)
+                                }
+                            ) {
+                                Text(
+                                    text = when (modoEnlaceIntramoto) {
+                                        ModoEnlaceIntramoto.SOLO_BLUETOOTH -> "Solo BT 🔋"
+                                        ModoEnlaceIntramoto.SOLO_WIFI -> "Wi-Fi 📡"
+                                        ModoEnlaceIntramoto.HIBRIDO_TRIMODAL -> "Trimodal ⚡"
+                                    },
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = when (modoEnlaceIntramoto) {
+                                        ModoEnlaceIntramoto.SOLO_BLUETOOTH -> Color(0xFF15803D)
+                                        ModoEnlaceIntramoto.SOLO_WIFI -> Color(0xFF1D4ED8)
+                                        ModoEnlaceIntramoto.HIBRIDO_TRIMODAL -> Color(0xFFC2410C)
+                                    },
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        // ⚠️ ADVERTENCIA DE ALCANCE BLUETOOTH OBLIGATORIA
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFEF3C7),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD97706),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "⚠️ Cobertura Bluetooth: Alcance físico máximo de 10 a 15 metros. Diseñado exclusivamente para Piloto y Copiloto montados en la misma moto TX 200.",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF92400E),
+                                    lineHeight = 13.sp
+                                )
+                            }
+                        }
+
+                        // Estado de conexión en tiempo real y quién habla
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            when (estadoEnlaceCopiloto) {
+                                                EstadoEnlaceCopiloto.CONECTADO -> Color(0xFF16A34A)
+                                                EstadoEnlaceCopiloto.ESPERANDO_COPILOTO, EstadoEnlaceCopiloto.CONECTANDO -> Color(0xFFF59E0B)
+                                                else -> Color(0xFF94A3B8)
+                                            }
+                                        )
+                                )
+                                Text(
+                                    text = when (estadoEnlaceCopiloto) {
+                                        EstadoEnlaceCopiloto.CONECTADO -> "Enlazado con: ${nombreCopilotoConectado ?: ajustes.nombreDispositivoCopiloto.ifBlank { "Compañero" }}"
+                                        EstadoEnlaceCopiloto.ESPERANDO_COPILOTO -> "Esperando conexión de Copiloto..."
+                                        EstadoEnlaceCopiloto.CONECTANDO -> "Conectando por Bluetooth..."
+                                        EstadoEnlaceCopiloto.DESCONECTADO -> "Enlace intramoto desconectado"
+                                        EstadoEnlaceCopiloto.ERROR -> "Error de enlace Bluetooth"
+                                    },
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
+
+                            if (estaHablandoCopiloto) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFFDCFCE7),
+                                    border = BorderStroke(1.dp, Color(0xFF16A34A))
+                                ) {
+                                    Text(
+                                        text = "🎙️ HABLANDO",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = Color(0xFF15803D),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            } else if (estadoEnlaceCopiloto == EstadoEnlaceCopiloto.CONECTADO) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFFEFF6FF)
+                                ) {
+                                    Text(
+                                        text = "< 40ms Latencia",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF2563EB),
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Divider(color = Color(0xFFF1F5F9))
+
+                        // Selector Rápido de Rol en la Moto
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Tu Rol en la Moto:",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF64748B)
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    RolEnMoto.PILOTO_GATEWAY to "🏍️ Piloto (Gateway)",
+                                    RolEnMoto.COPILOTO_ENLACE to "🎒 Copiloto",
+                                    RolEnMoto.SOLO_PILOTO_INDIVIDUAL to "👤 Individual"
+                                ).forEach { (rol, etiqueta) ->
+                                    val seleccionado = rolEnMoto == rol
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (seleccionado) Color(0xFF2563EB) else Color(0xFFF1F5F9),
+                                        border = BorderStroke(1.dp, if (seleccionado) Color(0xFF1D4ED8) else Color(0xFFE2E8F0)),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { GestorMeshTx.alternarRolEnMoto(rol) }
+                                    ) {
+                                        Text(
+                                            text = etiqueta,
+                                            fontSize = 10.sp,
+                                            fontWeight = if (seleccionado) FontWeight.Black else FontWeight.Bold,
+                                            color = if (seleccionado) Color.White else Color(0xFF334155),
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(vertical = 7.dp, horizontal = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Selector Rápido de Modo de Enlace Intramoto (Trimodal)
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Modo de Red Intramoto:",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF64748B)
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    ModoEnlaceIntramoto.SOLO_BLUETOOTH to "Solo BT 🔋",
+                                    ModoEnlaceIntramoto.SOLO_WIFI to "Solo Wi-Fi 📡",
+                                    ModoEnlaceIntramoto.HIBRIDO_TRIMODAL to "Trimodal ⚡"
+                                ).forEach { (modo, etiqueta) ->
+                                    val seleccionado = modoEnlaceIntramoto == modo
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (seleccionado) Color(0xFFFF6B00) else Color(0xFFF1F5F9),
+                                        border = BorderStroke(1.dp, if (seleccionado) Color(0xFFEA580C) else Color(0xFFE2E8F0)),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { GestorMeshTx.alternarModoEnlaceIntramoto(modo) }
+                                    ) {
+                                        Text(
+                                            text = etiqueta,
+                                            fontSize = 10.sp,
+                                            fontWeight = if (seleccionado) FontWeight.Black else FontWeight.Bold,
+                                            color = if (seleccionado) Color.White else Color(0xFF334155),
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(vertical = 7.dp, horizontal = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Acciones según el rol
+                        if (rolEnMoto == RolEnMoto.PILOTO_GATEWAY) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Retransmitir Copiloto a Caravana",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                        Text(
+                                            text = if (ajustes.retransmitirCopilotoACaravana)
+                                                "Puente Activo: Tu teléfono reenvía la voz del copiloto a la caravana por Wi-Fi y 4G"
+                                            else
+                                                "Privado: Solo ustedes dos se escuchan en la moto",
+                                            fontSize = 9.sp,
+                                            color = Color(0xFF64748B)
+                                        )
+                                    }
+                                    Switch(
+                                        checked = ajustes.retransmitirCopilotoACaravana,
+                                        onCheckedChange = { GestorMeshTx.alternarRetransmitirCopilotoCaravana(it) },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = Color.White,
+                                            checkedTrackColor = Color(0xFF2563EB)
+                                        ),
+                                        modifier = Modifier.scale(0.8f)
+                                    )
+                                }
+                            }
+                        } else if (rolEnMoto == RolEnMoto.COPILOTO_ENLACE) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Piloto Vinculado:",
+                                            fontSize = 10.sp,
+                                            color = Color(0xFF64748B)
+                                        )
+                                        Text(
+                                            text = if (ajustes.nombreDispositivoCopiloto.isNotBlank())
+                                                ajustes.nombreDispositivoCopiloto
+                                            else
+                                                "Ningún teléfono seleccionado",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                    }
+                                    OutlinedButton(
+                                        onClick = { mostrarDialogoCopiloto = true },
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("Vincular Piloto", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
+                                    }
+                                }
+                            }
+                        }
+
+                        // Botones de conectar / desconectar / vincular
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (estadoEnlaceCopiloto != EstadoEnlaceCopiloto.DESCONECTADO) {
+                                OutlinedButton(
+                                    onClick = { GestorMeshTx.desconectarEnlaceCopiloto() },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626))
+                                ) {
+                                    Text("Desconectar Enlace", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            } else {
+                                Button(
+                                    onClick = {
+                                        if (rolEnMoto == RolEnMoto.COPILOTO_ENLACE) {
+                                            if (ajustes.macDispositivoCopiloto.isNotBlank()) {
+                                                GestorMeshTx.iniciarModoCopiloto(ajustes.macDispositivoCopiloto)
+                                            } else {
+                                                mostrarDialogoCopiloto = true
+                                            }
+                                        } else {
+                                            GestorMeshTx.iniciarModoPilotoGateway()
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                                ) {
+                                    Text(
+                                        text = if (rolEnMoto == RolEnMoto.COPILOTO_ENLACE) "Conectar con Piloto" else "Activar Modo Gateway",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+
+                            IconButton(
+                                onClick = { mostrarDialogoCopiloto = true }
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFFF1F5F9),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Bluetooth,
+                                            contentDescription = "Dispositivos Bluetooth",
+                                            tint = Color(0xFF334155),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -848,8 +1286,13 @@ fun MeshTxScreen(
                             .padding(vertical = 16.dp, horizontal = 14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        val estaDesconectado = estadoConexion == MeshEstadoConexion.DESCONECTADO
                         val colorBotonPtt by animateColorAsState(
-                            targetValue = if (estaTransmitiendoPtt) Color(0xFFDC2626) else Color(0xFFFF6B00),
+                            targetValue = when {
+                                estaDesconectado -> Color(0xFF94A3B8)
+                                estaTransmitiendoPtt -> Color(0xFFDC2626)
+                                else -> Color(0xFFFF6B00)
+                            },
                             animationSpec = tween(durationMillis = 150),
                             label = "BotonPttColor"
                         )
@@ -860,25 +1303,37 @@ fun MeshTxScreen(
                             color = colorBotonPtt,
                             border = BorderStroke(
                                 width = if (estaTransmitiendoPtt) 4.dp else 2.dp,
-                                color = if (estaTransmitiendoPtt) Color.White else Color(0xFFFFD8A8)
+                                color = when {
+                                    estaDesconectado -> Color(0xFFCBD5E1)
+                                    estaTransmitiendoPtt -> Color.White
+                                    else -> Color(0xFFFFD8A8)
+                                }
                             ),
                             shadowElevation = if (estaTransmitiendoPtt) 8.dp else 3.dp,
                             modifier = Modifier
                                 .size(144.dp)
                                 .clip(CircleShape)
-                                .pointerInput(Unit) {
-                                    awaitPointerEventScope {
-                                        while (true) {
-                                            awaitFirstDown(requireUnconsumed = false)
-                                            GestorMeshTx.setTransmitiendoPtt(true)
-                                            var presionado = true
-                                            while (presionado) {
-                                                val evento = awaitPointerEvent()
-                                                if (evento.changes.all { !it.pressed }) {
-                                                    presionado = false
-                                                }
+                                .pointerInput(estadoConexion) {
+                                    if (estadoConexion == MeshEstadoConexion.DESCONECTADO) {
+                                        detectTapGestures(
+                                            onTap = {
+                                                conmutarMallaTactico()
                                             }
-                                            GestorMeshTx.setTransmitiendoPtt(false)
+                                        )
+                                    } else {
+                                        awaitPointerEventScope {
+                                            while (true) {
+                                                awaitFirstDown(requireUnconsumed = false)
+                                                GestorMeshTx.setTransmitiendoPtt(true)
+                                                var presionado = true
+                                                while (presionado) {
+                                                    val evento = awaitPointerEvent()
+                                                    if (evento.changes.all { !it.pressed }) {
+                                                        presionado = false
+                                                    }
+                                                }
+                                                GestorMeshTx.setTransmitiendoPtt(false)
+                                            }
                                         }
                                     }
                                 }
@@ -889,21 +1344,33 @@ fun MeshTxScreen(
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    imageVector = if (estaTransmitiendoPtt) Icons.Default.Mic else Icons.Default.MicNone,
+                                    imageVector = when {
+                                        estaDesconectado -> Icons.Default.PlayArrow
+                                        estaTransmitiendoPtt -> Icons.Default.Mic
+                                        else -> Icons.Default.MicNone
+                                    },
                                     contentDescription = "Botón PTT",
                                     tint = Color.White,
                                     modifier = Modifier.size(46.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = if (estaTransmitiendoPtt) "AL AIRE" else "PULSAR PTT",
+                                    text = when {
+                                        estaDesconectado -> "CONECTAR"
+                                        estaTransmitiendoPtt -> "AL AIRE"
+                                        else -> "PULSAR PTT"
+                                    },
                                     fontWeight = FontWeight.Black,
                                     fontSize = 13.sp,
                                     color = Color.White,
                                     letterSpacing = 0.5.sp
                                 )
                                 Text(
-                                    text = if (estaTransmitiendoPtt) "Transmitiendo" else "Mantener presionado",
+                                    text = when {
+                                        estaDesconectado -> "Toca para activar radio"
+                                        estaTransmitiendoPtt -> "Transmitiendo (Cola activa)"
+                                        else -> "Mantener presionado"
+                                    },
                                     fontSize = 9.sp,
                                     color = Color.White.copy(alpha = 0.85f),
                                     fontWeight = FontWeight.Medium
@@ -1432,6 +1899,44 @@ fun MeshTxScreen(
                                         color = if (estaHablando) Color(0xFF16A34A) else Color(0xFF64748B),
                                         fontWeight = if (estaHablando) FontWeight.Bold else FontWeight.Medium
                                     )
+
+                                    val canalLocalEfectivo = GestorMeshTx.obtenerCanalIdEfectivo()
+                                    val esMismoCanal = (nodo.idCanalActual == canalLocalEfectivo) &&
+                                            (nodo.salaPrivada.isNullOrBlank() == salaPrivadaActiva.isNullOrBlank()) &&
+                                            (nodo.salaPrivada == salaPrivadaActiva)
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    ) {
+                                        if (!nodo.salaPrivada.isNullOrBlank()) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (nodo.salaPrivada == salaPrivadaActiva) Color(0xFFEFF6FF) else Color(0xFFF3E8FF)
+                                            ) {
+                                                Text(
+                                                    text = "🔒 Sala: ${nodo.salaPrivada}",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (nodo.salaPrivada == salaPrivadaActiva) Color(0xFF2563EB) else Color(0xFF7E22CE),
+                                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                        }
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = if (esMismoCanal) Color(0xFFDCFCE7) else Color(0xFFFEF3C7)
+                                        ) {
+                                            Text(
+                                                text = if (esMismoCanal) "📻 En tu canal (${nodo.nombreCanalActual})" else "📻 En ${nodo.nombreCanalActual} (Distinto)",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (esMismoCanal) Color(0xFF15803D) else Color(0xFFB45309),
+                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
@@ -1523,6 +2028,220 @@ fun MeshTxScreen(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // ═════════════════════════════════════════════════════════
+                    // SECCIÓN INTERCOM INTRAMOTO: PILOTO & COPILOTO
+                    // ═════════════════════════════════════════════════════════
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Bluetooth,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2563EB),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "🏍️ Enlace Intramoto (Piloto-Copiloto)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Text(
+                                        text = "Micro-Malla Bluetooth Clásico & Modo Puente",
+                                        fontSize = 9.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                            }
+
+                            // ⚠️ Advertencia de distancia máxima de Bluetooth
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFFEF3C7),
+                                border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = Color(0xFFD97706),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "⚠️ Alcance Bluetooth: Máx 10-15 metros. Solo para Piloto y Copiloto montados en la misma moto TX 200.",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF92400E),
+                                        lineHeight = 13.sp
+                                    )
+                                }
+                            }
+
+                            // Selector de Modo de Red (Trimodal)
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "Modo de Red Intramoto:",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF475569)
+                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    listOf(
+                                        ModoEnlaceIntramoto.SOLO_BLUETOOTH to Pair("Solo Bluetooth 🔋", "Ahorro extremo: Copiloto apaga Wi-Fi, latencia < 40ms"),
+                                        ModoEnlaceIntramoto.SOLO_WIFI to Pair("Solo Wi-Fi 📡", "Malla local P2P de alcance extendido (~150m)"),
+                                        ModoEnlaceIntramoto.HIBRIDO_TRIMODAL to Pair("Híbrido Trimodal ⚡", "Bluetooth + Wi-Fi + 4G redundante sin pérdida de voz")
+                                    ).forEach { (modo, info) ->
+                                        val seleccionado = ajustes.modoEnlacePrivado == modo
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = if (seleccionado) Color(0xFFFFEDD5) else Color.White,
+                                            border = BorderStroke(
+                                                1.dp,
+                                                if (seleccionado) Color(0xFFFF6B00) else Color(0xFFE2E8F0)
+                                            ),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { GestorMeshTx.alternarModoEnlaceIntramoto(modo) }
+                                        ) {
+                                            Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                                                Text(
+                                                    text = info.first,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = if (seleccionado) FontWeight.Black else FontWeight.Bold,
+                                                    color = if (seleccionado) Color(0xFFC2410C) else Color(0xFF0F172A)
+                                                )
+                                                Text(
+                                                    text = info.second,
+                                                    fontSize = 9.sp,
+                                                    color = Color(0xFF64748B)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Selector de Rol en la Moto
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "Rol en la Moto:",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF475569)
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    listOf(
+                                        RolEnMoto.PILOTO_GATEWAY to "🏍️ Piloto",
+                                        RolEnMoto.COPILOTO_ENLACE to "🎒 Copiloto",
+                                        RolEnMoto.SOLO_PILOTO_INDIVIDUAL to "👤 Solo"
+                                    ).forEach { (rol, etiqueta) ->
+                                        val seleccionado = ajustes.rolEnMoto == rol
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = if (seleccionado) Color(0xFF2563EB) else Color.White,
+                                            border = BorderStroke(1.dp, if (seleccionado) Color(0xFF1D4ED8) else Color(0xFFCBD5E1)),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clickable { GestorMeshTx.alternarRolEnMoto(rol) }
+                                        ) {
+                                            Text(
+                                                text = etiqueta,
+                                                fontSize = 10.sp,
+                                                fontWeight = if (seleccionado) FontWeight.Black else FontWeight.Bold,
+                                                color = if (seleccionado) Color.White else Color(0xFF334155),
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.padding(vertical = 7.dp, horizontal = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Dispositivo vinculado
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Dispositivo Compañero:",
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                    Text(
+                                        text = if (ajustes.nombreDispositivoCopiloto.isNotBlank())
+                                            ajustes.nombreDispositivoCopiloto
+                                        else
+                                            "Sin vincular",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                }
+                                OutlinedButton(
+                                    onClick = { mostrarDialogoCopiloto = true },
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text("Seleccionar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
+                                }
+                            }
+
+                            // Retransmitir Copiloto a Caravana
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Retransmitir Copiloto a Caravana",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                    Text(
+                                        text = "El Piloto reenvía la voz del copiloto hacia el convoy por Wi-Fi y 4G",
+                                        fontSize = 9.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                                Switch(
+                                    checked = ajustes.retransmitirCopilotoACaravana,
+                                    onCheckedChange = { GestorMeshTx.alternarRetransmitirCopilotoCaravana(it) },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = Color(0xFF2563EB)
+                                    ),
+                                    modifier = Modifier.scale(0.8f)
+                                )
+                            }
+                        }
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
                     // Switch Modo PTT vs VOX
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1548,6 +2267,120 @@ fun MeshTxScreen(
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = Color(0xFFFF6B00)
+                            )
+                        )
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
+                    // Retardo de Fin de PTT (Hang-Time al soltar)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            "⏱️ Retardo al Soltar PTT (Cola de Audio)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            "Mantiene la captura abierta unos milisegundos tras soltar el botón para que nunca se corte la última palabra.",
+                            fontSize = 10.sp,
+                            color = Color(0xFF64748B)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(
+                                400L to "400 ms",
+                                800L to "800 ms (Recomendado)",
+                                1200L to "1.2 s",
+                                1500L to "1.5 s"
+                            ).forEach { (ms, etiqueta) ->
+                                val seleccionado = ajustes.retardoFinPttMs == ms
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (seleccionado) Color(0xFFFF6B00) else Color(0xFFF1F5F9),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { GestorMeshTx.ajustarRetardoFinPtt(ms) }
+                                ) {
+                                    Text(
+                                        text = etiqueta,
+                                        fontSize = 10.sp,
+                                        fontWeight = if (seleccionado) FontWeight.Black else FontWeight.Medium,
+                                        color = if (seleccionado) Color.White else Color(0xFF334155),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.padding(vertical = 8.dp, horizontal = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
+                    // Tono Roger Beep Táctico
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "🔔 Tono Roger Beep Táctico",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                "Beep de confirmación al soltar PTT para avisar que la frecuencia quedó libre",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ajustes.tonoRogerBeep,
+                            onCheckedChange = { GestorMeshTx.alternarTonoRogerBeep(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFFFF6B00)
+                            )
+                        )
+                    }
+
+                    Divider(color = Color(0xFFE2E8F0))
+
+                    // Fidelidad de Audio HD
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "🎙️ Fidelidad de Audio HD (16 kHz)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Text(
+                                if (ajustes.fidelidadAudioAlta)
+                                    "Activo: Voz clara en banda ancha (16 kHz) optimizada para cascos"
+                                else
+                                    "Inactivo: Banda estrecha (8 kHz) ultra-comprimida",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ajustes.fidelidadAudioAlta,
+                            onCheckedChange = { GestorMeshTx.alternarFidelidadAudio(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF16A34A)
                             )
                         )
                     }
@@ -1586,32 +2419,74 @@ fun MeshTxScreen(
                     Divider(color = Color(0xFFE2E8F0))
 
                     // Switch Búfer Adaptativo Anti-Entrecorte (Jitter Buffer + PLC)
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Búfer Anti-Entrecorte Táctico",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = Color(0xFF0F172A)
-                            )
-                            Text(
-                                "Jitter buffer adaptativo (120ms) y suavizado PLC para Wi-Fi",
-                                fontSize = 10.sp,
-                                color = Color(0xFF64748B)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Búfer Anti-Entrecorte Táctico",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF0F172A)
+                                )
+                                Text(
+                                    "Jitter buffer adaptativo y suavizado PLC para eliminar cortes",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF64748B)
+                                )
+                            }
+                            Switch(
+                                checked = ajustes.bufferAntiEntrecorte,
+                                onCheckedChange = { GestorMeshTx.alternarBufferAntiEntrecorte(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFFFF6B00)
+                                )
                             )
                         }
-                        Switch(
-                            checked = ajustes.bufferAntiEntrecorte,
-                            onCheckedChange = { GestorMeshTx.alternarBufferAntiEntrecorte(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFFFF6B00)
+
+                        if (ajustes.bufferAntiEntrecorte) {
+                            Text(
+                                "Tamaño del búfer de compensación de jitter:",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B),
+                                fontWeight = FontWeight.SemiBold
                             )
-                        )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    120 to "120 ms (Rápido)",
+                                    200 to "200 ms (Recomendado)",
+                                    320 to "320 ms (Robusto)"
+                                ).forEach { (ms, etiqueta) ->
+                                    val seleccionado = ajustes.tamanoBufferJitterMs == ms
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (seleccionado) Color(0xFFFF6B00) else Color(0xFFF1F5F9),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { GestorMeshTx.ajustarBufferJitter(ms) }
+                                    ) {
+                                        Text(
+                                            text = etiqueta,
+                                            fontSize = 10.sp,
+                                            fontWeight = if (seleccionado) FontWeight.Black else FontWeight.Medium,
+                                            color = if (seleccionado) Color.White else Color(0xFF334155),
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     Divider(color = Color(0xFFE2E8F0))
@@ -1970,6 +2845,20 @@ fun MeshTxScreen(
         DialogoCrearOUnirseASalaPrivada(
             salaActual = salaPrivadaActiva,
             onDismiss = { mostrarDialogoSalaPrivada = false }
+        )
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DIÁLOGO DE VINCULACIÓN BLUETOOTH INTRAMOTO (PILOTO - COPILOTO)
+    // ─────────────────────────────────────────────────────────────────────────
+    if (mostrarDialogoCopiloto) {
+        DialogoSeleccionarDispositivoCopiloto(
+            dispositivoSeleccionadoMac = ajustes.macDispositivoCopiloto,
+            onDispositivoSeleccionado = { nombre, mac ->
+                GestorMeshTx.configurarDispositivoCopiloto(nombre, mac)
+                mostrarDialogoCopiloto = false
+            },
+            onDismiss = { mostrarDialogoCopiloto = false }
         )
     }
 }
@@ -2357,4 +3246,210 @@ fun DialogoCrearOUnirseASalaPrivada(
         shape = RoundedCornerShape(16.dp)
     )
 }
+
+/**
+ * Diálogo para seleccionar el dispositivo Bluetooth del Copiloto o Piloto.
+ * Permite vincular directamente el teléfono de la persona con la que viajas en la moto.
+ */
+@Composable
+fun DialogoSeleccionarDispositivoCopiloto(
+    dispositivoSeleccionadoMac: String,
+    onDispositivoSeleccionado: (nombre: String, mac: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val dispositivosEmparejados = remember {
+        GestorMeshTx.obtenerDispositivosBluetoothEmparejados()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFEFF6FF),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Bluetooth,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        text = "Vincular Teléfono Intramoto",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp,
+                        color = Color(0xFF0F172A)
+                    )
+                    Text(
+                        text = "DISPOSITIVOS BLUETOOTH EMPAREJADOS",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF2563EB)
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Advertencia de distancia máxima
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFEF3C7),
+                    border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFD97706),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "⚠️ Alcance Bluetooth: Máximo 10 a 15 metros. Solo para Piloto y Copiloto en la misma moto.",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF92400E)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Selecciona el teléfono de tu compañero(a) de moto para enlazar el intercomunicador privado:",
+                    fontSize = 11.sp,
+                    color = Color(0xFF475569),
+                    lineHeight = 16.sp
+                )
+
+                if (dispositivosEmparejados.isEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFF8FAFC),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhoneAndroid,
+                                contentDescription = null,
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Text(
+                                text = "No se encontraron dispositivos vinculados",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF334155),
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "Ve a los Ajustes de Android > Bluetooth en ambos teléfonos, empareja el equipo de tu copiloto o piloto una sola vez, y vuelve a esta pantalla.",
+                                fontSize = 10.sp,
+                                color = Color(0xFF64748B),
+                                textAlign = TextAlign.Center,
+                                lineHeight = 14.sp
+                            )
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 240.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        dispositivosEmparejados.forEach { (nombre, mac) ->
+                            val esSeleccionado = mac.equals(dispositivoSeleccionadoMac, ignoreCase = true)
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (esSeleccionado) Color(0xFFEFF6FF) else Color(0xFFF8FAFC),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (esSeleccionado) Color(0xFF2563EB) else Color(0xFFE2E8F0)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onDispositivoSeleccionado(nombre, mac)
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PhoneAndroid,
+                                            contentDescription = null,
+                                            tint = if (esSeleccionado) Color(0xFF2563EB) else Color(0xFF64748B),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                text = nombre.ifBlank { "Dispositivo Android" },
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (esSeleccionado) Color(0xFF1D4ED8) else Color(0xFF0F172A)
+                                            )
+                                            Text(
+                                                text = mac,
+                                                fontSize = 10.sp,
+                                                color = Color(0xFF64748B)
+                                            )
+                                        }
+                                    }
+                                    if (esSeleccionado) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Seleccionado",
+                                            tint = Color(0xFF2563EB),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Listo", color = Color(0xFF2563EB), fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
 

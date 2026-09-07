@@ -25,10 +25,18 @@ import java.util.concurrent.ConcurrentHashMap
  * 100% OFFLINE - Cero dependencia de internet o servidores externos.
  */
 class EnrutadorMalla(
-    private val idPilotoLocal: Long,
-    private val aliasPilotoLocal: String,
+    private var idPilotoLocal: Long,
+    private var aliasPilotoLocal: String,
     private val alEnviarPaqueteFisico: (PaqueteDatosMesh, NodoMeshPiloto?) -> Unit
 ) {
+
+    fun actualizarIdLocal(nuevoId: Long) {
+        this.idPilotoLocal = nuevoId
+    }
+
+    fun actualizarAliasLocal(nuevoAlias: String) {
+        if (nuevoAlias.isNotBlank()) this.aliasPilotoLocal = nuevoAlias
+    }
 
     private val etiquetaLog = "MeshTX_Enrutador"
     private val limiteMaximoSaltosTtl = 5 // Máximo 5 saltos para paquetes de control y SOS
@@ -252,22 +260,34 @@ class EnrutadorMalla(
     private fun ejecutarProcesamientoPaqueteRecibido(paquete: PaqueteDatosMesh, remitenteFisicoId: Long) {
         val ahora = System.currentTimeMillis()
 
-        // 1. Descartar si ya fue procesado o emitido anteriormente (evita bucle infinito y tormenta)
+        // 1. Supresión absoluta de eco propio: NUNCA procesar ni emitir tramas originadas por este nodo local
+        if (paquete.idEmisor == idPilotoLocal) {
+            return
+        }
+
+        // 2. Descartar si ya fue procesado o emitido anteriormente (evita bucle infinito y tormenta de difusión)
         if (cacheDeduplicacion.contiene(paquete.idPaquete)) {
             return
         }
         cacheDeduplicacion.poner(paquete.idPaquete, ahora)
 
-        // 2. Registrar presencia del emisor y del remitente físico
+        // 3. Registrar presencia del emisor y del remitente físico
         registroPresenciaNodos[remitenteFisicoId] = ahora
         registroPresenciaNodos[paquete.idEmisor] = ahora
 
-        // 3. Reverse Path Learning: Aprender ruta de retorno hacia el emisor original
+        // 4. Reverse Path Learning: Aprender ruta de retorno hacia el emisor original
         aprenderRutaInversa(paquete.idEmisor, remitenteFisicoId, paquete.saltosRelay + 1)
 
-        // 4. Evaluar si el paquete nos corresponde por destino o por canal
-        val esParaMi = paquete.destinoPilotoId == null || paquete.destinoPilotoId == idPilotoLocal
+        // 5. AISLAMIENTO ESTRICTO DE CANALES:
+        // Si es audio, SOLO se procesa si coincide EXACTAMENTE con el canal o sala activa
         val canalEsperado = canalActivoIdPersonalizado ?: canalActivo.idCanal
+        if (paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS && paquete.canal != canalEsperado) {
+            // El paquete de audio pertenece a un canal o sala diferente: NO mezclar ni reproducir
+            return
+        }
+
+        // 6. Evaluar si el paquete nos corresponde por destino o por canal
+        val esParaMi = paquete.destinoPilotoId == null || paquete.destinoPilotoId == idPilotoLocal
         val perteneceACanal = paquete.tipo == TipoPaqueteMesh.PAQUETE_SOS ||
                 paquete.tipo == TipoPaqueteMesh.BEACON_DESCUBRIMIENTO ||
                 paquete.destinoPilotoId != null ||

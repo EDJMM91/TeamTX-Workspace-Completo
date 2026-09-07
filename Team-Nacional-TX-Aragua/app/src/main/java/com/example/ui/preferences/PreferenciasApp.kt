@@ -221,4 +221,20 @@ object PreferenciasApp {
     var soloDirectivaPublicaFeed: Boolean
         get() = if (::prefs.isInitialized) prefs.getBoolean("directiva_solo_publica_feed", false) else false
         set(value) { if (::prefs.isInitialized) prefs.edit().putBoolean("directiva_solo_publica_feed", value).apply() }
+
+    // ─── PACTO DE HONOR BIKER ──────────────────────────────────────────────────
+
+    /** Verifica si el miembro ya aceptó el compromiso de honor biker y buen uso */
+    fun haAceptadoCompromisoBiker(memberId: Long): Boolean {
+        if (!::prefs.isInitialized) return false
+        val clave = if (memberId > 0) "compromiso_biker_aceptado_$memberId" else "compromiso_biker_aceptado_global"
+        return prefs.getBoolean(clave, false)
+    }
+
+    /** Marca como aceptado el compromiso de honor biker */
+    fun setCompromisoBikerAceptado(memberId: Long, aceptado: Boolean) {
+        if (!::prefs.isInitialized) return
+        val clave = if (memberId > 0) "compromiso_biker_aceptado_$memberId" else "compromiso_biker_aceptado_global"
+        prefs.edit().putBoolean(clave, aceptado).apply()
+    }
 }

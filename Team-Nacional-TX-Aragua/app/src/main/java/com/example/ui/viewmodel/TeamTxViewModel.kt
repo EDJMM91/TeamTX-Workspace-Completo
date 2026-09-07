@@ -2553,11 +2553,23 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             val isSpecialGuest = inv.isSpecialGuest || inv.targetRole == MemberRole.INVITADO || !codeTrim.all { it.isDigit() }
             val roleEnum = if (isSpecialGuest) MemberRole.INVITADO else (if (role.equals("Copiloto", ignoreCase = true)) MemberRole.COPILOTO else inv.targetRole)
 
+            // 🛡️ Si el código proviene de una solicitud aprobada, enlazar los datos de la solicitud
+            val linkedReq = allAccessRequests.value.find { it.generatedCode == codeTrim }
+            val resolvedPhone = if (phone.isNotBlank()) phone else (linkedReq?.phone ?: "")
+            val resolvedName = if (fullName.isNotBlank()) fullName else (linkedReq?.fullName ?: "")
+            val resolvedDni = linkedReq?.cedulaDni ?: ""
+            val resolvedModel = if (bikeModel.isNotBlank()) bikeModel else (linkedReq?.bikeModel ?: "TX 200 SM")
+            val resolvedPlate = if (bikePlate.isNotBlank()) bikePlate else (linkedReq?.bikePlate ?: "SIN-PLACA")
+            val resolvedBirthDate = if (birthDate.isNotBlank()) birthDate else (linkedReq?.birthDate ?: "")
+
             // Register or activate member
             val existing = allMembers.value.find { m ->
                 val cleanMemPhone = m.phone.replace(Regex("[^0-9]"), "")
-                val cleanInPhone = phone.replace(Regex("[^0-9]"), "")
-                cleanInPhone.isNotBlank() && cleanMemPhone.endsWith(cleanInPhone)
+                val cleanInPhone = resolvedPhone.replace(Regex("[^0-9]"), "")
+                val matchPhone = cleanInPhone.isNotBlank() && cleanMemPhone.endsWith(cleanInPhone)
+                val matchDni = resolvedDni.isNotBlank() && m.cedulaDni.equals(resolvedDni, ignoreCase = true)
+                val matchName = resolvedName.isNotBlank() && m.fullName.equals(resolvedName, ignoreCase = true)
+                matchPhone || matchDni || matchName
             }
 
             if (existing != null) {
@@ -2569,20 +2581,20 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 repository.updateMember(updatedExisting)
                 _currentMemberId.value = existing.id
             } else {
-                val initials = if (fullName.isNotBlank()) fullName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase() else if (isSpecialGuest) "INV" else "TX"
+                val initials = if (resolvedName.isNotBlank()) resolvedName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase() else if (isSpecialGuest) "INV" else "TX"
                 val newMem = MemberProfile(
                     id = System.currentTimeMillis(), // 🛡️ ID Manual Atómico
-                    fullName = fullName.ifBlank { if (isSpecialGuest) "Invitado Especial" else "Piloto (Registro Pendiente)" },
+                    fullName = resolvedName.ifBlank { if (isSpecialGuest) "Invitado Especial" else "Piloto (Registro Pendiente)" },
                     nickname = if (isSpecialGuest) "Invitado" else "Piloto",
                     memberNumber = if (isSpecialGuest) "TX-INV-${(100..999).random()}" else "TX-${(100..999).random()}",
-                    cedulaDni = "",
-                    phone = phone,
+                    cedulaDni = resolvedDni,
+                    phone = resolvedPhone,
                     role = roleEnum,
                     chapterState = "Venezuela",
-                    birthDate = birthDate,
+                    birthDate = resolvedBirthDate,
                     bikeBrand = "Keeway",
-                    bikeModel = bikeModel.ifBlank { "TX 200 SM" },
-                    bikePlate = bikePlate.ifBlank { "SIN-PLACA" },
+                    bikeModel = resolvedModel,
+                    bikePlate = resolvedPlate,
                     emergencyContactName = "",
                     emergencyContactPhone = "",
                     isDirectiva = !isSpecialGuest && inv.targetRole.canManageApp,
@@ -2694,6 +2706,107 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             repository.insertChatMessage(alertMsg)
         }
         return true
+    }
+
+    /**
+     * Verifica si un correo electrónico pertenece a una cuenta existente en Firebase/Local.
+     * Si existe, genera una solicitud formal a la Directiva Nacional para que le emitan un nuevo código.
+     */
+    suspend fun solicitarCodigoPorCorreoSincronizado(email: String): Pair<Boolean, String> {
+        val cleanEmail = email.trim().lowercase()
+        if (cleanEmail.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(cleanEmail).matches()) {
+            return Pair(false, "Por favor ingresa un correo electrónico válido.")
+        }
+
+        return withContext(Dispatchers.IO) {
+            try {
+                // 1. Buscar en memoria local primero
+                var memberMatch = allMembers.value.find { it.email?.trim()?.lowercase() == cleanEmail }
+
+                // 2. Si no está en memoria local, consultar Firestore en la colección "members"
+                if (memberMatch == null) {
+                    val firestore = FirebaseFirestore.getInstance()
+                    val snapshot = firestore.collection("members")
+                        .whereEqualTo("email", cleanEmail)
+                        .get()
+                        .await()
+
+                    if (!snapshot.isEmpty) {
+                        val doc = snapshot.documents.first()
+                        val remoteProfile = doc.toObject(MemberProfile::class.java)?.copy(
+                            id = doc.id.toLongOrNull() ?: System.currentTimeMillis()
+                        )
+                        if (remoteProfile != null) {
+                            repository.insertMember(remoteProfile)
+                            memberMatch = remoteProfile
+                        }
+                    }
+                }
+
+                if (memberMatch == null) {
+                    return@withContext Pair(
+                        false,
+                        "No se encontró ninguna cuenta vinculada a '$cleanEmail'. Si eres un nuevo piloto, solicita tu código de entrada en la opción anterior."
+                    )
+                }
+
+                // 3. Crear solicitud formal a la directiva para recuperar código
+                val reqId = System.currentTimeMillis()
+                val req = AccessRequest(
+                    id = reqId,
+                    fullName = memberMatch.fullName,
+                    phone = memberMatch.phone,
+                    cedulaDni = memberMatch.cedulaDni,
+                    bikeBrand = "Keeway",
+                    bikeModel = memberMatch.bikeModel.ifBlank { "TX 200 SM" },
+                    bikeColor = memberMatch.bikeColor.ifBlank { "Negro / Naranja" },
+                    bikePlate = memberMatch.bikePlate.ifBlank { "SIN-PLACA" },
+                    chapterState = memberMatch.chapterState.ifBlank { "Aragua" },
+                    birthDate = memberMatch.birthDate,
+                    requestedRole = memberMatch.role.displayName,
+                    requestType = "RECUPERACION_CUENTA",
+                    reasonMessage = "El piloto ${memberMatch.fullName} (${memberMatch.memberNumber}) solicita emisión de código para su correo sincronizado: $cleanEmail.",
+                    timestamp = reqId,
+                    status = "PENDIENTE"
+                )
+                repository.insertAccessRequest(req)
+
+                // Subir a Firestore para alerta inmediata a la Directiva
+                try {
+                    FirebaseFirestore.getInstance().collection("access_requests")
+                        .document(reqId.toString())
+                        .set(req)
+                        .await()
+                } catch (e: Exception) {
+                    Log.e("TeamTxViewModel", "Error sincronizando solicitud a Firestore: ${e.message}")
+                }
+
+                // Alerta al canal de Directiva
+                val alertMsg = ChatMessage(
+                    id = reqId + 1,
+                    channelId = "DIRECTIVA",
+                    senderMemberId = 0,
+                    senderName = "SISTEMA TX",
+                    senderNickname = "Bot",
+                    senderMemberNumber = "TX-BOT",
+                    senderRole = MemberRole.DISCIPLINARIO,
+                    senderCustomRoleTitle = "Bot de Ingreso",
+                    senderInitials = "TX",
+                    messageText = "🔑 RECUPERACIÓN DE CUENTA: El piloto ${memberMatch.fullName} (${memberMatch.memberNumber}) solicita código para su correo sincronizado: $cleanEmail. Suminístrale su código desde el Panel de Solicitudes.",
+                    isRadioCallout = true,
+                    timestamp = reqId
+                )
+                repository.insertChatMessage(alertMsg)
+
+                Pair(
+                    true,
+                    "¡Cuenta verificada exitosamente!\n\n• Piloto: ${memberMatch.fullName}\n• Ficha: ${memberMatch.memberNumber}\n• Rol: ${memberMatch.role.displayName}\n\nSe ha enviado la notificación a la Directiva Nacional. La directiva te suministrará tu nuevo código. Al colocarlo en la casilla de entrada, tu cuenta y todos tus datos se restaurarán automáticamente."
+                )
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error en solicitarCodigoPorCorreoSincronizado: ${e.message}")
+                Pair(false, "Error al conectar con el servidor: ${e.localizedMessage ?: "Intenta de nuevo."}")
+            }
+        }
     }
 
     // ---------------- INVITATION CODES (24H & MAESTROS) ---------------- //

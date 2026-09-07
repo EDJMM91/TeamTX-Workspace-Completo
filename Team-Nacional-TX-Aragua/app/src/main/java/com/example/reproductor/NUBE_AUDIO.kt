@@ -45,6 +45,7 @@ fun NubeAudioFlotante(
     cancionActual: CancionMotera?,
     estado: EstadoReproductor,
     config: ConfiguracionReproductor,
+    onAnterior: () -> Unit = {},
     onAlternarPlayPausa: () -> Unit,
     onSiguiente: () -> Unit,
     onAbrirReproductor: () -> Unit,
@@ -90,7 +91,7 @@ fun NubeAudioFlotante(
             Surface(
                 modifier = Modifier
                     .offset { IntOffset(0, offsetY.roundToInt()) }
-                    .shadow(10.dp, RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp), spotColor = MotoOrangePrimary)
+                    .shadow(10.dp, RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp), spotColor = Color(0x33000000))
                     .clip(RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp))
                     .clickable {
                         estaColapsadaALaIzquierda = false
@@ -98,26 +99,26 @@ fun NubeAudioFlotante(
                     }
                     .background(
                         Brush.horizontalGradient(
-                            listOf(
-                                Color(0xFF131824).copy(alpha = 0.95f),
-                                Color(0xFF1E2433).copy(alpha = 0.95f)
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.98f),
+                                Color(0xFFF8FAFC).copy(alpha = 0.98f)
                             )
                         )
                     ),
                 color = Color.Transparent,
                 shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
-                border = BorderStroke(1.dp, if (esPlaying) MotoOrangePrimary else Color(0xFF374151))
+                border = BorderStroke(1.dp, if (esPlaying) MotoOrangePrimary else Color(0xFFCBD5E1))
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(if (esPlaying) "🔥" else "🎵", fontSize = 14.sp)
                     Icon(
-                        imageVector = Icons.Default.ChevronRight,
+                        Icons.Default.ChevronRight,
                         contentDescription = "Expandir Nube",
-                        tint = MotoGoldSecondary,
+                        tint = MotoOrangePrimary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -150,36 +151,36 @@ fun NubeAudioFlotante(
                             }
                         }
                     }
-                    .shadow(12.dp, RoundedCornerShape(26.dp), spotColor = MotoOrangePrimary)
+                    .shadow(10.dp, RoundedCornerShape(26.dp), spotColor = Color(0x33000000))
                     .clip(RoundedCornerShape(26.dp))
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
-                                Color(0xFF131824).copy(alpha = 0.95f),
-                                Color(0xFF1E2433).copy(alpha = 0.95f)
+                                Color.White.copy(alpha = 0.98f),
+                                Color(0xFFF8FAFC).copy(alpha = 0.98f)
                             )
                         )
                     ),
                 color = Color.Transparent,
                 shape = RoundedCornerShape(26.dp),
-                border = BorderStroke(1.dp, if (esPlaying) MotoOrangePrimary else Color(0xFF374151))
+                border = BorderStroke(1.5.dp, if (esPlaying) MotoOrangePrimary else Color(0xFFCBD5E1))
             ) {
                 Row(
                     modifier = Modifier
                         .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .widthIn(min = 210.dp, max = 260.dp),
+                        .widthIn(min = 230.dp, max = 285.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     // Botón para colapsar rápidamente a la izquierda
                     IconButton(
                         onClick = { estaColapsadaALaIzquierda = true },
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     ) {
                         Icon(
                             Icons.Default.ChevronLeft,
                             contentDescription = "Ocultar a la izquierda",
-                            tint = Color(0xFF90A4AE),
+                            tint = Color(0xFF64748B),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -187,11 +188,11 @@ fun NubeAudioFlotante(
                     // Icono animado de disco/fuego
                     Surface(
                         shape = CircleShape,
-                        color = if (esPlaying) TxFlameRed else Color(0xFF263238),
-                        modifier = Modifier.size(30.dp)
+                        color = if (esPlaying) MotoOrangePrimary.copy(alpha = 0.15f) else Color(0xFFF1F5F9),
+                        modifier = Modifier.size(28.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text(if (esPlaying) "🔥" else "🎵", fontSize = 13.sp)
+                            Text(if (esPlaying) "🔥" else "🎵", fontSize = 12.sp)
                         }
                     }
 
@@ -208,20 +209,36 @@ fun NubeAudioFlotante(
                             text = cancionActual.titulo,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = Color(0xFF0F172A),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = cancionActual.artista,
                             fontSize = 9.sp,
-                            color = MotoGoldSecondary,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MotoOrangePrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    // Controles Play/Pause y Next
+                    // Controles Anterior, Play/Pause y Siguiente
+                    IconButton(
+                        onClick = {
+                            ultimoToqueMs = System.currentTimeMillis()
+                            onAnterior()
+                        },
+                        modifier = Modifier.size(26.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SkipPrevious,
+                            contentDescription = "Anterior",
+                            tint = Color(0xFF475569),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
                     IconButton(
                         onClick = {
                             ultimoToqueMs = System.currentTimeMillis()
@@ -232,7 +249,7 @@ fun NubeAudioFlotante(
                         Icon(
                             imageVector = if (esPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = "Play/Pausa",
-                            tint = if (esPlaying) MotoOrangePrimary else Color.White,
+                            tint = MotoOrangePrimary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -247,7 +264,7 @@ fun NubeAudioFlotante(
                         Icon(
                             imageVector = Icons.Default.SkipNext,
                             contentDescription = "Siguiente",
-                            tint = Color(0xFFCFD8DC),
+                            tint = Color(0xFF475569),
                             modifier = Modifier.size(18.dp)
                         )
                     }

@@ -20,7 +20,7 @@ import javax.crypto.spec.SecretKeySpec
 object BUSCADOR_YT {
 
     private const val ETIQUETA = "BUSCADOR_YT"
-    private const val MAX_RESULTADOS = 50
+    private const val MAX_RESULTADOS = 20
     private val CLAVE_DES_SAAVN = "38346591".toByteArray(Charsets.UTF_8)
 
     // Instancias Invidious y Piped de respaldo
@@ -42,7 +42,6 @@ object BUSCADOR_YT {
 
     /**
      * Busca canciones utilizando el motor global con enlaces directos 320kbps y respaldos.
-     * Combina catálogo global de alta fidelidad y YouTube para máxima disponibilidad de pistas.
      */
     suspend fun buscar(termino: String): List<ResultadoBusquedaYT> = withContext(Dispatchers.IO) {
         val query = termino.trim()
@@ -61,23 +60,8 @@ object BUSCADOR_YT {
             Log.w(ETIQUETA, "Music Global API falló: ${e.message}")
         }
 
-        // 2. Complementar con YouTube Web Scraper para ampliar con versiones en vivo, oficiales y remezclas
-        try {
-            val resWeb = buscarEnYouTubeWeb(query)
-            if (resWeb.isNotEmpty()) {
-                Log.d(ETIQUETA, "✅ Complementado con Web Scraper: ${resWeb.size} resultados")
-                resWeb.forEach { itemYt ->
-                    if (resultados.none { it.idVideo == itemYt.idVideo || (it.titulo.equals(itemYt.titulo, ignoreCase = true) && it.autor.equals(itemYt.autor, ignoreCase = true)) }) {
-                        resultados.add(itemYt)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.w(ETIQUETA, "YouTube Web Scraper falló: ${e.message}")
-        }
-
-        // 3. Si aún hay margen para más variedad, consultar Invidious / Piped
-        if (resultados.size < 25) {
+        // 2. Si hay pocos resultados o búsqueda específica de YouTube, complementar con Invidious / Piped / Scraper
+        if (resultados.size < 5) {
             try {
                 for (instancia in INSTANCIAS_INVIDIOUS) {
                     val res = buscarEnInvidious(instancia, query)
@@ -90,7 +74,7 @@ object BUSCADOR_YT {
             } catch (_: Exception) {}
 
             try {
-                if (resultados.size < 25) {
+                if (resultados.size < 5) {
                     for (instancia in INSTANCIAS_PIPED) {
                         val res = buscarEnPiped(instancia, query)
                         if (res.isNotEmpty()) {
@@ -98,6 +82,16 @@ object BUSCADOR_YT {
                             res.forEach { if (resultados.none { r -> r.idVideo == it.idVideo }) resultados.add(it) }
                             break
                         }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            try {
+                if (resultados.size < 5) {
+                    val resWeb = buscarEnYouTubeWeb(query)
+                    if (resWeb.isNotEmpty()) {
+                        Log.d(ETIQUETA, "✅ Complementado con Web Scraper: ${resWeb.size} resultados")
+                        resWeb.forEach { if (resultados.none { r -> r.idVideo == it.idVideo }) resultados.add(it) }
                     }
                 }
             } catch (_: Exception) {}
@@ -113,7 +107,7 @@ object BUSCADOR_YT {
         val lista = mutableListOf<ResultadoBusquedaYT>()
         try {
             val q = URLEncoder.encode(termino, "UTF-8")
-            val urlApi = "https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=40&p=1&q=$q"
+            val urlApi = "https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&n=20&p=1&q=$q"
             val conexion = URL(urlApi).openConnection() as HttpURLConnection
             conexion.connectTimeout = 7000
             conexion.readTimeout = 7000

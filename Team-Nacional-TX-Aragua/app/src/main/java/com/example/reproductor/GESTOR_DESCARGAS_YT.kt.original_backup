@@ -157,25 +157,6 @@ object GESTOR_DESCARGAS_YT {
                     return@launch
                 }
 
-                // Validación de integridad del archivo de audio descargado
-                val audioValido = try {
-                    val mmr = android.media.MediaMetadataRetriever()
-                    mmr.setDataSource(archivoDestino.absolutePath)
-                    val duracionStr = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
-                    mmr.release()
-                    val durMs = duracionStr?.toLongOrNull() ?: 0L
-                    durMs > 1000L || archivoDestino.length() > 50 * 1024L
-                } catch (_: Exception) {
-                    archivoDestino.length() > 50 * 1024L
-                }
-
-                if (!audioValido) {
-                    logDescarga("❌ Archivo de audio corrupto o incompleto (${archivoDestino.length()} bytes)")
-                    actualizarEstado(resultado.idVideo, TipoEstadoDescarga.ERROR, mensaje = "Archivo descargado incompleto o no reproducible")
-                    try { archivoDestino.delete() } catch (_: Exception) {}
-                    return@launch
-                }
-
                 // 3. Registrar en MediaStore y escanear
                 actualizarEstado(resultado.idVideo, TipoEstadoDescarga.GUARDANDO, 1f)
                 val rutaFinal = archivoDestino.absolutePath

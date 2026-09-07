@@ -74,6 +74,7 @@ object GestorMeshTx {
     private var nubeMalla: NubeMalla? = null
     private var buzonTactico: BuzonTacticoMalla? = null
     private var puenteCelular: PuenteCelularMalla? = null
+    private var enlaceCopiloto: EnlaceCopiloto? = null
 
     private var idPilotoLocal: Long = 1001L
     private var aliasPilotoLocal: String = "Piloto TX"
@@ -89,6 +90,22 @@ object GestorMeshTx {
 
     val modoAltavozActivo: StateFlow<Boolean>
         get() = audioCasco?.modoAltavozActivo ?: MutableStateFlow(true)
+
+    // Estados observables del Intercom Intramoto (Piloto-Copiloto)
+    val estadoEnlaceCopiloto: StateFlow<EstadoEnlaceCopiloto>
+        get() = enlaceCopiloto?.estadoEnlace ?: MutableStateFlow(EstadoEnlaceCopiloto.DESCONECTADO).asStateFlow()
+
+    val rolEnMoto: StateFlow<RolEnMoto>
+        get() = enlaceCopiloto?.rolActual ?: MutableStateFlow(RolEnMoto.SOLO_PILOTO_INDIVIDUAL).asStateFlow()
+
+    val nombreCopilotoConectado: StateFlow<String?>
+        get() = enlaceCopiloto?.dispositivoConectadoNombre ?: MutableStateFlow(null).asStateFlow()
+
+    val estaHablandoCopiloto: StateFlow<Boolean>
+        get() = enlaceCopiloto?.estaHablandoCopiloto ?: MutableStateFlow(false).asStateFlow()
+
+    val modoEnlaceIntramoto: StateFlow<ModoEnlaceIntramoto>
+        get() = enlaceCopiloto?.modoEnlace ?: MutableStateFlow(ModoEnlaceIntramoto.HIBRIDO_TRIMODAL).asStateFlow()
 
     /**
      * Inicializar los componentes con el contexto de la aplicación e identidad del piloto.
@@ -112,14 +129,57 @@ object GestorMeshTx {
         val guardadoAyudaDatos = prefs.getBoolean("ayuda_con_datos", false)
         val guardadoCng = prefs.getBoolean("cng_ruido_confort", true)
         val guardadoFec = prefs.getBoolean("fec_redundancia", true)
+        val guardadoRetardoPtt = prefs.getLong("retardo_fin_ptt", 800L)
+        val guardadoBufferJitter = prefs.getInt("tamano_buffer_jitter", 200)
+        val guardadoFidelidadAlta = prefs.getBoolean("fidelidad_audio_alta", true)
+        val guardadoRogerBeep = prefs.getBoolean("tono_roger_beep", true)
+        val guardadoCanalId = prefs.getInt("canal_activo_id", CanalTactico.GENERAL_TX.idCanal)
+        val canalRestaurado = CanalTactico.desdeId(guardadoCanalId)
+
+        val guardadoModoEnlace = prefs.getString("modo_enlace_intramoto", ModoEnlaceIntramoto.HIBRIDO_TRIMODAL.name) ?: ModoEnlaceIntramoto.HIBRIDO_TRIMODAL.name
+        val modoEnlaceParsed = try { ModoEnlaceIntramoto.valueOf(guardadoModoEnlace) } catch (_: Exception) { ModoEnlaceIntramoto.HIBRIDO_TRIMODAL }
+        val guardadoRol = prefs.getString("rol_en_moto", RolEnMoto.SOLO_PILOTO_INDIVIDUAL.name) ?: RolEnMoto.SOLO_PILOTO_INDIVIDUAL.name
+        val rolParsed = try { RolEnMoto.valueOf(guardadoRol) } catch (_: Exception) { RolEnMoto.SOLO_PILOTO_INDIVIDUAL }
+        val guardadoRetransmitir = prefs.getBoolean("retransmitir_copiloto_caravana", false)
+        val guardadoMacCopiloto = prefs.getString("mac_copiloto", "") ?: ""
+        val guardadoNombreCopiloto = prefs.getString("nombre_copiloto", "") ?: ""
+
+        _canalActual.value = canalRestaurado
+
         _ajustes.value = _ajustes.value.copy(
             mostrarFotoPerfil = guardadoMostrarFoto,
             ayudaConDatosFirebase = guardadoAyudaDatos,
             cngRuidoConfort = guardadoCng,
-            fecRedundanciaActiva = guardadoFec
+            fecRedundanciaActiva = guardadoFec,
+            retardoFinPttMs = guardadoRetardoPtt,
+            tamanoBufferJitterMs = guardadoBufferJitter,
+            fidelidadAudioAlta = guardadoFidelidadAlta,
+            tonoRogerBeep = guardadoRogerBeep,
+            canalActivo = canalRestaurado,
+            modoEnlacePrivado = modoEnlaceParsed,
+            rolEnMoto = rolParsed,
+            retransmitirCopilotoACaravana = guardadoRetransmitir,
+            macDispositivoCopiloto = guardadoMacCopiloto,
+            nombreDispositivoCopiloto = guardadoNombreCopiloto
         )
 
-        if (estaInicializado && this.idPilotoLocal == idPiloto && this.aliasPilotoLocal == aliasPiloto) return
+        if (estaInicializado) {
+            if (this.idPilotoLocal == idPiloto && this.aliasPilotoLocal == aliasPiloto) {
+                audioCasco?.idPilotoLocal = idPiloto
+                enlaceCopiloto?.actualizarIdentidadLocal(idPiloto, aliasPiloto)
+                return
+            }
+            // Limpieza profunda de instancias anteriores para evitar puertos bloqueados o ecos residuales
+            transporteUdp?.detenerTransporte()
+            audioCasco?.detenerCaptura()
+            audioCasco?.purgarColasYDetener()
+            enlaceCopiloto?.detenerEnlace()
+            buscadorMalla?.detenerExploracion()
+            puenteCelular?.desactivarPuenteVoip()
+            nodosDetectadosUdp.clear()
+            _nodosEnRed.value = emptyList()
+        }
+
         this.idPilotoLocal = idPiloto
         this.aliasPilotoLocal = aliasPiloto
 
@@ -131,6 +191,10 @@ object GestorMeshTx {
             idPilotoLocal = idPilotoLocal,
             aliasPilotoLocal = aliasPilotoLocal,
             alRecibirPaquete = { paquete: PaqueteDatosMesh, remitenteId: Long ->
+                // BUG 1 & 2 FIX: Descartar estrictamente cualquier paquete emitido por este mismo dispositivo
+                if (paquete.idEmisor == idPilotoLocal || paquete.aliasEmisor.equals(aliasPilotoLocal, ignoreCase = true)) {
+                    return@TransporteMallaUdp
+                }
                 enrutadorMalla?.procesarPaqueteRecibido(paquete, remitenteId)
                 // Registrar o actualizar con el alias real del piloto, foto y hardware
                 val aliasRecibido = paquete.aliasEmisor.ifBlank { "Piloto TX" }
@@ -138,6 +202,9 @@ object GestorMeshTx {
                 var fotoRecibida = nodosDetectadosUdp[paquete.idEmisor]?.fotoUrl ?: ""
                 var motoRecibida = nodosDetectadosUdp[paquete.idEmisor]?.nombreMoto ?: "Keeway TX 200"
                 var fichaRecibida = nodosDetectadosUdp[paquete.idEmisor]?.fichaMiembro ?: "TX-${(paquete.idEmisor and 0x3FFL)}"
+                var canalIdRecibido = paquete.canal
+                var nombreCanalRecibido = CanalTactico.desdeId(paquete.canal).nombre
+                var salaPrivadaRecibida: String? = null
 
                 if (paquete.tipo == TipoPaqueteMesh.BEACON_DESCUBRIMIENTO && !paquete.payloadTexto.isNullOrBlank()) {
                     val partes = paquete.payloadTexto.split("|")
@@ -145,6 +212,9 @@ object GestorMeshTx {
                     if (partes.size > 1) fotoRecibida = partes[1]
                     if (partes.size > 2 && partes[2].isNotBlank()) motoRecibida = partes[2]
                     if (partes.size > 3 && partes[3].isNotBlank()) fichaRecibida = partes[3]
+                    if (partes.size > 4 && partes[4].isNotBlank()) canalIdRecibido = partes[4].toIntOrNull() ?: paquete.canal
+                    if (partes.size > 5 && partes[5].isNotBlank()) nombreCanalRecibido = partes[5]
+                    if (partes.size > 6 && partes[6].isNotBlank()) salaPrivadaRecibida = partes[6]
                 }
 
                 val nodoUdp = NodoMeshPiloto(
@@ -157,7 +227,10 @@ object GestorMeshTx {
                     direccionNodo = "UDP Red Local",
                     intensidadSenalDbm = -35,
                     distanciaAproximadaMetros = 4.0,
-                    ultimoPingTimestamp = System.currentTimeMillis()
+                    ultimoPingTimestamp = System.currentTimeMillis(),
+                    idCanalActual = canalIdRecibido,
+                    nombreCanalActual = nombreCanalRecibido,
+                    salaPrivada = salaPrivadaRecibida
                 )
                 nodosDetectadosUdp[paquete.idEmisor] = nodoUdp
                 enrutadorMalla?.actualizarVecinoDirecto(nodoUdp)
@@ -187,11 +260,13 @@ object GestorMeshTx {
             idPilotoLocal = idPilotoLocal,
             aliasPilotoLocal = aliasPilotoLocal,
             alDetectarNodo = { nodo ->
-                enrutadorMalla?.actualizarVecinoDirecto(nodo)
-                actualizarListaNodos()
-                // Despacho asíncrono táctico al detectar compañeros en rango físico
-                buzonTactico?.notificarNuevoCompaneroEnRango { paquetePendiente ->
-                    transporteUdp?.transmitirPaquete(paquetePendiente)
+                if (!esMismoDispositivo(nodo)) {
+                    enrutadorMalla?.actualizarVecinoDirecto(nodo)
+                    actualizarListaNodos()
+                    // Despacho asíncrono táctico al detectar compañeros en rango físico
+                    buzonTactico?.notificarNuevoCompaneroEnRango { paquetePendiente ->
+                        transporteUdp?.transmitirPaquete(paquetePendiente)
+                    }
                 }
             },
             alPerderNodo = { idNodo ->
@@ -210,6 +285,17 @@ object GestorMeshTx {
         audioCasco = AudioCasco(
             contexto = ctx,
             alGenerarFragmentoVoz = { bytesAudio ->
+                // Transmitir al copiloto si está conectado por Bluetooth clásico (Intercom Intramoto)
+                enlaceCopiloto?.enviarAudioCopiloto(bytesAudio)
+
+                // Si el modo intramoto es SOLO_BLUETOOTH, la comunicación es privada y ahorra batería (no va a la malla exterior)
+                if (_ajustes.value.modoEnlacePrivado == ModoEnlaceIntramoto.SOLO_BLUETOOTH) {
+                    return@AudioCasco
+                }
+
+                // BUG 3 FIX: Transmitir a la malla únicamente si está activa (botón Play encendido)
+                if (_estadoConexion.value == MeshEstadoConexion.DESCONECTADO) return@AudioCasco
+                val canalEfectivo = obtenerCanalIdEfectivo()
                 // Enviar fragmento de voz capturado a la malla táctica local (UDP)
                 enrutadorMalla?.transmitirPaquete(
                     tipo = TipoPaqueteMesh.AUDIO_VOZ_OPUS,
@@ -218,12 +304,15 @@ object GestorMeshTx {
                 // Si la Ayuda con Datos (Firebase) está activa, retransmitir por el puente celular
                 if (_ajustes.value.ayudaConDatosFirebase) {
                     puenteCelular?.retransmitirAudioPorPuente(
-                        canal = _ajustes.value.canalActivo.idCanal,
+                        canal = canalEfectivo,
                         payloadAudio = bytesAudio
                     )
                 }
             }
         ).apply {
+            idPilotoLocal = idPiloto
+            tamanoBufferJitterMs = _ajustes.value.tamanoBufferJitterMs
+            estaEnlaceActivo = (_estadoConexion.value != MeshEstadoConexion.DESCONECTADO)
             supresionEcoActivada = _ajustes.value.supresionEcoAcustico
             bufferAntiEntrecorteActivado = _ajustes.value.bufferAntiEntrecorte
             cngRuidoConfortHabilitado = _ajustes.value.cngRuidoConfort
@@ -249,10 +338,12 @@ object GestorMeshTx {
             idPilotoLocal = idPilotoLocal,
             aliasPilotoLocal = aliasPilotoLocal,
             alDescargarMensajeVozRemoto = { payloadAudio, idEmisor, aliasEmisor ->
-                _pilotoHablandoAhora.value = "$aliasEmisor (Buzón Táctico)"
-                _idPilotoHablandoAhora.value = idEmisor
-                actualizarListaNodos()
-                audioCasco?.encolarAudioEntrante(payloadAudio, idEmisor)
+                if (_estadoConexion.value != MeshEstadoConexion.DESCONECTADO && idEmisor != idPilotoLocal) {
+                    _pilotoHablandoAhora.value = "$aliasEmisor (Buzón Táctico)"
+                    _idPilotoHablandoAhora.value = idEmisor
+                    actualizarListaNodos()
+                    audioCasco?.encolarAudioEntrante(payloadAudio, idEmisor)
+                }
             }
         )
 
@@ -262,17 +353,65 @@ object GestorMeshTx {
             idPilotoLocal = idPilotoLocal,
             aliasPilotoLocal = aliasPilotoLocal,
             alRecibirAudioDesdePuente = { audioBytes, emisorId, emisorAlias, canalId ->
-                _pilotoHablandoAhora.value = "$emisorAlias (Puente 4G)"
-                _idPilotoHablandoAhora.value = emisorId
-                actualizarListaNodos()
-                audioCasco?.encolarAudioEntrante(audioBytes, emisorId)
+                // BUG 1, 3 & 5 FIX: Solo recibir si la malla está activa, no es eco propio y coincide el canal
+                if (_estadoConexion.value != MeshEstadoConexion.DESCONECTADO && emisorId != idPilotoLocal) {
+                    val canalEsperado = obtenerCanalIdEfectivo()
+                    if (canalId == canalEsperado) {
+                        _pilotoHablandoAhora.value = "$emisorAlias (Puente 4G)"
+                        _idPilotoHablandoAhora.value = emisorId
+                        actualizarListaNodos()
+                        audioCasco?.encolarAudioEntrante(audioBytes, emisorId)
+                    }
+                }
             }
         )
-        if (_ajustes.value.ayudaConDatosFirebase) {
-            puenteCelular?.activarPuenteVoip(_ajustes.value.canalActivo.idCanal)
+        // BUG 3 FIX: Inicialmente desactivado. Solo se activa al encender la malla con el botón Play
+        puenteCelular?.setMallaActiva(_estadoConexion.value != MeshEstadoConexion.DESCONECTADO)
+        if (_ajustes.value.ayudaConDatosFirebase && _estadoConexion.value != MeshEstadoConexion.DESCONECTADO) {
+            puenteCelular?.activarPuenteVoip(obtenerCanalIdEfectivo())
         }
 
-        // 7. Escuchar paquetes entrantes dirigidos a este nodo desde la malla
+        // 7. Instanciar Enlace Copiloto Bluetooth Clásico (Intercom Intramoto)
+        enlaceCopiloto = EnlaceCopiloto(
+            contexto = ctx,
+            idPilotoLocal = idPilotoLocal,
+            aliasPilotoLocal = aliasPilotoLocal,
+            alRecibirAudioCopiloto = { payloadAudio, idEmisor, aliasEmisor ->
+                _pilotoHablandoAhora.value = "$aliasEmisor (Copiloto BT)"
+                _idPilotoHablandoAhora.value = idEmisor
+                actualizarListaNodos()
+                audioCasco?.encolarAudioEntrante(payloadAudio, idEmisor)
+
+                // El Piloto como Gateway: Si está habilitada la retransmisión a la caravana,
+                // reenviar la voz del copiloto por Wi-Fi Direct y 4G
+                if (_ajustes.value.retransmitirCopilotoACaravana &&
+                    _ajustes.value.rolEnMoto == RolEnMoto.PILOTO_GATEWAY &&
+                    _estadoConexion.value != MeshEstadoConexion.DESCONECTADO
+                ) {
+                    enrutadorMalla?.transmitirPaquete(
+                        tipo = TipoPaqueteMesh.AUDIO_VOZ_OPUS,
+                        payloadAudio = payloadAudio
+                    )
+                    if (_ajustes.value.ayudaConDatosFirebase) {
+                        puenteCelular?.retransmitirAudioPorPuente(
+                            canal = obtenerCanalIdEfectivo(),
+                            payloadAudio = payloadAudio
+                        )
+                    }
+                }
+            }
+        ).apply {
+            cambiarModoEnlace(_ajustes.value.modoEnlacePrivado)
+            alternarRetransmitirACaravana(_ajustes.value.retransmitirCopilotoACaravana)
+        }
+
+        if (_ajustes.value.rolEnMoto == RolEnMoto.PILOTO_GATEWAY) {
+            enlaceCopiloto?.iniciarComoPilotoServidor()
+        } else if (_ajustes.value.rolEnMoto == RolEnMoto.COPILOTO_ENLACE && _ajustes.value.macDispositivoCopiloto.isNotBlank()) {
+            enlaceCopiloto?.iniciarComoCopilotoCliente(_ajustes.value.macDispositivoCopiloto)
+        }
+
+        // 8. Escuchar paquetes entrantes dirigidos a este nodo desde la malla
         alcanceGestor.launch {
             enrutadorMalla?.paquetesEntrantes?.collect { paquete ->
                 procesarPaqueteEntrante(paquete)
@@ -290,6 +429,12 @@ object GestorMeshTx {
         _estadoConexion.value = MeshEstadoConexion.ESCANEANDO
         Log.i(ETIQUETA_LOG, "Iniciando Malla Táctica TX...")
 
+        audioCasco?.estaEnlaceActivo = true
+        puenteCelular?.setMallaActiva(true)
+        if (_ajustes.value.ayudaConDatosFirebase) {
+            puenteCelular?.activarPuenteVoip(obtenerCanalIdEfectivo())
+        }
+
         contextoApp?.let { ServicioMallaTx.iniciar(it) }
         buscadorMalla?.iniciarExploracion()
         transporteUdp?.iniciarTransporte()
@@ -303,11 +448,19 @@ object GestorMeshTx {
         _estadoConexion.value = MeshEstadoConexion.DESCONECTADO
         _estaTransmitiendoPtt.value = false
         _pilotoHablandoAhora.value = null
+        _idPilotoHablandoAhora.value = null
+        trabajoCierrePtt?.cancel()
+        trabajoCierrePtt = null
         Log.i(ETIQUETA_LOG, "Deteniendo Malla Táctica TX...")
 
+        audioCasco?.estaEnlaceActivo = false
+        audioCasco?.purgarColasYDetener()
+        audioCasco?.detenerCaptura()
+        puenteCelular?.setMallaActiva(false)
+        puenteCelular?.desactivarPuenteVoip()
         buscadorMalla?.detenerExploracion()
         transporteUdp?.detenerTransporte()
-        audioCasco?.detenerCaptura()
+        nodosDetectadosUdp.clear()
         _nodosEnRed.value = emptyList()
         contextoApp?.let { ServicioMallaTx.detener(it) }
     }
@@ -319,19 +472,25 @@ object GestorMeshTx {
         _canalActual.value = nuevoCanal
         enrutadorMalla?.canalActivo = nuevoCanal
         _ajustes.value = _ajustes.value.copy(canalActivo = nuevoCanal)
-        if (_ajustes.value.ayudaConDatosFirebase) {
+        contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
+            ?.edit()?.putInt("canal_activo_id", nuevoCanal.idCanal)?.apply()
+        if (_estadoConexion.value != MeshEstadoConexion.DESCONECTADO && _ajustes.value.ayudaConDatosFirebase) {
             puenteCelular?.activarPuenteVoip(nuevoCanal.idCanal)
         }
         Log.i(ETIQUETA_LOG, "Canal táctico cambiado a: ${nuevoCanal.nombre}")
     }
 
     private var trabajoCierrePtt: Job? = null
-    private val tiempoGraciaPttMs = 700L // 700 ms de seguro de presión y gracia antirrebote para digitalizadores táctiles
 
     /**
-     * Pulsar o soltar el botón PTT (Push-to-Talk) en pantalla o manubrio con algoritmo antirrebote táctil.
+     * Pulsar o soltar el botón PTT (Push-to-Talk) en pantalla o manubrio con algoritmo antirrebote táctil
+     * y retardo de cola (hang-time) para no cortar las últimas palabras.
      */
     fun setTransmitiendoPtt(transmitiendo: Boolean) {
+        if (_estadoConexion.value == MeshEstadoConexion.DESCONECTADO) {
+            Log.w(ETIQUETA_LOG, "PTT bloqueado: El intercomunicador está desconectado. Presiona Play primero.")
+            return
+        }
         if (transmitiendo) {
             trabajoCierrePtt?.cancel()
             trabajoCierrePtt = null
@@ -344,13 +503,18 @@ object GestorMeshTx {
         } else {
             trabajoCierrePtt?.cancel()
             trabajoCierrePtt = alcanceGestor.launch {
-                delay(tiempoGraciaPttMs)
+                // BUG 6 FIX: Retardo de fin de PTT (hang-time) para terminar de vaciar el buffer del micrófono
+                val retardo = _ajustes.value.retardoFinPttMs.coerceAtLeast(300L)
+                delay(retardo)
                 _estaTransmitiendoPtt.value = false
                 audioCasco?.setPttPresionado(false)
+                if (_ajustes.value.tonoRogerBeep) {
+                    audioCasco?.reproducirRogerBeepFin()
+                }
                 if (_pilotoHablandoAhora.value?.contains(aliasPilotoLocal) == true) {
                     _pilotoHablandoAhora.value = null
                 }
-                Log.d(ETIQUETA_LOG, "🛑 Transmisión PTT finalizada tras periodo de gracia antirrebote")
+                Log.d(ETIQUETA_LOG, "🛑 Transmisión PTT finalizada tras retardo de cola de $retardo ms")
             }
         }
     }
@@ -364,6 +528,9 @@ object GestorMeshTx {
             _salaPrivadaActiva.value = claveLimpia
             val hashId = Math.abs(claveLimpia.hashCode()) % 60000 + 100
             enrutadorMalla?.canalActivoIdPersonalizado = hashId
+            if (_estadoConexion.value != MeshEstadoConexion.DESCONECTADO && _ajustes.value.ayudaConDatosFirebase) {
+                puenteCelular?.activarPuenteVoip(hashId)
+            }
             Log.i(ETIQUETA_LOG, "Entrando a Sala Privada: $claveLimpia (ID Virtual: $hashId)")
         }
     }
@@ -505,6 +672,136 @@ object GestorMeshTx {
         Log.i(ETIQUETA_LOG, "Redundancia FEC cambiada a: $activar")
     }
 
+    /**
+     * Ajustar retardo de cola (hang-time) al soltar PTT para no cortar las últimas palabras.
+     */
+    fun ajustarRetardoFinPtt(retardoMs: Long) {
+        val valorSeguro = retardoMs.coerceIn(300L, 2500L)
+        _ajustes.value = _ajustes.value.copy(retardoFinPttMs = valorSeguro)
+        contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
+            ?.edit()?.putLong("retardo_fin_ptt", valorSeguro)?.apply()
+        Log.i(ETIQUETA_LOG, "Retardo fin PTT ajustado a: $valorSeguro ms")
+    }
+
+    /**
+     * Ajustar tamaño del búfer Jitter anti-entrecorte (120ms rápido, 200ms recomendado, 320ms anti-pérdida).
+     */
+    fun ajustarBufferJitter(bufferMs: Int) {
+        val valorSeguro = bufferMs.coerceIn(80, 500)
+        _ajustes.value = _ajustes.value.copy(tamanoBufferJitterMs = valorSeguro)
+        contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
+            ?.edit()?.putInt("tamano_buffer_jitter", valorSeguro)?.apply()
+        audioCasco?.tamanoBufferJitterMs = valorSeguro
+        Log.i(ETIQUETA_LOG, "Búfer Jitter ajustado a: $valorSeguro ms")
+    }
+
+    /**
+     * Alternar fidelidad de audio entre Opus HD (16 kHz) y Ultra-comprimido (8 kHz).
+     */
+    fun alternarFidelidadAudio(altaFidelidad: Boolean) {
+        _ajustes.value = _ajustes.value.copy(fidelidadAudioAlta = altaFidelidad)
+        contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
+            ?.edit()?.putBoolean("fidelidad_audio_alta", altaFidelidad)?.apply()
+        Log.i(ETIQUETA_LOG, "Fidelidad de audio alta cambiada a: $altaFidelidad")
+    }
+
+    /**
+     * Alternar tono táctico Roger Beep de fin de transmisión.
+     */
+    fun alternarTonoRogerBeep(activar: Boolean) {
+        _ajustes.value = _ajustes.value.copy(tonoRogerBeep = activar)
+        contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
+            ?.edit()?.putBoolean("tono_roger_beep", activar)?.apply()
+        Log.i(ETIQUETA_LOG, "Tono Roger Beep cambiado a: $activar")
+    }
+
+    /**
+     * Devuelve el ID de canal efectivo (si hay sala privada activa usa su hash, sino el canal táctico).
+     */
+    fun obtenerCanalIdEfectivo(): Int {
+        return _salaPrivadaActiva.value?.let { sala ->
+            Math.abs(sala.hashCode()) % 60000 + 100
+        } ?: _canalActual.value.idCanal
+    }
+
+    /**
+     * Alternar el modo de enlace intramoto (Solo Bluetooth, Solo Wi-Fi, o Híbrido Trimodal).
+     */
+    fun alternarModoEnlaceIntramoto(modo: ModoEnlaceIntramoto) {
+        _ajustes.value = _ajustes.value.copy(modoEnlacePrivado = modo)
+        contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
+            ?.edit()?.putString("modo_enlace_intramoto", modo.name)?.apply()
+        enlaceCopiloto?.cambiarModoEnlace(modo)
+        Log.i(ETIQUETA_LOG, "Modo de enlace intramoto cambiado a: ${modo.titulo}")
+    }
+
+    /**
+     * Conmutar el rol en la moto (Piloto Gateway, Copiloto Acompañante, o Piloto Individual).
+     */
+    fun alternarRolEnMoto(rol: RolEnMoto) {
+        _ajustes.value = _ajustes.value.copy(rolEnMoto = rol)
+        contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
+            ?.edit()?.putString("rol_en_moto", rol.name)?.apply()
+        when (rol) {
+            RolEnMoto.PILOTO_GATEWAY -> iniciarModoPilotoGateway()
+            RolEnMoto.COPILOTO_ENLACE -> {
+                if (_ajustes.value.macDispositivoCopiloto.isNotBlank()) {
+                    iniciarModoCopiloto(_ajustes.value.macDispositivoCopiloto)
+                }
+            }
+            RolEnMoto.SOLO_PILOTO_INDIVIDUAL -> desconectarEnlaceCopiloto()
+        }
+    }
+
+    /**
+     * Alternar si la voz del copiloto se retransmite a la caravana por Wi-Fi Direct y Firebase.
+     */
+    fun alternarRetransmitirCopilotoCaravana(activar: Boolean) {
+        _ajustes.value = _ajustes.value.copy(retransmitirCopilotoACaravana = activar)
+        contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
+            ?.edit()?.putBoolean("retransmitir_copiloto_caravana", activar)?.apply()
+        enlaceCopiloto?.alternarRetransmitirACaravana(activar)
+    }
+
+    /**
+     * Guarda el dispositivo del copiloto/piloto emparejado seleccionado.
+     */
+    fun configurarDispositivoCopiloto(nombre: String, mac: String) {
+        _ajustes.value = _ajustes.value.copy(nombreDispositivoCopiloto = nombre, macDispositivoCopiloto = mac)
+        contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
+            ?.edit()?.putString("nombre_copiloto", nombre)?.putString("mac_copiloto", mac)?.apply()
+        if (_ajustes.value.rolEnMoto == RolEnMoto.COPILOTO_ENLACE && mac.isNotBlank()) {
+            iniciarModoCopiloto(mac)
+        }
+    }
+
+    /**
+     * Inicia el modo Piloto Gateway para esperar al copiloto por Bluetooth.
+     */
+    fun iniciarModoPilotoGateway() {
+        enlaceCopiloto?.iniciarComoPilotoServidor()
+    }
+
+    /**
+     * Inicia la conexión Bluetooth cliente hacia el teléfono del piloto.
+     */
+    fun iniciarModoCopiloto(macPiloto: String) {
+        enlaceCopiloto?.iniciarComoCopilotoCliente(macPiloto)
+    }
+
+    /**
+     * Detiene el enlace Bluetooth intramoto.
+     */
+    fun desconectarEnlaceCopiloto() {
+        enlaceCopiloto?.detenerEnlace()
+    }
+
+    /**
+     * Obtiene la lista de dispositivos Bluetooth emparejados en el sistema.
+     */
+    fun obtenerDispositivosBluetoothEmparejados(): List<Pair<String, String>> {
+        return enlaceCopiloto?.obtenerDispositivosEmparejados() ?: emptyList()
+    }
 
     /**
      * Emitir alerta de auxilio vial inmediato (SOS) a toda la caravana con máxima prioridad.
@@ -601,6 +898,7 @@ object GestorMeshTx {
         detenerMallaTactico()
         transporteUdp?.detenerTransporte()
         audioCasco?.liberar()
+        enlaceCopiloto?.liberar()
         nubeMalla?.liberar()
         buzonTactico?.liberar()
         puenteCelular?.liberar()
@@ -612,8 +910,19 @@ object GestorMeshTx {
     // ─────────────────────────────────────────────────────────────────────────
 
     private fun procesarPaqueteEntrante(paquete: PaqueteDatosMesh) {
+        // BUG 1 & 3 FIX: Descartar si el intercomunicador está apagado o si es eco de este mismo dispositivo
+        if (_estadoConexion.value == MeshEstadoConexion.DESCONECTADO) return
+        if (paquete.idEmisor == idPilotoLocal || paquete.aliasEmisor.equals(aliasPilotoLocal, ignoreCase = true)) return
+        if (_estaTransmitiendoPtt.value) return // Half-duplex: silenciar recepción durante la propia transmisión PTT
+
         when (paquete.tipo) {
             TipoPaqueteMesh.AUDIO_VOZ_OPUS -> {
+                // BUG 5 FIX: Aislamiento estricto de canales
+                val canalEsperado = obtenerCanalIdEfectivo()
+                if (paquete.canal != canalEsperado) {
+                    Log.d(ETIQUETA_LOG, "Paquete de voz descartado por canal diferente (Paquete: ${paquete.canal}, Esperado: $canalEsperado)")
+                    return
+                }
                 paquete.payloadAudio?.let { audio ->
                     _pilotoHablandoAhora.value = paquete.aliasEmisor
                     _idPilotoHablandoAhora.value = paquete.idEmisor
@@ -645,29 +954,36 @@ object GestorMeshTx {
         }
     }
 
+    private fun esMismoDispositivo(nodo: NodoMeshPiloto): Boolean {
+        if (nodo.idMiembro == idPilotoLocal) return true
+        if (aliasPilotoLocal.isNotBlank() && nodo.aliasPiloto.equals(aliasPilotoLocal, ignoreCase = true)) return true
+        if (fichaLocal.isNotBlank() && nodo.fichaMiembro.equals(fichaLocal, ignoreCase = true)) return true
+        return false
+    }
+
     private fun actualizarListaNodos() {
         val ahora = System.currentTimeMillis()
-        // Purgar nodos UDP viejos (> 90 segundos)
+        // Purgar nodos UDP viejos (> 90 segundos) o si corresponden a este mismo dispositivo
         val iterador = nodosDetectadosUdp.entries.iterator()
         while (iterador.hasNext()) {
             val entrada = iterador.next()
-            if (ahora - entrada.value.ultimoPingTimestamp > 90_000L) {
+            if (ahora - entrada.value.ultimoPingTimestamp > 90_000L || esMismoDispositivo(entrada.value)) {
                 iterador.remove()
             }
         }
 
         val mapaCombinado = mutableMapOf<Long, NodoMeshPiloto>()
 
-        // 1. Nodos de BLE / WiFi Direct
+        // 1. Nodos de BLE / WiFi Direct (BUG 2 FIX: Excluir al propio usuario del radar)
         buscadorMalla?.nodosDetectados?.value?.values?.forEach { nodo ->
-            if (nodo.idMiembro != idPilotoLocal) {
+            if (!esMismoDispositivo(nodo)) {
                 mapaCombinado[nodo.idMiembro] = nodo
             }
         }
 
-        // 2. Nodos de UDP / Broadcast / Malla Local
+        // 2. Nodos de UDP / Broadcast / Malla Local (BUG 2 FIX: Excluir al propio usuario del radar)
         nodosDetectadosUdp.values.forEach { nodo ->
-            if (nodo.idMiembro != idPilotoLocal) {
+            if (!esMismoDispositivo(nodo)) {
                 val existente = mapaCombinado[nodo.idMiembro]
                 if (existente == null || nodo.ultimoPingTimestamp >= existente.ultimoPingTimestamp) {
                     mapaCombinado[nodo.idMiembro] = nodo
@@ -708,9 +1024,11 @@ object GestorMeshTx {
                 fotoUrl = fotoFinal,
                 fichaMiembro = fichaFinal,
                 modeloTelefonoHardware = nodo.modeloTelefonoHardware.ifBlank { aliasFinal },
-                estaTransmitiendoVoz = estaHablando
+                estaTransmitiendoVoz = estaHablando,
+                idCanalActual = nodo.idCanalActual,
+                nombreCanalActual = nodo.nombreCanalActual,
+                salaPrivada = nodo.salaPrivada
             )
-
         }
         _nodosEnRed.value = listaEnriquecida
         audioCasco?.tieneEnlaceFisicoActivo = listaEnriquecida.isNotEmpty()

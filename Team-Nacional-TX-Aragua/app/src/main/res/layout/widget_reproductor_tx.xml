@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <!-- Fila Principal de Contenido y Controles -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Carátula del Álbum -->
+        <ImageView
+            android:id="@+id/widget_album_art"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/ic_widget_art_bg"
+            android:contentDescription="Carátula"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_widget_play" />
+
+        <!-- Información de Pista (Título y Artista) -->
+        <LinearLayout
+            android:id="@+id/widget_info_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_song_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Reproductor TX Pro"
+                android:textColor="#0F172A"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_song_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Team Nacional TX Aragua"
+                android:textColor="#64748B"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Botón Anterior -->
+        <ImageButton
+            android:id="@+id/widget_btn_prev"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Anterior"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_widget_skip_prev" />
+
+        <!-- Botón Play / Pausa Dinámico -->
+        <ImageButton
+            android:id="@+id/widget_btn_play_pause"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Play/Pausa"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_widget_play" />
+
+        <!-- Botón Siguiente -->
+        <ImageButton
+            android:id="@+id/widget_btn_next"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Siguiente"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_widget_skip_next" />
+    </LinearLayout>
+
+    <!-- Barra de Progreso Discreta -->
+    <ProgressBar
+        android:id="@+id/widget_progress_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginTop="8dp"
+        android:max="1000"
+        android:progress="0"
+        android:progressTint="#FF7A00" />
+</LinearLayout>

@@ -29,7 +29,11 @@ enum class CanalTactico(val idCanal: Int, val nombre: String, val descripcion: S
     CARAVANA_CONVOY(2, "Caravana & Convoy", "Comunicación para Capitanes, Punteros y Barredoras"),
     EMERGENCIA_SOS(3, "Emergencia SOS", "Prioridad máxima de auxilio vial y mecánicos"),
     DIRECTIVA(4, "Directiva Oficial", "Canal cifrado exclusivo para líderes"),
-    PERSONALIZADO(5, "Canal Privado", "Enlace cerrado entre pilotos emparejados")
+    PERSONALIZADO(5, "Canal Privado", "Enlace cerrado entre pilotos emparejados");
+
+    companion object {
+        fun desdeId(id: Int): CanalTactico = entries.find { it.idCanal == id } ?: GENERAL_TX
+    }
 }
 
 /**
@@ -48,7 +52,10 @@ data class NodoMeshPiloto(
     val estaSilenciado: Boolean = false,
     val esCapitanOBarredora: Boolean = false,
     val distanciaAproximadaMetros: Double = 0.0,
-    val ultimoPingTimestamp: Long = System.currentTimeMillis()
+    val ultimoPingTimestamp: Long = System.currentTimeMillis(),
+    val idCanalActual: Int = 1,
+    val nombreCanalActual: String = "Canal 1 - General TX",
+    val salaPrivada: String? = null
 )
 
 /**
@@ -85,6 +92,44 @@ data class PaqueteDatosMesh(
 }
 
 /**
+ * Modos de conectividad para el enlace Intramoto (Piloto - Copiloto) y salas privadas.
+ */
+enum class ModoEnlaceIntramoto(val titulo: String, val descripcion: String) {
+    SOLO_BLUETOOTH(
+        "Solo Bluetooth (Ahorro Extremo)",
+        "Apaga el escáner Wi-Fi en copiloto. Consumo mínimo de batería y latencia <40ms."
+    ),
+    SOLO_WIFI(
+        "Solo Wi-Fi Direct (Malla Local)",
+        "Enlace local por radio P2P y broadcast UDP de media distancia (~150m)."
+    ),
+    HIBRIDO_TRIMODAL(
+        "Híbrido Trimodal (BT + Wi-Fi + 4G)",
+        "Enlace simultáneo redundante por Bluetooth, Wi-Fi y Firebase con cero pérdida de audio."
+    )
+}
+
+/**
+ * Rol del dispositivo en la motocicleta.
+ */
+enum class RolEnMoto(val titulo: String) {
+    SOLO_PILOTO_INDIVIDUAL("Piloto Individual"),
+    PILOTO_GATEWAY("Piloto (Gateway Central de la Moto)"),
+    COPILOTO_ENLACE("Copiloto (Enlace de Acompañante)")
+}
+
+/**
+ * Estado del enlace Bluetooth Piloto-Copiloto.
+ */
+enum class EstadoEnlaceCopiloto(val descripcion: String) {
+    DESCONECTADO("Desconectado"),
+    ESPERANDO_COPILOTO("Esperando copiloto por Bluetooth..."),
+    CONECTANDO("Conectando con Piloto por Bluetooth..."),
+    CONECTADO("Intercom Intramoto Activo (Piloto ⇄ Copiloto)"),
+    ERROR("Error de Enlace Bluetooth")
+}
+
+/**
  * Ajustes de configuración del hardware de audio e intercomunicador.
  */
 data class AjustesIntercomunicadorTactico(
@@ -102,5 +147,15 @@ data class AjustesIntercomunicadorTactico(
     val botonFlotantePttActivo: Boolean = false, // true: muestra nube/burbuja flotante de PTT movible en pantalla fuera de Mesh TX
     val ayudaConDatosFirebase: Boolean = false, // Sincronización híbrida de apoyo con datos móviles/WiFi
     val cngRuidoConfort: Boolean = true, // Generador de Ruido de Confort (-48 dBFS) para confirmación de enlace
-    val fecRedundanciaActiva: Boolean = true // FEC intrapaquete N + (N-1) para tolerancia a pérdidas
+    val fecRedundanciaActiva: Boolean = true, // FEC intrapaquete N + (N-1) para tolerancia a pérdidas
+    val retardoFinPttMs: Long = 800L, // Retardo de cola al soltar PTT (Hang-time: 400ms, 800ms, 1200ms, 1500ms)
+    val tamanoBufferJitterMs: Int = 200, // Búfer anti-jitter (120ms rápido, 200ms balanceado, 320ms carretera)
+    val fidelidadAudioAlta: Boolean = true, // Fidelidad G.711u HD 16 kHz
+    val tonoRogerBeep: Boolean = true, // Tono sutil al terminar transmisión para confirmación de fin de frase
+    val modoEnlacePrivado: ModoEnlaceIntramoto = ModoEnlaceIntramoto.HIBRIDO_TRIMODAL,
+    val rolEnMoto: RolEnMoto = RolEnMoto.SOLO_PILOTO_INDIVIDUAL,
+    val retransmitirCopilotoACaravana: Boolean = false, // true: voz de copiloto retransmitida a malla general; false: intramoto privado
+    val macDispositivoCopiloto: String = "",
+    val nombreDispositivoCopiloto: String = "",
+    val salaPrivadaDe2: Boolean = false
 )

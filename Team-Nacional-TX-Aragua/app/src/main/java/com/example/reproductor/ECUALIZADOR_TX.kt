@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,8 +30,7 @@ import com.example.ui.theme.TxFlameRed
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ECUALIZADOR REAL Y EFECTOS DSP - REPRODUCTOR TX PRO (TEAM NACIONAL TX ARAGUA)
-// Controles de Super Bass, Ultra Volumen (+300%), Espacialidad 3D y 5 Bandas.
-// Sin ruido acústico ni micro-congelamientos gracias a aislamiento de estado.
+// Tema Claro Biker, 5 Sliders Verticales Reales, Ultra Volumen y Super Bass.
 // ═══════════════════════════════════════════════════════════════════════════
 
 object PRESETS_AUDIO {
@@ -89,140 +90,187 @@ fun PanelEcualizadorTX(
     val nombresBandas = listOf("60 Hz", "230 Hz", "910 Hz", "3.6 kHz", "14 kHz")
     val scrollState = rememberScrollState()
 
-    // Estados locales para evitar recalcular y saturar audio al arrastrar perillas
     var localUltraVol by remember(config.ultraVolumenNivel) { mutableStateOf(config.ultraVolumenNivel) }
     var localSuperBass by remember(config.superBassNivel) { mutableStateOf(config.superBassNivel) }
     var localEspacialidad by remember(config.espacialidadNivel) { mutableStateOf(config.espacialidadNivel) }
     var localBandas by remember(config.bandasEcualizador) { mutableStateOf(config.bandasEcualizador.clone()) }
 
     Surface(
-        color = Color(0xFF0F131C),
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        color = Color(0xFFF8FAFC),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 18.dp, vertical = 16.dp)
                 .verticalScroll(scrollState)
         ) {
+            // Tirador superior modal
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 44.dp, height = 4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(Color(0xFFCBD5E1))
+                )
+            }
+
             // Cabecera del Ecualizador
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Surface(shape = CircleShape, color = MotoOrangePrimary.copy(alpha = 0.2f)) {
-                        Icon(Icons.Default.GraphicEq, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.padding(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(shape = CircleShape, color = MotoOrangePrimary.copy(alpha = 0.12f)) {
+                        Icon(
+                            Icons.Default.GraphicEq,
+                            contentDescription = null,
+                            tint = MotoOrangePrimary,
+                            modifier = Modifier.padding(8.dp)
+                        )
                     }
                     Column {
-                        Text("ECUALIZADOR PRO TX", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color.White)
-                        Text("Motor DSP Nativo sin distorsión ni zumbidos", fontSize = 11.sp, color = Color(0xFF90A4AE))
+                        Text(
+                            "ECUALIZADOR PRO TX",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 17.sp,
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            "Motor DSP Nativo sin distorsión • Modo Claro",
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B)
+                        )
                     }
                 }
                 IconButton(onClick = onCerrar) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color(0xFF90A4AE))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Selector de Presets
-            Text("PRESETS MOTEROS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                PRESETS_AUDIO.LISTA_PRESETS.take(3).forEach { preset ->
-                    val esSeleccionado = config.presetActual == preset.nombre
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (esSeleccionado) MotoOrangePrimary else Color(0xFF1E2433),
-                        border = BorderStroke(1.dp, if (esSeleccionado) MotoGoldSecondary else Color(0xFF374151)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                localUltraVol = preset.ultraVolumen
-                                localSuperBass = preset.superBass
-                                localEspacialidad = preset.espacialidad
-                                localBandas = preset.gananciasDb.clone()
-                                onActualizarConfig(
-                                    config.copy(
-                                        presetActual = preset.nombre,
-                                        bandasEcualizador = preset.gananciasDb.clone(),
-                                        superBassNivel = preset.superBass,
-                                        ultraVolumenNivel = preset.ultraVolumen,
-                                        espacialidadNivel = preset.espacialidad
-                                    )
-                                )
-                            }
-                    ) {
-                        Text(
-                            text = preset.nombre,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (esSeleccionado) Color.White else Color(0xFFCFD8DC),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                PRESETS_AUDIO.LISTA_PRESETS.drop(3).forEach { preset ->
-                    val esSeleccionado = config.presetActual == preset.nombre
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (esSeleccionado) MotoOrangePrimary else Color(0xFF1E2433),
-                        border = BorderStroke(1.dp, if (esSeleccionado) MotoGoldSecondary else Color(0xFF374151)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                localUltraVol = preset.ultraVolumen
-                                localSuperBass = preset.superBass
-                                localEspacialidad = preset.espacialidad
-                                localBandas = preset.gananciasDb.clone()
-                                onActualizarConfig(
-                                    config.copy(
-                                        presetActual = preset.nombre,
-                                        bandasEcualizador = preset.gananciasDb.clone(),
-                                        superBassNivel = preset.superBass,
-                                        ultraVolumenNivel = preset.ultraVolumen,
-                                        espacialidadNivel = preset.espacialidad
-                                    )
-                                )
-                            }
-                    ) {
-                        Text(
-                            text = preset.nombre,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (esSeleccionado) Color.White else Color(0xFFCFD8DC),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
-                        )
-                    }
+                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color(0xFF64748B))
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Selector de Presets
+            Text(
+                "PRESETS MOTEROS RECOMENDADOS",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F172A)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                PRESETS_AUDIO.LISTA_PRESETS.take(3).forEach { preset ->
+                    val esSeleccionado = config.presetActual == preset.nombre
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (esSeleccionado) MotoOrangePrimary else Color.White,
+                        border = BorderStroke(1.dp, if (esSeleccionado) MotoOrangePrimary else Color(0xFFE2E8F0)),
+                        shadowElevation = if (esSeleccionado) 2.dp else 0.5.dp,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                localUltraVol = preset.ultraVolumen
+                                localSuperBass = preset.superBass
+                                localEspacialidad = preset.espacialidad
+                                localBandas = preset.gananciasDb.clone()
+                                onActualizarConfig(
+                                    config.copy(
+                                        presetActual = preset.nombre,
+                                        bandasEcualizador = preset.gananciasDb.clone(),
+                                        superBassNivel = preset.superBass,
+                                        ultraVolumenNivel = preset.ultraVolumen,
+                                        espacialidadNivel = preset.espacialidad
+                                    )
+                                )
+                            }
+                    ) {
+                        Text(
+                            text = preset.nombre,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (esSeleccionado) Color.White else Color(0xFF334155),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                PRESETS_AUDIO.LISTA_PRESETS.drop(3).forEach { preset ->
+                    val esSeleccionado = config.presetActual == preset.nombre
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (esSeleccionado) MotoOrangePrimary else Color.White,
+                        border = BorderStroke(1.dp, if (esSeleccionado) MotoOrangePrimary else Color(0xFFE2E8F0)),
+                        shadowElevation = if (esSeleccionado) 2.dp else 0.5.dp,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                localUltraVol = preset.ultraVolumen
+                                localSuperBass = preset.superBass
+                                localEspacialidad = preset.espacialidad
+                                localBandas = preset.gananciasDb.clone()
+                                onActualizarConfig(
+                                    config.copy(
+                                        presetActual = preset.nombre,
+                                        bandasEcualizador = preset.gananciasDb.clone(),
+                                        superBassNivel = preset.superBass,
+                                        ultraVolumenNivel = preset.ultraVolumen,
+                                        espacialidadNivel = preset.espacialidad
+                                    )
+                                )
+                            }
+                    ) {
+                        Text(
+                            text = preset.nombre,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (esSeleccionado) Color.White else Color(0xFF334155),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
             // ═══════════════════════════════════════════════════════════════════════
             // CONTROLES POTENCIADORES: ULTRA VOLUMEN, SUPER BASS, ESPACIALIDAD 3D
             // ═══════════════════════════════════════════════════════════════════════
+            Text(
+                "POTENCIADORES DE CASCO Y CARRETERA",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F172A)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
             Surface(
-                color = Color(0xFF161B26),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color(0xFF263238)),
+                color = Color.White,
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                shadowElevation = 1.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     // 1. ULTRA VOLUMEN (+100% a +300%)
                     Column {
                         Row(
@@ -230,16 +278,22 @@ fun PanelEcualizadorTX(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("🔊", fontSize = 14.sp)
-                                Text("ULTRA VOLUMEN PRO", fontSize = 12.sp, fontWeight = FontWeight.Black, color = TxFlameRed)
+                                Text("ULTRA VOLUMEN PRO", fontSize = 13.sp, fontWeight = FontWeight.Black, color = TxFlameRed)
                             }
-                            Text(
-                                text = "${(localUltraVol * 100).toInt()}%",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Black,
-                                color = if (localUltraVol > 1.5f) TxFlameRed else MotoGoldSecondary
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = TxFlameRed.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    text = "${(localUltraVol * 100).toInt()}%",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = TxFlameRed,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
                         }
                         Slider(
                             value = localUltraVol,
@@ -254,7 +308,7 @@ fun PanelEcualizadorTX(
                             colors = SliderDefaults.colors(
                                 thumbColor = TxFlameRed,
                                 activeTrackColor = TxFlameRed,
-                                inactiveTrackColor = Color(0xFF374151)
+                                inactiveTrackColor = Color(0xFFF1F5F9)
                             )
                         )
                     }
@@ -266,16 +320,22 @@ fun PanelEcualizadorTX(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("🚀", fontSize = 14.sp)
-                                Text("SUPER BASS (Sub-Graves)", fontSize = 12.sp, fontWeight = FontWeight.Black, color = MotoOrangePrimary)
+                                Text("SUPER BASS (Sub-Graves)", fontSize = 13.sp, fontWeight = FontWeight.Black, color = MotoOrangePrimary)
                             }
-                            Text(
-                                text = "${(localSuperBass * 100).toInt()}%",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MotoOrangePrimary
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MotoOrangePrimary.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    text = "${(localSuperBass * 100).toInt()}%",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MotoOrangePrimary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
                         }
                         Slider(
                             value = localSuperBass,
@@ -290,7 +350,7 @@ fun PanelEcualizadorTX(
                             colors = SliderDefaults.colors(
                                 thumbColor = MotoOrangePrimary,
                                 activeTrackColor = MotoOrangePrimary,
-                                inactiveTrackColor = Color(0xFF374151)
+                                inactiveTrackColor = Color(0xFFF1F5F9)
                             )
                         )
                     }
@@ -302,16 +362,22 @@ fun PanelEcualizadorTX(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("🌌", fontSize = 14.sp)
-                                Text("ESPACIALIDAD 3D (Surround)", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color(0xFF38BDF8))
+                                Text("ESPACIALIDAD 3D (Surround)", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color(0xFF0284C7))
                             }
-                            Text(
-                                text = "${(localEspacialidad * 100).toInt()}%",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color(0xFF38BDF8)
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF0284C7).copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    text = "${(localEspacialidad * 100).toInt()}%",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF0284C7),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
                         }
                         Slider(
                             value = localEspacialidad,
@@ -324,49 +390,58 @@ fun PanelEcualizadorTX(
                             },
                             valueRange = 0.0f..1.0f,
                             colors = SliderDefaults.colors(
-                                thumbColor = Color(0xFF38BDF8),
-                                activeTrackColor = Color(0xFF38BDF8),
-                                inactiveTrackColor = Color(0xFF374151)
+                                thumbColor = Color(0xFF0284C7),
+                                activeTrackColor = Color(0xFF0284C7),
+                                inactiveTrackColor = Color(0xFFF1F5F9)
                             )
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             // ═══════════════════════════════════════════════════════════════════════
-            // SLIDERS DE LAS 5 BANDAS DEL ECUALIZADOR (CON FILTRO SIN CHISPORROTEO)
+            // 5 SLIDERS VERTICALES ERGONÓMICOS (-15dB a +15dB)
             // ═══════════════════════════════════════════════════════════════════════
-            Text("BANDAS DE FRECUENCIA (-15dB a +15dB)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
-            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                "ECUALIZADOR GRÁFICO (5 BANDAS VERTICALES)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F172A)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
 
             Surface(
-                color = Color(0xFF161B26),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color(0xFF263238)),
+                color = Color.White,
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                shadowElevation = 1.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp, horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
+                        .padding(vertical = 16.dp, horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     localBandas.forEachIndexed { indice, gananciaDb ->
                         val nombreBanda = nombresBandas.getOrElse(indice) { "${indice + 1}" }
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.width(55.dp)
+                            modifier = Modifier.width(58.dp)
                         ) {
                             Text(
-                                text = "${if (gananciaDb > 0) "+" else ""}${gananciaDb.toInt()} dB",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (gananciaDb != 0f) MotoOrangePrimary else Color(0xFF90A4AE)
+                                text = "${if (gananciaDb > 0) "+" else ""}${gananciaDb.toInt()}dB",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = if (gananciaDb > 0f) MotoOrangePrimary else if (gananciaDb < 0f) Color(0xFF64748B) else Color(0xFF0F172A)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Slider(
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            SliderVertical(
                                 value = gananciaDb,
                                 onValueChange = { nuevoDb ->
                                     val nuevasBandas = localBandas.clone()
@@ -378,26 +453,23 @@ fun PanelEcualizadorTX(
                                     onActualizarConfig(config.copy(bandasEcualizador = localBandas.clone(), presetActual = "Personalizado"))
                                 },
                                 valueRange = -15.0f..15.0f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = MotoGoldSecondary,
-                                    activeTrackColor = MotoGoldSecondary,
-                                    inactiveTrackColor = Color(0xFF374151)
-                                ),
-                                modifier = Modifier.height(140.dp)
+                                activeColor = MotoOrangePrimary
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
                             Text(
                                 text = nombreBanda,
-                                fontSize = 10.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = Color(0xFF334155)
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             // Botón de restablecer ecualizador a plano
             OutlinedButton(
@@ -417,14 +489,55 @@ fun PanelEcualizadorTX(
                         )
                     )
                 },
-                border = BorderStroke(1.dp, Color(0xFF475569)),
-                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.RestartAlt, contentDescription = null, tint = Color(0xFFCFD8DC), modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.RestartAlt, contentDescription = null, tint = Color(0xFF475569), modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Restablecer a Valores Predeterminados", color = Color(0xFFCFD8DC), fontSize = 12.sp)
+                Text("Restablecer a Valores Predeterminados", color = Color(0xFF334155), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SLIDER VERTICAL COMPOSABLE ERGONÓMICO
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun SliderVertical(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    activeColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(140.dp)
+            .width(44.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
+            valueRange = valueRange,
+            colors = SliderDefaults.colors(
+                thumbColor = activeColor,
+                activeTrackColor = activeColor,
+                inactiveTrackColor = Color(0xFFE2E8F0)
+            ),
+            modifier = Modifier
+                .graphicsLayer {
+                    rotationZ = 270f
+                    transformOrigin = TransformOrigin(0.5f, 0.5f)
+                }
+                .width(130.dp)
+                .height(44.dp)
+        )
     }
 }

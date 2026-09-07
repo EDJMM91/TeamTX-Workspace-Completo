@@ -26,6 +26,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -124,14 +126,19 @@ object GESTOR_AUDIO_TX {
     private const val MAX_INTENTOS_ERROR = 3
     private var autoSkipsConsecutivos: Int = 0
     private var tiempoInicioReproduccionMs: Long = 0L
-    private const val MAX_AUTO_SKIPS = 5
-    private const val MIN_DURACION_VALIDA_MS = 2000L
+    private const val MAX_AUTO_SKIPS = 3
+    private const val MIN_DURACION_VALIDA_MS = 500L
     private var errorEnCurso = false
-    private val isTransitioning = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val playbackMutex = Mutex()
     private var jobAutoSkip: Job? = null
     private var contadorSkipsConsecutivosUsuario = 0
     private var logFile: File? = null
     private var timestampsSkips = mutableListOf<Long>()
+
+    // DAOs de persistencia Room (Versión 31)
+    private var cancionDao: CancionLocalDao? = null
+    private var listaDao: ListaReproduccionDao? = null
+    private var estadoDao: EstadoReproductorDao? = null
 
     // Receptor para los controles de la notificación multimedia
     private val receptorControlesMultimedia = object : BroadcastReceiver() {
@@ -155,6 +162,17 @@ object GESTOR_AUDIO_TX {
         prefs = appCtx.getSharedPreferences(PREFS_NOMBRE, Context.MODE_PRIVATE)
         audioManager = appCtx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         notificationManager = appCtx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+
+        // Inicializar Room Database
+        try {
+            val db = com.example.data.local.AppDatabase.getDatabase(appCtx, scopeCoroutine)
+            cancionDao = db.cancionLocalDao()
+            listaDao = db.listaReproduccionDao()
+            estadoDao = db.estadoReproductorDao()
+            Log.d(ETIQUETA, "DAOs Room vinculados exitosamente")
+        } catch (e: Exception) {
+            Log.e(ETIQUETA, "Error inicializando DAOs Room: ${e.message}")
+        }
 
         // Archivo de diagnóstico para Honor (sin logcat)
         try {
@@ -328,13 +346,13 @@ object GESTOR_AUDIO_TX {
                             )
                         )
                     }
-                }
-            } catch (e: Exception) {
-                Log.e(ETIQUETA, "Error escaneando MediaStore: ${e.message}")
             }
+        } catch (e: Exception) {
+            Log.e(ETIQUETA, "Error escaneando MediaStore: ${e.message}")
+        }
 
-            // Escaneo complementario directo de carpetas estándar (Music y Download) para pistas no indexadas
-            val directoriosPublicos = listOfNotNull(
+        // Escaneo complementario directo de carpetas estándar (Music y Download) para pistas no indexadas
+        val directoriosPublicos = listOfNotNull(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
                 File("/storage/emulated/0/Music"),
@@ -394,6 +412,13 @@ object GESTOR_AUDIO_TX {
                 restaurarUltimaCancionSiExiste()
                 Log.d(ETIQUETA, "Escaneo completado: ${lista.size} canciones encontradas.")
             }
+
+            // Persistir biblioteca en Room
+            try {
+                cancionDao?.upsertAll(lista.map { CancionLocalEntity.fromCancionMotera(it) })
+            } catch (e: Exception) {
+                Log.w(ETIQUETA, "Error guardando en Room: ${e.message}")
+            }
         }
     }
 
@@ -421,8 +446,8 @@ object GESTOR_AUDIO_TX {
         _duracionTotalMs.value = cancion.duracionMs
         _estado.value = EstadoReproductor.CARGANDO
 
-        errorEnCurso = false
-        tiempoInicioReproduccionMs = 0L // Resetear marca de tiempo para que no herede la duración de la canción anterior
+        // Resetear marca de tiempo ANTES de cualquier operación async para evitar herencia de canción anterior
+        tiempoInicioReproduccionMs = 0L
 
         guardarUltimaCancion(cancion.id)
         cargarCaratulaParaCancion(cancion)
@@ -438,17 +463,33 @@ object GESTOR_AUDIO_TX {
         errorEnCurso = false
         solicitarFocoAudio()
 
+        // Ejecutar reproducción bajo mutex para serializar transiciones
+        scopeCoroutine.launch(Dispatchers.IO) {
+            playbackMutex.withLock {
+                reproducirCancionInternal(ctx, cancion)
+            }
+        }
+    }
+
+    /**
+     * Lógica interna de reproducción protegida por mutex.
+     * Debe llamarse desde coroutine en Dispatchers.IO con playbackMutex held.
+     */
+    private suspend fun reproducirCancionInternal(
+        ctx: Context,
+        cancion: CancionMotera
+    ) {
         val uriAudio = if (cancion.uriStr.isNotBlank()) Uri.parse(cancion.uriStr) else Uri.fromFile(File(cancion.rutaArchivo))
         val rutaFisica = cancion.rutaArchivo
 
-        logDiagnostico("▶ reproducirCancion: ${cancion.titulo} | $uriAudio")
+        logDiagnostico("▶ reproducirCancionInternal: ${cancion.titulo} | $uriAudio")
+
+        // Liberar SÍNCRONAMENTE antes de crear nuevo MediaPlayer
+        awaitLiberarMediaPlayer()
+
+        val mp = MediaPlayer().also { mediaPlayer = it }
 
         try {
-            // Liberar siempre limpiamente la instancia previa de MediaPlayer y los efectos
-            // para evitar colisiones de estado nativo (-38, 1, audioSession) al pasar canción
-            liberarMediaPlayer()
-            val mp = MediaPlayer().also { mediaPlayer = it }
-
             mp.apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()
@@ -551,8 +592,8 @@ object GESTOR_AUDIO_TX {
                         logDiagnostico("start() OK: ${cancion.titulo}")
                     } catch (e: Exception) {
                         logDiagnostico("FALLO start(): ${e.message}")
-                        liberarMediaPlayer()
-                        _estado.value = EstadoReproductor.DETENIDO
+                        scopeCoroutine.launch(Dispatchers.IO) { awaitLiberarMediaPlayer() }
+                        scopeCoroutine.launch(Dispatchers.Main) { _estado.value = EstadoReproductor.DETENIDO }
                         return@setOnPreparedListener
                     }
 
@@ -575,7 +616,7 @@ object GESTOR_AUDIO_TX {
                 setOnCompletionListener {
                     logDiagnostico("🔄 ON_COMPLETION (errorEnCurso=$errorEnCurso, estado=${_estado.value}): ${cancion.titulo}")
                     if (!errorEnCurso && _estado.value == EstadoReproductor.REPRODUCIENDO) {
-                        alCompletarCancion()
+                        scopeCoroutine.launch(Dispatchers.Main) { alCompletarCancion() }
                     } else {
                         logDiagnostico("⚠️ ON_COMPLETION BLOQUEADO por error en curso o estado no reproduciendo")
                     }
@@ -594,7 +635,7 @@ object GESTOR_AUDIO_TX {
                     if (intentosErrorConsecutivos < 1) {
                         intentosErrorConsecutivos++
                         logDiagnostico("🔄 Reintentando reproducción limpia de '${cancion.titulo}' (intento 1)...")
-                        liberarMediaPlayer()
+                        scopeCoroutine.launch(Dispatchers.IO) { awaitLiberarMediaPlayer() }
                         scopeCoroutine.launch(Dispatchers.Main) {
                             delay(120)
                             reproducirCancion(cancion)
@@ -602,19 +643,22 @@ object GESTOR_AUDIO_TX {
                         return@setOnErrorListener true
                     }
 
-                    liberarMediaPlayer()
-                    _estado.value = EstadoReproductor.DETENIDO
-                    jobProgreso?.cancel()
-
-                    intentosErrorConsecutivos = 0
-                    autoSkipsConsecutivos = 0
-                    errorEnCurso = false
-                    ocultarNotificacion()
-                    abandonarFocoAudio()
+                    scopeCoroutine.launch(Dispatchers.IO) { awaitLiberarMediaPlayer() }
                     scopeCoroutine.launch(Dispatchers.Main) {
+                        _estado.value = EstadoReproductor.DETENIDO
+                        jobProgreso?.cancel()
+                        intentosErrorConsecutivos = 0
+                        autoSkipsConsecutivos = 0
+                        errorEnCurso = false
+                        ocultarNotificacion()
+                        abandonarFocoAudio()
                         android.widget.Toast.makeText(ctx, "No se pudo reproducir '${cancion.titulo}'.", android.widget.Toast.LENGTH_SHORT).show()
                     }
                     true
+                }
+
+                setOnSeekCompleteListener {
+                    logDiagnostico("SEEK_COMPLETE: posición=${it.currentPosition}ms")
                 }
 
                 logDiagnostico("🔧 prepareAsync iniciado")
@@ -622,14 +666,14 @@ object GESTOR_AUDIO_TX {
             }
         } catch (e: Exception) {
             logDiagnostico("💥 EXCEPCIÓN MediaPlayer: ${e.message}")
-            liberarMediaPlayer()
-            _estado.value = EstadoReproductor.DETENIDO
-            autoSkipsConsecutivos = 0
-            intentosErrorConsecutivos = 0
-            errorEnCurso = false
-            ocultarNotificacion()
-            abandonarFocoAudio()
+            awaitLiberarMediaPlayer()
             scopeCoroutine.launch(Dispatchers.Main) {
+                _estado.value = EstadoReproductor.DETENIDO
+                autoSkipsConsecutivos = 0
+                intentosErrorConsecutivos = 0
+                errorEnCurso = false
+                ocultarNotificacion()
+                abandonarFocoAudio()
                 android.widget.Toast.makeText(ctx, "No se pudo reproducir el audio. Formato no compatible.", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
@@ -637,27 +681,31 @@ object GESTOR_AUDIO_TX {
 
     /**
      * Libera el MediaPlayer de forma segura, cerrando descriptores y desvinculando efectos de hardware.
+     * Función SÍNCRONA/BLOQUEANTE: garantiza que release() nativo complete antes de retornar.
      */
-    private fun liberarMediaPlayer() {
+    private suspend fun liberarMediaPlayer() {
         errorEnCurso = true
         jobProgreso?.cancel()
         jobProgreso = null
-        try {
-            mediaPlayer?.apply {
-                // PRIMERO desvincular todos los listeners para evitar callbacks asíncronos residuales
-                setOnPreparedListener(null)
-                setOnCompletionListener(null)
-                setOnErrorListener(null)
-                setOnInfoListener(null)
-                setOnSeekCompleteListener(null)
-                if (isPlaying) {
-                    try { stop() } catch (_: Exception) {}
-                }
-                reset()
-                release()
-            }
-        } catch (_: Exception) {}
+        val mp = mediaPlayer
         mediaPlayer = null
+        if (mp != null) {
+            try {
+                // PRIMERO desvincular todos los listeners para evitar callbacks asíncronos residuales
+                mp.setOnPreparedListener(null)
+                mp.setOnCompletionListener(null)
+                mp.setOnErrorListener(null)
+                mp.setOnInfoListener(null)
+                mp.setOnSeekCompleteListener(null)
+                if (mp.isPlaying) {
+                    try { mp.stop() } catch (_: Exception) {}
+                }
+                mp.reset()
+                mp.release()
+                // Pequeña pausa para asegurar liberación nativa completa
+                try { Thread.sleep(50) } catch (_: Exception) {}
+            } catch (_: Exception) {}
+        }
         try { activoAfd?.close() } catch (_: Exception) {}
         activoAfd = null
         try { activoPfd?.close() } catch (_: Exception) {}
@@ -667,7 +715,13 @@ object GESTOR_AUDIO_TX {
         try {
             MOTOR_AUDIO_NATIVO.liberarEfectos()
         } catch (_: Exception) {}
+        errorEnCurso = false
     }
+
+    /**
+     * Wrapper seguro para llamar liberarMediaPlayer() desde callbacks no-suspend.
+     */
+    private suspend fun awaitLiberarMediaPlayer() = liberarMediaPlayer()
 
     private fun cargarCaratulaParaCancion(cancion: CancionMotera) {
         val ctx = contextoApp ?: return
@@ -709,95 +763,125 @@ object GESTOR_AUDIO_TX {
     }
 
     fun siguienteCancion(esAutoSkip: Boolean = false) {
-        if (!isTransitioning.compareAndSet(false, true)) {
-            logDiagnostico("⏭ siguienteCancion ignorado: transición en curso")
-            return
-        }
-
-        try {
-            val cola = _colaReproduccion.value
-            if (cola.isEmpty()) {
-                logDiagnostico("⏭ siguienteCancion: cola vacía")
-                return
-            }
-
-            if (!esAutoSkip) {
-                // Acción manual del usuario: cancelar auto-skips y resetear contadores de error
-                jobAutoSkip?.cancel()
-                jobAutoSkip = null
-                intentosErrorConsecutivos = 0
-                autoSkipsConsecutivos = 0
-            }
-            errorEnCurso = false
-
-            logDiagnostico("⏭ siguienteCancion (auto=$esAutoSkip): indiceActual=$indiceColaActual tamañoCola=${cola.size}")
-
-            if (_modoAleatorio.value && cola.size > 1) {
-                var nuevoIndice = (cola.indices).random()
-                if (nuevoIndice == indiceColaActual) {
-                    nuevoIndice = (nuevoIndice + 1) % cola.size
+        scopeCoroutine.launch(Dispatchers.IO) {
+            playbackMutex.withLock {
+                val cola = _colaReproduccion.value
+                if (cola.isEmpty()) {
+                    logDiagnostico("⏭ siguienteCancion: cola vacía")
+                    return@withLock
                 }
-                indiceColaActual = nuevoIndice
-                logDiagnostico("🎲 Aleatorio: nuevoIndice=$nuevoIndice -> ${cola[nuevoIndice].titulo}")
-                reproducirCancion(cola[indiceColaActual])
-                return
-            }
 
-            var siguienteIndice = indiceColaActual + 1
-            if (siguienteIndice >= cola.size) {
-                if (_modoBucle.value == ModoBucle.SIN_BUCLE) {
-                    logDiagnostico("⏹ Fin de cola, deteniendo")
-                    detener()
-                    return
+                if (!esAutoSkip) {
+                    // Acción manual del usuario: cancelar auto-skips y resetear contadores de error
+                    jobAutoSkip?.cancel()
+                    jobAutoSkip = null
+                    intentosErrorConsecutivos = 0
+                    autoSkipsConsecutivos = 0
                 }
-                siguienteIndice = 0
-            }
+                errorEnCurso = false
 
-            indiceColaActual = siguienteIndice
-            logDiagnostico("▶ Siguiente: indice=$siguienteIndice -> ${cola[siguienteIndice].titulo}")
-            reproducirCancion(cola[indiceColaActual])
-        } finally {
-            scopeCoroutine.launch {
-                delay(400)
-                isTransitioning.set(false)
+                logDiagnostico("⏭ siguienteCancion (auto=$esAutoSkip): indiceActual=$indiceColaActual tamañoCola=${cola.size}")
+
+                val cancionSiguiente: CancionMotera
+                if (_modoAleatorio.value && cola.size > 1) {
+                    var nuevoIndice = (cola.indices).random()
+                    if (nuevoIndice == indiceColaActual) {
+                        nuevoIndice = (nuevoIndice + 1) % cola.size
+                    }
+                    indiceColaActual = nuevoIndice
+                    cancionSiguiente = cola[indiceColaActual]
+                    logDiagnostico("🎲 Aleatorio: nuevoIndice=$nuevoIndice -> ${cancionSiguiente.titulo}")
+                } else {
+                    var siguienteIndice = indiceColaActual + 1
+                    if (siguienteIndice >= cola.size) {
+                        if (_modoBucle.value == ModoBucle.SIN_BUCLE) {
+                            logDiagnostico("⏹ Fin de cola, deteniendo")
+                            scopeCoroutine.launch(Dispatchers.Main) { detener() }
+                            return@withLock
+                        }
+                        siguienteIndice = 0
+                    }
+                    indiceColaActual = siguienteIndice
+                    cancionSiguiente = cola[indiceColaActual]
+                    logDiagnostico("▶ Siguiente: indice=$siguienteIndice -> ${cancionSiguiente.titulo}")
+                }
+
+                // Actualizar estado UI y lanzar reproducción interna (ya estamos bajo mutex)
+                scopeCoroutine.launch(Dispatchers.Main) {
+                    _cancionActual.value = cancionSiguiente
+                    _posicionActualMs.value = 0L
+                    _duracionTotalMs.value = cancionSiguiente.duracionMs
+                    _estado.value = EstadoReproductor.CARGANDO
+                    tiempoInicioReproduccionMs = 0L
+                    guardarUltimaCancion(cancionSiguiente.id)
+                    cargarCaratulaParaCancion(cancionSiguiente)
+                    // Limpieza previa de descriptores
+                    try { activoAfd?.close() } catch (_: Exception) {}
+                    activoAfd = null
+                    try { activoPfd?.close() } catch (_: Exception) {}
+                    activoPfd = null
+                    try { activoFis?.close() } catch (_: Exception) {}
+                    activoFis = null
+                    errorEnCurso = false
+                    solicitarFocoAudio()
+                }
+
+                // Llamar reproducción interna directamente (ya bajo mutex)
+                val ctx = contextoApp ?: return@withLock
+                reproducirCancionInternal(ctx, cancionSiguiente)
             }
         }
     }
 
     fun anteriorCancion() {
-        if (!isTransitioning.compareAndSet(false, true)) {
-            logDiagnostico("⏮ anteriorCancion ignorado: transición en curso")
-            return
-        }
+        scopeCoroutine.launch(Dispatchers.IO) {
+            playbackMutex.withLock {
+                val mp = mediaPlayer
+                if (mp != null && try { mp.currentPosition > 3000 } catch (_: Exception) { false }) {
+                    // Si ya pasaron más de 3 segundos, reiniciar la pista actual
+                    scopeCoroutine.launch(Dispatchers.Main) { buscarPosicion(0L) }
+                    return@withLock
+                }
 
-        try {
-            val mp = mediaPlayer
-            if (mp != null && try { mp.currentPosition > 3000 } catch (_: Exception) { false }) {
-                // Si ya pasaron más de 3 segundos, reiniciar la pista actual
-                buscarPosicion(0L)
-                return
-            }
+                val cola = _colaReproduccion.value
+                if (cola.isEmpty()) return@withLock
 
-            val cola = _colaReproduccion.value
-            if (cola.isEmpty()) return
+                jobAutoSkip?.cancel()
+                jobAutoSkip = null
+                intentosErrorConsecutivos = 0
+                autoSkipsConsecutivos = 0
+                errorEnCurso = false
 
-            jobAutoSkip?.cancel()
-            jobAutoSkip = null
-            intentosErrorConsecutivos = 0
-            autoSkipsConsecutivos = 0
-            errorEnCurso = false
+                var anteriorIndice = indiceColaActual - 1
+                if (anteriorIndice < 0) {
+                    anteriorIndice = cola.size - 1
+                }
 
-            var anteriorIndice = indiceColaActual - 1
-            if (anteriorIndice < 0) {
-                anteriorIndice = cola.size - 1
-            }
+                indiceColaActual = anteriorIndice
+                val cancionAnterior = cola[indiceColaActual]
 
-            indiceColaActual = anteriorIndice
-            reproducirCancion(cola[indiceColaActual])
-        } finally {
-            scopeCoroutine.launch {
-                delay(400)
-                isTransitioning.set(false)
+                // Actualizar estado UI y lanzar reproducción interna (ya bajo mutex)
+                scopeCoroutine.launch(Dispatchers.Main) {
+                    _cancionActual.value = cancionAnterior
+                    _posicionActualMs.value = 0L
+                    _duracionTotalMs.value = cancionAnterior.duracionMs
+                    _estado.value = EstadoReproductor.CARGANDO
+                    tiempoInicioReproduccionMs = 0L
+                    guardarUltimaCancion(cancionAnterior.id)
+                    cargarCaratulaParaCancion(cancionAnterior)
+                    // Limpieza previa de descriptores
+                    try { activoAfd?.close() } catch (_: Exception) {}
+                    activoAfd = null
+                    try { activoPfd?.close() } catch (_: Exception) {}
+                    activoPfd = null
+                    try { activoFis?.close() } catch (_: Exception) {}
+                    activoFis = null
+                    errorEnCurso = false
+                    solicitarFocoAudio()
+                }
+
+                val ctx = contextoApp ?: return@withLock
+                reproducirCancionInternal(ctx, cancionAnterior)
             }
         }
     }
@@ -821,17 +905,18 @@ object GESTOR_AUDIO_TX {
     }
 
     fun detener() {
-        try {
-            mediaPlayer?.stop()
-            mediaPlayer?.release()
-        } catch (_: Exception) {}
-        mediaPlayer = null
-        _estado.value = EstadoReproductor.DETENIDO
-        _posicionActualMs.value = 0L
-        jobProgreso?.cancel()
-        MOTOR_AUDIO_NATIVO.liberarEfectos()
-        ocultarNotificacion()
-        abandonarFocoAudio()
+        scopeCoroutine.launch(Dispatchers.IO) {
+            playbackMutex.withLock {
+                awaitLiberarMediaPlayer()
+                scopeCoroutine.launch(Dispatchers.Main) {
+                    _estado.value = EstadoReproductor.DETENIDO
+                    _posicionActualMs.value = 0L
+                    jobProgreso?.cancel()
+                    ocultarNotificacion()
+                    abandonarFocoAudio()
+                }
+            }
+        }
     }
 
     private fun alCompletarCancion() {
@@ -1116,23 +1201,60 @@ object GESTOR_AUDIO_TX {
 
     private fun guardarFavoritas() {
         scopeCoroutine.launch(Dispatchers.IO) {
-            val arr = JSONArray(_favoritasIds.value)
+            val favs = _favoritasIds.value
+            cancionDao?.let { dao ->
+                try {
+                    dao.getAllCanciones().forEach { c ->
+                        val esFav = favs.contains(c.id)
+                        if (c.esFavorita != esFav) {
+                            dao.updateFavorita(c.id, esFav)
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+            val arr = JSONArray(favs)
             prefs?.edit()?.putString("favoritas_ids", arr.toString())?.apply()
         }
     }
 
     private fun cargarFavoritasGuardadas() {
-        val str = prefs?.getString("favoritas_ids", null) ?: return
-        try {
-            val arr = JSONArray(str)
-            val set = mutableSetOf<Long>()
-            for (i in 0 until arr.length()) set.add(arr.getLong(i))
-            _favoritasIds.value = set
-        } catch (_: Exception) {}
+        scopeCoroutine.launch(Dispatchers.IO) {
+            val favsDb = try {
+                cancionDao?.getAllCanciones()?.filter { it.esFavorita }?.map { it.id }?.toSet()
+            } catch (_: Exception) { null }
+
+            if (!favsDb.isNullOrEmpty()) {
+                _favoritasIds.value = favsDb
+            } else {
+                val str = prefs?.getString("favoritas_ids", null) ?: return@launch
+                try {
+                    val arr = JSONArray(str)
+                    val set = mutableSetOf<Long>()
+                    for (i in 0 until arr.length()) set.add(arr.getLong(i))
+                    _favoritasIds.value = set
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     private fun guardarListas() {
         scopeCoroutine.launch(Dispatchers.IO) {
+            val dao = listaDao
+            _listasPersonalizadas.value.forEach { lista ->
+                try {
+                    dao?.upsert(
+                        ListaReproduccionEntity(
+                            id = lista.id,
+                            nombre = lista.nombre,
+                            descripcion = lista.descripcion,
+                            fechaCreacion = lista.fechaCreacion,
+                            icono = lista.icono,
+                            cancionIdsJson = JSONArray(lista.cancionIds).toString()
+                        )
+                    )
+                } catch (_: Exception) {}
+            }
+
             val arr = JSONArray()
             _listasPersonalizadas.value.forEach { lista ->
                 val obj = JSONObject().apply {
@@ -1150,26 +1272,48 @@ object GESTOR_AUDIO_TX {
     }
 
     private fun cargarListasGuardadas() {
-        val str = prefs?.getString("listas_guardadas", null) ?: return
-        try {
-            val arr = JSONArray(str)
-            val lista = mutableListOf<ListaReproduccionMotera>()
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                val id = obj.getString("id")
-                val nombre = obj.getString("nombre")
-                val desc = obj.optString("descripcion", "")
-                val fecha = obj.optLong("fechaCreacion", System.currentTimeMillis())
-                val icono = obj.optString("icono", "🎵")
-                val idsArr = obj.optJSONArray("cancionIds")
-                val cancionIds = mutableListOf<Long>()
-                if (idsArr != null) {
-                    for (j in 0 until idsArr.length()) cancionIds.add(idsArr.getLong(j))
+        scopeCoroutine.launch(Dispatchers.IO) {
+            val listasDb = try { listaDao?.getAllListas() } catch (_: Exception) { null }
+            if (!listasDb.isNullOrEmpty()) {
+                val lista = listasDb.map { entidad ->
+                    val ids = mutableListOf<Long>()
+                    try {
+                        val arr = JSONArray(entidad.cancionIdsJson)
+                        for (j in 0 until arr.length()) ids.add(arr.getLong(j))
+                    } catch (_: Exception) {}
+                    ListaReproduccionMotera(
+                        id = entidad.id,
+                        nombre = entidad.nombre,
+                        descripcion = entidad.descripcion,
+                        fechaCreacion = entidad.fechaCreacion,
+                        cancionIds = ids,
+                        icono = entidad.icono
+                    )
                 }
-                lista.add(ListaReproduccionMotera(id, nombre, desc, fecha, cancionIds, icono))
+                _listasPersonalizadas.value = lista
+            } else {
+                val str = prefs?.getString("listas_guardadas", null) ?: return@launch
+                try {
+                    val arr = JSONArray(str)
+                    val lista = mutableListOf<ListaReproduccionMotera>()
+                    for (i in 0 until arr.length()) {
+                        val obj = arr.getJSONObject(i)
+                        val id = obj.getString("id")
+                        val nombre = obj.getString("nombre")
+                        val desc = obj.optString("descripcion", "")
+                        val fecha = obj.optLong("fechaCreacion", System.currentTimeMillis())
+                        val icono = obj.optString("icono", "🎵")
+                        val idsArr = obj.optJSONArray("cancionIds")
+                        val cancionIds = mutableListOf<Long>()
+                        if (idsArr != null) {
+                            for (j in 0 until idsArr.length()) cancionIds.add(idsArr.getLong(j))
+                        }
+                        lista.add(ListaReproduccionMotera(id, nombre, desc, fecha, cancionIds, icono))
+                    }
+                    _listasPersonalizadas.value = lista
+                } catch (_: Exception) {}
             }
-            _listasPersonalizadas.value = lista
-        } catch (_: Exception) {}
+        }
     }
 
     private fun guardarConfiguracion(cfg: ConfiguracionReproductor) {
@@ -1198,6 +1342,25 @@ object GESTOR_AUDIO_TX {
     private fun guardarUltimaCancion(cancionId: Long) {
         scopeCoroutine.launch(Dispatchers.IO) {
             val colaIds = _colaReproduccion.value.map { it.id }
+            val pos = _posicionActualMs.value
+            val bucle = _modoBucle.value.ordinal
+            val aleatorio = _modoAleatorio.value
+
+            try {
+                estadoDao?.upsert(
+                    EstadoReproductorEntity(
+                        clave = "global",
+                        ultimaCancionId = cancionId,
+                        colaIdsJson = JSONArray(colaIds).toString(),
+                        indiceColaActual = indiceColaActual,
+                        modoBucle = bucle,
+                        modoAleatorio = aleatorio,
+                        posicionMs = pos,
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+            } catch (_: Exception) {}
+
             prefs?.edit()
                 ?.putLong("ultima_cancion_id", cancionId)
                 ?.putString("cola_reproduccion_ids", JSONArray(colaIds).toString())
@@ -1207,27 +1370,34 @@ object GESTOR_AUDIO_TX {
 
     private fun restaurarUltimaCancionSiExiste() {
         if (_cancionActual.value != null) return
-        val p = prefs ?: return
-        val ultimaId = p.getLong("ultima_cancion_id", -1L)
-        if (ultimaId > 0) {
-            val cancion = _todasLasCanciones.value.find { it.id == ultimaId }
-            if (cancion != null) {
-                _cancionActual.value = cancion
-                _duracionTotalMs.value = cancion.duracionMs
-                cargarCaratulaParaCancion(cancion)
+        scopeCoroutine.launch(Dispatchers.IO) {
+            val estadoDb = try { estadoDao?.getEstado("global") } catch (_: Exception) { null }
+            val ultimaId = estadoDb?.ultimaCancionId ?: prefs?.getLong("ultima_cancion_id", -1L) ?: -1L
 
-                val strCola = p.getString("cola_reproduccion_ids", null)
-                if (strCola != null) {
-                    try {
-                        val arr = JSONArray(strCola)
-                        val ids = mutableListOf<Long>()
-                        for (i in 0 until arr.length()) ids.add(arr.getLong(i))
-                        val colaRestaurada = ids.mapNotNull { id -> _todasLasCanciones.value.find { it.id == id } }
-                        if (colaRestaurada.isNotEmpty()) {
-                            _colaReproduccion.value = colaRestaurada
-                            indiceColaActual = colaRestaurada.indexOfFirst { it.id == ultimaId }
-                        }
-                    } catch (_: Exception) {}
+            if (ultimaId > 0) {
+                val cancion = _todasLasCanciones.value.find { it.id == ultimaId }
+                if (cancion != null) {
+                    withContext(Dispatchers.Main) {
+                        _cancionActual.value = cancion
+                        _duracionTotalMs.value = cancion.duracionMs
+                        cargarCaratulaParaCancion(cancion)
+                    }
+
+                    val strCola = estadoDb?.colaIdsJson ?: prefs?.getString("cola_reproduccion_ids", null)
+                    if (strCola != null) {
+                        try {
+                            val arr = JSONArray(strCola)
+                            val ids = mutableListOf<Long>()
+                            for (i in 0 until arr.length()) ids.add(arr.getLong(i))
+                            val colaRestaurada = ids.mapNotNull { id -> _todasLasCanciones.value.find { it.id == id } }
+                            if (colaRestaurada.isNotEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    _colaReproduccion.value = colaRestaurada
+                                    indiceColaActual = colaRestaurada.indexOfFirst { it.id == ultimaId }
+                                }
+                            }
+                        } catch (_: Exception) {}
+                    }
                 }
             }
         }
@@ -1272,58 +1442,14 @@ object GESTOR_AUDIO_TX {
 
     private fun mostrarNotificacion() {
         val ctx = contextoApp ?: return
-        val cancion = _cancionActual.value ?: return
-        val esPlaying = _estado.value == EstadoReproductor.REPRODUCIENDO
-
-        val intentApp = Intent(ctx, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val pendingIntentApp = PendingIntent.getActivity(
-            ctx,
-            0,
-            intentApp,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-        val intentPrev = Intent(ACCION_ANTERIOR).apply { setPackage(ctx.packageName) }
-        val pIntentPrev = PendingIntent.getBroadcast(ctx, 10, intentPrev, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-
-        val intentPlay = Intent(ACCION_PLAY_PAUSA).apply { setPackage(ctx.packageName) }
-        val pIntentPlay = PendingIntent.getBroadcast(ctx, 11, intentPlay, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-
-        val intentNext = Intent(ACCION_SIGUIENTE).apply { setPackage(ctx.packageName) }
-        val pIntentNext = PendingIntent.getBroadcast(ctx, 12, intentNext, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-
-        val builder = NotificationCompat.Builder(ctx, CANAL_NOTIFICACION_ID)
-            .setSmallIcon(R.drawable.logoteam)
-            .setContentTitle(cancion.titulo)
-            .setContentText("${cancion.artista} • ${cancion.album}")
-            .setSubText("Música TX")
-            .setContentIntent(pendingIntentApp)
-            .setOngoing(esPlaying)
-            .setSilent(true)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .addAction(android.R.drawable.ic_media_previous, "Anterior", pIntentPrev)
-            .addAction(if (esPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play, if (esPlaying) "Pausa" else "Play", pIntentPlay)
-            .addAction(android.R.drawable.ic_media_next, "Siguiente", pIntentNext)
-
-        // Cargar carátula en miniatura si existe
-        val rutaCaratula = _caratulaActualRuta.value
-        if (!rutaCaratula.isNullOrBlank()) {
-            try {
-                val bitmap = BitmapFactory.decodeFile(rutaCaratula)
-                if (bitmap != null) {
-                    builder.setLargeIcon(bitmap)
-                }
-            } catch (_: Exception) {}
-        }
-
-        notificationManager?.notify(NOTIFICACION_ID, builder.build())
+        ReproductorForegroundService.iniciarServicio(ctx)
+        WIDGET_REPRODUCTOR_TX.actualizarTodosLosWidgets(ctx)
     }
 
     private fun ocultarNotificacion() {
-        notificationManager?.cancel(NOTIFICACION_ID)
+        val ctx = contextoApp ?: return
+        ReproductorForegroundService.detenerServicio(ctx)
+        WIDGET_REPRODUCTOR_TX.actualizarTodosLosWidgets(ctx)
     }
 
     private fun iniciarMonitoreoProgreso() {

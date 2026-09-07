@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,9 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,16 +31,15 @@ import com.example.ui.theme.MotoOrangePrimary
 import com.example.ui.theme.TxFlameRed
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PANEL DE DESCARGAS YT - REPRODUCTOR TX PRO
-// Interfaz de búsqueda y descarga de audio desde YouTube.
-// Estilo visual inspirado en Spotify y apps de música modernas.
+// PANEL DE DESCARGAS YT - REPRODUCTOR TX PRO (TEMA CLARO MODERNO)
+// Interfaz de búsqueda y descarga de audio con alta fidelidad y descargas directas.
 // ═══════════════════════════════════════════════════════════════════════════
 
 @Composable
 fun PANEL_DESCARGAS_YT(
     modifier: Modifier = Modifier
 ) {
-    val contexto = androidx.compose.ui.platform.LocalContext.current
+    val contexto = LocalContext.current
 
     // Inicializar gestor
     LaunchedEffect(Unit) {
@@ -50,68 +54,99 @@ fun PANEL_DESCARGAS_YT(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(12.dp)
+            .background(Color(0xFFF8FAFC))
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         // ═══════════════════════════════════════════════════════════════════
-        // BARRA DE BÚSQUEDA
+        // BARRA DE BÚSQUEDA MODERNA (TEMA CLARO - TEXTO OSCURO NÍTIDO)
         // ═══════════════════════════════════════════════════════════════════
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Surface(
+            color = Color.White,
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            shadowElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            OutlinedTextField(
-                value = textoBusqueda,
-                onValueChange = { textoBusqueda = it },
-                placeholder = {
-                    Text(
-                        "Buscar en YouTube...",
-                        fontSize = 14.sp,
-                        color = Color(0xFFB0BEC5)
-                    )
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFFB0BEC5))
-                },
-                trailingIcon = {
-                    if (textoBusqueda.isNotBlank()) {
-                        IconButton(onClick = { textoBusqueda = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = Color(0xFFB0BEC5))
-                        }
-                    }
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = MotoOrangePrimary,
-                    unfocusedBorderColor = Color(0xFF374151),
-                    cursorColor = MotoOrangePrimary
-                ),
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Button(
-                onClick = { GESTOR_DESCARGAS_YT.iniciarBusqueda(textoBusqueda) },
-                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
-                enabled = textoBusqueda.isNotBlank() && estadoPanel !is EstadoPanelYT.Buscando,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.height(52.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (estadoPanel is EstadoPanelYT.Buscando) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp))
+                OutlinedTextField(
+                    value = textoBusqueda,
+                    onValueChange = { textoBusqueda = it },
+                    placeholder = {
+                        Text(
+                            "Buscar canción, artista o video...",
+                            fontSize = 13.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MotoOrangePrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (textoBusqueda.isNotBlank()) {
+                            IconButton(onClick = { textoBusqueda = "" }, modifier = Modifier.size(28.dp)) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Limpiar",
+                                    tint = Color(0xFF64748B),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color(0xFF0F172A),
+                        unfocusedTextColor = Color(0xFF0F172A),
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        cursorColor = MotoOrangePrimary
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
+
+                Button(
+                    onClick = {
+                        if (textoBusqueda.isNotBlank()) {
+                            GESTOR_DESCARGAS_YT.iniciarBusqueda(textoBusqueda)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                    enabled = textoBusqueda.isNotBlank() && estadoPanel !is EstadoPanelYT.Buscando,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                    modifier = Modifier.height(44.dp)
+                ) {
+                    if (estadoPanel is EstadoPanelYT.Buscando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Buscar",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // ═══════════════════════════════════════════════════════════════════
         // DESCARGAS EN CURSO
@@ -124,20 +159,37 @@ fun PANEL_DESCARGAS_YT(
         }
 
         if (descargasEnCurso.isNotEmpty()) {
-            Text(
-                "DESCARGAS EN CURSO",
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
-                color = MotoGoldSecondary,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(bottom = 6.dp)
-            )
+            ) {
+                Text(
+                    "DESCARGAS EN CURSO",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 11.sp,
+                    color = MotoOrangePrimary
+                )
+                Surface(
+                    color = MotoOrangePrimary.copy(alpha = 0.15f),
+                    shape = CircleShape
+                ) {
+                    Text(
+                        "${descargasEnCurso.size}",
+                        color = MotoOrangePrimary,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
 
             descargasEnCurso.forEach { descarga ->
                 CardDescargaEnCurso(descarga = descarga)
                 Spacer(modifier = Modifier.height(6.dp))
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -146,9 +198,13 @@ fun PANEL_DESCARGAS_YT(
         when (val estado = estadoPanel) {
             is EstadoPanelYT.Inactivo -> {
                 EstadoVacio(
-                    icono = "⬇️",
-                    titulo = "Descarga música de YouTube",
-                    subtitulo = "Busca cualquier canción, artista o álbum y descárgalo en MP3 320kbps directo a tu biblioteca."
+                    icono = "🎧",
+                    titulo = "Descarga tu Música Favorita",
+                    subtitulo = "Busca cualquier canción, artista o álbum para descargar directamente en MP3 320kbps a tu biblioteca motera.",
+                    onSugerenciaSeleccionada = { sugerencia ->
+                        textoBusqueda = sugerencia
+                        GESTOR_DESCARGAS_YT.iniciarBusqueda(sugerencia)
+                    }
                 )
             }
 
@@ -157,26 +213,56 @@ fun PANEL_DESCARGAS_YT(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = MotoOrangePrimary, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Buscando '${estado.termino}'...", color = Color(0xFFB0BEC5), fontSize = 13.sp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            color = MotoOrangePrimary,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(46.dp)
+                        )
+                        Text(
+                            "Buscando '${estado.termino}' en catálogo global...",
+                            color = Color(0xFF64748B),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
 
             is EstadoPanelYT.ListaResultados -> {
-                Column {
-                    Text(
-                        "RESULTADOS (${estado.resultados.size})",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        color = MotoGoldSecondary,
-                        modifier = Modifier.padding(bottom = 6.dp)
-                    )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "RESULTADOS ENCONTRADOS (${estado.resultados.size})",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 11.sp,
+                            color = Color(0xFF0F172A)
+                        )
+                        Surface(
+                            color = Color(0xFFF1F5F9),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "320kbps & HD",
+                                color = Color(0xFF64748B),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
 
                     LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(bottom = 120.dp)
                     ) {
                         items(estado.resultados) { resultado ->
@@ -214,13 +300,17 @@ fun PANEL_DESCARGAS_YT(
             is EstadoPanelYT.ErrorBusqueda -> {
                 EstadoVacio(
                     icono = "⚠️",
-                    titulo = "Error en la búsqueda",
+                    titulo = "No se pudieron obtener resultados",
                     subtitulo = estado.mensaje,
                     conBotonReintentar = true,
                     onReintentar = {
                         if (textoBusqueda.isNotBlank()) {
                             GESTOR_DESCARGAS_YT.iniciarBusqueda(textoBusqueda)
                         }
+                    },
+                    onSugerenciaSeleccionada = { sugerencia ->
+                        textoBusqueda = sugerencia
+                        GESTOR_DESCARGAS_YT.iniciarBusqueda(sugerencia)
                     }
                 )
             }
@@ -229,7 +319,7 @@ fun PANEL_DESCARGAS_YT(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: ITEM DE RESULTADO DE BÚSQUEDA YT
+// COMPONENTE: ITEM DE RESULTADO DE BÚSQUEDA (TEMA CLARO MODERNO)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -242,9 +332,10 @@ private fun ItemResultadoYT(
     val estaDescargando = descarga != null && descarga.estado != TipoEstadoDescarga.COMPLETADO && descarga.estado != TipoEstadoDescarga.ERROR
 
     Surface(
-        color = Color(0xFF161B26),
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, Color(0xFF263238)),
+        color = Color.White,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
@@ -253,24 +344,28 @@ private fun ItemResultadoYT(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Thumbnail del video
-                AsyncImage(
-                    model = resultado.urlThumbnail,
-                    contentDescription = resultado.titulo,
-                    contentScale = ContentScale.Crop,
+                // Thumbnail de la canción / video
+                Box(
                     modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF1E2433))
-                )
+                        .size(54.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFF1F5F9))
+                ) {
+                    AsyncImage(
+                        model = resultado.urlThumbnail,
+                        contentDescription = resultado.titulo,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
-                // Información del video
+                // Información de la pista
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = resultado.titulo,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
-                        color = Color.White,
+                        color = Color(0xFF0F172A),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -278,63 +373,96 @@ private fun ItemResultadoYT(
                     Text(
                         text = resultado.autor,
                         fontSize = 11.sp,
-                        color = Color(0xFFB0BEC5),
+                        color = Color(0xFF64748B),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = resultado.duracionFormateada,
-                        fontSize = 10.sp,
-                        color = Color(0xFF78909C)
-                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = resultado.duracionFormateada,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF94A3B8)
+                        )
+                        Surface(
+                            color = if (resultado.urlDescargaDirecta != null) Color(0xFFFEF3C7) else Color(0xFFF1F5F9),
+                            shape = RoundedCornerShape(4.dp),
+                            border = BorderStroke(0.5.dp, if (resultado.urlDescargaDirecta != null) MotoGoldSecondary.copy(alpha = 0.5f) else Color(0xFFCBD5E1))
+                        ) {
+                            Text(
+                                text = if (resultado.urlDescargaDirecta != null) "⚡ 320kbps" else "🎬 YouTube",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (resultado.urlDescargaDirecta != null) Color(0xFFB45309) else Color(0xFF475569),
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
                 }
 
-                // Botón de descarga o progreso
+                // Botones de acción / estado de descarga
                 if (descarga != null && descarga.estado == TipoEstadoDescarga.COMPLETADO) {
-                    // Descarga completada: mostrar botón de reproducir
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
                             onClick = { onReproducirDescarga?.invoke(resultado) },
-                            modifier = Modifier.size(36.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.height(34.dp)
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MotoOrangePrimary,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.PlayArrow, contentDescription = "Reproducir", tint = Color.White, modifier = Modifier.size(20.dp))
-                                }
-                            }
+                            Icon(Icons.Default.PlayArrow, contentDescription = "Reproducir", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Oír", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                         Icon(
                             Icons.Default.CheckCircle,
                             contentDescription = "Descargado",
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(24.dp)
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 } else if (descarga != null && descarga.estado == TipoEstadoDescarga.ERROR) {
-                    IconButton(onClick = onDescargar) {
+                    IconButton(onClick = onDescargar, modifier = Modifier.size(34.dp)) {
                         Icon(
                             Icons.Default.Refresh,
                             contentDescription = "Reintentar",
                             tint = TxFlameRed,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 } else if (estaDescargando) {
-                    // Ya está en proceso
+                    Surface(
+                        shape = CircleShape,
+                        color = MotoOrangePrimary.copy(alpha = 0.1f),
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(
+                                progress = { descarga.progreso.coerceIn(0f, 1f) },
+                                modifier = Modifier.size(22.dp),
+                                color = MotoOrangePrimary,
+                                strokeWidth = 2.5.dp
+                            )
+                        }
+                    }
                 } else {
                     Button(
                         onClick = onDescargar,
                         colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.height(34.dp)
                     ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(15.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Descargar", fontSize = 11.sp)
+                        Text("Bajar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -344,18 +472,30 @@ private fun ItemResultadoYT(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val textoEstado = when (descarga.estado) {
-                    TipoEstadoDescarga.EN_COLA -> "En cola..."
-                    TipoEstadoDescarga.DESCARGANDO -> "Descargando... ${descarga.porcentaje}%"
-                    TipoEstadoDescarga.CONVIRTIENDO -> "Convirtiendo a MP3..."
-                    TipoEstadoDescarga.GUARDANDO -> "Guardando en galería..."
+                    TipoEstadoDescarga.EN_COLA -> "En cola de espera..."
+                    TipoEstadoDescarga.DESCARGANDO -> "Descargando audio... ${descarga.porcentaje}%"
+                    TipoEstadoDescarga.CONVIRTIENDO -> "Procesando audio a MP3..."
+                    TipoEstadoDescarga.GUARDANDO -> "Guardando en almacenamiento..."
                     else -> ""
                 }
 
-                Text(
-                    textoEstado,
-                    fontSize = 10.sp,
-                    color = MotoGoldSecondary
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        textoEstado,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MotoOrangePrimary
+                    )
+                    Text(
+                        "${descarga.porcentaje}%",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MotoOrangePrimary
+                    )
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 LinearProgressIndicator(
                     progress = { descarga.progreso.coerceIn(0f, 1f) },
@@ -365,14 +505,14 @@ private fun ItemResultadoYT(
                         .clip(RoundedCornerShape(2.dp)),
                     color = when (descarga.estado) {
                         TipoEstadoDescarga.CONVIRTIENDO -> MotoGoldSecondary
-                        TipoEstadoDescarga.GUARDANDO -> Color(0xFF4CAF50)
+                        TipoEstadoDescarga.GUARDANDO -> Color(0xFF10B981)
                         else -> MotoOrangePrimary
                     },
-                    trackColor = Color(0xFF1E2433)
+                    trackColor = Color(0xFFF1F5F9)
                 )
             }
 
-            // Mostrar error si falló
+            // Mostrar mensaje de error si falló
             if (descarga != null && descarga.estado == TipoEstadoDescarga.ERROR && descarga.mensajeError != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -386,29 +526,30 @@ private fun ItemResultadoYT(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: TARJETA DE DESCARGA EN CURSO
+// COMPONENTE: TARJETA DE DESCARGA EN CURSO (TEMA CLARO)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun CardDescargaEnCurso(descarga: EstadoDescarga) {
     Surface(
-        color = Color(0xFF1E2433),
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.3f)),
+        color = Color.White,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.35f)),
+        shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 CircularProgressIndicator(
                     progress = { descarga.progreso.coerceIn(0f, 1f) },
                     modifier = Modifier.size(24.dp),
                     color = when (descarga.estado) {
                         TipoEstadoDescarga.CONVIRTIENDO -> MotoGoldSecondary
-                        TipoEstadoDescarga.GUARDANDO -> Color(0xFF4CAF50)
+                        TipoEstadoDescarga.GUARDANDO -> Color(0xFF10B981)
                         else -> MotoOrangePrimary
                     },
                     strokeWidth = 2.5.dp
@@ -419,26 +560,32 @@ private fun CardDescargaEnCurso(descarga: EstadoDescarga) {
                         descarga.titulo,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
-                        color = Color.White,
+                        color = Color(0xFF0F172A),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     val textoEstado = when (descarga.estado) {
                         TipoEstadoDescarga.EN_COLA -> "En cola..."
-                        TipoEstadoDescarga.DESCARGANDO -> "Descargando audio..."
+                        TipoEstadoDescarga.DESCARGANDO -> "Descargando pista..."
                         TipoEstadoDescarga.CONVIRTIENDO -> "Convirtiendo a MP3 320kbps..."
-                        TipoEstadoDescarga.GUARDANDO -> "Guardando en galería..."
+                        TipoEstadoDescarga.GUARDANDO -> "Guardando en almacenamiento..."
                         else -> ""
                     }
-                    Text(textoEstado, fontSize = 10.sp, color = MotoGoldSecondary)
+                    Text(textoEstado, fontSize = 10.sp, color = Color(0xFF64748B))
                 }
 
-                Text(
-                    "${descarga.porcentaje}%",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = MotoOrangePrimary
-                )
+                Surface(
+                    color = MotoOrangePrimary.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        "${descarga.porcentaje}%",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = MotoOrangePrimary,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -449,14 +596,14 @@ private fun CardDescargaEnCurso(descarga: EstadoDescarga) {
                     .height(3.dp)
                     .clip(RoundedCornerShape(2.dp)),
                 color = MotoOrangePrimary,
-                trackColor = Color(0xFF0B0E14)
+                trackColor = Color(0xFFF1F5F9)
             )
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENTE: ESTADO VACÍO
+// COMPONENTE: ESTADO VACÍO CON CHIPS SUGERIDOS (TEMA CLARO)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -465,38 +612,92 @@ private fun EstadoVacio(
     titulo: String,
     subtitulo: String,
     conBotonReintentar: Boolean = false,
-    onReintentar: (() -> Unit)? = null
+    onReintentar: (() -> Unit)? = null,
+    onSugerenciaSeleccionada: ((String) -> Unit)? = null
 ) {
+    val sugerencias = remember {
+        listOf(
+            "Rock Clásico",
+            "AC/DC",
+            "Metallica",
+            "Caramelos de Cianuro",
+            "Rutas Moteras",
+            "Rock en Español",
+            "Heavy Metal",
+            "Guns N' Roses"
+        )
+    }
+
     Box(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(icono, fontSize = 48.sp)
+            Text(icono, fontSize = 44.sp)
             Text(
                 titulo,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
+                color = Color(0xFF0F172A),
+                fontWeight = FontWeight.Black,
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center
             )
             Text(
                 subtitulo,
-                color = Color(0xFFB0BEC5),
+                color = Color(0xFF64748B),
                 fontSize = 12.sp,
-                lineHeight = 16.sp
+                lineHeight = 17.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
+
+            if (onSugerenciaSeleccionada != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    "🔥 SUGERENCIAS RÁPIDAS MOTERAS:",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    color = MotoOrangePrimary
+                )
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    items(sugerencias) { sug ->
+                        Surface(
+                            color = Color.White,
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            shadowElevation = 1.dp,
+                            modifier = Modifier.clickable { onSugerenciaSeleccionada(sug) }
+                        ) {
+                            Text(
+                                text = sug,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF334155),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             if (conBotonReintentar && onReintentar != null) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Button(
                     onClick = onReintentar,
-                    colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Reintentar")
+                    Text("Reintentar búsqueda")
                 }
             }
         }

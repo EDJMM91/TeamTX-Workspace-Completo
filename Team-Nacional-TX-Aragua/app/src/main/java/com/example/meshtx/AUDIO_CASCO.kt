@@ -106,9 +106,18 @@ class AudioCasco(
     // ─────────────────────────────────────────────────────────────────────────
     var bufferAntiEntrecorteActivado: Boolean = true
 
+    var idPilotoLocal: Long = 0L // Identificador local para supresión absoluta de eco
+    var estaEnlaceActivo: Boolean = false // Solo reproducir y capturar si Play está activo
+
+    var tamanoBufferJitterMs: Int = 200
+        set(valor) {
+            field = valor
+            paquetesPreRoll = maxOf(2, minOf(12, valor / 40))
+        }
+
     private val colaReproduccion = ConcurrentLinkedDeque<ByteArray>()
-    private val paquetesPreRoll = 2 // 2 fragmentos (~80 ms) de pre-buffer para salida ágil y absorción de jitter
-    private val maxPaquetesCola = 18 // ~720 ms máximo para evitar latencia acumulada
+    private var paquetesPreRoll = 5 // ~200 ms de pre-buffer por defecto para absorber jitter sin micro-cortes
+    private val maxPaquetesCola = 25 // ~1000 ms máximo para evitar acumulación excesiva
     @Volatile private var enFasePreRoll = true
     @Volatile private var tiempoUltimoPaqueteEntranteMs = 0L
     private var ultimaMuestraReproducida: Short = 0
@@ -412,10 +421,19 @@ class AudioCasco(
      * y reconstrucción de paquetes perdidos vía FEC intrapaquete.
      */
     fun encolarAudioEntrante(datosAudio: ByteArray, idEmisor: Long = 0L) {
+        // 1. Control estricto: Solo recibir y reproducir si la malla táctica está encendida
+        if (!estaEnlaceActivo) return
         if (datosAudio.isEmpty()) return
+
+        // 2. Supresión absoluta de eco propio: NUNCA reproducir en este dispositivo audio originado por nosotros mismos
+        if (idEmisor != 0L && idEmisor == idPilotoLocal) return
+
+        // 3. Si el usuario local está hablando (PTT pulsado o VOX activo), no reproducir para evitar bucle acústico
+        if (pulsadorPttPresionado || _estaHablandoVox.value) return
+
         val ahora = System.currentTimeMillis()
 
-        if (ahora - tiempoUltimoPaqueteEntranteMs > 480L) {
+        if (ahora - tiempoUltimoPaqueteEntranteMs > 750L) {
             enFasePreRoll = bufferAntiEntrecorteActivado
         }
         tiempoUltimoPaqueteEntranteMs = ahora
@@ -613,19 +631,19 @@ class AudioCasco(
                     }
                 } else {
                     val silencioMs = System.currentTimeMillis() - tiempoUltimoPaqueteEntranteMs
-                    if (enReproduccionActiva && bufferAntiEntrecorteActivado && silencioMs < 120L) {
+                    if (enReproduccionActiva && bufferAntiEntrecorteActivado && silencioMs < 160L) {
                         val tramaPlc = generarTramaPlc(longitudBytes = 320)
                         try {
                             reproductorAudio?.write(tramaPlc, 0, tramaPlc.size, AudioTrack.WRITE_NON_BLOCKING)
                         } catch (_: Exception) {}
                     }
 
-                    if (silencioMs > 380L) {
+                    if (silencioMs > 750L) {
                         enReproduccionActiva = false
                         enFasePreRoll = bufferAntiEntrecorteActivado
 
                         // Generador de Ruido de Confort (CNG): Sutil estática analógica (-48 dBFS) mientras haya enlace físico de malla
-                        if (cngRuidoConfortHabilitado && tieneEnlaceFisicoActivo && !pulsadorPttPresionado) {
+                        if (cngRuidoConfortHabilitado && tieneEnlaceFisicoActivo && !pulsadorPttPresionado && estaEnlaceActivo) {
                             val confortShorts = generadorConfort.generarMuestraRuidoConfort(160) // 10 ms
                             val confortBytes = pcmShortArrayAByteArray(confortShorts)
                             try {
@@ -939,6 +957,47 @@ class AudioCasco(
             i += 2
         }
         return resultado
+    }
+
+    /**
+     * Purga todas las colas de audio y pausa el reproductor para asegurar silencio absoluto al desconectar.
+     */
+    fun purgarColasYDetener() {
+        colaReproduccion.clear()
+        enFasePreRoll = true
+        try {
+            reproductorAudio?.pause()
+            reproductorAudio?.flush()
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Genera un tono Roger Beep táctico (dos bips sutiles de 1000 Hz / 1400 Hz de 35ms)
+     * para confirmar que la transmisión de voz ha finalizado limpiamente.
+     */
+    fun reproducirRogerBeepFin() {
+        if (!estaEnlaceActivo) return
+        alcanceAudio.launch {
+            try {
+                val freq1 = 1000.0
+                val freq2 = 1400.0
+                val muestrasPorTono = (frecuenciaMuestreo * 0.035).toInt()
+                val totalShorts = muestrasPorTono * 2
+                val bufferRoger = ShortArray(totalShorts)
+                for (i in 0 until muestrasPorTono) {
+                    val angle = 2.0 * Math.PI * i * freq1 / frecuenciaMuestreo
+                    val envelope = Math.sin(Math.PI * i / muestrasPorTono)
+                    bufferRoger[i] = (Math.sin(angle) * envelope * 7000.0).toInt().toShort()
+                }
+                for (i in 0 until muestrasPorTono) {
+                    val angle = 2.0 * Math.PI * i * freq2 / frecuenciaMuestreo
+                    val envelope = Math.sin(Math.PI * i / muestrasPorTono)
+                    bufferRoger[muestrasPorTono + i] = (Math.sin(angle) * envelope * 7000.0).toInt().toShort()
+                }
+                val bytes = pcmShortArrayAByteArray(bufferRoger)
+                reproductorAudio?.write(bytes, 0, bytes.size, AudioTrack.WRITE_NON_BLOCKING)
+            } catch (_: Exception) {}
+        }
     }
 
     /**

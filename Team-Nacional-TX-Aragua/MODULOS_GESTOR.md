@@ -152,3 +152,31 @@ Registro: Queda guardado en el gestor para que cualquier otro agente sepa que es
    ahora cada modulo de manera visual nos enfocaremos en usar tema claro usado en el dashboad evitar siempre usar tarjetas o fondos colores oscuros y , letras blancas en fondos claros
 
    al culminar utilizar comando am start a los dispositivos conectados por adb o por red local para que funcione con el wifi-enabled wifiadb 
+
+---
+
+## 🚀 Regla Principal: Publicación Obligatoria de APK en Firebase Storage (Sistema OTA) y Registro de Versiones
+
+> **REGLA OBLIGATORIA PARA TODOS LOS AGENTES:**  
+> Cada vez que se confirmen mejoras, adición de nuevas funciones, parches, optimizaciones o reparación de bugs en la app:
+>
+> 1. **Subida Obligatoria del APK a Firebase Storage:**
+>    - Toda APK nueva generada y verificada DEBE subirse obligatoriamente al bucket de Firebase Storage:
+>      - **Destino Storage:** `gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-latest.apk`
+>      - **Enlace Directo Consola:** [Firebase Storage /updates](https://console.firebase.google.com/project/teamnacionaltx/storage/teamnacionaltx.firebasestorage.app/files/~2Fupdates?hl=es-419)
+>      - **Comando automatizado de subida:**  
+>        ```powershell
+>        gsutil -m cp "d:\MAPA\Team-Nacional-TX-Aragua\app\build\outputs\apk\debug\app-debug.apk" "gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-latest.apk"
+>        ```
+>
+> 2. **Changelog y Registro Detallado de lo Actualizado:**
+>    - Al subir cada APK, es OBLIGATORIO especificar y dejar por escrito:
+>      - Qué se mejoró exactamente.
+>      - Qué novedades o funciones nuevas se incorporaron.
+>      - Qué bugs o problemas fueron corregidos.
+>      - La versión y fecha del build.
+>    - De esta manera el administrador y los pilotos siempre sabrán con total certeza qué versión están eligiendo, qué contiene y qué cambios trae respecto a la anterior.
+>
+> 3. **Disponibilidad para el Módulo Info / OTA:**
+>    - El archivo `TeamTX-latest.apk` es el binario que descarga el sistema de actualización interno de la app (módulo Info). Por ende, debe mantenerse siempre como la versión más reciente, estable y testeada.
+ 

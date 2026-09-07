@@ -42,6 +42,17 @@ import com.example.ui.theme.TxFlameRed
 // Pantalla completa, auto-ocultación de barras, gestión de listas y DSP.
 // ═══════════════════════════════════════════════════════════════════════════
 
+private fun iconoVectorialPestana(pestana: PestanaReproductor): androidx.compose.ui.graphics.vector.ImageVector = when (pestana) {
+    PestanaReproductor.CANCIONES -> Icons.Default.MusicNote
+    PestanaReproductor.LISTAS -> Icons.Default.QueueMusic
+    PestanaReproductor.FAVORITAS -> Icons.Default.Favorite
+    PestanaReproductor.ALBUMES -> Icons.Default.Album
+    PestanaReproductor.ARTISTAS -> Icons.Default.Person
+    PestanaReproductor.CARPETAS -> Icons.Default.Folder
+    PestanaReproductor.DESCARGAS_YT -> Icons.Default.CloudDownload
+    PestanaReproductor.AJUSTES -> Icons.Default.Settings
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun REPRODUCTOR_PRINCIPAL(
@@ -113,9 +124,9 @@ fun REPRODUCTOR_PRINCIPAL(
     val esPlaying = estado == EstadoReproductor.REPRODUCIENDO
 
     Scaffold(
-        containerColor = Color(0xFF0B0E14),
+        containerColor = Color(0xFFF8FAFC),
         topBar = {
-            Column(modifier = Modifier.background(Color(0xFF131722))) {
+            Column(modifier = Modifier.background(Color.White)) {
                 // Barra superior con botón de salida / minimizar
                 Row(
                     modifier = Modifier
@@ -132,12 +143,12 @@ fun REPRODUCTOR_PRINCIPAL(
                         TextField(
                             value = textoBusqueda,
                             onValueChange = { textoBusqueda = it },
-                            placeholder = { Text("Buscar canción, artista...", fontSize = 13.sp, color = Color(0xFF90A4AE)) },
+                            placeholder = { Text("Buscar canción, artista...", fontSize = 13.sp, color = Color(0xFF94A3B8)) },
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
+                                focusedTextColor = Color(0xFF0F172A),
+                                unfocusedTextColor = Color(0xFF0F172A),
                                 focusedIndicatorColor = MotoOrangePrimary
                             ),
                             singleLine = true,
@@ -147,67 +158,109 @@ fun REPRODUCTOR_PRINCIPAL(
                             textoBusqueda = ""
                             modoBusquedaActivo = false
                         }) {
-                            Icon(Icons.Default.Close, contentDescription = "Cerrar búsqueda", tint = Color.White)
+                            Icon(Icons.Default.Close, contentDescription = "Cerrar búsqueda", tint = Color(0xFF475569))
                         }
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("🎧", fontSize = 16.sp)
-                            Text("REPRODUCTOR TX PRO", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White)
+                            Text("REPRODUCTOR TX PRO", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color(0xFF0F172A))
                         }
 
                         Row {
                             IconButton(onClick = { modoBusquedaActivo = true }) {
-                                Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color.White)
+                                Icon(Icons.Default.Search, contentDescription = "Buscar", tint = Color(0xFF475569))
                             }
                             IconButton(onClick = { mostrarEcualizadorModal = true }) {
-                                Icon(Icons.Default.GraphicEq, contentDescription = "Ecualizador", tint = MotoGoldSecondary)
+                                Icon(Icons.Default.GraphicEq, contentDescription = "Ecualizador", tint = MotoOrangePrimary)
                             }
                         }
                     }
                 }
 
-                // Pestañas horizontales de navegación
+                // Pestañas horizontales de navegación modernas con iconos vectoriales
                 ScrollableTabRow(
                     selectedTabIndex = pestanaActual.ordinal,
-                    containerColor = Color(0xFF131722),
+                    containerColor = Color.White,
                     contentColor = MotoOrangePrimary,
-                    edgePadding = 8.dp,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[pestanaActual.ordinal]),
-                            color = MotoOrangePrimary
-                        )
-                    }
+                    edgePadding = 10.dp,
+                    indicator = {},
+                    divider = {}
                 ) {
                     PestanaReproductor.values().forEach { pestana ->
-                        Tab(
-                            selected = pestanaActual == pestana,
-                            onClick = {
-                                pestanaActual = pestana
-                                cancionesSeleccionadas = emptySet()
-                            },
-                            text = {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(pestana.icono, fontSize = 12.sp)
-                                    Text(
-                                        text = pestana.titulo,
-                                        fontSize = 11.sp,
-                                        fontWeight = if (pestanaActual == pestana) FontWeight.Black else FontWeight.Normal,
-                                        color = if (pestanaActual == pestana) MotoOrangePrimary else Color(0xFF90A4AE)
-                                    )
+                        val esSeleccionada = pestanaActual == pestana
+                        val colorFondo by animateColorAsState(
+                            targetValue = if (esSeleccionada) MotoOrangePrimary.copy(alpha = 0.12f) else Color(0xFFF8FAFC),
+                            label = "tabBg_${pestana.name}"
+                        )
+                        val colorBorde by animateColorAsState(
+                            targetValue = if (esSeleccionada) MotoOrangePrimary else Color(0xFFE2E8F0),
+                            label = "tabBorder_${pestana.name}"
+                        )
+                        val colorContenido = if (esSeleccionada) MotoOrangePrimary else Color(0xFF475569)
+
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = colorFondo,
+                            border = BorderStroke(1.dp, colorBorde),
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp, vertical = 6.dp)
+                                .clickable {
+                                    pestanaActual = pestana
+                                    cancionesSeleccionadas = emptySet()
+                                }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                            ) {
+                                Icon(
+                                    imageVector = iconoVectorialPestana(pestana),
+                                    contentDescription = pestana.titulo,
+                                    tint = colorContenido,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = pestana.titulo,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (esSeleccionada) FontWeight.Black else FontWeight.SemiBold,
+                                    color = colorContenido
+                                )
+
+                                val contador = when (pestana) {
+                                    PestanaReproductor.CANCIONES -> todasLasCanciones.size
+                                    PestanaReproductor.FAVORITAS -> favoritasIds.size
+                                    PestanaReproductor.LISTAS -> listasPersonalizadas.size
+                                    else -> null
+                                }
+                                if (contador != null && contador > 0) {
+                                    Surface(
+                                        color = if (esSeleccionada) MotoOrangePrimary else Color(0xFFE2E8F0),
+                                        shape = CircleShape
+                                    ) {
+                                        Text(
+                                            text = "$contador",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (esSeleccionada) Color.White else Color(0xFF475569),
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        )
+                                    }
                                 }
                             }
-                        )
+                        }
                     }
                 }
+                HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 1.dp)
             }
         },
         bottomBar = {
             // Mini reproductor inferior persistente cuando se navega en listas
             if (cancionActual != null) {
                 Surface(
-                    color = Color(0xFF161B26),
-                    border = BorderStroke(1.dp, Color(0xFF263238)),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shadowElevation = 8.dp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { mostrarReproductorExpandido = true }
@@ -217,9 +270,9 @@ fun REPRODUCTOR_PRINCIPAL(
                         val progreso = if (duracionTotalMs > 0) posicionActualMs.toFloat() / duracionTotalMs.toFloat() else 0f
                         LinearProgressIndicator(
                             progress = { progreso.coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(2.5.dp),
+                            modifier = Modifier.fillMaxWidth().height(3.dp),
                             color = MotoOrangePrimary,
-                            trackColor = Color(0xFF263238)
+                            trackColor = Color(0xFFE2E8F0)
                         )
 
                         Row(
@@ -230,7 +283,11 @@ fun REPRODUCTOR_PRINCIPAL(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             // Icono de disco
-                            Surface(shape = CircleShape, color = if (esPlaying) TxFlameRed else Color(0xFF263238), modifier = Modifier.size(36.dp)) {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (esPlaying) TxFlameRed.copy(alpha = 0.15f) else Color(0xFFF1F5F9),
+                                modifier = Modifier.size(36.dp)
+                            ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(if (esPlaying) "🔥" else "🎵", fontSize = 16.sp)
                                 }
@@ -241,14 +298,14 @@ fun REPRODUCTOR_PRINCIPAL(
                                     text = cancionActual!!.titulo,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
-                                    color = Color.White,
+                                    color = Color(0xFF0F172A),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "${cancionActual!!.artista} • ${cancionActual!!.duracionFormateada}",
                                     fontSize = 10.sp,
-                                    color = MotoGoldSecondary,
+                                    color = Color(0xFF64748B),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -256,7 +313,7 @@ fun REPRODUCTOR_PRINCIPAL(
 
                             // Controles rápidos
                             IconButton(onClick = { GESTOR_AUDIO_TX.anteriorCancion() }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color(0xFF334155), modifier = Modifier.size(20.dp))
                             }
 
                             IconButton(
@@ -276,7 +333,7 @@ fun REPRODUCTOR_PRINCIPAL(
                             }
 
                             IconButton(onClick = { GESTOR_AUDIO_TX.siguienteCancion() }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color(0xFF334155), modifier = Modifier.size(20.dp))
                             }
                         }
                     }
@@ -298,11 +355,11 @@ fun REPRODUCTOR_PRINCIPAL(
                                 Text("📁", fontSize = 48.sp)
                                 Text(
                                     if (pestanaActual == PestanaReproductor.FAVORITAS) "No tienes canciones favoritas aún" else "No se encontraron canciones",
-                                    color = Color.White,
+                                    color = Color(0xFF0F172A),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp
                                 )
-                                Text("Presiona 'Escanear' en Ajustes para detectar música local.", color = Color(0xFF90A4AE), fontSize = 11.sp, textAlign = TextAlign.Center)
+                                Text("Presiona 'Escanear' en Ajustes para detectar música local.", color = Color(0xFF64748B), fontSize = 11.sp, textAlign = TextAlign.Center)
                                 Button(
                                     onClick = { GESTOR_AUDIO_TX.escanearMusicaLocal() },
                                     colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
@@ -322,8 +379,9 @@ fun REPRODUCTOR_PRINCIPAL(
                             if (enModoSeleccion) {
                                 item {
                                     Surface(
-                                        color = Color(0xFF1E2433),
-                                        border = BorderStroke(1.dp, MotoGoldSecondary),
+                                        color = Color.White,
+                                        border = BorderStroke(1.dp, MotoOrangePrimary),
+                                        shadowElevation = 2.dp,
                                         modifier = Modifier.fillMaxWidth().padding(8.dp),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
@@ -334,7 +392,7 @@ fun REPRODUCTOR_PRINCIPAL(
                                         ) {
                                             Text(
                                                 "${cancionesSeleccionadas.size} seleccionadas",
-                                                color = MotoGoldSecondary,
+                                                color = Color(0xFF0F172A),
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 12.sp
                                             )
@@ -363,7 +421,7 @@ fun REPRODUCTOR_PRINCIPAL(
                                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                                     modifier = Modifier.height(40.dp)
                                                 ) {
-                                                    Text("Cancelar", fontSize = 12.sp, color = Color.White)
+                                                    Text("Cancelar", fontSize = 12.sp, color = Color(0xFF475569))
                                                 }
                                             }
                                         }
@@ -435,7 +493,7 @@ fun REPRODUCTOR_PRINCIPAL(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("LISTAS DE REPRODUCCION TX", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MotoGoldSecondary)
+                                Text("LISTAS DE REPRODUCCION TX", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MotoOrangePrimary)
                                 Button(
                                     onClick = { mostrarDialogoNuevaLista = true },
                                     colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
@@ -452,7 +510,7 @@ fun REPRODUCTOR_PRINCIPAL(
 
                             if (listasPersonalizadas.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text("No hay listas creadas. Crea una para tus rodadas!", color = Color(0xFFB0BEC5), fontSize = 13.sp)
+                                    Text("No hay listas creadas. Crea una para tus rodadas!", color = Color(0xFF64748B), fontSize = 13.sp)
                                 }
                             } else {
                                 LazyColumn(
@@ -461,9 +519,10 @@ fun REPRODUCTOR_PRINCIPAL(
                                 ) {
                                     items(listasPersonalizadas) { lista ->
                                         Surface(
-                                            color = Color(0xFF161B26),
+                                            color = Color.White,
                                             shape = RoundedCornerShape(10.dp),
-                                            border = BorderStroke(1.dp, Color(0xFF263238)),
+                                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                            shadowElevation = 1.dp,
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clickable { listaDetalleActual = lista }
@@ -475,11 +534,11 @@ fun REPRODUCTOR_PRINCIPAL(
                                             ) {
                                                 Text(lista.icono, fontSize = 28.sp)
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text(lista.nombre, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                                                    Text(lista.nombre, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
                                                     Text(
                                                         "${lista.cancionIds.size} canciones${if (lista.descripcion.isNotBlank()) " • ${lista.descripcion}" else ""}",
                                                         fontSize = 12.sp,
-                                                        color = Color(0xFFB0BEC5)
+                                                        color = Color(0xFF64748B)
                                                     )
                                                 }
                                                 IconButton(onClick = {
@@ -491,7 +550,7 @@ fun REPRODUCTOR_PRINCIPAL(
                                                     Icon(Icons.Default.PlayArrow, contentDescription = "Reproducir Lista", tint = MotoOrangePrimary, modifier = Modifier.size(28.dp))
                                                 }
                                                 IconButton(onClick = { GESTOR_AUDIO_TX.eliminarLista(lista.id) }) {
-                                                    Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar", tint = Color(0xFF78909C), modifier = Modifier.size(20.dp))
+                                                    Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar", tint = Color(0xFF94A3B8), modifier = Modifier.size(20.dp))
                                                 }
                                             }
                                         }
@@ -510,9 +569,10 @@ fun REPRODUCTOR_PRINCIPAL(
                     ) {
                         items(albumesAgrupados.entries.toList()) { entry ->
                             Surface(
-                                color = Color(0xFF161B26),
+                                color = Color.White,
                                 shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, Color(0xFF263238)),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                shadowElevation = 1.dp,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -522,8 +582,8 @@ fun REPRODUCTOR_PRINCIPAL(
                                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Text("💿", fontSize = 24.sp)
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(entry.key, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                                        Text("${entry.value.size} pistas • ${entry.value.firstOrNull()?.artista ?: ""}", fontSize = 11.sp, color = Color(0xFF90A4AE))
+                                        Text(entry.key, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                        Text("${entry.value.size} pistas • ${entry.value.firstOrNull()?.artista ?: ""}", fontSize = 11.sp, color = Color(0xFF64748B))
                                     }
                                     Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MotoOrangePrimary)
                                 }
@@ -540,9 +600,10 @@ fun REPRODUCTOR_PRINCIPAL(
                     ) {
                         items(artistasAgrupados.entries.toList()) { entry ->
                             Surface(
-                                color = Color(0xFF161B26),
+                                color = Color.White,
                                 shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, Color(0xFF263238)),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                shadowElevation = 1.dp,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -552,8 +613,8 @@ fun REPRODUCTOR_PRINCIPAL(
                                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Text("🎙️", fontSize = 24.sp)
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(entry.key, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                                        Text("${entry.value.size} pistas de este artista", fontSize = 11.sp, color = Color(0xFF90A4AE))
+                                        Text(entry.key, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                        Text("${entry.value.size} pistas de este artista", fontSize = 11.sp, color = Color(0xFF64748B))
                                     }
                                     Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MotoOrangePrimary)
                                 }
@@ -570,9 +631,10 @@ fun REPRODUCTOR_PRINCIPAL(
                     ) {
                         items(carpetasAgrupadas.entries.toList()) { entry ->
                             Surface(
-                                color = Color(0xFF161B26),
+                                color = Color.White,
                                 shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, Color(0xFF263238)),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                shadowElevation = 1.dp,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -582,8 +644,8 @@ fun REPRODUCTOR_PRINCIPAL(
                                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Text("📁", fontSize = 24.sp)
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(entry.key, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                                        Text("${entry.value.size} archivos de audio", fontSize = 11.sp, color = Color(0xFF90A4AE))
+                                        Text(entry.key, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                        Text("${entry.value.size} archivos de audio", fontSize = 11.sp, color = Color(0xFF64748B))
                                     }
                                     Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MotoOrangePrimary)
                                 }
@@ -593,7 +655,7 @@ fun REPRODUCTOR_PRINCIPAL(
                 }
 
                 PestanaReproductor.AJUSTES -> {
-                    VistaAjustesReproductor(
+                    PanelAjustesReproductor(
                         config = config,
                         totalCanciones = todasLasCanciones.size,
                         totalCarpetas = carpetasAgrupadas.size,
@@ -667,7 +729,7 @@ fun REPRODUCTOR_PRINCIPAL(
 
         AlertDialog(
             onDismissRequest = { mostrarDialogoNuevaLista = false },
-            title = { Text("Nueva Lista de Reproduccion", fontWeight = FontWeight.Bold, color = Color.White) },
+            title = { Text("Nueva Lista de Reproduccion", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
@@ -675,6 +737,14 @@ fun REPRODUCTOR_PRINCIPAL(
                         onValueChange = { nombreLista = it },
                         label = { Text("Nombre de la Lista") },
                         singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MotoOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedLabelColor = MotoOrangePrimary,
+                            unfocusedLabelColor = Color(0xFF64748B),
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
@@ -682,14 +752,22 @@ fun REPRODUCTOR_PRINCIPAL(
                         onValueChange = { descLista = it },
                         label = { Text("Descripcion (opcional)") },
                         singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MotoOrangePrimary,
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            focusedLabelColor = MotoOrangePrimary,
+                            unfocusedLabelColor = Color(0xFF64748B),
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Text("Selecciona un icono:", fontSize = 12.sp, color = MotoGoldSecondary)
+                    Text("Selecciona un icono:", fontSize = 12.sp, color = Color(0xFF64748B))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         iconosDisponibles.forEach { ic ->
                             Surface(
                                 shape = CircleShape,
-                                color = if (iconoSeleccionado == ic) MotoOrangePrimary else Color(0xFF1E2433),
+                                color = if (iconoSeleccionado == ic) MotoOrangePrimary else Color(0xFFF1F5F9),
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clickable { iconoSeleccionado = ic }
@@ -717,10 +795,10 @@ fun REPRODUCTOR_PRINCIPAL(
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogoNuevaLista = false }) {
-                    Text("Cancelar", color = Color(0xFFB0BEC5))
+                    Text("Cancelar", color = Color(0xFF64748B))
                 }
             },
-            containerColor = Color(0xFF131722)
+            containerColor = Color.White
         )
     }
 
@@ -792,17 +870,19 @@ private fun ElementoFilaCancion(
 ) {
     Surface(
         color = when {
-            estaSeleccionada -> MotoOrangePrimary.copy(alpha = 0.25f)
-            esActual -> Color(0xFF1E2433)
-            else -> Color.Transparent
+            estaSeleccionada -> MotoOrangePrimary.copy(alpha = 0.15f)
+            esActual -> Color(0xFFFFF7ED)
+            else -> Color.White
         },
+        border = BorderStroke(1.dp, if (esActual) MotoOrangePrimary.copy(alpha = 0.4f) else Color(0xFFF1F5F9)),
+        shadowElevation = if (esActual) 1.dp else 0.dp,
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = onReproducir,
                 onLongClick = onSeleccionLarga
             )
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 3.dp),
         shape = RoundedCornerShape(8.dp)
     ) {
         Row(
@@ -819,11 +899,11 @@ private fun ElementoFilaCancion(
             } else {
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = if (esActual) TxFlameRed.copy(alpha = 0.3f) else Color(0xFF1E2433),
+                    color = if (esActual) TxFlameRed.copy(alpha = 0.15f) else Color(0xFFF1F5F9),
                     modifier = Modifier.size(38.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(if (esActual) "▶" else "🎵", fontSize = 15.sp, color = if (esActual) TxFlameRed else Color.White)
+                        Text(if (esActual) "▶" else "🎵", fontSize = 15.sp, color = if (esActual) TxFlameRed else Color(0xFF475569))
                     }
                 }
             }
@@ -833,14 +913,14 @@ private fun ElementoFilaCancion(
                     text = cancion.titulo,
                     fontWeight = if (esActual) FontWeight.Black else FontWeight.Bold,
                     fontSize = 13.sp,
-                    color = if (esActual) MotoOrangePrimary else Color.White,
+                    color = if (esActual) MotoOrangePrimary else Color(0xFF0F172A),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "${cancion.artista} • ${cancion.album}",
                     fontSize = 11.sp,
-                    color = Color(0xFF90A4AE),
+                    color = Color(0xFF64748B),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -849,14 +929,14 @@ private fun ElementoFilaCancion(
             Text(
                 text = cancion.duracionFormateada,
                 fontSize = 11.sp,
-                color = Color(0xFF78909C)
+                color = Color(0xFF94A3B8)
             )
 
             IconButton(onClick = onAlternarFavorita, modifier = Modifier.size(26.dp)) {
                 Icon(
                     imageVector = if (cancion.esFavorita) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = "Favorita",
-                    tint = if (cancion.esFavorita) TxFlameRed else Color(0xFF607D8B),
+                    tint = if (cancion.esFavorita) TxFlameRed else Color(0xFF94A3B8),
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -865,7 +945,7 @@ private fun ElementoFilaCancion(
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "Propiedades e Info",
-                    tint = Color(0xFF90A4AE),
+                    tint = Color(0xFF64748B),
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -924,13 +1004,13 @@ private fun VistaReproductorCompleto(
     }
 
     Surface(
-        color = Color(0xFF0B0E14),
+        color = Color(0xFFF8FAFC),
         modifier = Modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(Color(0xFF0D111A), Color(0xFF161C28))))
+                .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFF8FAFC))))
                 .systemBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 12.dp)
                 .verticalScroll(scrollState),
@@ -944,11 +1024,11 @@ private fun VistaReproductorCompleto(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onMinimizar) {
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Minimizar", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Minimizar", tint = Color(0xFF0F172A), modifier = Modifier.size(32.dp))
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("REPRODUCIENDO EN VIVO", fontSize = 10.sp, fontWeight = FontWeight.Black, color = MotoGoldSecondary)
-                    Text(cancion.album, fontSize = 12.sp, color = Color(0xFF90A4AE), maxLines = 1)
+                    Text("REPRODUCIENDO EN VIVO", fontSize = 10.sp, fontWeight = FontWeight.Black, color = MotoOrangePrimary)
+                    Text(cancion.album, fontSize = 12.sp, color = Color(0xFF64748B), maxLines = 1)
                 }
                 IconButton(onClick = onAbrirEcualizador) {
                     Icon(Icons.Default.GraphicEq, contentDescription = "Ecualizador", tint = MotoOrangePrimary, modifier = Modifier.size(28.dp))
@@ -963,15 +1043,15 @@ private fun VistaReproductorCompleto(
                     .size(200.dp)
                     .shadow(16.dp, CircleShape, spotColor = MotoOrangePrimary)
                     .clip(CircleShape)
-                    .background(Color(0xFF131824))
-                    .border(3.dp, Brush.radialGradient(listOf(MotoGoldSecondary, Color(0xFF1F2937))), CircleShape),
+                    .background(Color(0xFF0F172A))
+                    .border(3.dp, Brush.radialGradient(listOf(MotoOrangePrimary, Color(0xFF475569))), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 // Surcos del vinilo
                 Canvas(modifier = Modifier.fillMaxSize().rotate(rotacion.value)) {
-                    drawCircle(color = Color(0xFF1F2937), radius = size.minDimension / 2.3f)
-                    drawCircle(color = Color(0xFF111827), radius = size.minDimension / 2.8f)
-                    drawCircle(color = Color(0xFF374151), radius = size.minDimension / 3.6f)
+                    drawCircle(color = Color(0xFF1E293B), radius = size.minDimension / 2.3f)
+                    drawCircle(color = Color(0xFF334155), radius = size.minDimension / 2.8f)
+                    drawCircle(color = Color(0xFF475569), radius = size.minDimension / 3.6f)
                 }
 
                 // Carátula real de álbum o centro del vinilo
@@ -1013,7 +1093,7 @@ private fun VistaReproductorCompleto(
                     text = cancion.titulo,
                     fontWeight = FontWeight.Black,
                     fontSize = 17.sp,
-                    color = Color.White,
+                    color = Color(0xFF0F172A),
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -1022,16 +1102,18 @@ private fun VistaReproductorCompleto(
                 Text(
                     text = cancion.artista,
                     fontSize = 13.sp,
-                    color = MotoGoldSecondary,
+                    color = MotoOrangePrimary,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
             }
 
             // Botón/Badge de Listas de Reproducción
             Surface(
-                color = Color(0xFF161B26),
+                color = Color.White,
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, if (listasDeEstaCancion.isNotEmpty()) MotoOrangePrimary else Color(0xFF263238)),
+                border = BorderStroke(1.dp, if (listasDeEstaCancion.isNotEmpty()) MotoOrangePrimary else Color(0xFFCBD5E1)),
+                shadowElevation = 1.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { mostrarModalGestionListas = true }
@@ -1052,7 +1134,7 @@ private fun VistaReproductorCompleto(
                             else "En: ${listasDeEstaCancion.joinToString { it.nombre }}",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (listasDeEstaCancion.isNotEmpty()) MotoOrangePrimary else Color(0xFFB0BEC5),
+                            color = if (listasDeEstaCancion.isNotEmpty()) MotoOrangePrimary else Color(0xFF64748B),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1060,7 +1142,7 @@ private fun VistaReproductorCompleto(
                     Icon(
                         imageVector = Icons.Default.AddCircleOutline,
                         contentDescription = "Administrar Listas",
-                        tint = MotoGoldSecondary,
+                        tint = MotoOrangePrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1086,7 +1168,7 @@ private fun VistaReproductorCompleto(
                     colors = SliderDefaults.colors(
                         thumbColor = MotoOrangePrimary,
                         activeTrackColor = MotoOrangePrimary,
-                        inactiveTrackColor = Color(0xFF374151)
+                        inactiveTrackColor = Color(0xFFE2E8F0)
                     )
                 )
                 Row(
@@ -1099,12 +1181,12 @@ private fun VistaReproductorCompleto(
                     Text(
                         String.format("%02d:%02d", posSec / 60, posSec % 60),
                         fontSize = 11.sp,
-                        color = Color(0xFF90A4AE)
+                        color = Color(0xFF64748B)
                     )
                     Text(
                         String.format("%02d:%02d", durSec / 60, durSec % 60),
                         fontSize = 11.sp,
-                        color = Color(0xFF90A4AE)
+                        color = Color(0xFF64748B)
                     )
                 }
             }
@@ -1120,14 +1202,14 @@ private fun VistaReproductorCompleto(
                     Icon(
                         Icons.Default.Shuffle,
                         contentDescription = "Aleatorio",
-                        tint = if (modoAleatorio) MotoOrangePrimary else Color(0xFF607D8B),
+                        tint = if (modoAleatorio) MotoOrangePrimary else Color(0xFF94A3B8),
                         modifier = Modifier.size(24.dp)
                     )
                 }
 
                 // Anterior
                 IconButton(onClick = onAnterior) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color.White, modifier = Modifier.size(36.dp))
+                    Icon(Icons.Default.SkipPrevious, contentDescription = "Anterior", tint = Color(0xFF0F172A), modifier = Modifier.size(36.dp))
                 }
 
                 // Play / Pausa (Botón Central Gigante)
@@ -1154,7 +1236,7 @@ private fun VistaReproductorCompleto(
 
                 // Siguiente
                 IconButton(onClick = onSiguiente) {
-                    Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color.White, modifier = Modifier.size(36.dp))
+                    Icon(Icons.Default.SkipNext, contentDescription = "Siguiente", tint = Color(0xFF0F172A), modifier = Modifier.size(36.dp))
                 }
 
                 // Modo Bucle
@@ -1167,7 +1249,7 @@ private fun VistaReproductorCompleto(
                     Icon(
                         imageVector = iconoBucle,
                         contentDescription = "Bucle",
-                        tint = if (modoBucle != ModoBucle.SIN_BUCLE) MotoGoldSecondary else Color(0xFF607D8B),
+                        tint = if (modoBucle != ModoBucle.SIN_BUCLE) MotoOrangePrimary else Color(0xFF94A3B8),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -1183,8 +1265,9 @@ private fun VistaReproductorCompleto(
             ) {
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = if (cancion.esFavorita) TxFlameRed.copy(alpha = 0.2f) else Color(0xFF1E2433),
-                    border = BorderStroke(1.dp, if (cancion.esFavorita) TxFlameRed else Color(0xFF374151)),
+                    color = if (cancion.esFavorita) TxFlameRed.copy(alpha = 0.12f) else Color.White,
+                    border = BorderStroke(1.dp, if (cancion.esFavorita) TxFlameRed else Color(0xFFCBD5E1)),
+                    shadowElevation = 1.dp,
                     modifier = Modifier.clickable(onClick = onAlternarFavorita)
                 ) {
                     Row(
@@ -1195,26 +1278,26 @@ private fun VistaReproductorCompleto(
                         Icon(
                             imageVector = if (cancion.esFavorita) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = "Favorita",
-                            tint = if (cancion.esFavorita) TxFlameRed else Color(0xFF90A4AE),
+                            tint = if (cancion.esFavorita) TxFlameRed else Color(0xFF64748B),
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = if (cancion.esFavorita) "Favorita" else "Marcar Favorita",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (cancion.esFavorita) TxFlameRed else Color(0xFFCFD8DC)
+                            color = if (cancion.esFavorita) TxFlameRed else Color(0xFF334155)
                         )
                     }
                 }
 
                 Button(
                     onClick = onMinimizar,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E2433)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9)),
                     shape = RoundedCornerShape(20.dp)
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color(0xFF0F172A), modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Volver a la App", fontSize = 12.sp, color = Color.White)
+                    Text("Volver a la App", fontSize = 12.sp, color = Color(0xFF0F172A))
                 }
             }
         }
@@ -1228,43 +1311,50 @@ private fun VistaReproductorCompleto(
 
         AlertDialog(
             onDismissRequest = { mostrarModalGestionListas = false },
-            title = { Text("Listas de Reproducción", fontWeight = FontWeight.Bold, color = Color.White) },
+            title = { Text("Listas de Reproducción", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Selecciona las listas donde deseas incluir esta canción:", fontSize = 12.sp, color = Color(0xFF90A4AE))
+                    Text("Selecciona las listas donde deseas incluir esta canción:", fontSize = 12.sp, color = Color(0xFF64748B))
 
                     if (!modoCrearNuevaListaRapida) {
                         OutlinedButton(
                             onClick = { modoCrearNuevaListaRapida = true },
-                            border = BorderStroke(1.dp, MotoGoldSecondary),
+                            border = BorderStroke(1.dp, MotoOrangePrimary),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = MotoGoldSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Add, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("+ Crear y Asignar a Nueva Lista", fontSize = 12.sp, color = MotoGoldSecondary, fontWeight = FontWeight.Bold)
+                            Text("+ Crear y Asignar a Nueva Lista", fontSize = 12.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
                         }
                     } else {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF1E2433), RoundedCornerShape(8.dp))
+                                .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
                                 .padding(10.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text("Nombre de la nueva lista:", fontSize = 11.sp, color = MotoGoldSecondary, fontWeight = FontWeight.Bold)
+                            Text("Nombre de la nueva lista:", fontSize = 11.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
                             OutlinedTextField(
                                 value = nombreNuevaListaRapida,
                                 onValueChange = { nombreNuevaListaRapida = it },
                                 placeholder = { Text("Ej: Rodada Aragua", fontSize = 12.sp) },
                                 singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MotoOrangePrimary,
+                                    unfocusedBorderColor = Color(0xFFCBD5E1),
+                                    focusedTextColor = Color(0xFF0F172A),
+                                    unfocusedTextColor = Color(0xFF0F172A)
+                                ),
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 listOf("🎵", "🏍️", "⚡", "🔥", "🏖️", "🏔️", "🎧").forEach { ic ->
                                     Surface(
                                         shape = CircleShape,
-                                        color = if (iconoNuevaListaRapida == ic) MotoOrangePrimary else Color(0xFF131824),
+                                        color = if (iconoNuevaListaRapida == ic) MotoOrangePrimary else Color(0xFFF1F5F9),
                                         modifier = Modifier.size(28.dp).clickable { iconoNuevaListaRapida = ic }
                                     ) {
                                         Box(contentAlignment = Alignment.Center) { Text(ic, fontSize = 12.sp) }
@@ -1296,15 +1386,15 @@ private fun VistaReproductorCompleto(
                     }
 
                     if (listas.isEmpty()) {
-                        Text("No has creado listas aún.", color = Color(0xFFB0BEC5), fontSize = 13.sp)
+                        Text("No has creado listas aún.", color = Color(0xFF64748B), fontSize = 13.sp)
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.heightIn(max = 240.dp)) {
                             items(listas) { lista ->
                                 val estaEnLista = lista.cancionIds.contains(cancion.id)
                                 Surface(
-                                    color = if (estaEnLista) MotoOrangePrimary.copy(alpha = 0.15f) else Color(0xFF1E2433),
+                                    color = if (estaEnLista) MotoOrangePrimary.copy(alpha = 0.12f) else Color(0xFFF8FAFC),
                                     shape = RoundedCornerShape(8.dp),
-                                    border = BorderStroke(1.dp, if (estaEnLista) MotoOrangePrimary else Color(0xFF263238)),
+                                    border = BorderStroke(1.dp, if (estaEnLista) MotoOrangePrimary else Color(0xFFE2E8F0)),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { onAlternarLista(lista.id) }
@@ -1316,8 +1406,8 @@ private fun VistaReproductorCompleto(
                                     ) {
                                         Text(lista.icono, fontSize = 18.sp)
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(lista.nombre, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                                            Text("${lista.cancionIds.size} canciones", fontSize = 11.sp, color = Color(0xFF90A4AE))
+                                            Text(lista.nombre, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                            Text("${lista.cancionIds.size} canciones", fontSize = 11.sp, color = Color(0xFF64748B))
                                         }
                                         Checkbox(
                                             checked = estaEnLista,
@@ -1339,7 +1429,7 @@ private fun VistaReproductorCompleto(
                     Text("Listo")
                 }
             },
-            containerColor = Color(0xFF131722)
+            containerColor = Color.White
         )
     }
 }
@@ -1377,8 +1467,8 @@ private fun VistaDetalleLista(
             }
             Text(lista.icono, fontSize = 24.sp)
             Column(modifier = Modifier.weight(1f)) {
-                Text(lista.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
-                Text("${cancionesDeLista.size} canciones", fontSize = 12.sp, color = Color(0xFFB0BEC5))
+                Text(lista.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF0F172A))
+                Text("${cancionesDeLista.size} canciones", fontSize = 12.sp, color = Color(0xFF64748B))
             }
         }
 
@@ -1401,12 +1491,12 @@ private fun VistaDetalleLista(
             }
             Button(
                 onClick = onAgregarCanciones,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E2433)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9)),
                 modifier = Modifier.weight(1f)
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF0F172A), modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Agregar Canciones")
+                Text("Agregar Canciones", color = Color(0xFF0F172A))
             }
             OutlinedButton(onClick = onEliminarLista) {
                 Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar Lista", tint = TxFlameRed, modifier = Modifier.size(18.dp))
@@ -1420,8 +1510,8 @@ private fun VistaDetalleLista(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("📂", fontSize = 48.sp)
-                    Text("Lista vacia", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Agrega canciones desde tu biblioteca", color = Color(0xFFB0BEC5), fontSize = 12.sp)
+                    Text("Lista vacia", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Agrega canciones desde tu biblioteca", color = Color(0xFF64748B), fontSize = 12.sp)
                 }
             }
         } else {
@@ -1432,7 +1522,9 @@ private fun VistaDetalleLista(
                 items(cancionesDeLista) { cancion ->
                     val esActual = cancionActual?.id == cancion.id
                     Surface(
-                        color = if (esActual) Color(0xFF1E2433) else Color.Transparent,
+                        color = if (esActual) Color(0xFFFFF7ED) else Color.White,
+                        border = BorderStroke(1.dp, if (esActual) MotoOrangePrimary.copy(alpha = 0.4f) else Color(0xFFF1F5F9)),
+                        shadowElevation = if (esActual) 1.dp else 0.dp,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onReproducirCancion(cancion) }
@@ -1446,11 +1538,11 @@ private fun VistaDetalleLista(
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = if (esActual) TxFlameRed.copy(alpha = 0.3f) else Color(0xFF1E2433),
+                                color = if (esActual) TxFlameRed.copy(alpha = 0.15f) else Color(0xFFF1F5F9),
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text(if (esActual) "▶" else "🎵", fontSize = 14.sp, color = if (esActual) TxFlameRed else Color.White)
+                                    Text(if (esActual) "▶" else "🎵", fontSize = 14.sp, color = if (esActual) TxFlameRed else Color(0xFF475569))
                                 }
                             }
                             Column(modifier = Modifier.weight(1f)) {
@@ -1458,22 +1550,22 @@ private fun VistaDetalleLista(
                                     cancion.titulo,
                                     fontWeight = if (esActual) FontWeight.Black else FontWeight.Bold,
                                     fontSize = 13.sp,
-                                    color = if (esActual) MotoOrangePrimary else Color.White,
+                                    color = if (esActual) MotoOrangePrimary else Color(0xFF0F172A),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     "${cancion.artista} • ${cancion.duracionFormateada}",
                                     fontSize = 11.sp,
-                                    color = Color(0xFFB0BEC5),
+                                    color = Color(0xFF64748B),
                                     maxLines = 1
                                 )
                             }
                             IconButton(onClick = { onVerPropiedades(cancion) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Propiedades", tint = Color(0xFF90A4AE), modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.MoreVert, contentDescription = "Propiedades", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
                             }
                             IconButton(onClick = { onEliminarCancion(cancion.id) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.Close, contentDescription = "Quitar de lista", tint = Color(0xFF78909C), modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Close, contentDescription = "Quitar de lista", tint = Color(0xFF94A3B8), modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -1496,23 +1588,24 @@ private fun SelectorListaParaAgregar(
 ) {
     AlertDialog(
         onDismissRequest = onCerrar,
-        title = { Text("Agregar a Lista", fontWeight = FontWeight.Bold, color = Color.White) },
+        title = { Text("Agregar a Lista", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
         text = {
             Column {
-                Text("${cancionesIds.size} canciones seleccionadas", fontSize = 12.sp, color = MotoGoldSecondary)
+                Text("${cancionesIds.size} canciones seleccionadas", fontSize = 12.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
                 if (listas.isEmpty()) {
-                    Text("No tienes listas creadas", color = Color(0xFFB0BEC5), fontSize = 13.sp)
+                    Text("No tienes listas creadas", color = Color(0xFF64748B), fontSize = 13.sp)
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         items(listas) { lista ->
                             Surface(
-                                color = Color(0xFF1E2433),
+                                color = Color(0xFFF8FAFC),
                                 shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { onSeleccionar(lista) }
-                                    .padding(4.dp)
+                                    .padding(2.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -1521,8 +1614,8 @@ private fun SelectorListaParaAgregar(
                                 ) {
                                     Text(lista.icono, fontSize = 20.sp)
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(lista.nombre, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
-                                        Text("${lista.cancionIds.size} canciones", fontSize = 11.sp, color = Color(0xFFB0BEC5))
+                                        Text(lista.nombre, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                        Text("${lista.cancionIds.size} canciones", fontSize = 11.sp, color = Color(0xFF64748B))
                                     }
                                     Icon(Icons.Default.Add, contentDescription = null, tint = MotoOrangePrimary)
                                 }
@@ -1534,9 +1627,9 @@ private fun SelectorListaParaAgregar(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onCerrar) { Text("Cancelar", color = Color(0xFFB0BEC5)) }
+            TextButton(onClick = onCerrar) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = Color(0xFF131722)
+        containerColor = Color.White
     )
 }
 
@@ -1567,8 +1660,8 @@ private fun SelectorCancionesParaLista(
         onDismissRequest = onCerrar,
         title = {
             Column {
-                Text("Agregar a '${lista.nombre}'", fontWeight = FontWeight.Bold, color = Color.White)
-                Text("${seleccionadas.size} seleccionadas de ${cancionesDisponibles.size} disponibles", fontSize = 11.sp, color = MotoGoldSecondary)
+                Text("Agregar a '${lista.nombre}'", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                Text("${seleccionadas.size} seleccionadas de ${cancionesDisponibles.size} disponibles", fontSize = 11.sp, color = MotoOrangePrimary)
             }
         },
         text = {
@@ -1576,28 +1669,35 @@ private fun SelectorCancionesParaLista(
                 OutlinedTextField(
                     value = textoBusquedaLocal,
                     onValueChange = { textoBusquedaLocal = it },
-                    placeholder = { Text("Buscar canción...", fontSize = 12.sp, color = Color(0xFFB0BEC5)) },
+                    placeholder = { Text("Buscar canción...", fontSize = 12.sp, color = Color(0xFF94A3B8)) },
                     singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MotoOrangePrimary,
+                        unfocusedBorderColor = Color(0xFFCBD5E1),
+                        focusedTextColor = Color(0xFF0F172A),
+                        unfocusedTextColor = Color(0xFF0F172A)
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 if (cancionesDisponibles.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No hay canciones disponibles", color = Color(0xFFB0BEC5))
+                        Text("No hay canciones disponibles", color = Color(0xFF64748B))
                     }
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         items(cancionesDisponibles) { cancion ->
                             val estaSeleccionada = seleccionadas.contains(cancion.id)
                             Surface(
-                                color = if (estaSeleccionada) MotoOrangePrimary.copy(alpha = 0.2f) else Color.Transparent,
+                                color = if (estaSeleccionada) MotoOrangePrimary.copy(alpha = 0.15f) else Color.White,
+                                border = BorderStroke(1.dp, if (estaSeleccionada) MotoOrangePrimary else Color(0xFFF1F5F9)),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
                                         seleccionadas = if (estaSeleccionada) seleccionadas - cancion.id
                                         else seleccionadas + cancion.id
                                     }
-                                    .padding(vertical = 4.dp),
+                                    .padding(vertical = 2.dp),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Row(
@@ -1611,8 +1711,8 @@ private fun SelectorCancionesParaLista(
                                         colors = CheckboxDefaults.colors(checkedColor = MotoOrangePrimary)
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(cancion.titulo, fontSize = 13.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text("${cancion.artista} • ${cancion.duracionFormateada}", fontSize = 10.sp, color = Color(0xFFB0BEC5))
+                                        Text(cancion.titulo, fontSize = 13.sp, color = Color(0xFF0F172A), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text("${cancion.artista} • ${cancion.duracionFormateada}", fontSize = 10.sp, color = Color(0xFF64748B))
                                     }
                                 }
                             }
@@ -1631,9 +1731,9 @@ private fun SelectorCancionesParaLista(
             }
         },
         dismissButton = {
-            TextButton(onClick = onCerrar) { Text("Cancelar", color = Color(0xFFB0BEC5)) }
+            TextButton(onClick = onCerrar) { Text("Cancelar", color = Color(0xFF64748B)) }
         },
-        containerColor = Color(0xFF131722)
+        containerColor = Color.White
     )
 }
 
@@ -1680,10 +1780,10 @@ private fun DialogoPropiedadesCancion(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("ℹ️", fontSize = 20.sp)
-                    Text("INFORMACIÓN Y EDICIÓN", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MotoGoldSecondary)
+                    Text("INFORMACIÓN Y EDICIÓN", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MotoOrangePrimary)
                 }
                 IconButton(onClick = onCerrar, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color(0xFF90A4AE), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
                 }
             }
         },
@@ -1696,9 +1796,9 @@ private fun DialogoPropiedadesCancion(
             ) {
                 // 1. SECCIÓN DE CARÁTULA Y ACCIÓN DE DESCARGA ONLINE
                 Surface(
-                    color = Color(0xFF1A2130),
+                    color = Color(0xFFF8FAFC),
                     shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, Color(0xFF263238)),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -1709,7 +1809,7 @@ private fun DialogoPropiedadesCancion(
                         // Recuadro de imagen
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFF0F141C),
+                            color = Color(0xFFF1F5F9),
                             border = BorderStroke(1.dp, MotoOrangePrimary.copy(alpha = 0.5f)),
                             modifier = Modifier.size(80.dp)
                         ) {
@@ -1737,7 +1837,7 @@ private fun DialogoPropiedadesCancion(
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Surface(
-                                    color = MotoOrangePrimary.copy(alpha = 0.2f),
+                                    color = MotoOrangePrimary.copy(alpha = 0.15f),
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Text(
@@ -1749,13 +1849,13 @@ private fun DialogoPropiedadesCancion(
                                     )
                                 }
                                 Surface(
-                                    color = Color(0xFF263238),
+                                    color = Color(0xFFF1F5F9),
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Text(
                                         text = cancion.tamanoLegible,
                                         fontSize = 11.sp,
-                                        color = Color(0xFFECEFF1),
+                                        color = Color(0xFF475569),
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -1776,7 +1876,7 @@ private fun DialogoPropiedadesCancion(
                                         }
                                     }
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF263238)),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9)),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 enabled = !descargandoCaratula,
                                 shape = RoundedCornerShape(6.dp)
@@ -1784,16 +1884,16 @@ private fun DialogoPropiedadesCancion(
                                 if (descargandoCaratula) {
                                     CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = MotoOrangePrimary)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Buscando...", fontSize = 10.sp)
+                                    Text("Buscando...", fontSize = 10.sp, color = Color(0xFF0F172A))
                                 } else {
                                     Icon(Icons.Default.ImageSearch, contentDescription = null, modifier = Modifier.size(14.dp), tint = MotoOrangePrimary)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Buscar Carátula HD", fontSize = 10.sp, color = Color.White)
+                                    Text("Buscar Carátula HD", fontSize = 10.sp, color = Color(0xFF0F172A))
                                 }
                             }
 
                             if (mensajeEstadoCaratula != null) {
-                                Text(mensajeEstadoCaratula!!, fontSize = 10.sp, color = MotoGoldSecondary)
+                                Text(mensajeEstadoCaratula!!, fontSize = 10.sp, color = MotoOrangePrimary)
                             }
                         }
                     }
@@ -1801,34 +1901,35 @@ private fun DialogoPropiedadesCancion(
 
                 // 2. DETALLES TÉCNICOS
                 Surface(
-                    color = Color(0xFF131722),
+                    color = Color(0xFFF8FAFC),
                     shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("⏱️ Duración: ", fontSize = 11.sp, color = Color(0xFF90A4AE))
-                            Text(cancion.duracionFormateada, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("⏱️ Duración: ", fontSize = 11.sp, color = Color(0xFF64748B))
+                            Text(cancion.duracionFormateada, fontSize = 11.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("📁 Carpeta: ", fontSize = 11.sp, color = Color(0xFF90A4AE))
-                            Text(cancion.carpetaContenedora, fontSize = 11.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("📁 Carpeta: ", fontSize = 11.sp, color = Color(0xFF64748B))
+                            Text(cancion.carpetaContenedora, fontSize = 11.sp, color = Color(0xFF0F172A), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         if (cancion.rutaArchivo.isNotBlank()) {
-                            Text("📂 Ruta: ${cancion.rutaArchivo}", fontSize = 10.sp, color = Color(0xFF78909C), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text("📂 Ruta: ${cancion.rutaArchivo}", fontSize = 10.sp, color = Color(0xFF64748B), maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
                         if (listasQueLaContienen.isNotEmpty()) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("📂 En Listas: ", fontSize = 11.sp, color = Color(0xFF90A4AE))
+                                Text("📂 En Listas: ", fontSize = 11.sp, color = Color(0xFF64748B))
                                 Text(listasQueLaContienen.joinToString { it.nombre }, fontSize = 11.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
 
-                Divider(color = Color(0xFF263238), thickness = 1.dp)
+                HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 1.dp)
 
-                Text("EDITAR METADATOS", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MotoGoldSecondary)
+                Text("EDITAR METADATOS", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MotoOrangePrimary)
 
                 // 3. CAMPOS EDITABLES
                 OutlinedTextField(
@@ -1838,9 +1939,11 @@ private fun DialogoPropiedadesCancion(
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MotoOrangePrimary,
-                        unfocusedBorderColor = Color(0xFF37474F),
+                        unfocusedBorderColor = Color(0xFFCBD5E1),
                         focusedLabelColor = MotoOrangePrimary,
-                        unfocusedLabelColor = Color(0xFF90A4AE)
+                        unfocusedLabelColor = Color(0xFF64748B),
+                        focusedTextColor = Color(0xFF0F172A),
+                        unfocusedTextColor = Color(0xFF0F172A)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1852,9 +1955,11 @@ private fun DialogoPropiedadesCancion(
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MotoOrangePrimary,
-                        unfocusedBorderColor = Color(0xFF37474F),
+                        unfocusedBorderColor = Color(0xFFCBD5E1),
                         focusedLabelColor = MotoOrangePrimary,
-                        unfocusedLabelColor = Color(0xFF90A4AE)
+                        unfocusedLabelColor = Color(0xFF64748B),
+                        focusedTextColor = Color(0xFF0F172A),
+                        unfocusedTextColor = Color(0xFF0F172A)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1866,9 +1971,11 @@ private fun DialogoPropiedadesCancion(
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MotoOrangePrimary,
-                        unfocusedBorderColor = Color(0xFF37474F),
+                        unfocusedBorderColor = Color(0xFFCBD5E1),
                         focusedLabelColor = MotoOrangePrimary,
-                        unfocusedLabelColor = Color(0xFF90A4AE)
+                        unfocusedLabelColor = Color(0xFF64748B),
+                        focusedTextColor = Color(0xFF0F172A),
+                        unfocusedTextColor = Color(0xFF0F172A)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1888,10 +1995,10 @@ private fun DialogoPropiedadesCancion(
         },
         dismissButton = {
             OutlinedButton(onClick = onCerrar) {
-                Text("Cancelar", color = Color.White)
+                Text("Cancelar", color = Color(0xFF64748B))
             }
         },
-        containerColor = Color(0xFF131722)
+        containerColor = Color.White
     )
 }
 

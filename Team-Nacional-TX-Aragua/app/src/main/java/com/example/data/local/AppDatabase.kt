@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.model.*
+import com.example.reproductor.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -39,9 +40,12 @@ import kotlinx.coroutines.launch
         PassportStamp::class,
         BikerChallenge::class,
         UserChallengeProgress::class,
-        BikerCalendarEvent::class
+        BikerCalendarEvent::class,
+        CancionLocalEntity::class,
+        ListaReproduccionEntity::class,
+        EstadoReproductorEntity::class
     ],
-    version = 30, // 🛡️ Módulos: Actualización base de datos tras cambios en modelos
+    version = 31, // 🛡️ Módulos: Actualización base de datos tras cambios en modelos
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -67,6 +71,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun passportDao(): PassportDao
     abstract fun challengeDao(): ChallengeDao
     abstract fun calendarDao(): CalendarDao
+    abstract fun cancionLocalDao(): CancionLocalDao
+    abstract fun listaReproduccionDao(): ListaReproduccionDao
+    abstract fun estadoReproductorDao(): EstadoReproductorDao
 
     companion object {
         @Volatile
@@ -615,6 +622,56 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_30_31 = object : Migration(30, 31) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                try {
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS `canciones_locales` (
+                            `id` INTEGER PRIMARY KEY NOT NULL,
+                            `titulo` TEXT NOT NULL,
+                            `artista` TEXT NOT NULL,
+                            `album` TEXT NOT NULL,
+                            `duracionMs` INTEGER NOT NULL,
+                            `rutaArchivo` TEXT NOT NULL,
+                            `uriStr` TEXT NOT NULL,
+                            `portadaUriStr` TEXT,
+                            `fechaAgregada` INTEGER NOT NULL,
+                            `esFavorita` INTEGER NOT NULL DEFAULT 0,
+                            `tamanoBytes` INTEGER NOT NULL,
+                            `carpetaContenedora` TEXT NOT NULL,
+                            `metadatosPersonalizadosJson` TEXT
+                        )
+                    """.trimIndent())
+                } catch (e: Exception) {}
+                try {
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS `listas_reproduccion` (
+                            `id` TEXT PRIMARY KEY NOT NULL,
+                            `nombre` TEXT NOT NULL,
+                            `descripcion` TEXT NOT NULL,
+                            `fechaCreacion` INTEGER NOT NULL,
+                            `icono` TEXT NOT NULL,
+                            `cancionIdsJson` TEXT NOT NULL
+                        )
+                    """.trimIndent())
+                } catch (e: Exception) {}
+                try {
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS `estado_reproductor` (
+                            `clave` TEXT PRIMARY KEY NOT NULL DEFAULT 'global',
+                            `ultimaCancionId` INTEGER,
+                            `colaIdsJson` TEXT NOT NULL,
+                            `indiceColaActual` INTEGER NOT NULL,
+                            `modoBucle` INTEGER NOT NULL,
+                            `modoAleatorio` INTEGER NOT NULL DEFAULT 0,
+                            `posicionMs` INTEGER NOT NULL,
+                            `timestamp` INTEGER NOT NULL
+                        )
+                    """.trimIndent())
+                } catch (e: Exception) {}
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -622,7 +679,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "team_tx_venezuela_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31)
                 .fallbackToDestructiveMigration(dropAllTables = true) // 🛡️ Fuerza la limpieza total para evitar conflicto de IDs
                 .addCallback(DatabaseCallback(scope))
                 .build()

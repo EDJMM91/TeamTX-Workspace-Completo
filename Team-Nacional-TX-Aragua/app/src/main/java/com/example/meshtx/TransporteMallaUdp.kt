@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class TransporteMallaUdp(
     private val contexto: Context,
-    private val idPilotoLocal: Long,
+    private var idPilotoLocal: Long,
     private var aliasPilotoLocal: String,
     private val alRecibirPaquete: (PaqueteDatosMesh, Long) -> Unit
 ) {
@@ -51,6 +51,10 @@ class TransporteMallaUdp(
 
     // Registro de IPs de compañeros detectados para unicast directo redundante
     private val ipsParesConocidos = ConcurrentHashMap<Long, String>()
+
+    fun actualizarIdLocal(nuevoId: Long) {
+        this.idPilotoLocal = nuevoId
+    }
 
     fun registrarIpP2p(idNodo: Long, ip: String) {
         if (ip.isNotBlank()) {
@@ -176,36 +180,23 @@ class TransporteMallaUdp(
                     val datagrama = DatagramPacket(bytes, bytes.size, destino, puertoTactico)
                     socketUdp?.send(datagrama)
                 } else {
-                    val esAudio = paquete.tipo == TipoPaqueteMesh.AUDIO_VOZ_OPUS
-                    if (esAudio && ipsParesConocidos.isNotEmpty()) {
-                        // Flujo de voz en tiempo real: Enviar EXCLUSIVAMENTE por Unicast a cada IP conocida.
-                        // Esto viaja a máxima tasa 802.11 (sin throttling de broadcast de 1 Mbps en routers Wi-Fi)
-                        for ((_, ip) in ipsParesConocidos) {
-                            try {
-                                val dest = InetAddress.getByName(ip)
-                                val datagrama = DatagramPacket(bytes, bytes.size, dest, puertoTactico)
-                                socketUdp?.send(datagrama)
-                            } catch (_: Exception) {}
-                        }
-                    } else {
-                        // 1. Enviar prioritariamente por Unicast directo a cada compañero conocido
-                        for ((_, ip) in ipsParesConocidos) {
-                            try {
-                                val dest = InetAddress.getByName(ip)
-                                val datagrama = DatagramPacket(bytes, bytes.size, dest, puertoTactico)
-                                socketUdp?.send(datagrama)
-                            } catch (_: Exception) {}
-                        }
+                    // 1. Enviar prioritariamente por Unicast directo a cada compañero conocido (máxima tasa 802.11)
+                    for ((_, ip) in ipsParesConocidos) {
+                        try {
+                            val dest = InetAddress.getByName(ip)
+                            val datagrama = DatagramPacket(bytes, bytes.size, dest, puertoTactico)
+                            socketUdp?.send(datagrama)
+                        } catch (_: Exception) {}
+                    }
 
-                        // 2. Enviar a las direcciones de broadcast de subred para descubrimiento y malla general
-                        val broadcasts = obtenerDireccionesBroadcast()
-                        for (bcast in broadcasts) {
-                            try {
-                                val datagrama = DatagramPacket(bytes, bytes.size, bcast, puertoTactico)
-                                socketUdp?.send(datagrama)
-                            } catch (e: Exception) {
-                                Log.w(etiquetaLog, "Fallo enviando a broadcast $bcast: ${e.message}")
-                            }
+                    // 2. Enviar redundante a broadcast de subred para asegurar cobertura completa si algún nodo aún no tiene IP registrada
+                    val broadcasts = obtenerDireccionesBroadcast()
+                    for (bcast in broadcasts) {
+                        try {
+                            val datagrama = DatagramPacket(bytes, bytes.size, bcast, puertoTactico)
+                            socketUdp?.send(datagrama)
+                        } catch (e: Exception) {
+                            Log.w(etiquetaLog, "Fallo enviando a broadcast $bcast: ${e.message}")
                         }
                     }
                 }
@@ -281,11 +272,16 @@ class TransporteMallaUdp(
         tareaBaliza = alcanceTransporte.launch {
             while (isActive && estaActivo) {
                 val fotoACompartir = if (GestorMeshTx.debeCompartirFotoPerfil()) GestorMeshTx.fotoPerfilLocal else ""
-                val payloadBaliza = "${android.os.Build.MODEL}|$fotoACompartir|${GestorMeshTx.modeloMotoLocal}|${GestorMeshTx.fichaLocal}"
+                val canalActivo = GestorMeshTx.canalActual.value
+                val canalId = GestorMeshTx.obtenerCanalIdEfectivo()
+                val nombreCanal = canalActivo.nombre
+                val salaPrivada = GestorMeshTx.salaPrivadaActiva.value ?: ""
+                val payloadBaliza = "${android.os.Build.MODEL}|$fotoACompartir|${GestorMeshTx.modeloMotoLocal}|${GestorMeshTx.fichaLocal}|$canalId|$nombreCanal|$salaPrivada"
                 val baliza = PaqueteDatosMesh(
                     idPaquete = System.currentTimeMillis(),
                     idEmisor = idPilotoLocal,
                     aliasEmisor = aliasPilotoLocal,
+                    canal = canalId,
                     payloadTexto = payloadBaliza,
                     tipo = TipoPaqueteMesh.BEACON_DESCUBRIMIENTO,
                     saltosRelay = 0
