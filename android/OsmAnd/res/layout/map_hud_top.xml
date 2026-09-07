@@ -160,4 +160,23 @@
 			android:contentDescription="Intercomunicador Mesh TX" />
 	</FrameLayout>
 
+	<FrameLayout
+		android:id="@+id/btn_team_tx_sos"
+		android:layout_width="48dp"
+		android:layout_height="48dp"
+		android:layout_gravity="top|end"
+		android:layout_marginTop="456dp"
+		android:layout_marginEnd="@dimen/map_button_margin"
+		android:clickable="true"
+		android:focusable="true"
+		android:elevation="3dp">
+
+		<androidx.appcompat.widget.AppCompatImageView
+			android:layout_width="32dp"
+			android:layout_height="32dp"
+			android:layout_gravity="center"
+			android:src="@drawable/sos_alerta"
+			android:contentDescription="Emitir Alerta SOS desde el Mapa" />
+	</FrameLayout>
+
 </FrameLayout>

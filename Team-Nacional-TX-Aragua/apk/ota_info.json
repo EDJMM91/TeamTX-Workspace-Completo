@@ -1,20 +1,16 @@
 {
-  "versionCode": 21,
-  "versionName": "1.4.0-beta",
+  "versionCode": 22,
+  "versionName": "1.4.1-beta",
   "urlDescarga": "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=e4b308dc-36e2-45e0-8113-d499ec76fce0",
-  "titulo": "Botón SOS Rápido en Mapa TX + Contactos Reales de Especialistas",
-  "notas": "🚀 Release v1.4.0-beta (Botón SOS Rápido en Mapa TX + Contactos Reales de Especialistas): Nuevo botón SOS rápido en la pantalla del Mapa TX. Toca para emitir, mantén presionado para cambiar el tipo. Limpieza total de datos simulados en el módulo SOS: Médico, Mecánico y Seguridad Vial ahora muestran miembros reales registrados en la app.",
+  "titulo": "Botón SOS Flotante Nativo en el Mapa (OsmAnd HUD)",
+  "notas": "🚀 Release v1.4.1-beta (Botón SOS Flotante Nativo en el Mapa): Integración del botón SOS flotante directamente sobre la interfaz nativa del mapa OsmAnd. Toca el botón rojo SOS en el mapa para desplegar el selector de auxilios con emisión en vivo a todo el grupo.",
   "novedades": [
-    "🚨 Botón SOS Rápido en Mapa TX: Toca para emitir alerta directamente desde la pantalla del mapa. Mantén presionado para elegir el tipo de emergencia (Gasolina, Mecánico, Caída, Choque, Médico, Seguridad, Alcabala).",
-    "💾 Tipo de Alerta Persistente: El tipo de alerta elegido en el mapa se recuerda entre sesiones para emisión más rápida.",
-    "👨‍⚕️ Contactos Especialistas Reales: El Módulo SOS muestra el nombre y teléfono real del Mecánico Oficial, Médico del Club y Oficial de Seguridad registrados en la app.",
-    "📵 Botones Deshabilitados si No hay Especialista: Si no hay miembro con ese rol, el botón aparece en gris indicando 'Sin asignar' en lugar de marcar un número falso.",
-    "📞 Contacto Familiar Real: El botón de contacto familiar muestra el nombre real del contacto de emergencia registrado en el perfil del piloto.",
-    "📲 Compartir APK por WhatsApp: Desde Vista Info puedes enviar el enlace de descarga a cualquier contacto por WhatsApp."
+    "🚨 Botón SOS Flotante Nativo en Mapa OsmAnd: Integración directa en la barra derecha de controles sobre el mapa nativo.",
+    "📱 Diálogo Táctico SOS en el Mapa: Selector interactivo con los 7 tipos de auxilio vial (Gasolina, Mecánico, Caída, Choque, Médico, Peligro, Alcabala).",
+    "📡 Transmisión Satelital en Vivo: Emisión instantánea a Firestore, Radar GPS, Chat Auxilio y Radio Malla."
   ],
   "correcciones": [
-    "Eliminados números de teléfono falsos: +584129904433 (P. Torrealba), +584245551290 (Dra. Gómez), +584128887766 (Seguridad), +584141234567 (Familiar fijo).",
-    "Corregido fallback de contacto familiar: ya no usa número hardcoded sino emergencyContactPhone real del perfil.",
-    "Corregido bug de navegación inferior: los botones de módulos reconocen inmediatamente el cambio de pantalla."
+    "Corregido: El botón SOS anterior quedaba oculto detrás de la actividad nativa de OsmAnd.",
+    "Alineación perfecta con controles de zoom, radar y radio intercomunicador."
   ]
 }

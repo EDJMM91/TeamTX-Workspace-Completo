@@ -104,6 +104,23 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 22,
+            versionName = "1.4.1-beta",
+            titulo = "Botón SOS Flotante Nativo en el Mapa (OsmAnd HUD)",
+            fecha = "07 sep 2026",
+            descripcionCorta = "Integración del botón SOS flotante directamente sobre la interfaz nativa del mapa OsmAnd. Toca el botón rojo SOS en el mapa para desplegar el selector de auxilios con emisión en vivo.",
+            novedades = listOf(
+                "🚨 Botón SOS Flotante Nativo en Mapa OsmAnd: Integración directa en la barra derecha de controles sobre el mapa nativo.",
+                "📱 Diálogo Táctico SOS en el Mapa: Selector interactivo con los 7 tipos de auxilio vial (Gasolina, Mecánico, Caída, Choque, Médico, Peligro, Alcabala).",
+                "📡 Transmisión Satelital en Vivo: Emisión instantánea a Firestore, Radar GPS, Chat Auxilio y Radio Malla."
+            ),
+            correcciones = listOf(
+                "Corregido: El botón SOS anterior quedaba oculto detrás de la actividad nativa de OsmAnd.",
+                "Alineación perfecta con controles de zoom, radar y radio intercomunicador."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 21,
             versionName = "1.4.0-beta",
             titulo = "Botón SOS Rápido en Mapa TX + Contactos Reales de Especialistas",
@@ -122,7 +139,7 @@ object GestorActualizaciones {
                 "Corregido fallback de contacto familiar: ya no usa número hardcoded sino emergencyContactPhone real del perfil.",
                 "Corregido bug de navegación inferior: los botones de módulos reconocen inmediatamente el cambio de pantalla."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 20,

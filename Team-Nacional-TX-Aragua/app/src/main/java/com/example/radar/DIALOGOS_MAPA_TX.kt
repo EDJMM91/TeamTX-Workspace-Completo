@@ -1890,6 +1890,223 @@ object DialogosMapaTx {
         dialog.show()
     }
 
+    /**
+     * Muestra el diálogo para emitir una alerta SOS Vial directamente desde el Mapa Táctico de OsmAnd.
+     */
+    @JvmStatic
+    fun mostrarDialogoEmitirSos(activity: Activity) {
+        val density = activity.resources.displayMetrics.density
+        val dialog = Dialog(activity)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val rootLayout = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((18 * density).toInt(), (18 * density).toInt(), (18 * density).toInt(), (18 * density).toInt())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 16 * density
+                setColor(Color.parseColor("#1E1E24"))
+                setStroke((1 * density).toInt(), Color.parseColor("#E53935"))
+            }
+        }
+
+        // Header: Titulo
+        val headerLayout = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+        }
+
+        val tvTitulo = TextView(activity).apply {
+            text = "🚨 EMITIR ALERTA SOS VIAL"
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        headerLayout.addView(tvTitulo)
+
+        val btnCerrar = TextView(activity).apply {
+            text = "✕"
+            setTextColor(Color.parseColor("#9E9E9E"))
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding((8 * density).toInt(), (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+            setOnClickListener { dialog.dismiss() }
+        }
+        headerLayout.addView(btnCerrar)
+        rootLayout.addView(headerLayout)
+
+        val tvSubtitulo = TextView(activity).apply {
+            text = "Selecciona el tipo de auxilio requerida en la ruta:"
+            setTextColor(Color.parseColor("#B0BEC5"))
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+        rootLayout.addView(tvSubtitulo)
+
+        // Opciones de tipo de emergencia
+        val tipos = listOf(
+            Triple(EmergencyType.ACCIDENTADO_GASOLINA, "⛽ Sin Gasolina", "#FF9800"),
+            Triple(EmergencyType.ACCIDENTADO_MECANICO, "🔧 Falla Mecánica", "#2196F3"),
+            Triple(EmergencyType.CAIDA, "🚑 Caída en Ruta", "#E53935"),
+            Triple(EmergencyType.CHOQUE, "🚗 Choque Grave", "#B71C1C"),
+            Triple(EmergencyType.EMERGENCIA_MEDICA, "🏥 Auxilio Médico", "#D32F2F"),
+            Triple(EmergencyType.APOYO_SEGURIDAD, "🛡️ Peligro en Vía", "#7B1FA2"),
+            Triple(EmergencyType.ALCABALA_RETEN, "👮 Alcabala / Retén", "#00897B")
+        )
+
+        var tipoSeleccionado = EmergencyType.ACCIDENTADO_GASOLINA
+        val containerOpciones = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+        }
+
+        val optionViews = mutableListOf<View>()
+        tipos.forEach { (type, label, hexColor) ->
+            val itemLayout = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    bottomMargin = (6 * density).toInt()
+                }
+            }
+
+            itemLayout.background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor(if (type == tipoSeleccionado) "#2C2C38" else "#121216"))
+                if (type == tipoSeleccionado) setStroke((1.5 * density).toInt(), Color.parseColor(hexColor))
+            }
+
+            val tvLabel = TextView(activity).apply {
+                text = label
+                setTextColor(Color.WHITE)
+                textSize = 13f
+                typeface = if (type == tipoSeleccionado) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            }
+            itemLayout.addView(tvLabel)
+
+            itemLayout.setOnClickListener {
+                tipoSeleccionado = type
+                optionViews.forEachIndexed { idx, v ->
+                    val (t, _, colorHex) = tipos[idx]
+                    val isSel = t == tipoSeleccionado
+                    v.background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = 8 * density
+                        setColor(Color.parseColor(if (isSel) "#2C2C38" else "#121216"))
+                        if (isSel) setStroke((1.5 * density).toInt(), Color.parseColor(colorHex))
+                    }
+                }
+            }
+
+            optionViews.add(itemLayout)
+            containerOpciones.addView(itemLayout)
+        }
+        rootLayout.addView(containerOpciones)
+
+        // Campo de texto para ubicación o detalles
+        val etUbicacion = EditText(activity).apply {
+            hint = "Escribe referencia vial o punto de apoyo..."
+            setHintTextColor(Color.parseColor("#78909C"))
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#121216"))
+                setStroke((1 * density).toInt(), Color.parseColor("#37474F"))
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (14 * density).toInt()
+            }
+        }
+        rootLayout.addView(etUbicacion)
+
+        // Botón Emitir Alerta
+        val btnEmitir = Button(activity).apply {
+            text = "🚨 EMITIR ALERTA SOS AHORA"
+            setTextColor(Color.WHITE)
+            textSize = 14f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#E53935"))
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (46 * density).toInt())
+            setOnClickListener {
+                val refText = etUbicacion.text.toString().trim().ifBlank { "Ubicación reportada por GPS en ruta" }
+                val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "anonimo"
+                val alertaSosTexto = "🚨 ${tipoSeleccionado.label}: $refText"
+
+                // 1. Guardar en SharedPreferences y Firestore Telemetria
+                val prefs = activity.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
+                val nombre = prefs.getString("radar_nombre", "Piloto TX") ?: "Piloto TX"
+                prefs.edit().putString("radar_alerta_sos", alertaSosTexto).apply()
+
+                try {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("radar_en_vivo")
+                        .document(uid)
+                        .update("alertaSos", alertaSosTexto)
+                } catch (_: Exception) {}
+
+                // 2. Insertar en Room Local DB
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val db = AppDatabase.getDatabase(activity, scope)
+                        val newAlert = EmergencyAlert(
+                            id = System.currentTimeMillis(),
+                            reporterName = nombre,
+                            reporterPhone = "+58 412 000 0000",
+                            memberNumber = "TX-MAP",
+                            emergencyType = tipoSeleccionado,
+                            locationDescription = refText,
+                            coordinateLat = 0.0,
+                            coordinateLng = 0.0,
+                            bikeDetails = "Unidad TX",
+                            details = refText,
+                            status = EmergencyStatus.ACTIVA,
+                            respondersNotes = "Alerta emitida directamente desde el Mapa TX"
+                        )
+                        db.emergencyDao().insertAlert(newAlert)
+                    } catch (_: Exception) {}
+                }
+
+                // 3. Activar Mesh Radio SOS si aplica
+                try {
+                    if (tipoSeleccionado == EmergencyType.ALCABALA_RETEN) {
+                        com.example.meshtx.GestorMeshTx.activarModoAlcabalaSos("Ubicación: $refText")
+                    } else {
+                        com.example.meshtx.GestorMeshTx.emitirAlertaSos("🚨 SOS ${tipoSeleccionado.name}: $refText", null)
+                    }
+                } catch (_: Exception) {}
+
+                Toast.makeText(activity, "🚨 Alerta SOS Emitida. Visible inmediatamente en el mapa.", Toast.LENGTH_LONG).show()
+                dialog.dismiss()
+            }
+        }
+        rootLayout.addView(btnEmitir)
+
+        dialog.setContentView(rootLayout)
+        dialog.window?.let { w ->
+            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            w.setGravity(Gravity.CENTER)
+            w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+        dialog.show()
+    }
+
     private fun obtenerColorRangoHex(rango: String): String {
         return when {
             rango.contains("Capitán", true) || rango.contains("Capitan", true) -> "#E53935"

@@ -484,6 +484,24 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 					android.widget.Toast.makeText(MapActivity.this, "🎙️ Intercomunicador Mesh TX (Malla) Activado", android.widget.Toast.LENGTH_SHORT).show();
 				});
 			}
+
+			// 7. Botón SOS Rápido desde el Mapa
+			View btnSos = findViewById(R.id.btn_team_tx_sos);
+			if (btnSos != null) {
+				final GradientDrawable bgSos = new GradientDrawable();
+				bgSos.setShape(GradientDrawable.OVAL);
+				bgSos.setColor(Color.parseColor("#E53935")); // Red SOS
+				btnSos.setBackground(bgSos);
+
+				btnSos.setOnClickListener(v -> {
+					try {
+						Class<?> dialogosClass = Class.forName("com.example.radar.DialogosMapaTx");
+						dialogosClass.getMethod("mostrarDialogoEmitirSos", android.app.Activity.class).invoke(null, MapActivity.this);
+					} catch (Exception e) {
+						android.util.Log.w("MAPA_TX", "Error al abrir diálogo SOS desde mapa: " + e.getMessage());
+					}
+				});
+			}
 		} catch (Exception ignored) {}
 	}
 
