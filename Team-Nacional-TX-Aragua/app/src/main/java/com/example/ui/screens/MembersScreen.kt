@@ -90,6 +90,8 @@ fun MembersScreen(
     var selectedStatusFilter by remember { mutableStateOf(MemberStatusFilter.TODOS) }
     var selectedRole by remember { mutableStateOf<MemberRole?>(null) }
     var filterOnlySolvent by remember { mutableStateOf(false) }
+    // Solo mostrar miembros sincronizados/reales por defecto
+    var mostrarSoloSincronizados by remember { mutableStateOf(true) }
 
     var selectedMemberForDetail by remember { mutableStateOf<MemberProfile?>(null) }
     var memberToSuspend by remember { mutableStateOf<MemberProfile?>(null) }
@@ -98,19 +100,49 @@ fun MembersScreen(
 
     val context = LocalContext.current
 
-    // Compute unique chapters
-    val chapters = remember(members) {
-        listOf("TODOS") + members.map { it.chapterState.split(" ")[0].trim() }.distinct().sorted()
+    // Umbral de actividad reciente: 24 horas
+    val umbralActividad = System.currentTimeMillis() - (24L * 60 * 60 * 1000)
+
+    // ═══════════════════════════════════════════
+    // FILTRO BASE: Solo miembros sincronizados/reales
+    // Un miembro es "real" si:
+    //   1. Tiene email de Google vinculado (cuenta sincronizada), O
+    //   2. Tiene lastActiveTimestamp dentro de las últimas 24h (activo en la app), O
+    //   3. Es directiva / admin que no use código de prueba temporal
+    // Nota: los códigos TEST (TX-TEST-*), placeholders (TX-999) y similares se excluyen por defecto
+    // ═══════════════════════════════════════════
+    val codigosPrueba = setOf("TX-999", "TX-TEST-001", "TX-TEST-002", "TX-TEST-003")
+    val prefijosPlaceholder = listOf("TX-DEV-", "TX-PIL-", "TX-DIR-")
+
+    val miembrosSincronizados = remember(members) {
+        members.filter { m ->
+            val esPlaceholder = codigosPrueba.contains(m.memberNumber) ||
+                    prefijosPlaceholder.any { m.memberNumber.startsWith(it) }
+            val tieneEmailGoogle = !m.email.isNullOrBlank() && m.email?.endsWith("@teamtx.com") != true
+            val activoReciente = m.lastActiveTimestamp > umbralActividad
+            val esDirectivaReal = (m.isDirectiva || m.role.canManageApp) && !esPlaceholder
+            // Incluir si: tiene correo real, o estuvo activo recientemente, o es directiva real
+            !esPlaceholder && (tieneEmailGoogle || activoReciente || esDirectivaReal)
+        }
     }
 
-    // Counts
-    val activeCount = remember(members) { members.count { !it.isSuspended } }
-    val suspendedCount = remember(members) { members.count { it.isSuspended } }
-    val directivaCount = remember(members) { members.count { it.isDirectiva || it.role.canManageApp } }
+    // La lista base que se usa para filtrar depende del toggle
+    val membersBase = if (mostrarSoloSincronizados) miembrosSincronizados else members
+
+    // Compute unique chapters
+    val chapters = remember(membersBase) {
+        listOf("TODOS") + membersBase.map { it.chapterState.split(" ")[0].trim() }.distinct().sorted()
+    }
+
+    // Counts (reflejan miembros reales sincronizados)
+    val activeCount = remember(miembrosSincronizados) { miembrosSincronizados.count { !it.isSuspended } }
+    val suspendedCount = remember(miembrosSincronizados) { miembrosSincronizados.count { it.isSuspended } }
+    val directivaCount = remember(miembrosSincronizados) { miembrosSincronizados.count { it.isDirectiva || it.role.canManageApp } }
+    val totalSincronizados = miembrosSincronizados.size
 
     // Filter members
-    val filteredMembers = remember(members, searchQuery, selectedChapter, selectedStatusFilter, selectedRole, filterOnlySolvent) {
-        members.filter { m ->
+    val filteredMembers = remember(membersBase, searchQuery, selectedChapter, selectedStatusFilter, selectedRole, filterOnlySolvent) {
+        membersBase.filter { m ->
             val matchesQuery = searchQuery.isBlank() ||
                     m.fullName.contains(searchQuery, ignoreCase = true) ||
                     m.nickname.contains(searchQuery, ignoreCase = true) ||
@@ -242,13 +274,57 @@ fun MembersScreen(
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
-                                StatMiniItem(label = "Total", value = "${members.size}", color = DashboardFondoConfig.ColorTextoPrimario)
+                                StatMiniItem(label = "Sincronizados", value = "$totalSincronizados", color = DashboardFondoConfig.ColorTextoPrimario)
                                 VerticalDivider(modifier = Modifier.height(20.dp), color = DashboardFondoConfig.ColorBordeClaro)
                                 StatMiniItem(label = "Activos", value = "$activeCount", color = StatusSuccess)
                                 VerticalDivider(modifier = Modifier.height(20.dp), color = DashboardFondoConfig.ColorBordeClaro)
                                 StatMiniItem(label = "Suspendidos", value = "$suspendedCount", color = StatusError)
                                 VerticalDivider(modifier = Modifier.height(20.dp), color = DashboardFondoConfig.ColorBordeClaro)
                                 StatMiniItem(label = "Directiva", value = "$directivaCount", color = DashboardFondoConfig.ColorDoradoOro)
+                            }
+
+                            // Indicador de modo de vista actual
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(if (mostrarSoloSincronizados) Color(0xFFECFDF5) else Color(0xFFFFF7ED))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        if (mostrarSoloSincronizados) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                                        contentDescription = null,
+                                        tint = if (mostrarSoloSincronizados) Color(0xFF15803D) else Color(0xFFD97706),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = if (mostrarSoloSincronizados)
+                                            "Mostrando $totalSincronizados pilotos con app activa"
+                                        else
+                                            "Mostrando todos los registros (${members.size} total)",
+                                        fontSize = 10.sp,
+                                        color = if (mostrarSoloSincronizados) Color(0xFF15803D) else Color(0xFFD97706),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                                if (isDirectivaMode) {
+                                    TextButton(
+                                        onClick = { mostrarSoloSincronizados = !mostrarSoloSincronizados },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                    ) {
+                                        Text(
+                                            text = if (mostrarSoloSincronizados) "Ver todos" else "Solo activos",
+                                            fontSize = 10.sp,
+                                            color = DashboardFondoConfig.ColorRojoCarrera,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

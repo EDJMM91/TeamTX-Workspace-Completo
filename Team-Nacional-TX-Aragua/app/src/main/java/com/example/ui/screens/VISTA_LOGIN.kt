@@ -224,8 +224,8 @@ fun VistaLogin(
                             inviteCode = it
                             errorMessage = null
                         },
-                        label = { Text("Código de Invitación / Maestro") },
-                        placeholder = { Text("Ej: DESARROLLO1 o TX19554402") },
+                        label = { Text("Código de Acceso") },
+                        placeholder = { Text("Ej: TX-0000") },
                         textStyle = TextStyle(
                             color = Color(0xFF0F172A), // Letras oscuras y legibles garantizadas
                             fontSize = 16.sp,

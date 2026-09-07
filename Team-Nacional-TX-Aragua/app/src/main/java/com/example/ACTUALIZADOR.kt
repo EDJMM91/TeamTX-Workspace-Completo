@@ -104,6 +104,28 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 17,
+            versionName = "1.3.6-beta",
+            titulo = "Perfil Desde Cero, Directorio Real y Limpieza Total de Sesión",
+            fecha = "07 sep 2026",
+            descripcionCorta = "La app arranca completamente vacía al ingresar con un código sin vincular. El directorio solo muestra pilotos reales sincronizados. Se eliminan correos ficticios y se limpia el perfil completo al detectar vínculos caducos.",
+            novedades = listOf(
+                "🆕 Perfil vacío desde cero: Al entrar con un código sin Google vinculado, la app muestra perfil vacío (sin foto, datos, correo ni historial).",
+                "🔗 Limpieza de vínculos caducos: Si el vínculo a Firestore ya no existe, se borra foto de perfil, foto de moto, documentos y datos personales locales automáticamente.",
+                "📋 Directorio real: El módulo 'Directorio de Pilotos' muestra únicamente miembros con correo Google vinculado o activos en las últimas 24h.",
+                "🔢 Contador sincronizados: La estadística 'Sincronizados' refleja el conteo real de pilotos conectados a la app.",
+                "🔄 Toggle para Directiva: Los directivos pueden alternar entre 'Solo activos' y 'Ver todos los registros' en el directorio.",
+                "🚫 Sin correos ficticios en sesión: Los códigos de prueba y directivos ya no guardan correos @teamtx.com en SharedPreferences.",
+                "🛡️ Null-safety total: 13 errores de compilación Kotlin corregidos en TeamTxViewModel relacionados con emails nulos."
+            ),
+            correcciones = listOf(
+                "Corregido: 'ya está en otro dispositivo' al usar códigos distintos (el correo queda libre al desvincular).",
+                "Corregido: correos @teamtx.com ya no aparecen como correos Google vinculados del perfil.",
+                "Corregido: la pantalla login ya no sugiere códigos activos reales como ejemplos."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 16,
             versionName = "1.3.5-beta",
             titulo = "Seguridad de Cuentas, Sesión Única Anti-Trampas y Vinculación 1-a-1",

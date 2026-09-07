@@ -178,6 +178,70 @@ object GestorNotificacionesApp {
     }
 
     /**
+     * Notificación de nueva Rodada programada.
+     */
+    fun notificarNuevaRodada(titulo: String, fecha: String, lugar: String, rodadaId: String = "") {
+        crearNotificacion(
+            tipo = "RODADA",
+            titulo = "🏍️ Nueva Rodada Programada: $titulo",
+            mensaje = "Fecha: $fecha | Salida: $lugar. ¡Prepárate para la ruta con el equipo!",
+            referenciaId = rodadaId,
+            icono = "two_wheeler"
+        )
+    }
+
+    /**
+     * Notificación de nuevo Reto o Desafío.
+     */
+    fun notificarNuevoReto(titulo: String, descripcion: String, retoId: String = "") {
+        crearNotificacion(
+            tipo = "RETOS",
+            titulo = "🏆 Nuevo Reto Biker: $titulo",
+            mensaje = descripcion.take(140),
+            referenciaId = retoId,
+            icono = "emoji_events"
+        )
+    }
+
+    /**
+     * Notificación de nuevo producto o moto en Mercado Bikero.
+     */
+    fun notificarPublicacionMercado(titulo: String, precio: String, vendedor: String, productoId: String = "") {
+        crearNotificacion(
+            tipo = "MERCADO",
+            titulo = "🛒 Mercado Biker: $titulo",
+            mensaje = "Precio: $precio | Vendedor: $vendedor",
+            referenciaId = productoId,
+            icono = "storefront"
+        )
+    }
+
+    /**
+     * Notificación de Tesorería o Rifa Oficial del Club.
+     */
+    fun notificarTesoreriaRifa(titulo: String, monto: String, detalle: String = "") {
+        crearNotificacion(
+            tipo = "TESORERIA",
+            titulo = "💰 Tesorería & Rifa Oficial: $titulo",
+            mensaje = "Valor: $monto. ${detalle.take(100)}",
+            icono = "account_balance_wallet"
+        )
+    }
+
+    /**
+     * Notificación de nuevo establecimiento en Directorio Comercial.
+     */
+    fun notificarNuevoComercio(nombre: String, categoria: String, comercioId: String = "") {
+        crearNotificacion(
+            tipo = "COMERCIO",
+            titulo = "🛠️ Nuevo Aliado Comercial: $nombre",
+            mensaje = "Categoría: $categoria. Revisa los beneficios y servicios para el club.",
+            referenciaId = comercioId,
+            icono = "storefront"
+        )
+    }
+
+    /**
      * Notificación genérica.
      */
     fun notificarGeneral(titulo: String, mensaje: String) {
@@ -316,6 +380,20 @@ object GestorNotificacionesApp {
     // ==========================================
     // LIMPIEZA
     // ==========================================
+
+    fun eliminarLeidas() {
+        CoroutineScope(Dispatchers.IO).launch {
+            db?.notificacionDao()?.deleteLeidas()
+            Log.i(ETIQUETA, "🧹 Notificaciones leídas eliminadas")
+        }
+    }
+
+    fun eliminarTodas() {
+        CoroutineScope(Dispatchers.IO).launch {
+            db?.notificacionDao()?.deleteAll()
+            Log.i(ETIQUETA, "🧹 Todas las notificaciones eliminadas")
+        }
+    }
 
     /**
      * Elimina notificaciones mayores a 30 días.

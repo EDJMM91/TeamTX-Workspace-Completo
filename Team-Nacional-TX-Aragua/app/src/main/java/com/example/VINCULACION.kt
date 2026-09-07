@@ -1,6 +1,8 @@
 package com.example
 
 import android.util.Log
+import com.example.data.remote.PerfilNube
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -14,14 +16,16 @@ object VINCULACION {
 
     private const val ETIQUETA_LOG = "VINCULACION_TX"
     private const val COLECCION_VINCULOS = "vinculos_google"
+    private const val COLECCION_USUARIOS = "usuarios"
 
     /**
      * Vincula una cuenta Google de forma atómica con un piloto usando una transacción en Firestore.
      *
      * Reglas:
-     * - Si el documento ya existe: verifica que 'uid_firebase' coincida con el solicitante.
-     *   Si no coincide, lanza un error bloqueante.
-     *   Si coincide, actualiza 'id_dispositivo_activo' y 'fecha_vinculacion_reciente' con FieldValue.serverTimestamp().
+     * - Si el documento ya existe: verifica si 'numero_miembro' pertenece a otro piloto.
+     *   Si pertenece a otro piloto diferente, bloquea la vinculación.
+     *   Si pertenece al mismo piloto (mismo número) o el UID coincide, actualiza el registro con
+     *   el nuevo UID y el 'id_dispositivo_activo'.
      * - Si no existe: crea el registro completo con los datos del piloto y el 'id_dispositivo_activo'.
      */
     suspend fun vincularCuentaGoogle(
@@ -36,31 +40,60 @@ object VINCULACION {
             return Pair(false, "Correo o identificador de usuario inválido.")
         }
 
+        // Asegurar sesión de Firebase Auth activa para evitar PERMISSION_DENIED por reglas de seguridad
+        if (FirebaseAuth.getInstance().currentUser == null) {
+            try {
+                FirebaseAuth.getInstance().signInAnonymously().await()
+            } catch (e: Exception) {
+                Log.w(ETIQUETA_LOG, "Aviso al verificar Auth previa a vincular: ${e.message}")
+            }
+        }
+
         val baseDatos = FirebaseFirestore.getInstance()
-        val referenciaDocumento = baseDatos.collection(COLECCION_VINCULOS).document(correoSanitizado)
+        val idDocSanitizado = PerfilNube.sanitizarEmailDocId(correoSanitizado)
+        val referenciaDocSanitizado = baseDatos.collection(COLECCION_VINCULOS).document(idDocSanitizado)
+        val referenciaDocRaw = baseDatos.collection(COLECCION_VINCULOS).document(correoSanitizado)
 
         return try {
             baseDatos.runTransaction { transaccion ->
-                val instantanea = transaccion.get(referenciaDocumento)
+                var instantanea = transaccion.get(referenciaDocSanitizado)
+                var esDocSanitizado = true
+
+                if (!instantanea.exists()) {
+                    instantanea = transaccion.get(referenciaDocRaw)
+                    esDocSanitizado = false
+                }
 
                 if (instantanea.exists()) {
                     val uidExistente = instantanea.getString("uid_firebase") ?: ""
-                    val pilotoExistente = instantanea.getString("nombre_piloto") ?: instantanea.getString("numero_miembro") ?: "Otro piloto"
+                    val docNumero = instantanea.getString("numero_miembro") ?: ""
+                    val pilotoExistente = instantanea.getString("nombre_piloto") ?: docNumero.ifBlank { "Otro piloto" }
 
-                    if (uidExistente.isNotBlank() && uidExistente != uidFirebase) {
+                    // Bloquear si el correo pertenece a OTRO miembro distinto
+                    if (docNumero.isNotBlank() && !docNumero.equals(numeroMiembro, ignoreCase = true)) {
                         throw IllegalStateException(
-                            "Este correo ya está vinculado al perfil de $pilotoExistente. Para usarlo aquí, primero debes desvincularlo desde ese dispositivo."
+                            "Este correo ya está vinculado al perfil de $pilotoExistente ($docNumero). Para usarlo aquí, primero debes desvincularlo desde ese perfil."
                         )
                     }
 
-                    // Si coincide el UID, actualizamos dispositivo activo y fecha reciente
-                    val datosActualizacion = mapOf(
-                        "id_dispositivo_activo" to idDispositivo,
-                        "fecha_vinculacion_reciente" to FieldValue.serverTimestamp(),
+                    // Si pertenece al mismo miembro o no tenía miembro registrado, renovamos vínculo
+                    val datosActualizacion = hashMapOf<String, Any>(
+                        "correo" to correoSanitizado,
+                        "uid_firebase" to uidFirebase,
                         "numero_miembro" to numeroMiembro,
-                        "nombre_piloto" to nombrePiloto
+                        "nombre_piloto" to nombrePiloto,
+                        "id_dispositivo_activo" to idDispositivo,
+                        "fecha_vinculacion_reciente" to FieldValue.serverTimestamp()
                     )
-                    transaccion.update(referenciaDocumento, datosActualizacion)
+
+                    // Siempre guardamos en la referencia normalizada
+                    transaccion.set(referenciaDocSanitizado, datosActualizacion, com.google.firebase.firestore.SetOptions.merge())
+
+                    // Si existía bajo el id sin sanitizar, lo eliminamos para evitar duplicados
+                    if (!esDocSanitizado && idDocSanitizado != correoSanitizado) {
+                        transaccion.delete(referenciaDocRaw)
+                    }
+
                     Log.i(ETIQUETA_LOG, "🔄 Vinculación actualizada para $correoSanitizado en dispositivo $idDispositivo")
                 } else {
                     // Documento nuevo: creación atómica del vínculo inicial
@@ -73,7 +106,7 @@ object VINCULACION {
                         "fecha_creacion" to FieldValue.serverTimestamp(),
                         "fecha_vinculacion_reciente" to FieldValue.serverTimestamp()
                     )
-                    transaccion.set(referenciaDocumento, datosNuevoRegistro)
+                    transaccion.set(referenciaDocSanitizado, datosNuevoRegistro)
                     Log.i(ETIQUETA_LOG, "✨ Nueva vinculación 1-a-1 creada para $correoSanitizado con $numeroMiembro")
                 }
             }.await()
@@ -88,43 +121,85 @@ object VINCULACION {
 
     /**
      * Desvincula y elimina el registro de 'vinculos_google' mediante una transacción atómica.
-     * Solo se permite el borrado si el 'uid_firebase' del documento coincide con el solicitante.
+     * Permite el borrado si el solicitante es el dueño del perfil, coincide el UID,
+     * coincide el número de miembro o si la sesión de Auth en el celular coincide con el correo.
      */
     suspend fun desvincularCuentaGoogle(
         correo: String,
-        uidFirebase: String
+        uidFirebase: String,
+        numeroMiembro: String = ""
     ): Pair<Boolean, String> {
         val correoSanitizado = correo.trim().lowercase()
-        if (correoSanitizado.isBlank() || uidFirebase.isBlank()) {
+        if (correoSanitizado.isBlank()) {
             return Pair(false, "No hay credenciales activas para desvincular.")
         }
 
+        // Asegurar sesión de Firebase Auth activa para satisfacer reglas de Firestore (request.auth != null)
+        if (FirebaseAuth.getInstance().currentUser == null) {
+            try {
+                FirebaseAuth.getInstance().signInAnonymously().await()
+            } catch (e: Exception) {
+                Log.w(ETIQUETA_LOG, "Aviso al asegurar sesión anónima previa a desvincular: ${e.message}")
+            }
+        }
+
         val baseDatos = FirebaseFirestore.getInstance()
-        val referenciaDocumento = baseDatos.collection(COLECCION_VINCULOS).document(correoSanitizado)
+        val idDocSanitizado = PerfilNube.sanitizarEmailDocId(correoSanitizado)
+        val referenciaDocSanitizado = baseDatos.collection(COLECCION_VINCULOS).document(idDocSanitizado)
+        val referenciaDocRaw = baseDatos.collection(COLECCION_VINCULOS).document(correoSanitizado)
 
         return try {
             baseDatos.runTransaction { transaccion ->
-                val instantanea = transaccion.get(referenciaDocumento)
+                val instantaneaSanitizada = transaccion.get(referenciaDocSanitizado)
+                val instantaneaRaw = if (idDocSanitizado != correoSanitizado) transaccion.get(referenciaDocRaw) else null
 
-                if (!instantanea.exists()) {
-                    // Si el documento ya no existe, consideramos que ya está liberado
+                val existeSanitizado = instantaneaSanitizada.exists()
+                val existeRaw = instantaneaRaw?.exists() == true
+
+                if (!existeSanitizado && !existeRaw) {
+                    // Si ya no existe, el correo ya está libre
+                    Log.i(ETIQUETA_LOG, "ℹ️ El documento vinculos_google no existía. Correo ya libre: $correoSanitizado")
                     return@runTransaction
                 }
 
-                val uidExistente = instantanea.getString("uid_firebase") ?: ""
-                if (uidExistente.isNotBlank() && uidExistente != uidFirebase) {
-                    throw IllegalStateException("No tienes autorización para desvincular este correo.")
+                val instantaneaActiva = if (existeSanitizado) instantaneaSanitizada else instantaneaRaw!!
+                val docNumero = instantaneaActiva.getString("numero_miembro") ?: ""
+                val docUid = instantaneaActiva.getString("uid_firebase") ?: ""
+
+                // Validar autorización de desvinculación
+                val usuarioAuth = FirebaseAuth.getInstance().currentUser
+                val esMismoMiembro = numeroMiembro.isNotBlank() && docNumero.equals(numeroMiembro, ignoreCase = true)
+                val esMismoUid = uidFirebase.isNotBlank() && docUid == uidFirebase
+                val esMismoEmailAuth = usuarioAuth?.email?.equals(correoSanitizado, ignoreCase = true) == true
+                val esDueno = esMismoMiembro || esMismoUid || esMismoEmailAuth || docNumero.isBlank() || docUid.isBlank()
+
+                if (!esDueno) {
+                    throw IllegalStateException("No tienes autorización para desvincular este correo ya que pertenece a $docNumero.")
                 }
 
-                // Borrado atómico del vínculo para liberar el correo
-                transaccion.delete(referenciaDocumento)
-                Log.i(ETIQUETA_LOG, "🗑️ Documento vinculos_google/$correoSanitizado eliminado exitosamente.")
+                // Borrar documento normalizado
+                if (existeSanitizado) {
+                    transaccion.delete(referenciaDocSanitizado)
+                }
+                // Borrar documento en formato raw si existía
+                if (existeRaw) {
+                    transaccion.delete(referenciaDocRaw)
+                }
+
+                Log.i(ETIQUETA_LOG, "🗑️ Vinculación eliminada para $correoSanitizado. Correo 100% liberado.")
             }.await()
+
+            // Limpieza preventiva de usuarios/{uid} para evitar bloqueos por dispositivo residual
+            try {
+                if (uidFirebase.isNotBlank()) {
+                    baseDatos.collection(COLECCION_USUARIOS).document(uidFirebase).delete().await()
+                }
+            } catch (_: Exception) {}
 
             Pair(true, "✅ Cuenta Google desvinculada exitosamente. El correo ahora está libre.")
         } catch (error: Exception) {
             val mensajeError = error.message ?: "Error desconocido al desvincular en Firestore."
-            Log.e(ETIQUETA_LOG, "❌ Error en transacción de desvinculación: $mensajeError", error)
+            Log.e(ETIQUETA_LOG, "❌ Error en desvinculación: $mensajeError", error)
             Pair(false, mensajeError)
         }
     }

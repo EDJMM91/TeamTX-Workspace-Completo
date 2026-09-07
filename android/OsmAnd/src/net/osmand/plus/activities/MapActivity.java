@@ -397,7 +397,20 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 				});
 			}
 
-			// 4. Botón Radar Táctico (Alineado en columna derecha sin tapar zoom)
+			// 4. Botón Buscar Pilotos en el Mapa
+			View btnPilotos = findViewById(R.id.btn_team_tx_pilotos_map);
+			if (btnPilotos != null) {
+				btnPilotos.setOnClickListener(v -> {
+					try {
+						Class<?> buscadorClass = Class.forName("com.example.radar.BuscadorPilotosMapa");
+						buscadorClass.getMethod("mostrar", android.app.Activity.class).invoke(null, MapActivity.this);
+					} catch (Exception e) {
+						android.util.Log.w("MAPA_TX", "Error al abrir buscador de pilotos: " + e.getMessage());
+					}
+				});
+			}
+
+			// 5. Botón Radar Táctico (Alineado en columna derecha sin tapar zoom)
 			View btnRadar = findViewById(R.id.btn_team_tx_radar);
 			if (btnRadar != null) {
 				final GradientDrawable bgRadar = new GradientDrawable();

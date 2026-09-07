@@ -75,9 +75,17 @@ object PerfilNube {
     suspend fun liberarVinculacion(correo: String, uid: String): Boolean {
         return try {
             val idDocumento = sanitizarEmailDocId(correo)
+            val correoLimpio = correo.trim().lowercase()
             db.collection(COLECCION_VINCULOS).document(idDocumento).delete().await()
+            if (idDocumento != correoLimpio) {
+                try {
+                    db.collection(COLECCION_VINCULOS).document(correoLimpio).delete().await()
+                } catch (_: Exception) {}
+            }
             try {
-                db.collection(COLECCION_USUARIOS).document(uid).delete().await()
+                if (uid.isNotBlank()) {
+                    db.collection(COLECCION_USUARIOS).document(uid).delete().await()
+                }
             } catch (_: Exception) {}
             Log.i(ETIQUETA_LOG, "✅ Vinculación liberada totalmente para $correo (UID: $uid)")
             true
@@ -91,13 +99,21 @@ object PerfilNube {
     suspend fun actualizarDispositivoActivo(correo: String, uid: String, idDispositivo: String): Boolean {
         return try {
             val idDocumento = sanitizarEmailDocId(correo)
+            val correoLimpio = correo.trim().lowercase()
             val mapaActualizacion = mapOf(
                 "id_dispositivo_activo" to idDispositivo,
                 "activeDeviceId" to idDispositivo,
                 "lastActiveTimestamp" to System.currentTimeMillis()
             )
             db.collection(COLECCION_VINCULOS).document(idDocumento).update(mapaActualizacion)
-            db.collection(COLECCION_USUARIOS).document(uid).update(mapaActualizacion)
+            if (idDocumento != correoLimpio) {
+                try {
+                    db.collection(COLECCION_VINCULOS).document(correoLimpio).update(mapaActualizacion)
+                } catch (_: Exception) {}
+            }
+            if (uid.isNotBlank()) {
+                db.collection(COLECCION_USUARIOS).document(uid).update(mapaActualizacion)
+            }
             true
         } catch (error: Exception) {
             Log.e(ETIQUETA_LOG, "Error actualizando dispositivo activo para $correo: ${error.message}", error)
@@ -155,9 +171,8 @@ object PerfilNube {
      * con validación Anti-Trampa (Sesión Única):
      * 1. Extrae 'id_dispositivo_activo' (o 'activeDeviceId') de Firestore.
      * 2. Llama a SEGURIDAD_CUENTAS.obtenerIdDispositivo(contexto) para el ID local.
-     * 3. Si el ID remoto existe y es diferente al local, se detiene inmediatamente la sincronización local (rompe el listener).
-     * 4. Ejecuta SEGURIDAD_CUENTAS.forzarCierreSesion(contexto).
-     * 5. Emite un evento hacia la UI con el mensaje: "Sesión pausada. Se detectó actividad en otro celular."
+     * 3. Si el ID remoto existe y es diferente al local, se detiene la sincronización local y se emite evento a la UI.
+     * 4. El usuario en la UI decide si reclamar la sesión aquí o cerrar la sesión.
      */
     fun escucharPerfil(
         contexto: Context,
@@ -175,6 +190,15 @@ object PerfilNube {
                     }
                     if (snapshot == null || !snapshot.exists()) return@addSnapshotListener
 
+                    // Las sesiones anónimas (invitados/testers) no aplican control de desplazamiento
+                    val esAnonimo = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.isAnonymous == true
+                    if (esAnonimo) {
+                        snapshot.toObject(MemberProfile::class.java)?.let {
+                            alCambiar(it.copy(id = 0L), null)
+                        }
+                        return@addSnapshotListener
+                    }
+
                     // 1. Extraer campo 'id_dispositivo_activo' (o 'activeDeviceId') desde Firestore
                     val idDispositivoRemoto = snapshot.getString("id_dispositivo_activo")
                         ?: snapshot.getString("activeDeviceId")
@@ -186,15 +210,13 @@ object PerfilNube {
                     if (!idDispositivoRemoto.isNullOrBlank() && idDispositivoRemoto != idDispositivoLocal) {
                         Log.w(ETIQUETA_LOG, "🚨 Sesión iniciada en otro celular detectada (Remoto: $idDispositivoRemoto vs Local: $idDispositivoLocal)")
 
-                        // 4. Romper inmediatamente el listener y ejecutar Hard Logout
+                        // 4. Detener escucha activa para evitar bucles
                         listenerRegistration?.remove()
                         listenerRegistration = null
 
-                        // 5. Notificar a la UI
+                        // 5. Notificar a la UI (muestra diálogo para Reclamar o Cerrar Sesión)
                         val mensajeAviso = "Sesión pausada. Se detectó actividad en otro celular."
                         alDetectarDispositivoDistinto(mensajeAviso)
-
-                        SEGURIDAD_CUENTAS.forzarCierreSesion(contexto)
                         return@addSnapshotListener
                     }
 

@@ -102,11 +102,31 @@
 	</FrameLayout>
 
 	<FrameLayout
-		android:id="@+id/btn_team_tx_radar"
+		android:id="@+id/btn_team_tx_pilotos_map"
 		android:layout_width="48dp"
 		android:layout_height="48dp"
 		android:layout_gravity="top|end"
 		android:layout_marginTop="288dp"
+		android:layout_marginEnd="@dimen/map_button_margin"
+		android:clickable="true"
+		android:focusable="true"
+		android:elevation="2dp"
+		android:background="@android:color/transparent">
+
+		<androidx.appcompat.widget.AppCompatImageView
+			android:layout_width="44dp"
+			android:layout_height="44dp"
+			android:layout_gravity="center"
+			android:src="@android:drawable/ic_menu_myplaces"
+			android:contentDescription="Buscar Pilotos en el Mapa" />
+	</FrameLayout>
+
+	<FrameLayout
+		android:id="@+id/btn_team_tx_radar"
+		android:layout_width="48dp"
+		android:layout_height="48dp"
+		android:layout_gravity="top|end"
+		android:layout_marginTop="344dp"
 		android:layout_marginEnd="@dimen/map_button_margin"
 		android:clickable="true"
 		android:focusable="true"

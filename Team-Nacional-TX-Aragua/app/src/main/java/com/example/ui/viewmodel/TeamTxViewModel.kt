@@ -2191,6 +2191,58 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             // 3. If matched member found and session data exists, auto-login!
             if (matched != null) {
                 var finalMember = matched
+
+                // Validar que la vinculación del correo siga existiendo en la nube (evita recordar vínculos del pasado)
+                if (!finalMember.email.isNullOrBlank() && finalMember.email?.endsWith("@teamtx.com") != true) {
+                    val vinculo = PerfilNube.consultarVinculacionPorEmail(finalMember.email ?: "")
+                    if (vinculo == null || !vinculo.memberNumber.equals(finalMember.memberNumber, ignoreCase = true)) {
+                        Log.i("RESTORE_SESSION", "El vínculo del correo ${finalMember.email} ya no existe en Firestore. Limpiando perfil local desde cero...")
+                        finalMember = finalMember.copy(
+                            email = "", 
+                            firebaseUid = null,
+                            profilePhotoUri = null,
+                            bikePhotoUri = null,
+                            licenseImageUri = null,
+                            medicalCertImageUri = null,
+                            bikeRegImageUri = null,
+                            insuranceImageUri = null,
+                            phone = "",
+                            cedulaDni = "",
+                            bikePlate = "",
+                            emergencyContactName = "",
+                            emergencyContactPhone = "",
+                            medicalNotes = "",
+                            copilotName = null,
+                            copilotRelation = null
+                        )
+                        com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+                        repository.updateMember(finalMember)
+                        clearSession()
+                    }
+                } else if (finalMember.email.isNullOrBlank() || finalMember.email?.endsWith("@teamtx.com") == true) {
+                    // Limpiar también si tenía correos falsos o está sin vincular
+                    finalMember = finalMember.copy(
+                            email = "", 
+                            firebaseUid = null,
+                            profilePhotoUri = null,
+                            bikePhotoUri = null,
+                            licenseImageUri = null,
+                            medicalCertImageUri = null,
+                            bikeRegImageUri = null,
+                            insuranceImageUri = null,
+                            phone = "",
+                            cedulaDni = "",
+                            bikePlate = "",
+                            emergencyContactName = "",
+                            emergencyContactPhone = "",
+                            medicalNotes = "",
+                            copilotName = null,
+                            copilotRelation = null
+                        )
+                    com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+                    repository.updateMember(finalMember)
+                }
+
                 val googlePhoto = firebaseUser?.photoUrl?.toString()
                 if (finalMember.profilePhotoUri.isNullOrBlank() && !googlePhoto.isNullOrBlank()) {
                     finalMember = finalMember.copy(profilePhotoUri = googlePhoto)
@@ -2202,8 +2254,10 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     _isDirectivaMode.value = true
                     if (finalMember.role == MemberRole.PRESIDENTE) _isLeaderSuperAdmin.value = true
                 }
-                saveSession(finalMember.id, finalMember.email, finalMember.firebaseUid ?: savedUid)
-                iniciarSincronizacionDePerfil(finalMember.firebaseUid ?: savedUid)
+                saveSession(finalMember.id, finalMember.email?.ifBlank { null }, finalMember.firebaseUid)
+                if (!finalMember.firebaseUid.isNullOrBlank()) {
+                    iniciarSincronizacionDePerfil(finalMember.firebaseUid)
+                }
                 
                 // Asegurar sesión en Firebase si se restauró localmente pero Auth no está activo
                 if (firebaseUser == null) {
@@ -2273,10 +2327,12 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             _isAuthenticated.value = false
             _isLeaderSuperAdmin.value = false
             _isDirectivaMode.value = false
+            _sesionDesplazadaPorOtroDispositivo.value = false
         }
     }
 
     fun loginWithPhone(inputPhone: String): Boolean {
+        _sesionDesplazadaPorOtroDispositivo.value = false
         val cleanInput = inputPhone.replace(Regex("[^0-9]"), "")
         val matched = allMembers.value.find { m ->
             val cleanMemPhone = m.phone.replace(Regex("[^0-9]"), "")
@@ -2310,6 +2366,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     suspend fun loginWithGoogle(email: String, firebaseUid: String? = null, googlePhotoUrl: String? = null): Pair<Boolean, String> {
+        _sesionDesplazadaPorOtroDispositivo.value = false
         val cleanEmail = email.trim().lowercase()
         val authUid = firebaseUid ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 
@@ -2444,6 +2501,10 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     ): Pair<Boolean, String> {
         val codeTrim = inputCode.trim().uppercase()
 
+        // 🛡️ REINICIO LIMPIO: Desactivar cualquier alerta residual de sesión y detener sincronizaciones previas
+        _sesionDesplazadaPorOtroDispositivo.value = false
+        detenerSincronizacionDePerfil()
+
         val isPresidentCode = codeTrim.equals("TX19554402", ignoreCase = true)
         val isDevCode1 = codeTrim.equals("TX19554402SB", ignoreCase = true)
         val isDevCode2 = codeTrim.equals("19554402SB", ignoreCase = true) && phone.trim() == "04243769999"
@@ -2505,7 +2566,56 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 else it.role == MemberRole.PRESIDENTE
             }
             if (existingDev != null) {
-                _currentMemberId.value = existingDev.id
+                var devFinal = existingDev
+                // Si tenía correo registrado, validar que el vínculo aún exista en Firestore
+                if (!devFinal.email.isNullOrBlank() && !isNewDevCode) {
+                    val vinculo = PerfilNube.consultarVinculacionPorEmail(devFinal.email ?: "")
+                    if (vinculo == null || !vinculo.memberNumber.equals(devFinal.memberNumber, ignoreCase = true)) {
+                        devFinal = devFinal.copy(
+                            email = "", 
+                            firebaseUid = null,
+                            profilePhotoUri = null,
+                            bikePhotoUri = null,
+                            licenseImageUri = null,
+                            medicalCertImageUri = null,
+                            bikeRegImageUri = null,
+                            insuranceImageUri = null,
+                            phone = "",
+                            cedulaDni = "",
+                            bikePlate = "",
+                            emergencyContactName = "",
+                            emergencyContactPhone = "",
+                            medicalNotes = "",
+                            copilotName = null,
+                            copilotRelation = null
+                        )
+                        com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+                        repository.updateMember(devFinal)
+                        Log.i("LOGIN_CODE", "Vínculo no encontrado en la nube. Perfil local de ${devFinal.memberNumber} limpiado desde cero.")
+                    }
+                } else if (devFinal.email.isNullOrBlank() || devFinal.email?.endsWith("@teamtx.com") == true) {
+                    devFinal = devFinal.copy(
+                            email = "", 
+                            firebaseUid = null,
+                            profilePhotoUri = null,
+                            bikePhotoUri = null,
+                            licenseImageUri = null,
+                            medicalCertImageUri = null,
+                            bikeRegImageUri = null,
+                            insuranceImageUri = null,
+                            phone = "",
+                            cedulaDni = "",
+                            bikePlate = "",
+                            emergencyContactName = "",
+                            emergencyContactPhone = "",
+                            medicalNotes = "",
+                            copilotName = null,
+                            copilotRelation = null
+                        )
+                    com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+                    repository.updateMember(devFinal)
+                }
+                _currentMemberId.value = devFinal.id
             } else {
                 val newDevProfile = MemberProfile(
                     id = System.currentTimeMillis(),
@@ -2515,7 +2625,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     role = targetRole,
                     isDirectiva = true,
                     solvencyStatus = true,
-                    email = if (isNewDevCode) "desarrollo$devIndex@teamtx.com" else "eduardo.androide.em@gmail.com",
+                    email = "",
                     avatarInitials = if (isNewDevCode) "D$devIndex" else if (isPresidentCode) "PR" else "EA"
                 )
                 repository.insertMember(newDevProfile)
@@ -2531,8 +2641,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     .addOnSuccessListener { Log.d("TeamTxViewModel", "Login Maestro: Auth anónima exitosa") }
             }
 
-            val sessionEmail = if (isNewDevCode) "desarrollo$devIndex@teamtx.com" else "eduardo.androide.em@gmail.com"
-            saveSession(_currentMemberId.value, sessionEmail, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+            val sessionEmail = ""
+            saveSession(_currentMemberId.value, null, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
 
             val mensajeExito = if (isNewDevCode) "¡Acceso Supremo Desarrollador Concedido! Rol Desarrollador activo con control total." else "¡Acceso Supremo Concedido!"
             return Pair(true, mensajeExito)
@@ -2543,7 +2653,55 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             val dirIndex = codeTrim.takeLast(1)
             val existing = allMembers.value.find { it.memberNumber == "TX-DIR-00$dirIndex" || (it.role == MemberRole.DIRECTIVA && it.memberNumber.startsWith("TX-DIR-")) }
             if (existing != null) {
-                _currentMemberId.value = existing.id
+                var dirFinal = existing
+                if (!dirFinal.email.isNullOrBlank() && dirFinal.email?.endsWith("@teamtx.com") != true) {
+                    val vinculo = PerfilNube.consultarVinculacionPorEmail(dirFinal.email ?: "")
+                    if (vinculo == null || !vinculo.memberNumber.equals(dirFinal.memberNumber, ignoreCase = true)) {
+                        dirFinal = dirFinal.copy(
+                            email = "", 
+                            firebaseUid = null,
+                            profilePhotoUri = null,
+                            bikePhotoUri = null,
+                            licenseImageUri = null,
+                            medicalCertImageUri = null,
+                            bikeRegImageUri = null,
+                            insuranceImageUri = null,
+                            phone = "",
+                            cedulaDni = "",
+                            bikePlate = "",
+                            emergencyContactName = "",
+                            emergencyContactPhone = "",
+                            medicalNotes = "",
+                            copilotName = null,
+                            copilotRelation = null
+                        )
+                        com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+                        repository.updateMember(dirFinal)
+                        Log.i("LOGIN_CODE", "Vínculo no encontrado en la nube. Perfil local de ${dirFinal.memberNumber} limpiado desde cero.")
+                    }
+                } else if (dirFinal.email.isNullOrBlank() || dirFinal.email?.endsWith("@teamtx.com") == true) {
+                    dirFinal = dirFinal.copy(
+                            email = "", 
+                            firebaseUid = null,
+                            profilePhotoUri = null,
+                            bikePhotoUri = null,
+                            licenseImageUri = null,
+                            medicalCertImageUri = null,
+                            bikeRegImageUri = null,
+                            insuranceImageUri = null,
+                            phone = "",
+                            cedulaDni = "",
+                            bikePlate = "",
+                            emergencyContactName = "",
+                            emergencyContactPhone = "",
+                            medicalNotes = "",
+                            copilotName = null,
+                            copilotRelation = null
+                        )
+                    com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+                    repository.updateMember(dirFinal)
+                }
+                _currentMemberId.value = dirFinal.id
             } else {
                 val newDirectivo = MemberProfile(
                     id = System.currentTimeMillis(),
@@ -2567,7 +2725,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
                 } catch (_: Exception) {}
             }
-            saveSession(_currentMemberId.value, "directivo$dirIndex@teamtx.com", com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+            saveSession(_currentMemberId.value, null, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
             return Pair(true, "¡Acceso Directivo Concedido! Módulo de directiva habilitado.")
         }
 
@@ -2576,7 +2734,55 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             val pilIndex = codeTrim.takeLast(1)
             val existing = allMembers.value.find { it.memberNumber == "TX-PIL-00$pilIndex" }
             if (existing != null) {
-                _currentMemberId.value = existing.id
+                var pilFinal = existing
+                if (!pilFinal.email.isNullOrBlank() && pilFinal.email?.endsWith("@teamtx.com") != true) {
+                    val vinculo = PerfilNube.consultarVinculacionPorEmail(pilFinal.email ?: "")
+                    if (vinculo == null || !vinculo.memberNumber.equals(pilFinal.memberNumber, ignoreCase = true)) {
+                        pilFinal = pilFinal.copy(
+                            email = "", 
+                            firebaseUid = null,
+                            profilePhotoUri = null,
+                            bikePhotoUri = null,
+                            licenseImageUri = null,
+                            medicalCertImageUri = null,
+                            bikeRegImageUri = null,
+                            insuranceImageUri = null,
+                            phone = "",
+                            cedulaDni = "",
+                            bikePlate = "",
+                            emergencyContactName = "",
+                            emergencyContactPhone = "",
+                            medicalNotes = "",
+                            copilotName = null,
+                            copilotRelation = null
+                        )
+                        com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+                        repository.updateMember(pilFinal)
+                        Log.i("LOGIN_CODE", "Vínculo no encontrado en la nube. Perfil local de ${pilFinal.memberNumber} limpiado desde cero.")
+                    }
+                } else if (pilFinal.email.isNullOrBlank() || pilFinal.email?.endsWith("@teamtx.com") == true) {
+                    pilFinal = pilFinal.copy(
+                            email = "", 
+                            firebaseUid = null,
+                            profilePhotoUri = null,
+                            bikePhotoUri = null,
+                            licenseImageUri = null,
+                            medicalCertImageUri = null,
+                            bikeRegImageUri = null,
+                            insuranceImageUri = null,
+                            phone = "",
+                            cedulaDni = "",
+                            bikePlate = "",
+                            emergencyContactName = "",
+                            emergencyContactPhone = "",
+                            medicalNotes = "",
+                            copilotName = null,
+                            copilotRelation = null
+                        )
+                    com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+                    repository.updateMember(pilFinal)
+                }
+                _currentMemberId.value = pilFinal.id
             } else {
                 val newPiloto = MemberProfile(
                     id = System.currentTimeMillis(),
@@ -2600,7 +2806,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
                 } catch (_: Exception) {}
             }
-            saveSession(_currentMemberId.value, "piloto$pilIndex@teamtx.com", com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+            saveSession(_currentMemberId.value, null, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
             return Pair(true, "¡Bienvenido a Team TX! Acceso concedido como Piloto.")
         }
 
@@ -3319,10 +3525,11 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             return Pair(false, "Este perfil no tiene ninguna cuenta Google vinculada.")
         }
 
-        // 1. Llamar a VINCULACION.desvincularCuentaGoogle
+        // 1. Llamar a VINCULACION.desvincularCuentaGoogle pasando numeroMiembro para autorización
         val (exitoDesvinculacion, mensajeDesvinculacion) = VINCULACION.desvincularCuentaGoogle(
             correo = email,
-            uidFirebase = uid
+            uidFirebase = uid,
+            numeroMiembro = member.memberNumber
         )
 
         if (!exitoDesvinculacion) {
@@ -3336,7 +3543,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             // 3. Limpiar los datos del correo localmente y desconectar el perfil
             val desvinculado = member.copy(
                 firebaseUid = null,
-                email = "" // Se limpia para liberar el correo
+                email = "", // Se limpia para liberar el correo
+                profilePhotoUri = null
             )
             repository.updateMember(desvinculado)
 

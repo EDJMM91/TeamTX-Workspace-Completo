@@ -238,6 +238,10 @@ object RadarFirebase {
         Log.d(ETIQUETA, "Escucha detenida")
     }
 
+    fun obtenerPilotosEnMemoria(): List<PilotoRadar> {
+        return pilotosEnMemoria.values.sortedByDescending { it.timestamp }
+    }
+
     suspend fun descargarAvatar(url: String, context: Context? = null): Bitmap? {
         if (url.isBlank()) return null
 

@@ -18,7 +18,7 @@ Cada módulo se dejará **"estable"** sin errores ni bugs. Una vez terminado con
 
 > **Nota**: Estas instrucciones pueden variar de repente. Puedo dejar de seguir el orden, dejando memoria de los módulos faltantes o a mitad de desarrollo, por si decido ajustar algo de otro módulo.
 
----
+---contexto detallado en D:\MAPA\Team-Nacional-TX-Aragua\graphify-out
 
 ## Regla Global: Persistencia
 

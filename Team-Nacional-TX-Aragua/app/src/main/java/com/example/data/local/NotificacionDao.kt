@@ -36,6 +36,15 @@ interface NotificacionDao {
     @Delete
     suspend fun delete(notificacion: NotificacionApp)
 
+    @Query("DELETE FROM app_notifications WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM app_notifications WHERE leida = 1")
+    suspend fun deleteLeidas()
+
+    @Query("DELETE FROM app_notifications")
+    suspend fun deleteAll()
+
     @Query("DELETE FROM app_notifications WHERE timestamp < :timestampLimite")
     suspend fun eliminarAnteriores(timestampLimite: Long)
 }
