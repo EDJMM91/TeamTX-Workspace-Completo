@@ -82,7 +82,7 @@ enum class NavigationTab(val label: String, val iconFilled: ImageVector, val ico
     RETOS("Retos", Icons.Default.EmojiEvents, Icons.Outlined.EmojiEvents, "tab_retos"),
     VELOCIMETRO("Velocímetro", Icons.Default.Speed, Icons.Outlined.Speed, "tab_velocimetro"),
     RIDES("Rodadas", Icons.Default.TwoWheeler, Icons.Outlined.TwoWheeler, "tab_rides"),
-    MERCADO("Mercado", Icons.Default.Storefront, Icons.Outlined.Storefront, "tab_mercado"),
+    MERCADO("Mercado", Icons.Default.ShoppingCart, Icons.Outlined.ShoppingCart, "tab_mercado"),
     BITACORA("Bitácora", Icons.Default.Build, Icons.Outlined.Build, "tab_bitacora"),
     DIRECTORIO("Servicios", Icons.Default.Storefront, Icons.Outlined.Storefront, "tab_directorio"),
     PASAPORTE("Pasaporte", Icons.Default.Explore, Icons.Outlined.Explore, "tab_pasaporte"),
@@ -456,7 +456,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
-                                    .pointerInput(Unit) {
+                                    .pointerInput(tab) {
                                         detectTapGestures(
                                             onTap = { selectedTab = tab },
                                             onLongPress = { slotToEditIndex = index }
@@ -1000,6 +1000,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     EmergencySosScreen(
                         alerts = emergencyAlerts,
                         currentMember = currentMember,
+                        allMembers = allMembers,
                         isDirectivaMode = isDirectivaMode,
                         onBack = { selectedTab = NavigationTab.DASHBOARD },
                         onBroadcastSos = { type, loc, details, blood, lat, lng ->
@@ -1142,6 +1143,20 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     TxMapLauncher(
                         onBackClick = { selectedTab = NavigationTab.DASHBOARD },
                         onNavigateToDirectory = { selectedTab = NavigationTab.DIRECTORIO },
+                        currentMember = currentMember,
+                        onBroadcastSos = { type, loc, details, blood, lat, lng ->
+                            viewModel.broadcastSosEmergency(type, loc, details, blood, lat, lng)
+                            try {
+                                if (type == com.example.data.model.EmergencyType.ALCABALA_RETEN) {
+                                    com.example.meshtx.GestorMeshTx.activarModoAlcabalaSos("Ubicación: $loc. $details")
+                                } else {
+                                    com.example.meshtx.GestorMeshTx.emitirAlertaSos(
+                                        "🚨 SOS ${type.name}: $loc - $details",
+                                        if (lat != 0.0) "$lat,$lng" else null
+                                    )
+                                }
+                            } catch (_: Exception) {}
+                        },
                         onOpenMemberCarnetById = { pilotId ->
                             val found = allMembers.find {
                                 it.id.toString() == pilotId ||

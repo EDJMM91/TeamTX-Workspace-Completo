@@ -1888,13 +1888,14 @@ fun MeshTxScreen(
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
+                                    val esRemotoNube = nodo.direccionNodo.contains("Nube") || nodo.direccionNodo.contains("Firebase")
                                     Text(
                                         text = if (estaHablando)
-                                            "🔊 ¡RECIBIENDO AUDIO EN VIVO! • ~${nodo.distanciaAproximadaMetros.toInt()}m"
+                                            "🔊 ¡RECIBIENDO AUDIO EN VIVO! • ${if (esRemotoNube) "🌐 Enlace Firebase (4G)" else "~${nodo.distanciaAproximadaMetros.toInt()}m"}"
                                         else if (ajustes.mostrarPerfilSincronizado)
-                                            "${nodo.nombreMoto.ifBlank { "TX 200" }} • ${nodo.fichaMiembro.ifBlank { "Ficha #${nodo.idMiembro and 0x3FFL}" }} • ~${nodo.distanciaAproximadaMetros.toInt()}m"
+                                            "${nodo.nombreMoto.ifBlank { "TX 200" }} • ${nodo.fichaMiembro.ifBlank { "Ficha #${nodo.idMiembro and 0x3FFL}" }} • ${if (esRemotoNube) "🌐 Enlace Nube / 4G (Fuera de rango)" else "~${nodo.distanciaAproximadaMetros.toInt()}m"}"
                                         else
-                                            "Hardware: ${nodo.direccionNodo.ifBlank { "Radio Local" }} • ${nodo.intensidadSenalDbm} dBm • ~${nodo.distanciaAproximadaMetros.toInt()}m",
+                                            "Hardware: ${if (esRemotoNube) "🌐 Enlace Firebase (4G/Wi-Fi)" else "${nodo.direccionNodo.ifBlank { "Radio Local" }} • ${nodo.intensidadSenalDbm} dBm • ~${nodo.distanciaAproximadaMetros.toInt()}m"}",
                                         fontSize = 10.sp,
                                         color = if (estaHablando) Color(0xFF16A34A) else Color(0xFF64748B),
                                         fontWeight = if (estaHablando) FontWeight.Bold else FontWeight.Medium
@@ -1910,6 +1911,20 @@ fun MeshTxScreen(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                         modifier = Modifier.padding(top = 2.dp)
                                     ) {
+                                        if (esRemotoNube) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = Color(0xFFE0F2FE)
+                                            ) {
+                                                Text(
+                                                    text = "🌐 Nube / 4G",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF0369A1),
+                                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                        }
                                         if (!nodo.salaPrivada.isNullOrBlank()) {
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),

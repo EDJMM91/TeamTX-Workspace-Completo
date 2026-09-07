@@ -29,7 +29,12 @@ class PuenteCelularMalla(
     private val contexto: Context,
     private var idPilotoLocal: Long,
     private var aliasPilotoLocal: String,
-    private val alRecibirAudioDesdePuente: (ByteArray, Long, String, Int) -> Unit
+    private var modeloMotoLocal: String = "Keeway TX 200",
+    private var fichaLocal: String = "",
+    private var fotoUrlLocal: String = "",
+    private val alRecibirAudioDesdePuente: (ByteArray, Long, String, Int) -> Unit,
+    private val alDetectarPilotoNube: (NodoMeshPiloto) -> Unit = {},
+    private val alPerderPilotoNube: (Long) -> Unit = {}
 ) {
 
     private val etiquetaLog = "MeshTX_PuenteCelular"
@@ -37,7 +42,11 @@ class PuenteCelularMalla(
 
     private var firestore: FirebaseFirestore? = null
     private var registroListenerCanal: ListenerRegistration? = null
+    private var registroListenerPresencia: ListenerRegistration? = null
     private var canalActualId: Int = 1
+    private var nombreCanalActual: String = "General TX"
+    private var salaPrivadaActiva: String? = null
+    private var tareaPresencia: Job? = null
 
     var ayudaConDatosHabilitada: Boolean = false
         private set
@@ -55,6 +64,20 @@ class PuenteCelularMalla(
     fun actualizarIdentidad(id: Long, alias: String) {
         this.idPilotoLocal = id
         if (alias.isNotBlank()) this.aliasPilotoLocal = alias
+    }
+
+    fun actualizarPerfil(modeloMoto: String, ficha: String, fotoUrl: String) {
+        if (modeloMoto.isNotBlank()) this.modeloMotoLocal = modeloMoto
+        if (ficha.isNotBlank()) this.fichaLocal = ficha
+        this.fotoUrlLocal = fotoUrl
+    }
+
+    fun actualizarSalaPrivada(sala: String?) {
+        this.salaPrivadaActiva = sala
+    }
+
+    fun actualizarNombreCanal(nombre: String) {
+        this.nombreCanalActual = nombre
     }
 
     fun setMallaActiva(activa: Boolean) {
@@ -216,7 +239,80 @@ class PuenteCelularMalla(
                 }
             }
 
-            Log.i(etiquetaLog, "🌐 Puente Celular Firebase Firestore CONECTADO en Canal $canalActualId.")
+            // 🌐 2. Publicar presencia periódica (Heartbeat) en la sala/canal de Firebase
+            val docIdPresencia = "canal_${canalActualId}_${idPilotoLocal}"
+            tareaPresencia?.cancel()
+            tareaPresencia = alcancePuente.launch {
+                while (isActive && estaMallaActiva && ayudaConDatosHabilitada) {
+                    try {
+                        val payload = mapOf(
+                            "idPiloto" to idPilotoLocal,
+                            "aliasPiloto" to aliasPilotoLocal,
+                            "modeloMoto" to modeloMotoLocal,
+                            "ficha" to fichaLocal,
+                            "fotoUrl" to fotoUrlLocal,
+                            "canalId" to canalActualId,
+                            "nombreCanal" to nombreCanalActual,
+                            "salaPrivada" to (salaPrivadaActiva ?: ""),
+                            "timestamp" to System.currentTimeMillis()
+                        )
+                        db.collection("mesh_tx_presencia").document(docIdPresencia).set(payload, SetOptions.merge())
+                    } catch (e: Exception) {
+                        Log.w(etiquetaLog, "Error emitiendo presencia en Firebase: ${e.message}")
+                    }
+                    delay(20_000)
+                }
+            }
+
+            // 🌐 3. Escuchar presencia de otros pilotos en la misma sala / canal de Firebase (Fuera de rango offline)
+            registroListenerPresencia?.remove()
+            registroListenerPresencia = db.collection("mesh_tx_presencia")
+                .whereEqualTo("canalId", canalActualId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null || snapshot == null || !estaMallaActiva) return@addSnapshotListener
+                    val ahora = System.currentTimeMillis()
+                    for (doc in snapshot.documents) {
+                        try {
+                            val idPiloto = doc.getLong("idPiloto") ?: continue
+                            if (idPiloto == idPilotoLocal) continue
+
+                            val ts = doc.getLong("timestamp") ?: 0L
+                            if (ahora - ts > 60_000L) {
+                                alPerderPilotoNube(idPiloto)
+                                continue
+                            }
+
+                            val alias = doc.getString("aliasPiloto") ?: "Piloto Nube"
+                            val moto = doc.getString("modeloMoto") ?: "Keeway TX 200"
+                            val ficha = doc.getString("ficha") ?: ""
+                            val foto = doc.getString("fotoUrl") ?: ""
+                            val nombreCanal = doc.getString("nombreCanal") ?: "Canal $canalActualId"
+                            val sala = doc.getString("salaPrivada")?.ifBlank { null }
+
+                            val nodo = NodoMeshPiloto(
+                                idMiembro = idPiloto,
+                                aliasPiloto = alias,
+                                nombreMoto = moto,
+                                fotoUrl = foto,
+                                fichaMiembro = ficha,
+                                modeloTelefonoHardware = "Enlace Firebase (4G/Wi-Fi)",
+                                direccionNodo = "Nube / Firebase",
+                                intensidadSenalDbm = -50,
+                                estaTransmitiendoVoz = false,
+                                distanciaAproximadaMetros = 0.0,
+                                ultimoPingTimestamp = ts,
+                                idCanalActual = canalActualId,
+                                nombreCanalActual = nombreCanal,
+                                salaPrivada = sala
+                            )
+                            alDetectarPilotoNube(nodo)
+                        } catch (e: Exception) {
+                            Log.w(etiquetaLog, "Error procesando presencia de nodo nube: ${e.message}")
+                        }
+                    }
+                }
+
+            Log.i(etiquetaLog, "🌐 Puente Celular Firebase Firestore CONECTADO en Canal $canalActualId (Audio + Presencia en Vivo).")
         } catch (e: Exception) {
             Log.w(etiquetaLog, "Error conectando Puente Celular: ${e.message}")
         }
@@ -226,7 +322,23 @@ class PuenteCelularMalla(
         try {
             registroListenerCanal?.remove()
             registroListenerCanal = null
+            registroListenerPresencia?.remove()
+            registroListenerPresencia = null
         } catch (_: Exception) {}
+
+        tareaPresencia?.cancel()
+        tareaPresencia = null
+
+        // Eliminar rastro de presencia en Firebase de forma asíncrona
+        val idAEliminar = idPilotoLocal
+        val canalAEliminar = canalActualId
+        alcancePuente.launch {
+            try {
+                val db = firestore ?: FirebaseFirestore.getInstance()
+                db.collection("mesh_tx_presencia").document("canal_${canalAEliminar}_${idAEliminar}").delete()
+            } catch (_: Exception) {}
+        }
+
         synchronized(bufferRafaga) {
             bufferRafaga.clear()
         }

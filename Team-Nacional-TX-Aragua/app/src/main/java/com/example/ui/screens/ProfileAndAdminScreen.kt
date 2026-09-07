@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -40,7 +41,7 @@ import java.io.FileOutputStream
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chat.NubeArchivos
@@ -104,7 +105,15 @@ fun ProfileAndAdminScreen(
         }
     )
 
-    val googlePhoto = PreferenciasApp.carnetGooglePhotoUrl ?: FirebaseAuth.getInstance().currentUser?.photoUrl?.toString()
+    val authCurrentEmail = FirebaseAuth.getInstance().currentUser?.email?.lowercase()?.trim()
+    val memberEmail = currentMember?.email?.lowercase()?.trim()
+    val googlePhoto = if (memberEmail != null && authCurrentEmail == memberEmail) {
+        PreferenciasApp.carnetGooglePhotoUrl ?: FirebaseAuth.getInstance().currentUser?.photoUrl?.toString()
+    } else if (memberEmail == null) {
+        PreferenciasApp.carnetGooglePhotoUrl ?: FirebaseAuth.getInstance().currentUser?.photoUrl?.toString()
+    } else {
+        null
+    }
     val fotoCarnetActiva = if (tipoFotoSeleccionada == "CORREO" && !googlePhoto.isNullOrBlank()) {
         googlePhoto
     } else {
@@ -467,7 +476,14 @@ fun ProfileAndAdminScreen(
             // Google Sign-In: Vincular cuenta Google para sincronizar en la nube
             if (currentMember != null) {
                 item {
-                    val yaVinculada = !currentMember.firebaseUid.isNullOrBlank()
+                    val yaVinculada = !currentMember.firebaseUid.isNullOrBlank() || !currentMember.email.isNullOrBlank()
+                    val correoVinculado = currentMember.email?.ifBlank { null }
+                        ?: (if (currentMember.role == MemberRole.DESARROLLADOR) {
+                            if (currentMember.memberNumber == "TX-DEV-001") "eduardo.androide.em@gmail.com" else "eduardo.jose.marquez.matos@gmail.com"
+                        } else null)
+                        ?: currentMember.firebaseUid
+                        ?: "Sincronizado"
+
                     Card(
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
@@ -475,80 +491,100 @@ fun ProfileAndAdminScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = if (yaVinculada) DashboardFondoConfig.ColorContenedorVerde else DashboardFondoConfig.ColorContenedorAzul,
-                                modifier = Modifier.size(42.dp)
+                            // --- FILA 1: ESTADO DE LA CUENTA & CORREO VINCULADO (ESPACIO COMPLETO) ---
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Cloud,
-                                        contentDescription = null,
-                                        tint = if (yaVinculada) Color(0xFF15803D) else Color(0xFF2563EB),
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                            }
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = if (yaVinculada) "Google Vinculado" else "Sincronizar con la Nube",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp,
-                                    color = DashboardFondoConfig.ColorTextoPrimario
-                                )
-                                Text(
-                                    text = if (yaVinculada) {
-                                        val correo = currentMember.email?.ifBlank { currentMember.firebaseUid ?: "" } ?: (currentMember.firebaseUid ?: "")
-                                        if (correo.isNotBlank()) "Cuenta: $correo" else "Sincronizado y respaldado automáticamente"
-                                    } else "Vincula tu cuenta Google para backup y acceso desde cualquier dispositivo",
-                                    fontSize = 10.sp,
-                                    color = if (yaVinculada) Color(0xFF15803D) else DashboardFondoConfig.ColorTextoSecundario,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            if (!yaVinculada) {
-                                Button(
-                                    onClick = {
-                                        val availability = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context)
-                                        if (availability != ConnectionResult.SUCCESS) {
-                                            val activity = context as? android.app.Activity
-                                                ?: return@Button
-                                            GoogleApiAvailability.getInstance().getErrorDialog(activity, availability, 9001)?.show()
-                                            Toast.makeText(context, "Se requiere Google Play Services para vincular", Toast.LENGTH_LONG).show()
-                                            return@Button
-                                        }
-                                        isGoogleAuthLoading = true
-                                        googleHelper.abrirSelector()
-                                    },
-                                    enabled = !isGoogleAuthLoading,
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4)),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                Surface(
+                                    shape = CircleShape,
+                                    color = if (yaVinculada) DashboardFondoConfig.ColorContenedorVerde else DashboardFondoConfig.ColorContenedorAzul,
+                                    modifier = Modifier.size(42.dp)
                                 ) {
-                                    if (isGoogleAuthLoading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(14.dp),
-                                            strokeWidth = 2.dp,
-                                            color = Color.White
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.Cloud,
+                                            contentDescription = null,
+                                            tint = if (yaVinculada) Color(0xFF15803D) else Color(0xFF2563EB),
+                                            modifier = Modifier.size(22.dp)
                                         )
-                                    } else {
-                                        Text("Vincular", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     }
                                 }
-                            } else {
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = if (yaVinculada) "Cuenta Google Vinculada" else "Sincronizar con la Nube",
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 13.sp,
+                                            color = DashboardFondoConfig.ColorTextoPrimario
+                                        )
+                                        if (yaVinculada) {
+                                            Icon(
+                                                Icons.Default.CheckCircle,
+                                                contentDescription = "Vinculado",
+                                                tint = Color(0xFF15803D),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = if (yaVinculada) "Cuenta: $correoVinculado" else "Vincula tu cuenta Google para backup y acceso",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = if (yaVinculada) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (yaVinculada) Color(0xFF15803D) else DashboardFondoConfig.ColorTextoSecundario
+                                    )
+                                }
+
+                                if (!yaVinculada) {
+                                    Button(
+                                        onClick = {
+                                            val availability = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context)
+                                            if (availability != ConnectionResult.SUCCESS) {
+                                                val activity = context as? android.app.Activity
+                                                    ?: return@Button
+                                                GoogleApiAvailability.getInstance().getErrorDialog(activity, availability, 9001)?.show()
+                                                Toast.makeText(context, "Se requiere Google Play Services para vincular", Toast.LENGTH_LONG).show()
+                                                return@Button
+                                            }
+                                            isGoogleAuthLoading = true
+                                            googleHelper.abrirSelector()
+                                        },
+                                        enabled = !isGoogleAuthLoading,
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4)),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                    ) {
+                                        if (isGoogleAuthLoading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(14.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color.White
+                                            )
+                                        } else {
+                                            Text("Vincular", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // --- FILA 2: ACCIONES DE VINCULACIÓN (CAMBIAR / DESVINCULAR) ---
+                            if (yaVinculada) {
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     OutlinedButton(
                                         onClick = {
@@ -566,8 +602,9 @@ fun ProfileAndAdminScreen(
                                         enabled = !isGoogleAuthLoading,
                                         shape = RoundedCornerShape(8.dp),
                                         border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                        modifier = Modifier.height(32.dp)
+                                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF8FAFC)),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f).height(34.dp)
                                     ) {
                                         if (isGoogleAuthLoading) {
                                             CircularProgressIndicator(
@@ -577,12 +614,11 @@ fun ProfileAndAdminScreen(
                                             )
                                         } else {
                                             Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFF4285F4))
-                                            Spacer(modifier = Modifier.width(3.dp))
-                                            Text("Cambiar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4285F4))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Cambiar Correo", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4285F4))
                                         }
                                     }
 
-                                    // Botón Desvincular Cuenta Google (Libera el correo en Firestore)
                                     OutlinedButton(
                                         onClick = { showDesvincularConfirmDialog = true },
                                         enabled = !isGoogleAuthLoading,
@@ -591,51 +627,49 @@ fun ProfileAndAdminScreen(
                                         colors = ButtonDefaults.outlinedButtonColors(
                                             containerColor = Color(0xFFFFF1F2)
                                         ),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                        modifier = Modifier.height(32.dp)
-                                    ) {
-                                        Icon(Icons.Default.LinkOff, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFFE11D48))
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text("Desvincular", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE11D48))
-                                    }
-
-                                    Icon(Icons.Default.CheckCircle, contentDescription = "Vinculado", tint = Color(0xFF15803D), modifier = Modifier.size(20.dp))
-                                }
-
-                                // Opciones de Seguridad y Credenciales: Código Personalizado y Switch Dev
-                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DashboardFondoConfig.ColorBordeClaro)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { showCambiarCodigoDialog = true },
-                                        shape = RoundedCornerShape(8.dp),
-                                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
-                                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF8FAFC)),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                         modifier = Modifier.weight(1f).height(34.dp)
                                     ) {
-                                        Icon(Icons.Default.Key, contentDescription = null, modifier = Modifier.size(14.dp), tint = MotoOrangePrimary)
+                                        Icon(Icons.Default.LinkOff, contentDescription = null, modifier = Modifier.size(13.dp), tint = Color(0xFFE11D48))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Código de Acceso", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
+                                        Text("Desvincular", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE11D48))
                                     }
+                                }
+                            }
 
-                                    val esDev = currentMember?.role == MemberRole.DESARROLLADOR
-                                    if (esDev) {
-                                        OutlinedButton(
-                                            onClick = { showCambiarDevDialog = true },
-                                            shape = RoundedCornerShape(8.dp),
-                                            border = BorderStroke(1.dp, Color(0xFF93C5FD)),
-                                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFEFF6FF)),
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                            modifier = Modifier.weight(1f).height(34.dp)
-                                        ) {
-                                            Icon(Icons.Default.ManageAccounts, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF2563EB))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Cambiar Cuenta Dev", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1D4ED8))
-                                        }
+                            // --- FILA 3: CÓDIGO DE ACCESO Y SWITCH DEV ---
+                            HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedButton(
+                                    onClick = { showCambiarCodigoDialog = true },
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF8FAFC)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    modifier = Modifier.weight(1f).height(36.dp)
+                                ) {
+                                    Icon(Icons.Default.Key, contentDescription = null, modifier = Modifier.size(14.dp), tint = MotoOrangePrimary)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Código de Acceso", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
+                                }
+
+                                val esDev = currentMember.role == MemberRole.DESARROLLADOR
+                                if (esDev) {
+                                    OutlinedButton(
+                                        onClick = { showCambiarDevDialog = true },
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, Color(0xFF93C5FD)),
+                                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFEFF6FF)),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f).height(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.ManageAccounts, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFF2563EB))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Cambiar Cuenta Dev", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1D4ED8))
                                     }
                                 }
                             }
@@ -648,7 +682,7 @@ fun ProfileAndAdminScreen(
             // Pilot Milestones & Experience Card
             item {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
                     border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -1101,7 +1135,13 @@ fun ProfileAndAdminScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Text(
                         "Selecciona la cuenta de desarrollador a la que deseas alternar. El sistema ejecutará un reinicio absoluto para cargar los datos limpios de la cuenta elegida.",
                         fontSize = 12.5.sp,
@@ -1453,6 +1493,8 @@ fun EditProfileDialog(
                             value = phone,
                             onValueChange = { phone = it },
                             label = { Text("Teléfono WhatsApp") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            singleLine = true,
                             modifier = Modifier.weight(1.1f)
                         )
                         OutlinedTextField(
@@ -1636,6 +1678,8 @@ fun EditProfileDialog(
                         value = emergencyContactPhone,
                         onValueChange = { emergencyContactPhone = it },
                         label = { Text("Teléfono de Emergencia") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

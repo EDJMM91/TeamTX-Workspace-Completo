@@ -39,6 +39,49 @@ import kotlinx.coroutines.launch
 
 private const val TAG_LOGCAT = "TEAM_TX_INFO"
 
+/**
+ * Comparte el enlace oficial de descarga del APK por WhatsApp con formato motero enriquecido
+ */
+fun compartirAppPorWhatsApp(
+    context: Context,
+    urlDescarga: String,
+    versionName: String
+) {
+    val texto = buildString {
+        appendLine("🏍️ *¡Únete a la App Oficial del Team Nacional TX Aragua!* 🇻🇪")
+        appendLine()
+        appendLine("Hermano motero, descarga la última versión oficial de nuestra aplicación con Mapa Táctico GPS, Sistema SOS Vial en Vivo, Muro Oficial, Chat Táctico, Mercado Biker y Carnet Digital.")
+        appendLine()
+        appendLine("📲 *Enlace directo de descarga del APK:*")
+        appendLine(urlDescarga)
+        appendLine()
+        appendLine("📦 *Versión:* $versionName (Oficial)")
+        appendLine("⚡ *Instalación rápida:* Abre el enlace, descarga el archivo APK e instálalo en tu Android.")
+        appendLine()
+        appendLine("¡Buenas rutas y nos vemos en el asfalto! ✌️🔥")
+    }
+
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, texto)
+        setPackage("com.whatsapp")
+    }
+
+    try {
+        context.startActivity(intent)
+    } catch (_: Exception) {
+        val fallback = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, texto)
+        }
+        try {
+            context.startActivity(Intent.createChooser(fallback, "Compartir App Team TX por WhatsApp"))
+        } catch (_: Exception) {
+            Toast.makeText(context, "No se encontró una aplicación compatible para compartir", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+
 @Composable
 fun VistaInfoScreen(
     currentMember: MemberProfile? = null,
@@ -60,6 +103,20 @@ fun VistaInfoScreen(
     var showUserGuideDialog by remember { mutableStateOf(false) }
     var showHelpImproveDialog by remember { mutableStateOf(false) }
     var showStorageVersionsDialog by remember { mutableStateOf(false) }
+
+    var urlDescargaDirecta by remember {
+        mutableStateOf("https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=e4b308dc-36e2-45e0-8113-d499ec76fce0")
+    }
+
+    LaunchedEffect(Unit) {
+        try {
+            val ota = GestorActualizaciones.verificarActualizacion()
+            if (ota != null && ota.urlDescarga.isNotBlank()) {
+                urlDescargaDirecta = ota.urlDescarga
+                infoOta = ota
+            }
+        } catch (_: Exception) {}
+    }
 
     Column(
         modifier = Modifier
@@ -233,7 +290,131 @@ fun VistaInfoScreen(
             Text("Historial de Versiones y Rollback", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 📲 Sección: Compartir App por WhatsApp / Enlace de Descarga
+        Card(
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.dp, Color(0xFF25D366).copy(alpha = 0.7f)),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF25D366).copy(alpha = 0.2f),
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Share,
+                                contentDescription = "Compartir",
+                                tint = Color(0xFF25D366),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    Column {
+                        Text(
+                            text = "COMPARTIR APP POR WHATSAPP",
+                            fontWeight = FontWeight.Black,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                        Text(
+                            text = "Envía el enlace de descarga a otro motero",
+                            fontSize = 10.5.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Comparte el enlace de descarga directa del APK oficial por WhatsApp para que cualquier hermano motero pueda instalar o actualizar la app fácilmente en su teléfono.",
+                    color = Color(0xFFCBD5E1),
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp
+                )
+
+                // Botón principal de WhatsApp
+                Button(
+                    onClick = {
+                        compartirAppPorWhatsApp(context, urlDescargaDirecta, BuildConfig.VERSION_NAME)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Default.Send,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Compartir App por WhatsApp",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 13.sp
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Botón para copiar el link directo
+                    OutlinedButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            val clip = ClipData.newPlainText("Link Descarga Team TX", urlDescargaDirecta)
+                            clipboard?.setPrimaryClip(clip)
+                            Toast.makeText(context, "📋 Enlace de descarga copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF38BDF8)),
+                        border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.6f)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Copiar Link", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    // Botón para compartir general
+                    OutlinedButton(
+                        onClick = {
+                            val generalIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "🏍️ Descarga la App Oficial del Team Nacional TX Aragua (v${BuildConfig.VERSION_NAME}):\n$urlDescargaDirecta")
+                            }
+                            context.startActivity(Intent.createChooser(generalIntent, "Compartir enlace de la App"))
+                        },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.4f)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.MoreHoriz, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Otras Apps", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Sección de Donar al Desarrollador
         Card(
@@ -491,15 +672,25 @@ fun VistaInfoScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(
-                    onClick = {
-                        mostrarDialogo = false
-                        GestorActualizaciones.abrirDescargaEnNavegador(context, infoOta!!.urlDescarga)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    IconButton(
+                        onClick = {
+                            compartirAppPorWhatsApp(context, ota.urlDescarga, ota.versionName)
+                        },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Compartir por WhatsApp", tint = Color(0xFF25D366))
                     }
-                ) {
-                    Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Navegador")
+                    OutlinedButton(
+                        onClick = {
+                            mostrarDialogo = false
+                            GestorActualizaciones.abrirDescargaEnNavegador(context, infoOta!!.urlDescarga)
+                        }
+                    ) {
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Navegador")
+                    }
                 }
             }
         )
@@ -1134,6 +1325,15 @@ fun StorageVersionsHistoryDialog(
                                             modifier = Modifier.height(32.dp)
                                         ) {
                                             Icon(Icons.Default.OpenInBrowser, contentDescription = "Navegador", modifier = Modifier.size(14.dp))
+                                        }
+
+                                        IconButton(
+                                            onClick = {
+                                                compartirAppPorWhatsApp(context, apk.downloadUrl, apk.versionName)
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Share, contentDescription = "Compartir por WhatsApp", tint = Color(0xFF25D366), modifier = Modifier.size(16.dp))
                                         }
                                     }
                                 }

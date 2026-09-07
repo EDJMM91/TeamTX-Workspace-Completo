@@ -212,7 +212,7 @@ object GestorNotificacionesApp {
             titulo = "🛒 Mercado Biker: $titulo",
             mensaje = "Precio: $precio | Vendedor: $vendedor",
             referenciaId = productoId,
-            icono = "storefront"
+            icono = "shopping_cart"
         )
     }
 

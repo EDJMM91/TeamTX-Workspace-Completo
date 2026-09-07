@@ -20,6 +20,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import android.content.ClipboardManager
+import android.content.ClipData
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import com.example.chat.GestorUbicacion
 import com.example.data.model.EmergencyStatus
 import com.example.data.model.EmergencyType
 import com.example.ui.theme.MotoOrangePrimary
@@ -33,20 +40,65 @@ fun EmitSosDialog(
     onDismiss: () -> Unit,
     onBroadcast: (type: EmergencyType, location: String, details: String, blood: String?, lat: Double, lng: Double) -> Unit
 ) {
-    val primaryTypes = listOf(
-        EmergencyType.ALCABALA_RETEN,
-        EmergencyType.ACCIDENTADO_GASOLINA,
-        EmergencyType.ACCIDENTADO_MECANICO,
-        EmergencyType.CAIDA,
-        EmergencyType.CHOQUE,
-        EmergencyType.EMERGENCIA_MEDICA,
-        EmergencyType.APOYO_SEGURIDAD
-    )
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val gestorUbicacion = remember { GestorUbicacion(context) }
+    val prefs = remember { context.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE) }
+
+    var currentLat by remember {
+        val sLat = prefs.getString("last_lat", null)?.toDoubleOrNull()
+        mutableStateOf(if (sLat != null && sLat != 0.0 && sLat != 10.4806) sLat else null)
+    }
+    var currentLng by remember {
+        val sLon = prefs.getString("last_lon", null)?.toDoubleOrNull()
+        mutableStateOf(if (sLon != null && sLon != 0.0 && sLon != -66.9036) sLon else null)
+    }
+    var gpsCaptured by remember { mutableStateOf(currentLat != null && currentLng != null) }
+    var isResolvingGps by remember { mutableStateOf(true) }
 
     var selectedType by remember { mutableStateOf(initialType) }
-    var location by remember { mutableStateOf("Autopista Regional del Centro (ARC), cerca de Tazón") }
+    var location by remember { mutableStateOf("") }
     var details by remember { mutableStateOf("") }
     var bloodType by remember { mutableStateOf(currentMember?.bloodType ?: "O+") }
+
+    val primaryTypes = remember {
+        listOf(
+            EmergencyType.ACCIDENTADO_GASOLINA,
+            EmergencyType.ACCIDENTADO_MECANICO,
+            EmergencyType.CAIDA,
+            EmergencyType.CHOQUE,
+            EmergencyType.EMERGENCIA_MEDICA,
+            EmergencyType.APOYO_SEGURIDAD,
+            EmergencyType.ALCABALA_RETEN
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        isResolvingGps = true
+        try {
+            val loc = gestorUbicacion.capturarLocationObjeto()
+            if (loc != null) {
+                currentLat = loc.latitude
+                currentLng = loc.longitude
+                gpsCaptured = true
+                if (location.isBlank()) {
+                    location = gestorUbicacion.obtenerNombreUbicacion(loc.latitude, loc.longitude)
+                }
+            } else if (currentLat != null && currentLng != null && location.isBlank()) {
+                location = gestorUbicacion.obtenerNombreUbicacion(currentLat!!, currentLng!!)
+            }
+        } catch (_: Exception) {
+        } finally {
+            isResolvingGps = false
+            if (location.isBlank()) {
+                location = if (currentLat != null && currentLng != null) {
+                    "Coordenadas GPS: %.5f, %.5f".format(currentLat, currentLng)
+                } else {
+                    "Tramo Carretero / Ubicación del Piloto"
+                }
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -91,7 +143,7 @@ fun EmitSosDialog(
                                         else -> Icons.Default.Warning
                                     }
                                     Icon(icon, contentDescription = null, tint = typeColor, modifier = Modifier.size(20.dp))
-                                    Column {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = "${type.levelTag}: ${type.label.uppercase()}",
                                             fontWeight = FontWeight.Black,
@@ -199,20 +251,133 @@ fun EmitSosDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+
+                // Indicador visual de Coordenada GPS capturada
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (gpsCaptured) Color(0xFFECFDF5) else Color(0xFFF1F5F9),
+                        border = BorderStroke(1.dp, if (gpsCaptured) Color(0xFF6EE7B7) else Color(0xFFCBD5E1)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (isResolvingGps) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MotoOrangePrimary
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.MyLocation,
+                                    contentDescription = null,
+                                    tint = if (gpsCaptured) Color(0xFF059669) else Color(0xFF64748B),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (isResolvingGps) "Detectando satélites GPS en tiempo real..."
+                                           else if (gpsCaptured) "GPS en tiempo real detectado"
+                                           else "Esperando señal satelital GPS...",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (gpsCaptured) Color(0xFF065F46) else Color(0xFF1E293B)
+                                )
+                                val coordsText = if (currentLat != null && currentLng != null) {
+                                    "%.5f, %.5f (Copiado automático al portapapeles y Mapa TX)".format(currentLat, currentLng)
+                                } else {
+                                    "Esperando coordenadas exactas del piloto..."
+                                }
+                                Text(
+                                    text = coordsText,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF475569)
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        isResolvingGps = true
+                                        try {
+                                            val loc = gestorUbicacion.capturarLocationObjeto()
+                                            if (loc != null) {
+                                                currentLat = loc.latitude
+                                                currentLng = loc.longitude
+                                                gpsCaptured = true
+                                                location = gestorUbicacion.obtenerNombreUbicacion(loc.latitude, loc.longitude)
+                                                Toast.makeText(context, "GPS actualizado: %.5f, %.5f".format(loc.latitude, loc.longitude), Toast.LENGTH_SHORT).show()
+                                            }
+                                        } catch (_: Exception) {
+                                        } finally {
+                                            isResolvingGps = false
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = "Re-capturar GPS",
+                                    tint = Color(0xFF475569),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (location.isNotBlank()) {
-                        onBroadcast(
-                            selectedType,
-                            location,
-                            details.ifBlank { "Auxilio requerido en sitio." },
-                            bloodType,
-                            10.4806,
-                            -66.9036
-                        )
+                        coroutineScope.launch {
+                            var finalLat = currentLat ?: 0.0
+                            var finalLng = currentLng ?: 0.0
+                            try {
+                                val fresh = gestorUbicacion.capturarCoordenadaActual()
+                                if (fresh != null && fresh.contains(",")) {
+                                    val parts = fresh.split(",")
+                                    val la = parts[0].trim().toDoubleOrNull()
+                                    val lo = parts[1].trim().toDoubleOrNull()
+                                    if (la != null && lo != null && la != 0.0 && lo != 0.0) {
+                                        finalLat = la
+                                        finalLng = lo
+                                    }
+                                }
+                            } catch (_: Exception) {}
+
+                            // Copiar coordenada exacta al portapapeles del sistema
+                            try {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                val clip = ClipData.newPlainText("Coordenadas SOS TX", "$finalLat, $finalLng")
+                                clipboard?.setPrimaryClip(clip)
+                                Toast.makeText(context, "📍 Coordenadas $finalLat, $finalLng copiadas al portapapeles", Toast.LENGTH_LONG).show()
+                            } catch (_: Exception) {}
+
+                            // Registrar para centrado automático en Mapa TX
+                            try {
+                                prefs.edit()
+                                    .putString("target_dest_lat", finalLat.toString())
+                                    .putString("target_dest_lon", finalLng.toString())
+                                    .putString("target_dest_name", "🚨 SOS: ${selectedType.label}")
+                                    .apply()
+                            } catch (_: Exception) {}
+
+                            onBroadcast(
+                                selectedType,
+                                location,
+                                details.ifBlank { "Auxilio requerido en sitio." },
+                                bloodType,
+                                finalLat,
+                                finalLng
+                            )
+                        }
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(selectedType.severityColorHex)),

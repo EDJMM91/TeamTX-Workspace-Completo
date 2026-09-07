@@ -397,7 +397,10 @@ enum class EmergencyType(
         iconType = "security",
         recommendedSpecialist = "Directiva / Asesor Jurídico / Seguridad",
         actionProtocol = "Transmisión de audio en vivo activada vía Mesh TX y datos móviles. El club escucha en tiempo real ante cualquier irregularidad."
-    )
+    );
+
+    val sePublicaEnMuro: Boolean
+        get() = this == CHOQUE || this == CAIDA || this == ACCIDENTE_VIAL || this == EMERGENCIA_MEDICA || this == APOYO_SEGURIDAD || this == ALCABALA_RETEN || levelNumber >= 3
 }
 
 enum class EmergencyStatus(val label: String) {
@@ -670,8 +673,8 @@ data class EmergencyAlert(
     var memberNumber: String = "",
     var emergencyType: EmergencyType = EmergencyType.ACCIDENTADO_GASOLINA,
     var locationDescription: String = "",
-    var coordinateLat: Double = 10.4806,
-    var coordinateLng: Double = -66.9036,
+    var coordinateLat: Double = 0.0,
+    var coordinateLng: Double = 0.0,
     var bikeDetails: String = "",
     var bloodTypeNeeded: String? = null,
     var details: String = "",

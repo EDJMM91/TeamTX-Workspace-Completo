@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <!-- Fondo circular naranja para mecanico -->
+  <path
+      android:fillColor="#EA580C"
+      android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z"/>
+  <!-- Icono de llave mecanica -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M20.71,7.04c0.39,-0.39 0.39,-1.02 0,-1.41l-2.34,-2.34c-0.39,-0.39 -1.02,-0.39 -1.41,0l-1.83,1.83 3.75,3.75 1.83,-1.83zM3,17.25V21h3.75L17.81,9.94l-3.75,-3.75L3,17.25z"/>
+  <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M18.89,13.65l-1.42,-1.42 1.42,-1.42 -1.42,-1.42 -1.42,1.42 -1.42,-1.42 -1.42,1.42 1.42,1.42 -1.42,1.42 1.42,1.42 1.42,-1.42 1.42,1.42z"/>
+</vector>

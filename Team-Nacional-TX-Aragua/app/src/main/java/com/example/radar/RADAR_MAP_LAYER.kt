@@ -25,6 +25,96 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         private const val TOUCH_RADIUS_MULTIPLIER = 1.5f
         private const val OFFSET_LOCAL_X_DP = 80
         private const val OFFSET_LOCAL_Y_DP = -50
+
+        data class SosVisualConfig(
+            val nombreDrawable: String,
+            val colorHex: String,
+            val titulo: String,
+            val nivelTag: String,
+            val protocoloAccion: String = "",
+            val especialistaAsignado: String = ""
+        )
+
+        /**
+         * Mapea el tipo de emergencia a nombres cortos en español para drawables personalizados:
+         * - sos_gasolina: Falta de combustible (Nivel 1)
+         * - sos_mecanico: Falla mecanica o averia (Nivel 2)
+         * - sos_caida: Caida en ruta / deslizamiento (Nivel 3)
+         * - sos_choque: Choque / colision vial grave (Nivel 4)
+         * - sos_medico: Emergencia medica / triage (Nivel 4)
+         * - sos_alcabala: Reten policial / alcabala audio vivo (Nivel 3)
+         * - sos_seguridad: Apoyo de seguridad vial (Nivel 3)
+         * - sos_alerta: Fallback generico
+         */
+        fun obtenerConfiguracionSos(alertaSos: String?): SosVisualConfig {
+            val t = alertaSos?.uppercase()?.trim() ?: ""
+            return when {
+                t.contains("GASOLINA") -> SosVisualConfig(
+                    nombreDrawable = "sos_gasolina",
+                    colorHex = "#D97706",
+                    titulo = "Falta de Gasolina / Combustible",
+                    nivelTag = "NIVEL 1 - ASISTENCIA RÁPIDA",
+                    protocoloAccion = "Llevar pimpina de gasolina 91/95 octanos o manguera de trasvase. Asistir en ruta.",
+                    especialistaAsignado = "Pilotos cercanos en ruta / Grupo de Apoyo"
+                )
+                t.contains("MECANIC") || t.contains("FALLA") || t.contains("AVERIA") -> SosVisualConfig(
+                    nombreDrawable = "sos_mecanico",
+                    colorHex = "#EA580C",
+                    titulo = "Falla Mecánica / Avería en Ruta",
+                    nivelTag = "NIVEL 2 - URGENCIA TÁCTICA",
+                    protocoloAccion = "Llevar kit de herramientas, guayas, fusibles, bujías o tripas. Remolque si no enciende.",
+                    especialistaAsignado = "Mecánicos Oficiales Team TX / Capitán de Ruta"
+                )
+                t.contains("CAIDA") || t.contains("DESLIZ") -> SosVisualConfig(
+                    nombreDrawable = "sos_caida",
+                    colorHex = "#E11D48",
+                    titulo = "Caída en Ruta / Deslizamiento",
+                    nivelTag = "NIVEL 3 - PRIORIDAD ALTA",
+                    protocoloAccion = "Verificar integridad física del piloto, asegurar perímetro vial contra tráfico y levantar moto con precaución.",
+                    especialistaAsignado = "Comité de Seguridad / Primeros Auxilios / Capitán"
+                )
+                t.contains("CHOQUE") || t.contains("COLISION") || t.contains("ACCIDENTE") -> SosVisualConfig(
+                    nombreDrawable = "sos_choque",
+                    colorHex = "#DC2626",
+                    titulo = "Choque / Colisión Grave",
+                    nivelTag = "NIVEL 4 - CRÍTICO VIAL",
+                    protocoloAccion = "NO mover al piloto lesionado sin personal médico. Contactar 911 / Paramédicos y acordonar la zona vial.",
+                    especialistaAsignado = "Paramédicos / 911 / Directiva Central"
+                )
+                t.contains("MEDIC") || t.contains("SALUD") || t.contains("TRIAGE") -> SosVisualConfig(
+                    nombreDrawable = "sos_medico",
+                    colorHex = "#7C3AED",
+                    titulo = "Emergencia Médica / Triage",
+                    nivelTag = "NIVEL 4 - CRÍTICO MÉDICO",
+                    protocoloAccion = "Atención médica prioritaria. Suministrar botiquín de primeros auxilios y activar traslado urgente.",
+                    especialistaAsignado = "Comité Médico / Paramédicos Motorizados"
+                )
+                t.contains("ALCABALA") || t.contains("RETEN") || t.contains("POLICIA") -> SosVisualConfig(
+                    nombreDrawable = "sos_alcabala",
+                    colorHex = "#6D28D9",
+                    titulo = "Retén Policial / Alcabala",
+                    nivelTag = "NIVEL 3 - MONITOREO DIRECTO",
+                    protocoloAccion = "Transmisión de audio en vivo activa. Mantener la calma, portar documentos vigentes y no confrontar.",
+                    especialistaAsignado = "Consultoría Jurídica / Directiva TX"
+                )
+                t.contains("SEGURIDAD") || t.contains("VIA") || t.contains("OBSTACULO") -> SosVisualConfig(
+                    nombreDrawable = "sos_seguridad",
+                    colorHex = "#0284C7",
+                    titulo = "Situación Vial / Seguridad",
+                    nivelTag = "NIVEL 3 - ALERTA VIAL",
+                    protocoloAccion = "Reducir velocidad, señalizar peligro a la caravana y advertir a pilotos en retaguardia.",
+                    especialistaAsignado = "Líderes de Escuadrón / Guardia Biker"
+                )
+                else -> SosVisualConfig(
+                    nombreDrawable = "sos_alerta",
+                    colorHex = "#DC2626",
+                    titulo = "Alerta de Auxilio SOS",
+                    nivelTag = "ALERTA SOS",
+                    protocoloAccion = "Piloto del Team TX solicita asistencia inmediata en coordenadas registradas.",
+                    especialistaAsignado = "Hermandad Team TX / Directiva"
+                )
+            }
+        }
     }
 
     private var pilotos: List<PilotoRadar> = emptyList()
@@ -60,8 +150,7 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         pathEffect = DashPathEffect(floatArrayOf(10f, 6f), 0f)
     }
 
-    private var iconoEmergencia: Bitmap? = null
-    private var iconoPrecaucion: Bitmap? = null
+    private val cacheIconosSos = mutableMapOf<String, Bitmap>()
     private val rectIconoEmergencia = RectF()
     private val paintPuntoAccidente = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -79,10 +168,8 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         super.destroyLayer()
         avataresCache.clear()
         pilotos = emptyList()
-        iconoEmergencia?.recycle()
-        iconoEmergencia = null
-        iconoPrecaucion?.recycle()
-        iconoPrecaucion = null
+        cacheIconosSos.values.forEach { if (!it.isRecycled) it.recycle() }
+        cacheIconosSos.clear()
     }
 
     override fun drawInScreenPixels(): Boolean = false
@@ -117,28 +204,42 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         }
     }
 
-    private fun obtenerIconoEmergencia(): Bitmap? {
-        if (iconoEmergencia == null || iconoEmergencia?.isRecycled == true) {
-            try {
-                iconoEmergencia = BitmapFactory.decodeResource(context.resources, R.drawable.emergencia)
-            } catch (e: Exception) {
-                Log.e(ETIQUETA, "Error decodificando icono emergencia", e)
+    private fun obtenerBitmapSos(nombreDrawable: String): Bitmap? {
+        cacheIconosSos[nombreDrawable]?.let { if (!it.isRecycled) return it }
+        return try {
+            val resId = context.resources.getIdentifier(nombreDrawable, "drawable", context.packageName)
+            if (resId != 0) {
+                val drawable = androidx.core.content.ContextCompat.getDrawable(context, resId)
+                if (drawable != null) {
+                    val density = context.resources.displayMetrics.density
+                    val sizePx = (48 * density).toInt()
+                    val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bmp)
+                    drawable.setBounds(0, 0, sizePx, sizePx)
+                    drawable.draw(canvas)
+                    cacheIconosSos[nombreDrawable] = bmp
+                    bmp
+                } else null
+            } else {
+                // Fallbacks seguros si no existen los drawables
+                val fallbackRes = if (nombreDrawable == "sos_choque" || nombreDrawable == "sos_caida" || nombreDrawable == "sos_medico") {
+                    R.drawable.emergencia
+                } else {
+                    R.drawable.precaucion
+                }
+                val bmp = BitmapFactory.decodeResource(context.resources, fallbackRes)
+                if (bmp != null) cacheIconosSos[nombreDrawable] = bmp
+                bmp
             }
+        } catch (e: Exception) {
+            Log.w(ETIQUETA, "Error cargando icono SOS $nombreDrawable: ${e.message}")
+            null
         }
-        return iconoEmergencia
     }
 
-    private fun obtenerIconoPrecaucion(): Bitmap? {
-        if (iconoPrecaucion == null || iconoPrecaucion?.isRecycled == true) {
-            try {
-                iconoPrecaucion = BitmapFactory.decodeResource(context.resources, R.drawable.precaucion)
-            } catch (e: Exception) {
-                Log.e(ETIQUETA, "Error decodificando icono precaucion", e)
-            }
-        }
-        return iconoPrecaucion
-    }
-
+    /**
+     * Dibuja el icono de emergencia anclado y tocando directamente el disco del usuario (arriba a la derecha).
+     */
     private fun dibujarIconoEmergencia(
         canvas: Canvas,
         cx: Float,
@@ -147,25 +248,48 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         density: Float,
         piloto: PilotoRadar
     ) {
-        val alertText = piloto.alertaSos ?: ""
-        // En caso de choque (o colisión/accidente vial grave) usar emergencia.png
-        // Para cualquier otro tipo de emergencia que no sea choque usar precaucion.png
-        val esChoque = alertText.contains("CHOQUE", ignoreCase = true) ||
-                       alertText.contains("COLISION", ignoreCase = true) ||
-                       alertText.contains("ACCIDENTE", ignoreCase = true)
+        val config = obtenerConfiguracionSos(piloto.alertaSos)
+        val bitmapIcono = obtenerBitmapSos(config.nombreDrawable)
 
-        val iconoBmp = if (esChoque) obtenerIconoEmergencia() else obtenerIconoPrecaucion()
-        if (iconoBmp != null) {
-            val altoIcono = radio * 1.5f
-            val anchoIcono = altoIcono * (461f / 541f)
+        // Centro y radio del icono de emergencia tocando el perímetro del disco del piloto
+        val badgeRadio = radio * 0.54f
+        val badgeCx = cx + (radio * 0.72f)
+        val badgeCy = cy - (radio * 0.72f)
 
-            val left = cx + radio + (4f * density)
-            val top = cy - (altoIcono / 2f)
-            val right = left + anchoIcono
-            val bottom = top + altoIcono
+        // 1. Halo exterior de advertencia pulsante
+        val paintHalo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 3f * density
+            color = Color.parseColor(config.colorHex)
+            alpha = 190
+        }
+        canvas.drawCircle(badgeCx, badgeCy, badgeRadio + (3f * density), paintHalo)
 
-            rectIconoEmergencia.set(left, top, right, bottom)
-            canvas.drawBitmap(iconoBmp, null, rectIconoEmergencia, paintBitmap)
+        // 2. Fondo circular del badge con color del nivel de emergencia
+        val paintFondoBadge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = Color.parseColor(config.colorHex)
+        }
+        canvas.drawCircle(badgeCx, badgeCy, badgeRadio, paintFondoBadge)
+
+        // 3. Borde blanco de alto contraste que toca el disco del avatar
+        val paintBordeBadge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 2.5f * density
+            color = Color.WHITE
+        }
+        canvas.drawCircle(badgeCx, badgeCy, badgeRadio, paintBordeBadge)
+
+        // 4. Dibujar icono alusivo centrado dentro del badge
+        if (bitmapIcono != null) {
+            val tamIcono = badgeRadio * 1.55f
+            rectIconoEmergencia.set(
+                badgeCx - tamIcono / 2f,
+                badgeCy - tamIcono / 2f,
+                badgeCx + tamIcono / 2f,
+                badgeCy + tamIcono / 2f
+            )
+            canvas.drawBitmap(bitmapIcono, null, rectIconoEmergencia, paintBitmap)
         }
     }
 
@@ -348,13 +472,25 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
             val avatarCx = if (hasOffset) px + OFFSET_LOCAL_X_DP * density else px
             val avatarCy = if (hasOffset) py + OFFSET_LOCAL_Y_DP * density else py
 
+            val esSos = grupo.any { !it.alertaSos.isNullOrBlank() }
+            val radioIcono = (RADIO_ICONO_PX * density).toFloat()
+            val badgeCx = avatarCx + (radioIcono * 0.72f)
+            val badgeCy = avatarCy - (radioIcono * 0.72f)
+            val badgeRadius = radioIcono * 0.54f
+
             val dx = point.x - avatarCx
             val dy = point.y - avatarCy
             val touchDistSq = dx * dx + dy * dy
+
+            val dxBadge = point.x - badgeCx
+            val dyBadge = point.y - badgeCy
+            val touchDistBadgeSq = dxBadge * dxBadge + dyBadge * dyBadge
+
             val isNearAvatar = touchDistSq <= (radius * radius * 1.5f)
+            val isNearBadge = esSos && (touchDistBadgeSq <= (badgeRadius * badgeRadius * 2.5f))
             val isNearBase = tileBox.isLatLonNearPixel(p.lat, p.lon, point.x, point.y, radius)
 
-            if (isNearAvatar || isNearBase) {
+            if (isNearAvatar || isNearBadge || isNearBase) {
                 if (grupo.size > 1) {
                     result.collect(grupo, this) // Enviar el objeto grupo (List)
                 } else {

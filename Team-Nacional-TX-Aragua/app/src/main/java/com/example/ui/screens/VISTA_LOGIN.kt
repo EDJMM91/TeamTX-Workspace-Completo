@@ -627,6 +627,23 @@ fun VistaLogin(
             onSubmitAccessRequest = onSubmitAccessRequest
         )
     }
+
+    // ==========================================
+    // DIALOG: ACCESO POR CORREO VINCULADO
+    // ==========================================
+    if (showEmailRecoveryDialog) {
+        DialogoAccesoPorCorreo(
+            onDismiss = { showEmailRecoveryDialog = false },
+            onVerificarEstadoCorreo = onVerificarEstadoCorreo,
+            onLoginWithEmailAndCode = onLoginWithEmailAndCode,
+            onSolicitarCodigoDirectiva = onSolicitarCodigoPorCorreo,
+            onAbrirSolicitudDirectiva = { emailSugerido ->
+                showEmailRecoveryDialog = false
+                correoPrellenadoSolicitud = emailSugerido
+                showRequestCodeDialog = true
+            }
+        )
+    }
 }
 
 // ==========================================
@@ -797,7 +814,7 @@ private fun DialogoAccesoPorCorreo(
                                 errorMensaje = null
                                 coroutineScope.launch {
                                     try {
-                                        val (vinculado, nombre, _) = onVerificarEstadoCorreo(correoLimpio)
+                                        val (vinculado, _, nombre) = onVerificarEstadoCorreo(correoLimpio)
                                         isLoading = false
                                         if (vinculado) {
                                             nombrePilotoDetectado = nombre

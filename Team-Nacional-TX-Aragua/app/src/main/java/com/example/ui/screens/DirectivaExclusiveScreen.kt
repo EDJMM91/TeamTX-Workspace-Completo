@@ -1127,7 +1127,7 @@ fun DirectivaExclusiveScreen(
                     // Paso 2: Seleccionar Nuevo Rol
                     Text("2. Selecciona el Nuevo Cargo / Rol:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MemberRole.values().forEach { role ->
+                        MemberRole.values().filter { it != MemberRole.DESARROLLADOR && it != MemberRole.PRESIDENTE }.forEach { role ->
                             val isSelected = selectedRole == role
                             val roleColor = Color(role.badgeColorHex)
                             Surface(
@@ -1190,85 +1190,237 @@ fun DirectivaExclusiveScreen(
 
     // 🔄 Diálogo: Transferir Cargo Institucional
     if (showTransferCargoDialog && selectedMemberForAction != null) {
-        val targetMember = selectedMemberForAction!!
-        var selectedCargo by remember { mutableStateOf(targetMember.role) }
+        val memberForAction = selectedMemberForAction!!
+        val isPresidenteTransfer = memberForAction.role == MemberRole.PRESIDENTE
 
-        AlertDialog(
-            onDismissRequest = {
+        if (isPresidenteTransfer) {
+            // 🏛️ TRANSFERENCIA DE PRESIDENCIA A UN PILOTO EN LA APP
+            var pilotSearch by remember { mutableStateOf("") }
+            var selectedRecipientPilot by remember { mutableStateOf<MemberProfile?>(null) }
+            val candidatePilots = remember(allMembers, pilotSearch) {
+                allMembers.filter { m ->
+                    m.id != memberForAction.id &&
+                    m.role != MemberRole.PRESIDENTE &&
+                    m.role != MemberRole.DESARROLLADOR &&
+                    !m.isSuspended &&
+                    (pilotSearch.isBlank() ||
+                     m.fullName.contains(pilotSearch, ignoreCase = true) ||
+                     m.nickname.contains(pilotSearch, ignoreCase = true) ||
+                     m.memberNumber.contains(pilotSearch, ignoreCase = true) ||
+                     m.bikePlate.contains(pilotSearch, ignoreCase = true))
+                }
+            }
+
+            Dialog(onDismissRequest = {
                 showTransferCargoDialog = false
                 selectedMemberForAction = null
-            },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.SwapHoriz, contentDescription = null, tint = DirectivaGoldPrimary)
-                    Text("Transferir Cargo Institucional", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LightTextPrimary)
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            }) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = LightCardBg,
+                    border = BorderStroke(1.dp, DirectivaGoldPrimary),
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)
                 ) {
-                    Text(
-                        "¿Deseas transferir oficialmente un cargo de la Junta Directiva o Ruta a ${targetMember.fullName} (${targetMember.nickname})?",
-                        fontSize = 13.sp,
-                        color = LightTextSecondary
-                    )
-
-                    Text("Selecciona el Cargo a Transferir:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
-                    listOf(
-                        MemberRole.VICEPRESIDENTE,
-                        MemberRole.SECRETARIO,
-                        MemberRole.TESORERO,
-                        MemberRole.CAPITAN_RUTA,
-                        MemberRole.SEGURIDAD_VIAL,
-                        MemberRole.MECANICO_OFICIAL,
-                        MemberRole.MEDICO_CLUB,
-                        MemberRole.DISCIPLINARIO
-                    ).forEach { role ->
+                    Column(
+                        modifier = Modifier
+                            .padding(18.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { selectedCargo = role }
-                                .padding(vertical = 2.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(selected = selectedCargo == role, onClick = { selectedCargo = role })
-                            Text(role.displayName, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(Icons.Default.SwapHoriz, contentDescription = null, tint = DirectivaGoldPrimary)
+                                Text("Transferir Presidencia", fontWeight = FontWeight.Black, fontSize = 16.sp, color = LightTextPrimary)
+                            }
+                            IconButton(onClick = {
+                                showTransferCargoDialog = false
+                                selectedMemberForAction = null
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = LightTextMuted)
+                            }
+                        }
+
+                        Text(
+                            text = "Selecciona al piloto que asumirá la Presidencia Nacional del Club TX en la app. Al confirmar, tu cargo de Presidente será transferido al piloto seleccionado, tu código presidencial será anulado y tu perfil pasará a ser Miembro Activo.",
+                            fontSize = 12.sp,
+                            color = LightTextSecondary,
+                            lineHeight = 16.sp
+                        )
+
+                        Text("Selecciona el Piloto Sucesor:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                        OutlinedTextField(
+                            value = pilotSearch,
+                            onValueChange = { pilotSearch = it },
+                            placeholder = { Text("Buscar por nombre, carnet o placa...", fontSize = 11.sp) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = LightTextMuted, modifier = Modifier.size(18.dp)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (selectedRecipientPilot != null) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = DirectivaGoldBg,
+                                border = BorderStroke(1.dp, DirectivaGoldPrimary),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        PilotAvatar(member = selectedRecipientPilot!!, size = 36.dp)
+                                        Column {
+                                            Text(selectedRecipientPilot!!.fullName, fontWeight = FontWeight.Black, fontSize = 13.sp, color = LightTextPrimary)
+                                            Text("Sucesor: ${selectedRecipientPilot!!.memberNumber} • ${selectedRecipientPilot!!.nickname.ifBlank { "Piloto" }}", fontSize = 10.sp, color = LightTextSecondary)
+                                        }
+                                    }
+                                    TextButton(onClick = { selectedRecipientPilot = null }) {
+                                        Text("Cambiar", fontSize = 11.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = LightCardSubtle,
+                                border = BorderStroke(1.dp, LightBorder),
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
+                            ) {
+                                LazyColumn(modifier = Modifier.padding(4.dp)) {
+                                    items(candidatePilots) { p ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { selectedRecipientPilot = p }
+                                                .padding(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                PilotAvatar(member = p, size = 30.dp)
+                                                Column {
+                                                    Text(p.fullName, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                                                    Text("${p.memberNumber} • ${p.nickname.ifBlank { "Piloto TX" }}", fontSize = 10.sp, color = LightTextMuted)
+                                                }
+                                            }
+                                            Text("Elegir", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DirectivaGoldDark)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                if (selectedRecipientPilot != null) {
+                                    onTransferCargo(memberForAction, selectedRecipientPilot!!, MemberRole.PRESIDENTE)
+                                    showTransferCargoDialog = false
+                                    selectedMemberForAction = null
+                                    Toast.makeText(context, "Presidencia Nacional transferida a ${selectedRecipientPilot!!.fullName}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            enabled = selectedRecipientPilot != null,
+                            colors = ButtonDefaults.buttonColors(containerColor = DirectivaGoldPrimary),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth().height(46.dp)
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Confirmar Transferencia de Presidencia", fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val sender = currentMember ?: targetMember
-                        onTransferCargo(sender, targetMember, selectedCargo)
-                        showTransferCargoDialog = false
-                        selectedMemberForAction = null
-                        Toast.makeText(context, "Cargo transferido oficialmente a ${targetMember.fullName}", Toast.LENGTH_SHORT).show()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = DirectivaGoldPrimary)
-                ) {
-                    Text("Confirmar Transferencia", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
+            }
+        } else {
+            val targetMember = memberForAction
+            var selectedCargo by remember { mutableStateOf(targetMember.role) }
+
+            AlertDialog(
+                onDismissRequest = {
                     showTransferCargoDialog = false
                     selectedMemberForAction = null
-                }) {
-                    Text("Cancelar", color = LightTextMuted)
-                }
-            },
-            containerColor = LightCardBg
-        )
+                },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.SwapHoriz, contentDescription = null, tint = DirectivaGoldPrimary)
+                        Text("Transferir Cargo Institucional", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LightTextPrimary)
+                    }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            "¿Deseas transferir oficialmente un cargo de la Junta Directiva o Ruta a ${targetMember.fullName} (${targetMember.nickname})?",
+                            fontSize = 13.sp,
+                            color = LightTextSecondary
+                        )
+
+                        Text("Selecciona el Cargo a Transferir:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                        listOf(
+                            MemberRole.VICEPRESIDENTE,
+                            MemberRole.SECRETARIO,
+                            MemberRole.TESORERO,
+                            MemberRole.CAPITAN_RUTA,
+                            MemberRole.SEGURIDAD_VIAL,
+                            MemberRole.MECANICO_OFICIAL,
+                            MemberRole.MEDICO_CLUB,
+                            MemberRole.DISCIPLINARIO
+                        ).forEach { role ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { selectedCargo = role }
+                                    .padding(vertical = 2.dp)
+                            ) {
+                                RadioButton(selected = selectedCargo == role, onClick = { selectedCargo = role })
+                                Text(role.displayName, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val sender = currentMember ?: targetMember
+                            onTransferCargo(sender, targetMember, selectedCargo)
+                            showTransferCargoDialog = false
+                            selectedMemberForAction = null
+                            Toast.makeText(context, "Cargo transferido oficialmente a ${targetMember.fullName}", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = DirectivaGoldPrimary)
+                    ) {
+                        Text("Confirmar Transferencia", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showTransferCargoDialog = false
+                        selectedMemberForAction = null
+                    }) {
+                        Text("Cancelar", color = LightTextMuted)
+                    }
+                },
+                containerColor = LightCardBg
+            )
+        }
     }
 
     // ⚠️ Diálogo: Entregar / Poner Cargo a Disposición
     if (showAbandonConfirmDialog && selectedMemberForAction != null) {
         val member = selectedMemberForAction!!
+        val isPres = member.role == MemberRole.PRESIDENTE
+
         AlertDialog(
             onDismissRequest = {
                 showAbandonConfirmDialog = false
@@ -1277,12 +1429,21 @@ fun DirectivaExclusiveScreen(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.Warning, contentDescription = null, tint = TxFlameRed)
-                    Text("Poner Cargo a Disposición", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LightTextPrimary)
+                    Text(
+                        text = if (isPres) "Abandonar Presidencia Nacional" else "Poner Cargo a Disposición",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = LightTextPrimary
+                    )
                 }
             },
             text = {
                 Text(
-                    "¿Estás seguro de que deseas que ${member.fullName} entregue su cargo de '${member.role.displayName}'?\n\nEl cargo pasará a estar vacante y el piloto retornará a Miembro Activo.",
+                    text = if (isPres) {
+                        "¿Estás seguro de que deseas abandonar la Presidencia Nacional?\n\n⚠️ ACCIÓN DE GOBERNANZA:\n• El cargo de Presidente quedará LIBRE y VACANTE.\n• Tu código de acceso como Presidente será ANULADO inmediatamente.\n• Tu perfil retornará al rol de Miembro Activo en la app."
+                    } else {
+                        "¿Estás seguro de que deseas que ${member.fullName} entregue su cargo de '${member.role.displayName}'?\n\nEl cargo pasará a estar vacante y el piloto retornará a Miembro Activo."
+                    },
                     fontSize = 13.sp,
                     color = LightTextSecondary
                 )
@@ -1293,11 +1454,11 @@ fun DirectivaExclusiveScreen(
                         onAbandonCargo(member)
                         showAbandonConfirmDialog = false
                         selectedMemberForAction = null
-                        Toast.makeText(context, "Cargo puesto a disposición", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, if (isPres) "Presidencia abandonada. Cargo libre y código anulado." else "Cargo puesto a disposición", Toast.LENGTH_SHORT).show()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = TxFlameRed)
                 ) {
-                    Text("Entregar Cargo", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(if (isPres) "Abandonar Cargo y Anular Código" else "Entregar Cargo", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -2438,76 +2599,142 @@ private fun DirectivaCargosSection(
                             }
                         }
 
+                        val isPresidentTarget = member.role == MemberRole.PRESIDENTE
+                        val isDevTarget = member.role == MemberRole.DESARROLLADOR || member.memberNumber.startsWith("TX-DEV-")
+                        val soyPresidenteOAutorizado = (currentMember?.role == MemberRole.PRESIDENTE) || isLeaderSuperAdmin
+                        val soyDev = (currentMember?.role == MemberRole.DESARROLLADOR) || (currentMember?.memberNumber?.startsWith("TX-DEV-") == true)
+                        val actorPuedeEliminar = soyPresidenteOAutorizado || soyDev
+
                         // Botones de Acción sobre el Miembro
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedButton(
-                                    onClick = { onAssignRoleClick(member) },
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.weight(1f).height(32.dp)
+                            if (isPresidentTarget) {
+                                // 🏛️ REGLA SUPREMA: El Presidente no puede ser expulsado ni suspendido.
+                                // Únicas opciones: Transferir Presidencia a un piloto o Abandonar Cargo (dejar libre y anular código).
+                                val puedeOperarPresidencia = isMe || soyPresidenteOAutorizado || soyDev
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Asignar Cargo", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    OutlinedButton(
+                                        onClick = { onTransferClick(member) },
+                                        enabled = puedeOperarPresidencia,
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DirectivaGoldDark),
+                                        border = BorderStroke(1.dp, DirectivaGoldPrimary),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.weight(1f).height(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Transferir Cargo", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Button(
+                                        onClick = { onAbandonClick(member) },
+                                        enabled = puedeOperarPresidencia,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = TxFlameRed,
+                                            disabledContainerColor = TxFlameRed.copy(alpha = 0.3f)
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.weight(1f).height(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.ExitToApp, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Abandonar Cargo", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
+                                }
+                            } else if (isDevTarget) {
+                                // 👑 DESARROLLADOR: Blindado e Inmune contra expulsión y sanciones
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = DirectivaGoldPrimary.copy(alpha = 0.12f),
+                                    border = BorderStroke(1.dp, DirectivaGoldPrimary),
+                                    modifier = Modifier.fillMaxWidth().height(32.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxSize(),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.Shield, contentDescription = null, tint = DirectivaGoldDark, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Desarrollador Inmune (Control Supremo)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DirectivaGoldDark)
+                                    }
+                                }
+                            } else {
+                                // Miembros y otros cargos de la directiva
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { onAssignRoleClick(member) },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.weight(1f).height(32.dp)
+                                    ) {
+                                        Text("Asignar Cargo", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            if (member.isChatMuted) onToggleChatMute(member, false, "")
+                                            else onOpenMuteDialog(member)
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = if (member.isChatMuted) StatusSuccess else DirectivaGoldDark
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.weight(1f).height(32.dp)
+                                    ) {
+                                        Text(if (member.isChatMuted) "Desmutear" else "Silenciar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
 
-                                OutlinedButton(
-                                    onClick = {
-                                        if (member.isChatMuted) onToggleChatMute(member, false, "")
-                                        else onOpenMuteDialog(member)
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = if (member.isChatMuted) StatusSuccess else DirectivaGoldDark
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.weight(1f).height(32.dp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(if (member.isChatMuted) "Desmutear" else "Silenciar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
+                                    Button(
+                                        onClick = {
+                                            if (member.isSuspended) onReactivateMember(member)
+                                            else onOpenSuspendDialog(member)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (member.isSuspended) StatusSuccess else Color(0xFFD97706)
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.weight(1f).height(32.dp)
+                                    ) {
+                                        Text(if (member.isSuspended) "Reactivar" else "Suspender", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Button(
-                                    onClick = {
-                                        if (member.isSuspended) onReactivateMember(member)
-                                        else onOpenSuspendDialog(member)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (member.isSuspended) StatusSuccess else Color(0xFFD97706)
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.weight(1f).height(32.dp)
-                                ) {
-                                    Text(if (member.isSuspended) "Reactivar" else "Suspender", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
-
-                                val canExpel = !isMe && member.role != MemberRole.DESARROLLADOR && (member.role != MemberRole.PRESIDENTE || isLeaderSuperAdmin)
-                                Button(
-                                    onClick = {
-                                        memberToExpel = member
-                                        expelReasonInput = ""
-                                    },
-                                    enabled = canExpel,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = StatusError,
-                                        disabledContainerColor = StatusError.copy(alpha = 0.3f)
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.weight(1f).height(32.dp)
-                                ) {
-                                    Icon(Icons.Default.DeleteForever, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Expulsar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    val canExpel = actorPuedeEliminar && !isMe
+                                    Button(
+                                        onClick = {
+                                            memberToExpel = member
+                                            expelReasonInput = ""
+                                        },
+                                        enabled = canExpel,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = StatusError,
+                                            disabledContainerColor = StatusError.copy(alpha = 0.3f)
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.weight(1f).height(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.DeleteForever, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(if (actorPuedeEliminar) "Expulsar" else "Sin Permiso", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
                                 }
                             }
                         }

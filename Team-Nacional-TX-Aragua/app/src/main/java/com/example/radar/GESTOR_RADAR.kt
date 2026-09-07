@@ -7,6 +7,8 @@ import com.example.data.model.MemberProfile
 import com.example.data.model.BikerCalendarEvent
 import com.example.data.model.Publication
 import com.example.data.model.WorkshopDirectoryItem
+import com.example.data.model.EmergencyAlert
+import com.example.data.model.EmergencyStatus
 import com.example.data.remote.PerfilNube
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -217,7 +219,8 @@ object GestorRadar {
 
     fun sincronizarEventosEnMapa(
         publications: List<Publication>,
-        calendarEvents: List<BikerCalendarEvent>
+        calendarEvents: List<BikerCalendarEvent>,
+        emergencyAlerts: List<EmergencyAlert> = emptyList()
     ) {
         val app = application
 
@@ -233,6 +236,28 @@ object GestorRadar {
         } else return
 
         val marcadores = mutableListOf<EventosMapLayer.EventoMarcador>()
+
+        // 1. Alertas SOS viales activas (🚨 Desaparecen inmediatamente al resolverse)
+        for (alert in emergencyAlerts) {
+            if (alert.status == EmergencyStatus.RESUELTA) continue
+            if (alert.coordinateLat == 0.0 && alert.coordinateLng == 0.0) continue
+
+            val tituloSos = "🚨 SOS [${alert.emergencyType.levelTag}]: ${alert.reporterName}"
+            val descSos = buildString {
+                append("Tipo: ${alert.emergencyType.label} (${alert.emergencyType.levelName})")
+                if (alert.bikeDetails.isNotBlank()) append(" • Moto: ${alert.bikeDetails}")
+                if (alert.details.isNotBlank()) append(" • ${alert.details}")
+                if (alert.reporterPhone.isNotBlank()) append(" • Tlf: ${alert.reporterPhone}")
+            }
+
+            marcadores.add(EventosMapLayer.EventoMarcador(
+                lat = alert.coordinateLat,
+                lon = alert.coordinateLng,
+                titulo = tituloSos,
+                descripcion = descSos.take(150),
+                esCalendario = false
+            ))
+        }
 
         for (pub in publications) {
             if (pub.locationCoordinates.isNullOrBlank()) continue
@@ -271,7 +296,7 @@ object GestorRadar {
         }
 
         layer.actualizarEventos(marcadores)
-        Log.d(ETIQUETA, "Eventos sincronizados en mapa: ${marcadores.size}")
+        Log.d(ETIQUETA, "Eventos y SOS sincronizados en mapa: ${marcadores.size} (SOS activos: ${emergencyAlerts.count { it.status != EmergencyStatus.RESUELTA }})")
     }
 
     fun obtenerEventos(): List<EventosMapLayer.EventoMarcador> {

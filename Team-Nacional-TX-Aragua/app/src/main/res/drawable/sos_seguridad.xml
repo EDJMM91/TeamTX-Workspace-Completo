@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <!-- Fondo circular azul seguridad -->
+  <path
+      android:fillColor="#0284C7"
+      android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z"/>
+  <!-- Escudo de proteccion vial -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:pathData="M12,4.14L6,6.47v5.53c0,3.83 2.55,7.41 6,8.86 3.45,-1.45 6,-5.03 6,-8.86V6.47L12,4.14zM12,12h4c-0.47,2.5 -1.98,4.64 -4,5.74V12H8V7.82l4,-1.56V12z"/>
+</vector>

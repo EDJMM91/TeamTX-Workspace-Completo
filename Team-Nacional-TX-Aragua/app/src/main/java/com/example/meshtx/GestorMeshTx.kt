@@ -58,6 +58,9 @@ object GestorMeshTx {
     // Nodos descubiertos activamente por transporte UDP en red local
     private val nodosDetectadosUdp = ConcurrentHashMap<Long, NodoMeshPiloto>()
 
+    // Nodos remotos descubiertos en la misma sala/canal vía Firebase (fuera de rango offline con WiFi/Datos)
+    private val nodosDetectadosNube = ConcurrentHashMap<Long, NodoMeshPiloto>()
+
     // Sala privada dinámica opcional
     private val _salaPrivadaActiva = MutableStateFlow<String?>(null)
     val salaPrivadaActiva: StateFlow<String?> = _salaPrivadaActiva.asStateFlow()
@@ -352,8 +355,11 @@ object GestorMeshTx {
             contexto = ctx,
             idPilotoLocal = idPilotoLocal,
             aliasPilotoLocal = aliasPilotoLocal,
+            modeloMotoLocal = modeloMotoLocal,
+            fichaLocal = fichaLocal,
+            fotoUrlLocal = fotoPerfilLocal,
             alRecibirAudioDesdePuente = { audioBytes, emisorId, emisorAlias, canalId ->
-                // BUG 1, 3 & 5 FIX: Solo recibir si la malla está activa, no es eco propio y coincide el canal
+                // Solo recibir si la malla está activa, no es eco propio y coincide el canal
                 if (_estadoConexion.value != MeshEstadoConexion.DESCONECTADO && emisorId != idPilotoLocal) {
                     val canalEsperado = obtenerCanalIdEfectivo()
                     if (canalId == canalEsperado) {
@@ -363,8 +369,21 @@ object GestorMeshTx {
                         audioCasco?.encolarAudioEntrante(audioBytes, emisorId)
                     }
                 }
+            },
+            alDetectarPilotoNube = { nodo ->
+                if (!esMismoDispositivo(nodo)) {
+                    nodosDetectadosNube[nodo.idMiembro] = nodo
+                    actualizarListaNodos()
+                }
+            },
+            alPerderPilotoNube = { idPiloto ->
+                nodosDetectadosNube.remove(idPiloto)
+                actualizarListaNodos()
             }
-        )
+        ).apply {
+            actualizarNombreCanal(_canalActual.value.nombre)
+            actualizarSalaPrivada(_salaPrivadaActiva.value)
+        }
         // BUG 3 FIX: Inicialmente desactivado. Solo se activa al encender la malla con el botón Play
         puenteCelular?.setMallaActiva(_estadoConexion.value != MeshEstadoConexion.DESCONECTADO)
         if (_ajustes.value.ayudaConDatosFirebase && _estadoConexion.value != MeshEstadoConexion.DESCONECTADO) {
@@ -474,6 +493,7 @@ object GestorMeshTx {
         _ajustes.value = _ajustes.value.copy(canalActivo = nuevoCanal)
         contextoApp?.getSharedPreferences("meshtx_prefs", Context.MODE_PRIVATE)
             ?.edit()?.putInt("canal_activo_id", nuevoCanal.idCanal)?.apply()
+        puenteCelular?.actualizarNombreCanal(nuevoCanal.nombre)
         if (_estadoConexion.value != MeshEstadoConexion.DESCONECTADO && _ajustes.value.ayudaConDatosFirebase) {
             puenteCelular?.activarPuenteVoip(nuevoCanal.idCanal)
         }
@@ -528,6 +548,8 @@ object GestorMeshTx {
             _salaPrivadaActiva.value = claveLimpia
             val hashId = Math.abs(claveLimpia.hashCode()) % 60000 + 100
             enrutadorMalla?.canalActivoIdPersonalizado = hashId
+            puenteCelular?.actualizarSalaPrivada(claveLimpia)
+            puenteCelular?.actualizarNombreCanal("Sala Privada: $claveLimpia")
             if (_estadoConexion.value != MeshEstadoConexion.DESCONECTADO && _ajustes.value.ayudaConDatosFirebase) {
                 puenteCelular?.activarPuenteVoip(hashId)
             }
@@ -541,6 +563,8 @@ object GestorMeshTx {
     fun salirASalaGeneral() {
         _salaPrivadaActiva.value = null
         enrutadorMalla?.canalActivoIdPersonalizado = null
+        puenteCelular?.actualizarSalaPrivada(null)
+        puenteCelular?.actualizarNombreCanal(CanalTactico.GENERAL_TX.nombre)
         cambiarCanal(CanalTactico.GENERAL_TX)
         Log.i(ETIQUETA_LOG, "Salida de sala privada. Regresando a Canal General TX")
     }
@@ -617,6 +641,7 @@ object GestorMeshTx {
         if (modeloMoto.isNotBlank()) this.modeloMotoLocal = modeloMoto
         if (ficha.isNotBlank()) this.fichaLocal = ficha
         transporteUdp?.actualizarAliasLocal(this.aliasPilotoLocal)
+        puenteCelular?.actualizarPerfil(this.modeloMotoLocal, this.fichaLocal, this.fotoPerfilLocal)
         actualizarListaNodos()
     }
 
@@ -986,6 +1011,23 @@ object GestorMeshTx {
             if (!esMismoDispositivo(nodo)) {
                 val existente = mapaCombinado[nodo.idMiembro]
                 if (existente == null || nodo.ultimoPingTimestamp >= existente.ultimoPingTimestamp) {
+                    mapaCombinado[nodo.idMiembro] = nodo
+                }
+            }
+        }
+
+        // 3. Nodos remotos en la misma sala/canal detectados vía Firebase (Fuera de rango offline con datos/WiFi)
+        val iterNube = nodosDetectadosNube.entries.iterator()
+        while (iterNube.hasNext()) {
+            val entrada = iterNube.next()
+            if (ahora - entrada.value.ultimoPingTimestamp > 60_000L || esMismoDispositivo(entrada.value)) {
+                iterNube.remove()
+            }
+        }
+        nodosDetectadosNube.values.forEach { nodo ->
+            if (!esMismoDispositivo(nodo)) {
+                val existente = mapaCombinado[nodo.idMiembro]
+                if (existente == null) {
                     mapaCombinado[nodo.idMiembro] = nodo
                 }
             }

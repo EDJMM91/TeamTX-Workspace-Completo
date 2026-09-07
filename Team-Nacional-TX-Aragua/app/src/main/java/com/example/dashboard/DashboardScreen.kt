@@ -368,7 +368,7 @@ fun DashboardScreen(
                 ModuleListRow(
                     titulo = "Mercado Biker",
                     descripcion = "Compra y venta de motos, repuestos y accesorios",
-                    icono = Icons.Default.Storefront,
+                    icono = Icons.Default.ShoppingCart,
                     colorIcono = Color(0xFF3949AB),
                     onClick = { onNavigateToTab(NavigationTab.MERCADO) }
                 )

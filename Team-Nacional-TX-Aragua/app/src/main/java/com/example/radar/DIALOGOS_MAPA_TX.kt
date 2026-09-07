@@ -14,8 +14,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.widget.*
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.net.Uri
+import com.aistudio.teamtxvzla.R
 import com.example.data.local.AppDatabase
-import com.example.data.model.MemberProfile
+import com.example.data.model.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import net.osmand.plus.OsmandApplication
@@ -26,10 +30,24 @@ object DialogosMapaTx {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     /**
-     * Muestra el Carnet TX táctico al tocar cualquier disco de avatar de piloto en el mapa.
+     * Muestra el detalle interactivo al tocar cualquier disco de avatar o icono de emergencia en el mapa.
+     * Si el piloto tiene una alerta SOS vial activa, abre la tarjeta de emergencia
+     * con su icono alusivo personalizado y opciones tácticas de resolución.
      */
     @JvmStatic
     fun mostrarPiloto(activity: Activity, piloto: PilotoRadar) {
+        if (!piloto.alertaSos.isNullOrBlank()) {
+            mostrarDetalleEmergenciaSos(activity, piloto)
+        } else {
+            mostrarCarnetPiloto(activity, piloto)
+        }
+    }
+
+    /**
+     * Muestra el Carnet TX táctico al tocar el disco de avatar de piloto en el mapa.
+     */
+    @JvmStatic
+    fun mostrarCarnetPiloto(activity: Activity, piloto: PilotoRadar) {
         val app = activity.application as? OsmandApplication ?: return
         val dialog = Dialog(activity)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -302,6 +320,931 @@ object DialogosMapaTx {
     }
 
     /**
+     * Despliega el detalle completo de una emergencia SOS activa al tocar el avatar o su icono tocándolo.
+     * Incluye:
+     * - Icono alusivo personalizado según el tipo de emergencia (sos_gasolina, sos_mecanico, sos_caida, sos_choque, etc.)
+     * - Nivel de severidad y protocolo de acción
+     * - Datos del piloto y moto
+     * - Coordenadas GPS con botón interactivo para copiar al portapapeles
+     * - Botones de acción directa: Llamar, WhatsApp SOS, Centrar en Mapa
+     * - Botón para Ver Carnet completo del piloto
+     * - Botón para que el usuario o directiva marque la emergencia como RESUELTA
+     */
+    @JvmStatic
+    fun mostrarDetalleEmergenciaSos(activity: Activity, piloto: PilotoRadar) {
+        val app = activity.application as? OsmandApplication ?: return
+        val dialog = Dialog(activity)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val density = activity.resources.displayMetrics.density
+        val config = RadarMapLayer.obtenerConfiguracionSos(piloto.alertaSos)
+        val colorAlertaInt = Color.parseColor(config.colorHex)
+
+        val rootLayout = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadii = floatArrayOf(
+                    20 * density, 20 * density,
+                    20 * density, 20 * density,
+                    0f, 0f, 0f, 0f
+                )
+                setColor(Color.parseColor("#121212"))
+            }
+            setPadding((18 * density).toInt(), (12 * density).toInt(), (18 * density).toInt(), (20 * density).toInt())
+        }
+
+        // Handle superior
+        val handlePill = View(activity).apply {
+            layoutParams = LinearLayout.LayoutParams((44 * density).toInt(), (4 * density).toInt()).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = (12 * density).toInt()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 4 * density
+                setColor(Color.parseColor("#555555"))
+            }
+        }
+        rootLayout.addView(handlePill)
+
+        // Cabecera: Título SOS y botón cerrar
+        val headerRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+        }
+
+        val tvHeader = TextView(activity).apply {
+            text = "🚨 ALERTA SOS VIAL EN CURSO"
+            setTextColor(colorAlertaInt)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        headerRow.addView(tvHeader)
+
+        val btnCerrar = TextView(activity).apply {
+            text = "✕"
+            setTextColor(Color.parseColor("#AAAAAA"))
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding((10 * density).toInt(), (4 * density).toInt(), (10 * density).toInt(), (4 * density).toInt())
+            setOnClickListener { dialog.dismiss() }
+        }
+        headerRow.addView(btnCerrar)
+        rootLayout.addView(headerRow)
+
+        // ScrollView para soportar todo el contenido cómodamente en cualquier pantalla
+        val scrollView = ScrollView(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+            isVerticalScrollBarEnabled = false
+        }
+        val contentContainer = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        // TARJETA PRINCIPAL: ICONO ALUSIVO + TIPO DE ALERTA + NIVEL
+        val emergencyCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 14 * density
+                setColor(Color.parseColor("#1C1C1C"))
+                setStroke((2 * density).toInt(), colorAlertaInt)
+            }
+            setPadding((12 * density).toInt(), (12 * density).toInt(), (12 * density).toInt(), (12 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+        }
+
+        // Contenedor del Icono Alusivo Personalizado
+        val iconContainer = FrameLayout(activity).apply {
+            layoutParams = LinearLayout.LayoutParams((60 * density).toInt(), (60 * density).toInt()).apply {
+                marginEnd = (12 * density).toInt()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#261414"))
+                setStroke((2 * density).toInt(), colorAlertaInt)
+            }
+        }
+
+        val ivSosIcon = ImageView(activity).apply {
+            layoutParams = FrameLayout.LayoutParams((44 * density).toInt(), (44 * density).toInt(), Gravity.CENTER)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            val resId = activity.resources.getIdentifier(config.nombreDrawable, "drawable", activity.packageName)
+            if (resId != 0) {
+                setImageResource(resId)
+            } else {
+                val fallbackRes = if (config.nombreDrawable == "sos_choque" || config.nombreDrawable == "sos_caida" || config.nombreDrawable == "sos_medico") {
+                    R.drawable.emergencia
+                } else {
+                    R.drawable.precaucion
+                }
+                setImageResource(fallbackRes)
+            }
+        }
+        iconContainer.addView(ivSosIcon)
+        emergencyCard.addView(iconContainer)
+
+        val emergencyTextCol = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val badgeNivel = TextView(activity).apply {
+            text = config.nivelTag
+            setTextColor(Color.WHITE)
+            textSize = 10f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding((8 * density).toInt(), (2 * density).toInt(), (8 * density).toInt(), (2 * density).toInt())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6 * density
+                setColor(colorAlertaInt)
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        emergencyTextCol.addView(badgeNivel)
+
+        val tvTituloEmergencia = TextView(activity).apply {
+            text = config.titulo
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (4 * density).toInt()
+            }
+        }
+        emergencyTextCol.addView(tvTituloEmergencia)
+
+        val tvDetalleSos = TextView(activity).apply {
+            text = "Detalle: ${piloto.alertaSos ?: "Auxilio vial reportado"}"
+            setTextColor(Color.parseColor("#FFA726"))
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (2 * density).toInt()
+            }
+        }
+        emergencyTextCol.addView(tvDetalleSos)
+
+        val tvDrawableName = TextView(activity).apply {
+            text = "🏷️ Icono: ${config.nombreDrawable}"
+            setTextColor(Color.parseColor("#888888"))
+            textSize = 10f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (2 * density).toInt()
+            }
+        }
+        emergencyTextCol.addView(tvDrawableName)
+
+        emergencyCard.addView(emergencyTextCol)
+        contentContainer.addView(emergencyCard)
+
+        // TARJETA DE PILOTO AFECTADO
+        val pilotCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 12 * density
+                setColor(Color.parseColor("#1A1A1A"))
+                setStroke((1 * density).toInt(), Color.parseColor("#333333"))
+            }
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val tvPilotoNombre = TextView(activity).apply {
+            text = "👤 Piloto: ${piloto.nombre.ifBlank { "Piloto Team TX" }} (${piloto.rango})"
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        pilotCard.addView(tvPilotoNombre)
+
+        val tvMotoInfo = TextView(activity).apply {
+            text = "🏍️ Moto: Keeway TX 200 • Consultando registro..."
+            setTextColor(Color.parseColor("#CCCCCC"))
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (4 * density).toInt()
+            }
+        }
+        pilotCard.addView(tvMotoInfo)
+
+        var telefonoPiloto = ""
+        val tvContactoInfo = TextView(activity).apply {
+            text = "📞 Teléfono: Consultando carnet..."
+            setTextColor(Color.parseColor("#AAAAAA"))
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (2 * density).toInt()
+            }
+        }
+        pilotCard.addView(tvContactoInfo)
+        contentContainer.addView(pilotCard)
+
+        // TARJETA DE COORDENADAS GPS + BOTÓN COPIAR
+        val gpsCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#182026"))
+                setStroke((1 * density).toInt(), Color.parseColor("#2680C2"))
+            }
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val tvGps = TextView(activity).apply {
+            text = "📍 GPS: %.5f, %.5f".format(piloto.lat, piloto.lon)
+            setTextColor(Color.parseColor("#64B5F6"))
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        gpsCard.addView(tvGps)
+
+        val btnCopiarGps = Button(activity).apply {
+            text = "📋 Copiar GPS"
+            setTextColor(Color.BLACK)
+            textSize = 11f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6 * density
+                setColor(Color.parseColor("#64B5F6"))
+            }
+            layoutParams = LinearLayout.LayoutParams((100 * density).toInt(), (34 * density).toInt())
+            setOnClickListener {
+                val coordsText = "${piloto.lat}, ${piloto.lon}"
+                val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("Coordenadas SOS", coordsText)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(activity, "📍 Coordenadas copiadas: $coordsText", Toast.LENGTH_SHORT).show()
+            }
+        }
+        gpsCard.addView(btnCopiarGps)
+        contentContainer.addView(gpsCard)
+
+        // TARJETA DE PROTOCOLO DE ACCIÓN
+        val protocolCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#1B1A22"))
+                setStroke((1 * density).toInt(), Color.parseColor("#673AB7"))
+            }
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (14 * density).toInt()
+            }
+        }
+
+        val tvProtocolTitle = TextView(activity).apply {
+            text = "🛡️ PROTOCOLO DE ACCIÓN INMEDIATO"
+            setTextColor(Color.parseColor("#B388FF"))
+            textSize = 11f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        protocolCard.addView(tvProtocolTitle)
+
+        val tvProtocolContent = TextView(activity).apply {
+            text = config.protocoloAccion
+            setTextColor(Color.parseColor("#E0E0E0"))
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (4 * density).toInt()
+            }
+        }
+        protocolCard.addView(tvProtocolContent)
+
+        val tvSpecialist = TextView(activity).apply {
+            text = "👥 Apoyo sugerido: ${config.especialistaAsignado}"
+            setTextColor(Color.parseColor("#CE93D8"))
+            textSize = 11f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (4 * density).toInt()
+            }
+        }
+        protocolCard.addView(tvSpecialist)
+        contentContainer.addView(protocolCard)
+
+        scrollView.addView(contentContainer)
+        rootLayout.addView(scrollView)
+
+        // SECCIÓN INFERIOR: BOTONES DE ACCIÓN
+        val buttonsContainer = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (10 * density).toInt()
+            }
+        }
+
+        // Fila de Comunicación Rápida: Llamar y WhatsApp SOS
+        val commRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (8 * density).toInt()
+            }
+        }
+
+        val btnLlamar = Button(activity).apply {
+            text = "📞 Llamar"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#1565C0"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                marginEnd = (4 * density).toInt()
+            }
+            setOnClickListener {
+                val num = telefonoPiloto.replace(Regex("[^0-9+]"), "")
+                try {
+                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$num"))
+                    activity.startActivity(intent)
+                } catch (_: Exception) {
+                    Toast.makeText(activity, "No se pudo abrir el marcador", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        commRow.addView(btnLlamar)
+
+        val btnWa = Button(activity).apply {
+            text = "💬 WhatsApp SOS"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#2E7D32"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                marginStart = (4 * density).toInt()
+            }
+            setOnClickListener {
+                val num = telefonoPiloto.replace(Regex("[^0-9]"), "")
+                val mensaje = Uri.encode("🚨 Hola ${piloto.nombre}, vi tu alerta SOS vial [${config.titulo}] en el Mapa TX. Voy en camino a apoyarte / ¿cómo estás?")
+                try {
+                    val uri = Uri.parse("https://wa.me/$num?text=$mensaje")
+                    activity.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                } catch (_: Exception) {
+                    Toast.makeText(activity, "No se pudo abrir WhatsApp", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        commRow.addView(btnWa)
+        buttonsContainer.addView(commRow)
+
+        // Fila 2: Centrar en Mapa + Ver Carnet
+        val navRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val btnCentrar = Button(activity).apply {
+            text = "📍 Centrar Radar"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#2C2C2C"))
+                setStroke((1 * density).toInt(), Color.parseColor("#444444"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                marginEnd = (4 * density).toInt()
+            }
+            setOnClickListener {
+                dialog.dismiss()
+                val mapView = app.osmandMap?.mapView
+                mapView?.setLatLon(piloto.lat, piloto.lon)
+                if ((mapView?.zoom ?: 0) < 16) {
+                    mapView?.setIntZoom(16)
+                }
+                mapView?.refreshMap(true)
+            }
+        }
+        navRow.addView(btnCentrar)
+
+        val btnVerCarnet = Button(activity).apply {
+            text = "🏍️ Carnet Piloto"
+            setTextColor(Color.BLACK)
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#FF9800"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                marginStart = (4 * density).toInt()
+            }
+            setOnClickListener {
+                dialog.dismiss()
+                mostrarCarnetPiloto(activity, piloto)
+            }
+        }
+        navRow.addView(btnVerCarnet)
+        buttonsContainer.addView(navRow)
+
+        // BOTÓN PRINCIPAL: MARCAR EMERGENCIA COMO RESUELTA
+        val btnResolver = Button(activity).apply {
+            text = "✅ MARCAR EMERGENCIA COMO RESUELTA"
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#10B981")) // Verde Éxito
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (46 * density).toInt())
+            setOnClickListener {
+                resolverEmergenciaSos(
+                    activity = activity,
+                    pilotId = piloto.id,
+                    pilotName = piloto.nombre,
+                    alertaSosTexto = piloto.alertaSos ?: "",
+                    lat = piloto.lat,
+                    lon = piloto.lon,
+                    onComplete = {
+                        dialog.dismiss()
+                    }
+                )
+            }
+        }
+        buttonsContainer.addView(btnResolver)
+        rootLayout.addView(buttonsContainer)
+
+        // Configuración final del Diálogo
+        dialog.setContentView(rootLayout)
+        dialog.window?.let { w ->
+            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, (520 * density).toInt())
+            w.setGravity(Gravity.BOTTOM)
+            w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+        dialog.show()
+
+        // Carga asíncrona de datos de contacto y moto desde la base de datos local
+        scope.launch(Dispatchers.IO) {
+            try {
+                val db = AppDatabase.getDatabase(activity, scope)
+                val members = db.memberDao().getAllMembers().first()
+                val member = members.firstOrNull { it.id.toString() == piloto.id || it.fullName.equals(piloto.nombre, ignoreCase = true) }
+
+                withContext(Dispatchers.Main) {
+                    if (member != null) {
+                        tvPilotoNombre.text = "👤 Piloto: ${member.fullName} (${member.role.displayName})"
+                        val motoInfo = "${member.bikeBrand} ${member.bikeModel} (${member.bikeColor})".trim()
+                        tvMotoInfo.text = "🏍️ Moto: ${if (motoInfo.isNotBlank()) motoInfo else "Keeway TX 200"} • Placa: ${member.bikePlate.ifBlank { "Sin placa" }}"
+                        telefonoPiloto = member.phone
+                        tvContactoInfo.text = "📞 Teléfono: ${if (telefonoPiloto.isNotBlank()) telefonoPiloto else "No registrado"}"
+                    } else {
+                        tvMotoInfo.text = "🏍️ Moto: Keeway TX 200 (Oficial)"
+                        tvContactoInfo.text = "📞 Teléfono: Disponible por radio / chat"
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    /**
+     * Muestra el detalle interactivo al tocar un marcador SOS en la capa de eventos del mapa.
+     */
+    @JvmStatic
+    fun mostrarDetalleEmergenciaEvento(activity: Activity, evento: EventosMapLayer.EventoMarcador) {
+        val app = activity.application as? OsmandApplication ?: return
+        val dialog = Dialog(activity)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val density = activity.resources.displayMetrics.density
+        val config = RadarMapLayer.obtenerConfiguracionSos("${evento.titulo} ${evento.descripcion}")
+        val colorAlertaInt = Color.parseColor(config.colorHex)
+
+        val rootLayout = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadii = floatArrayOf(
+                    20 * density, 20 * density,
+                    20 * density, 20 * density,
+                    0f, 0f, 0f, 0f
+                )
+                setColor(Color.parseColor("#121212"))
+            }
+            setPadding((18 * density).toInt(), (12 * density).toInt(), (18 * density).toInt(), (20 * density).toInt())
+        }
+
+        // Handle superior
+        val handlePill = View(activity).apply {
+            layoutParams = LinearLayout.LayoutParams((44 * density).toInt(), (4 * density).toInt()).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = (12 * density).toInt()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 4 * density
+                setColor(Color.parseColor("#555555"))
+            }
+        }
+        rootLayout.addView(handlePill)
+
+        // Cabecera: Título SOS y botón cerrar
+        val headerRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+        }
+
+        val tvHeader = TextView(activity).apply {
+            text = "🚨 PUNTO DE AUXILIO VIAL EN MAPA"
+            setTextColor(colorAlertaInt)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        headerRow.addView(tvHeader)
+
+        val btnCerrar = TextView(activity).apply {
+            text = "✕"
+            setTextColor(Color.parseColor("#AAAAAA"))
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding((10 * density).toInt(), (4 * density).toInt(), (10 * density).toInt(), (4 * density).toInt())
+            setOnClickListener { dialog.dismiss() }
+        }
+        headerRow.addView(btnCerrar)
+        rootLayout.addView(headerRow)
+
+        // Tarjeta Principal con Icono Alusivo
+        val emergencyCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 14 * density
+                setColor(Color.parseColor("#1C1C1C"))
+                setStroke((2 * density).toInt(), colorAlertaInt)
+            }
+            setPadding((12 * density).toInt(), (12 * density).toInt(), (12 * density).toInt(), (12 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+        }
+
+        val iconContainer = FrameLayout(activity).apply {
+            layoutParams = LinearLayout.LayoutParams((56 * density).toInt(), (56 * density).toInt()).apply {
+                marginEnd = (12 * density).toInt()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#261414"))
+                setStroke((2 * density).toInt(), colorAlertaInt)
+            }
+        }
+
+        val ivSosIcon = ImageView(activity).apply {
+            layoutParams = FrameLayout.LayoutParams((40 * density).toInt(), (40 * density).toInt(), Gravity.CENTER)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            val resId = activity.resources.getIdentifier(config.nombreDrawable, "drawable", activity.packageName)
+            if (resId != 0) {
+                setImageResource(resId)
+            } else {
+                val fallbackRes = if (config.nombreDrawable == "sos_choque" || config.nombreDrawable == "sos_caida" || config.nombreDrawable == "sos_medico") {
+                    R.drawable.emergencia
+                } else {
+                    R.drawable.precaucion
+                }
+                setImageResource(fallbackRes)
+            }
+        }
+        iconContainer.addView(ivSosIcon)
+        emergencyCard.addView(iconContainer)
+
+        val emergencyTextCol = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val badgeNivel = TextView(activity).apply {
+            text = config.nivelTag
+            setTextColor(Color.WHITE)
+            textSize = 10f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding((8 * density).toInt(), (2 * density).toInt(), (8 * density).toInt(), (2 * density).toInt())
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6 * density
+                setColor(colorAlertaInt)
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        emergencyTextCol.addView(badgeNivel)
+
+        val tvTitulo = TextView(activity).apply {
+            text = evento.titulo
+            setTextColor(Color.WHITE)
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (4 * density).toInt()
+            }
+        }
+        emergencyTextCol.addView(tvTitulo)
+
+        val tvDrawableName = TextView(activity).apply {
+            text = "🏷️ Icono: ${config.nombreDrawable}"
+            setTextColor(Color.parseColor("#888888"))
+            textSize = 10f
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = (2 * density).toInt()
+            }
+        }
+        emergencyTextCol.addView(tvDrawableName)
+
+        emergencyCard.addView(emergencyTextCol)
+        rootLayout.addView(emergencyCard)
+
+        // Tarjeta de Descripción
+        val descCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#1A1A1A"))
+                setStroke((1 * density).toInt(), Color.parseColor("#333333"))
+            }
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val tvDesc = TextView(activity).apply {
+            text = evento.descripcion.ifBlank { "Sin detalles adicionales" }
+            setTextColor(Color.parseColor("#DDDDDD"))
+            textSize = 12f
+        }
+        descCard.addView(tvDesc)
+        rootLayout.addView(descCard)
+
+        // Tarjeta GPS + Copiar
+        val gpsCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#182026"))
+                setStroke((1 * density).toInt(), Color.parseColor("#2680C2"))
+            }
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+        }
+
+        val tvGps = TextView(activity).apply {
+            text = "📍 GPS: %.5f, %.5f".format(evento.lat, evento.lon)
+            setTextColor(Color.parseColor("#64B5F6"))
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        gpsCard.addView(tvGps)
+
+        val btnCopiarGps = Button(activity).apply {
+            text = "📋 Copiar"
+            setTextColor(Color.BLACK)
+            textSize = 11f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6 * density
+                setColor(Color.parseColor("#64B5F6"))
+            }
+            layoutParams = LinearLayout.LayoutParams((84 * density).toInt(), (34 * density).toInt())
+            setOnClickListener {
+                val coordsText = "${evento.lat}, ${evento.lon}"
+                val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("Coordenadas SOS", coordsText)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(activity, "📍 Coordenadas copiadas: $coordsText", Toast.LENGTH_SHORT).show()
+            }
+        }
+        gpsCard.addView(btnCopiarGps)
+        rootLayout.addView(gpsCard)
+
+        // Botón Navegar / Centrar
+        val btnNavegar = Button(activity).apply {
+            text = "🏍️ Centrar en este Sitio de Emergencia"
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#2C2C2C"))
+                setStroke((1 * density).toInt(), Color.parseColor("#555555"))
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (42 * density).toInt()).apply {
+                bottomMargin = (8 * density).toInt()
+            }
+            setOnClickListener {
+                dialog.dismiss()
+                val mapView = app.osmandMap?.mapView
+                mapView?.setLatLon(evento.lat, evento.lon)
+                if ((mapView?.zoom ?: 0) < 16) {
+                    mapView?.setIntZoom(16)
+                }
+                mapView?.refreshMap(true)
+            }
+        }
+        rootLayout.addView(btnNavegar)
+
+        // Extraer nombre del piloto del título si está disponible
+        val nombreExtraido = evento.titulo.substringAfter(":", "").trim()
+
+        // Botón Resolver Alerta
+        val btnResolver = Button(activity).apply {
+            text = "✅ MARCAR EMERGENCIA COMO RESUELTA"
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#10B981"))
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (46 * density).toInt())
+            setOnClickListener {
+                resolverEmergenciaSos(
+                    activity = activity,
+                    pilotId = "",
+                    pilotName = nombreExtraido,
+                    alertaSosTexto = "${evento.titulo} ${evento.descripcion}",
+                    lat = evento.lat,
+                    lon = evento.lon,
+                    onComplete = {
+                        dialog.dismiss()
+                    }
+                )
+            }
+        }
+        rootLayout.addView(btnResolver)
+
+        dialog.setContentView(rootLayout)
+        dialog.window?.let { w ->
+            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            w.setGravity(Gravity.BOTTOM)
+            w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+        dialog.show()
+    }
+
+    /**
+     * Resuelve la emergencia en todos los módulos sincronizados:
+     * 1. Limpia la telemetría GPS del piloto (TelemetriaGps.limpiarAlertaSos).
+     * 2. Actualiza la alerta en la base de datos local a EmergencyStatus.RESUELTA.
+     * 3. Desancla avisos SOS previos del Muro/Feed.
+     * 4. Si es emergencia crítica (choque, caída, accidente), publica en el feed aviso de solventado.
+     * 5. Envía mensaje de resolución a Chat General, Auxilio y Directiva.
+     * 6. Re-sincroniza el mapa y retira el punto/icono inmediatamente.
+     */
+    @JvmStatic
+    fun resolverEmergenciaSos(
+        activity: Activity,
+        pilotId: String,
+        pilotName: String,
+        alertaSosTexto: String,
+        lat: Double,
+        lon: Double,
+        onComplete: () -> Unit
+    ) {
+        val app = activity.application as? OsmandApplication ?: return
+        TelemetriaGps.limpiarAlertaSos(activity, pilotId)
+
+        scope.launch(Dispatchers.IO) {
+            try {
+                val db = AppDatabase.getDatabase(activity, scope)
+                val allAlerts = db.emergencyDao().getAllAlerts().first()
+                val alert = allAlerts.firstOrNull {
+                    (pilotId.isNotBlank() && it.memberNumber == pilotId) ||
+                    (pilotName.isNotBlank() && it.reporterName.contains(pilotName, ignoreCase = true)) &&
+                    it.status != EmergencyStatus.RESUELTA
+                }
+
+                val config = RadarMapLayer.obtenerConfiguracionSos(alertaSosTexto)
+                val tipoNombre = alert?.emergencyType?.label ?: config.titulo
+                val gradoTag = alert?.emergencyType?.levelTag ?: config.nivelTag
+                val nombreFinal = if (pilotName.isNotBlank()) pilotName else (alert?.reporterName ?: "Piloto TX")
+
+                if (alert != null) {
+                    val updated = alert.copy(
+                        status = EmergencyStatus.RESUELTA,
+                        respondersNotes = "Resuelta desde Mapa TX táctico por directiva / piloto"
+                    )
+                    db.emergencyDao().updateAlert(updated)
+                }
+
+                // 3. Desanclar avisos de emergencia del Muro si existieran
+                try {
+                    val pubs = db.publicationDao().getAllPublications().first()
+                    pubs.filter { it.isPinned && it.title.contains("SOS") && (it.title.contains(nombreFinal) || it.content.contains(nombreFinal)) }
+                        .forEach { p ->
+                            db.publicationDao().updatePublication(p.copy(isPinned = false))
+                        }
+                } catch (_: Exception) {}
+
+                // 4. Publicar en feed solo si es choque, caída, accidente grave (sePublicaEnMuro)
+                val esGrave = alert?.emergencyType?.sePublicaEnMuro == true ||
+                        config.nombreDrawable in listOf("sos_choque", "sos_caida", "sos_medico")
+                if (esGrave) {
+                    try {
+                        val pubRes = Publication(
+                            title = "✅ SOS VIAL SOLVENTADO: $nombreFinal a salvo",
+                            content = "Se informa a la comunidad motera que la alerta vial [$gradoTag - $tipoNombre] en Lat: ${"%.4f".format(lat)}, Lon: ${"%.4f".format(lon)} ha sido totalmente SOLVENTADA.\n\n" +
+                                    "👤 Piloto: $nombreFinal\n" +
+                                    "🏍️ Bitácora: Situación atendida y fuera de peligro.\n" +
+                                    "El punto de auxilio ha sido retirado del Mapa TX. ¡Gracias a todos por acudir!",
+                            category = NoticeCategory.COMUNICADO,
+                            priority = NoticePriority.NORMAL,
+                            authorName = "Team TX Directiva",
+                            authorRole = "Directiva Central",
+                            isPinned = false
+                        )
+                        db.publicationDao().insertPublication(pubRes)
+                    } catch (_: Exception) {}
+                }
+
+                // 5. Enviar mensajes de resolución a Chat General, Auxilio y Directiva
+                val chatMsg = "✅ EMERGENCIA SOLVENTADA [$gradoTag - $tipoNombre]:\n" +
+                        "La alerta vial de $nombreFinal ha sido marcada como RESUELTA.\n" +
+                        "📍 Coordenadas: ${"%.4f".format(lat)}, ${"%.4f".format(lon)}\n" +
+                        "🏍️ Situación: Piloto seguro y asistido.\n" +
+                        "🤝 El aviso ha sido retirado del Mapa TX."
+
+                val now = System.currentTimeMillis()
+                listOf("GENERAL", "MECANICA_AUXILIO", "DIRECTIVA").forEach { canal ->
+                    try {
+                        db.chatDao().insertMessage(
+                            ChatMessage(
+                                channelId = canal,
+                                senderName = "Sistema SOS TX",
+                                senderNickname = "Alerta Vial",
+                                senderRole = MemberRole.DIRECTIVA,
+                                senderInitials = "SOS",
+                                messageText = chatMsg,
+                                timestamp = now
+                            )
+                        )
+                    } catch (_: Exception) {}
+                }
+
+                // 6. Re-sincronizar capa de mapa para retirar inmediatamente el marcador
+                try {
+                    val pubs = db.publicationDao().getAllPublications().first()
+                    val events = db.calendarDao().getAllEvents().first()
+                    val activeAlerts = db.emergencyDao().getAllAlerts().first().filter { it.status != EmergencyStatus.RESUELTA }
+                    GestorRadar.sincronizarEventosEnMapa(pubs, events, activeAlerts)
+                } catch (_: Exception) {}
+
+                withContext(Dispatchers.Main) {
+                    app.osmandMap?.mapView?.refreshMap(true)
+                    Toast.makeText(activity, "✅ Emergencia marcada como RESUELTA. Aviso retirado del mapa.", Toast.LENGTH_LONG).show()
+                    onComplete()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(activity, "Alerta actualizada: ${e.message}", Toast.LENGTH_SHORT).show()
+                    onComplete()
+                }
+            }
+        }
+    }
+
+    /**
      * Muestra una lista de pilotos agrupados en la misma ubicación.
      */
     @JvmStatic
@@ -415,6 +1358,10 @@ object DialogosMapaTx {
      */
     @JvmStatic
     fun mostrarEvento(activity: Activity, evento: EventosMapLayer.EventoMarcador) {
+        if (evento.titulo.startsWith("🚨 SOS")) {
+            mostrarDetalleEmergenciaEvento(activity, evento)
+            return
+        }
         val app = activity.application as? OsmandApplication ?: return
         val dialog = Dialog(activity)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)

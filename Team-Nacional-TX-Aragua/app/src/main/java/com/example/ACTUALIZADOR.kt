@@ -104,6 +104,70 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 21,
+            versionName = "1.4.0-beta",
+            titulo = "Botón SOS Rápido en Mapa TX + Contactos Reales de Especialistas",
+            fecha = "07 sep 2026",
+            descripcionCorta = "Nuevo botón SOS rápido en la pantalla del Mapa TX. Toca para emitir, mantén presionado para cambiar el tipo. Limpieza total de datos simulados en el módulo SOS: Médico, Mecánico y Seguridad Vial ahora muestran miembros reales registrados en la app.",
+            novedades = listOf(
+                "🚨 Botón SOS Rápido en Mapa TX: Toca para emitir alerta directamente desde la pantalla del mapa. Mantén presionado para elegir el tipo de emergencia (Gasolina, Mecánico, Caída, Choque, Médico, Seguridad, Alcabala).",
+                "💾 Tipo de Alerta Persistente: El tipo de alerta elegido en el mapa se recuerda entre sesiones para emisión más rápida.",
+                "👨‍⚕️ Contactos Especialistas Reales: El Módulo SOS muestra el nombre y teléfono real del Mecánico Oficial, Médico del Club y Oficial de Seguridad registrados en la app.",
+                "📵 Botones Deshabilitados si No hay Especialista: Si no hay miembro con ese rol, el botón aparece en gris indicando 'Sin asignar' en lugar de marcar un número falso.",
+                "📞 Contacto Familiar Real: El botón de contacto familiar muestra el nombre real del contacto de emergencia registrado en el perfil del piloto.",
+                "📲 Compartir APK por WhatsApp: Desde Vista Info puedes enviar el enlace de descarga a cualquier contacto por WhatsApp."
+            ),
+            correcciones = listOf(
+                "Eliminados números de teléfono falsos: +584129904433 (P. Torrealba), +584245551290 (Dra. Gómez), +584128887766 (Seguridad), +584141234567 (Familiar fijo).",
+                "Corregido fallback de contacto familiar: ya no usa número hardcoded sino emergencyContactPhone real del perfil.",
+                "Corregido bug de navegación inferior: los botones de módulos reconocen inmediatamente el cambio de pantalla."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
+            versionCode = 20,
+            versionName = "1.3.9-beta",
+            titulo = "Geolocalización Satelital Precisa SOS, Captura Multi-Proveedor y Centrado en Mapa TX",
+            fecha = "07 sep 2026",
+            descripcionCorta = "Eliminación total de coordenadas fijas de Caracas en el sistema SOS. Detección en vivo multi-proveedor (FusedLocation, LocationManager, OsmAnd y Radar TX) con geocodificación inversa real de Venezuela y centrado automático en el mapa sobre la posición exacta del piloto.",
+            novedades = listOf(
+                "📍 Coordenadas Exactas del Piloto: El sistema SOS captura satelitalmente en tiempo real la ubicación exacta del piloto donde ocurrió la emergencia.",
+                "🚫 Eliminación de Coordenadas Fijas de Caracas: Cero ubicaciones falsas en Tazón o Caracas; si el dispositivo no tiene GPS al instante, consulta múltiples proveedores satelitales y de red.",
+                "🗺️ Centrado Inmediato en Mapa TX: Al emitir o tocar la alerta SOS, el mapa se enfoca y centra de forma automática en el punto satelital del piloto.",
+                "🔄 Botón de Re-captura GPS en Diálogo: Indicador visual en vivo con spinner de detección y botón para refrescar satélites al instante.",
+                "📋 Copia Satelital al Portapapeles: Copia automática de latitud y longitud exactas para compartir a grupos de rescate y convoyes.",
+                "🇻🇪 Geocodificación Inversa Venezolana: Identificación automática de tramos viales, municipios y referencias viales locales basada en las coordenadas del dispositivo."
+            ),
+            correcciones = listOf(
+                "Corregido: Alertas SOS reportaban erróneamente Caracas/Tazón al emitirse en otras regiones como Aragua.",
+                "Corregido: Fallback de EmergencyAlert y TeamTxViewModel configurados a resolución satelital dinámica en lugar de valores fijos."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
+            versionCode = 19,
+            versionName = "1.3.8-beta",
+            titulo = "Sincronización Total SOS Vial, Iconos Alusivos en Mapa TX y Resolución Táctica",
+            fecha = "07 sep 2026",
+            descripcionCorta = "Sincronización integral del módulo SOS Vial con Muro/Feed, Chat General, Auxilio, Directiva y Mapa TX. Iconos de emergencia alusivos tocando el disco de avatar en el mapa con nombres personalizables en español, copia rápida de coordenadas GPS y resolución compartida por piloto y directiva.",
+            novedades = listOf(
+                "🚨 Sincronización Total SOS Vial: Conexión en tiempo real entre SOS, Feed de Noticias, Chat General, Auxilio y Canal Directiva.",
+                "🗺️ Disco de Usuario con Icono Tocándolo en Mapa TX: Al haber emergencia activa, el avatar muestra un badge táctico tangencial con halo pulsante animado.",
+                "🎨 8 Iconos Alusivos Personalizables: Integración con nombres en español (sos_gasolina, sos_mecanico, sos_caida, sos_choque, sos_medico, sos_seguridad, sos_alcabala, sos_alerta).",
+                "📋 Copia Rápida de GPS: Botón interactivo en diálogo de emisión y detalle para copiar coordenadas satelitales al portapapeles con confirmación Toast.",
+                "✅ Resolución Compartida de Emergencias: El piloto afectado y la directiva pueden marcar la alerta como RESUELTA, retirando el aviso del mapa y notificando a chats y feed.",
+                "🛒 Carrito de Compras en Mercado Biker: Icono renovado a carrito de compras con el estilo visual unificado del club.",
+                "🔢 Teclado Numérico en Carnet TX: Activación forzada de teclado numérico en campos de teléfonos.",
+                "🛡️ Gobernanza de Directiva: Restricción para que solo el Presidente y Desarrollador puedan gestionar miembros de directiva con opción de transferir o anular cargo."
+            ),
+            correcciones = listOf(
+                "Corregido: Visibilidad de textos y padding en tarjetas de alerta rápida SOS por nivel.",
+                "Corregido: Filtro de Muro para publicar avisos únicamente en incidentes críticos (choque, caída, accidentes viales).",
+                "Corregido: Desvinculación automática inmediata al reclamar sesión en un nuevo dispositivo."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
             versionCode = 18,
             versionName = "1.3.7-beta",
             titulo = "Vinculación Estricta 1-a-1 (Código como Contraseña), Personalización en Carnet TX y Purga Cero Residuos",
@@ -122,7 +186,7 @@ object GestorActualizaciones {
                 "Corregido: Cruce de identidad en el chat entre dispositivos de prueba con códigos compartidos.",
                 "Corregido: Residuos en Firebase Firestore (vinculos_google, usuarios, radar_en_vivo) reseteados a estado base limpio con únicamente 2 cuentas maestras de desarrollo."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 17,
@@ -285,7 +349,7 @@ object GestorActualizaciones {
      * Consulta y lista todas las versiones de APK alojadas en la carpeta 'updates' de Firebase Storage
      */
     suspend fun obtenerListaVersionesStorage(): List<StorageApkVersion> = withContext(Dispatchers.IO) {
-        val fallbackUrl = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd"
+        val fallbackUrl = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=422ded53-82b3-48a5-945a-87e2c30745bb"
         try {
             val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
             val updatesRef = storage.reference.child("updates")
@@ -315,13 +379,14 @@ object GestorActualizaciones {
                                 val match = Regex("""v\d+(\.\d+)*(-[a-zA-Z0-9]+)?""").find(item.name)
                                 match?.value ?: item.name.removeSuffix(".apk")
                             }
-                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v1.3.7-beta (Última)"
+                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v1.3.8-beta (Última)"
                             else -> item.name.removeSuffix(".apk")
                         }
 
                         val estimatedCode = when {
+                            item.name.contains("1.3.8") -> 19
+                            isLatest -> 19
                             item.name.contains("1.3.7") -> 18
-                            isLatest -> 18
                             item.name.contains("1.3.6") -> 17
                             item.name.contains("1.3.5") -> 16
                             item.name.contains("1.4") -> 14
@@ -390,7 +455,7 @@ object GestorActualizaciones {
             versions
         } catch (e: Exception) {
             Log.e(TAG, "Error listando versiones de Firebase Storage: ${e.message}", e)
-            val detalleTop = obtenerDetalleVersion(18, "1.3.7-beta")
+            val detalleTop = obtenerDetalleVersion(19, "1.3.8-beta")
             listOf(
                 StorageApkVersion(
                     fileName = "TeamTX-latest.apk",
@@ -398,9 +463,9 @@ object GestorActualizaciones {
                     sizeBytes = 395443512L,
                     formattedSize = "377.1 MB",
                     updatedTimestamp = System.currentTimeMillis(),
-                    formattedDate = "07 sep 2026, 11:30 AM",
-                    versionName = "v1.3.7-beta (Recomendada)",
-                    versionCode = 18,
+                    formattedDate = "07 sep 2026, 01:40 PM",
+                    versionName = "v1.3.8-beta (Recomendada)",
+                    versionCode = 19,
                     titulo = detalleTop.titulo,
                     notas = detalleTop.descripcionCorta,
                     novedades = detalleTop.novedades,
@@ -418,66 +483,66 @@ object GestorActualizaciones {
      * y la base de datos Firestore.
      */
     suspend fun verificarActualizacion(): InformacionOta = withContext(Dispatchers.IO) {
-        val urlOficialFirebaseStorage = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk"
-        val urlInfoOtaJson = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/ota_info.json"
+        val urlOficialFirebaseStorage = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=422ded53-82b3-48a5-945a-87e2c30745bb"
+        val urlInfoOtaJson = "https://raw.githubusercontent.com/EDJMM91/Team-Nacional-TX-Aragua/main/apk/ota_info.json"
 
-        // 1. Consultar PRIMERO el archivo real subido a GitHub (ota_info.json)
+        // 1. Consultar PRIMERO Firebase Storage directamente (la fuente real de los APKs)
         var versionStorage: StorageApkVersion? = null
         try {
-            // Intentar cargar desde el JSON de GitHub primero (el más actualizado)
-            val connection = URL(urlInfoOtaJson).openConnection() as HttpURLConnection
-            connection.connectTimeout = 8000
-            connection.readTimeout = 8000
-            connection.connect()
-            
-            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                val jsonStr = connection.inputStream.bufferedReader().use { it.readText() }
-                val json = org.json.JSONObject(jsonStr)
-                val code = json.optInt("versionCode", 0)
-                val name = json.optString("versionName", "")
-                val urlDesc = json.optString("urlDescarga", urlOficialFirebaseStorage)
-                val notasJson = json.optString("notas", "")
-                
-                val listaNovedades = mutableListOf<String>()
-                val jsonNov = json.optJSONArray("novedades")
-                if (jsonNov != null) {
-                    for (i in 0 until jsonNov.length()) listaNovedades.add(jsonNov.getString(i))
-                }
-                
-                val listaCorrecciones = mutableListOf<String>()
-                val jsonCorr = json.optJSONArray("correcciones")
-                if (jsonCorr != null) {
-                    for (i in 0 until jsonCorr.length()) listaCorrecciones.add(jsonCorr.getString(i))
-                }
-                
-                versionStorage = StorageApkVersion(
-                    fileName = "TeamTX-latest.apk",
-                    downloadUrl = urlDesc,
-                    versionCode = code,
-                    versionName = name,
-                    titulo = "Actualización Oficial (GitHub)",
-                    notas = notasJson,
-                    novedades = listaNovedades,
-                    correcciones = listaCorrecciones,
-                    isRecommendedLatest = true
-                )
-                Log.d(TAG, "Versión detectada en GitHub: $name (Build $code)")
-            }
+            val lista = obtenerListaVersionesStorage()
+            versionStorage = lista.firstOrNull { it.isRecommendedLatest }
+                ?: lista.maxByOrNull { it.versionCode }
         } catch (e: Exception) {
-            Log.e(TAG, "Error consultando ota_info.json en GitHub: ${e.message}")
+            Log.e(TAG, "Error consultando versiones en Storage: ${e.message}")
         }
 
+        // 2. Consultar ota_info.json si está disponible
         if (versionStorage == null) {
             try {
-                val lista = obtenerListaVersionesStorage()
-                versionStorage = lista.firstOrNull { it.isRecommendedLatest }
-                    ?: lista.maxByOrNull { it.versionCode }
+                val connection = URL(urlInfoOtaJson).openConnection() as HttpURLConnection
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                connection.connect()
+                
+                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    val jsonStr = connection.inputStream.bufferedReader().use { it.readText() }
+                    val json = org.json.JSONObject(jsonStr)
+                    val code = json.optInt("versionCode", 0)
+                    val name = json.optString("versionName", "")
+                    val urlDesc = json.optString("urlDescarga", urlOficialFirebaseStorage)
+                    val notasJson = json.optString("notas", "")
+                    
+                    val listaNovedades = mutableListOf<String>()
+                    val jsonNov = json.optJSONArray("novedades")
+                    if (jsonNov != null) {
+                        for (i in 0 until jsonNov.length()) listaNovedades.add(jsonNov.getString(i))
+                    }
+                    
+                    val listaCorrecciones = mutableListOf<String>()
+                    val jsonCorr = json.optJSONArray("correcciones")
+                    if (jsonCorr != null) {
+                        for (i in 0 until jsonCorr.length()) listaCorrecciones.add(jsonCorr.getString(i))
+                    }
+                    
+                    versionStorage = StorageApkVersion(
+                        fileName = "TeamTX-latest.apk",
+                        downloadUrl = if (urlDesc.isNotBlank() && !urlDesc.contains("github.com")) urlDesc else urlOficialFirebaseStorage,
+                        versionCode = code,
+                        versionName = name,
+                        titulo = "Actualización Oficial (GitHub/Storage)",
+                        notas = notasJson,
+                        novedades = listaNovedades,
+                        correcciones = listaCorrecciones,
+                        isRecommendedLatest = true
+                    )
+                    Log.d(TAG, "Versión detectada en ota_info.json: $name (Build $code)")
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error consultando versiones en Storage: ${e.message}")
+                Log.e(TAG, "Error consultando ota_info.json: ${e.message}")
             }
         }
 
-        // 2. Consultar Firestore en colección 'configuracion' / 'OTA'
+        // 3. Consultar Firestore en colección 'configuracion' / 'OTA'
         var infoFirestore: InformacionOta? = null
         try {
             val db = FirebaseFirestore.getInstance()
@@ -493,7 +558,7 @@ object GestorActualizaciones {
                     else -> 0
                 }
                 val versionName = doc.getString("versionName") ?: "v$code"
-                var url = (doc.getString("urlDescarga") ?: "").trim()
+                var url = (doc.getString("urlDescarga") ?: doc.getString("downloadUrl") ?: "").trim()
                 val customNotas = doc.getString("notas") ?: ""
                 val customTitulo = doc.getString("titulo") ?: ""
 
@@ -533,7 +598,7 @@ object GestorActualizaciones {
             Log.e(TAG, "Consulta Firestore OTA falló: ${e.message}")
         }
 
-        // 3. Determinar la versión ganadora (priorizando la real más reciente de Storage)
+        // 4. Determinar la versión ganadora (priorizando la real más reciente de Storage)
         val codeStorage = versionStorage?.versionCode ?: 0
         val codeFirestore = infoFirestore?.versionCode ?: 0
 
@@ -543,7 +608,7 @@ object GestorActualizaciones {
                 versionCode = codeStorage,
                 versionName = versionStorage.versionName.ifBlank { detalle.versionName },
                 titulo = versionStorage.titulo.ifBlank { detalle.titulo },
-                urlDescarga = versionStorage.downloadUrl.ifBlank { urlOficialFirebaseStorage },
+                urlDescarga = if (versionStorage.downloadUrl.isNotBlank() && !versionStorage.downloadUrl.contains("github.com")) versionStorage.downloadUrl else urlOficialFirebaseStorage,
                 notas = versionStorage.notas.ifBlank { detalle.descripcionCorta },
                 novedades = if (versionStorage.novedades.isNotEmpty()) versionStorage.novedades else detalle.novedades,
                 correcciones = if (versionStorage.correcciones.isNotEmpty()) versionStorage.correcciones else detalle.correcciones,
@@ -552,16 +617,16 @@ object GestorActualizaciones {
         } else if (infoFirestore != null) {
             infoFirestore
         } else {
-            val detalleV16 = obtenerDetalleVersion(16, "1.3.5-beta")
+            val detalleV19 = obtenerDetalleVersion(19, "1.3.8-beta")
             InformacionOta(
-                versionCode = 16,
-                versionName = "1.3.5-beta",
-                titulo = detalleV16.titulo,
+                versionCode = 19,
+                versionName = "1.3.8-beta",
+                titulo = detalleV19.titulo,
                 urlDescarga = urlOficialFirebaseStorage,
-                notas = detalleV16.descripcionCorta,
-                novedades = detalleV16.novedades,
-                correcciones = detalleV16.correcciones,
-                fechaPublicacion = detalleV16.fecha
+                notas = detalleV19.descripcionCorta,
+                novedades = detalleV19.novedades,
+                correcciones = detalleV19.correcciones,
+                fechaPublicacion = detalleV19.fecha
             )
         }
 
@@ -593,6 +658,16 @@ object GestorActualizaciones {
         urlOriginal: String,
         onProgreso: (progreso: Float, leidosMb: String, totalMb: String) -> Unit
     ): File? = withContext(Dispatchers.IO) {
+        // Preparar destino
+        val carpetaDestino = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir
+        if (!carpetaDestino.exists()) {
+            carpetaDestino.mkdirs()
+        }
+        val archivoApk = File(carpetaDestino, "TeamTX_Update.apk")
+        if (archivoApk.exists()) {
+            archivoApk.delete()
+        }
+
         try {
             var urlString = urlOriginal.trim()
             if (urlString.isBlank()) {
@@ -602,26 +677,23 @@ object GestorActualizaciones {
 
             Log.d(TAG, "Iniciando descarga directa desde: $urlString")
 
-            // Preparar destino
-            val carpetaDestino = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir
-            if (!carpetaDestino.exists()) {
-                carpetaDestino.mkdirs()
-            }
-            val archivoApk = File(carpetaDestino, "TeamTX_Update.apk")
-            if (archivoApk.exists()) {
-                archivoApk.delete()
-            }
-
             // 1. Si la URL es de Firebase Storage o ruta interna, descargar por Firebase Storage SDK
             if (urlString.startsWith("gs://") || urlString.contains("firebasestorage.googleapis.com") || urlString.startsWith("updates/")) {
                 try {
                     val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
-                    val storageRef = if (urlString.startsWith("gs://")) {
-                        storage.getReferenceFromUrl(urlString)
-                    } else if (urlString.contains("/o/")) {
-                        storage.getReferenceFromUrl(urlString)
-                    } else {
-                        storage.reference.child("updates/TeamTX-latest.apk")
+                    val storageRef = when {
+                        urlString.startsWith("gs://") -> try { storage.getReferenceFromUrl(urlString) } catch (_: Exception) { storage.reference.child("updates/TeamTX-latest.apk") }
+                        urlString.contains("/o/") -> {
+                            try {
+                                val encodedPath = urlString.substringAfter("/o/").substringBefore("?")
+                                val decodedPath = java.net.URLDecoder.decode(encodedPath, "UTF-8")
+                                storage.reference.child(decodedPath)
+                            } catch (_: Exception) {
+                                storage.reference.child("updates/TeamTX-latest.apk")
+                            }
+                        }
+                        urlString.startsWith("updates/") -> storage.reference.child(urlString)
+                        else -> storage.reference.child("updates/TeamTX-latest.apk")
                     }
 
                     Log.d(TAG, "Descargando vía Firebase Storage SDK: ${storageRef.path}")
@@ -729,7 +801,40 @@ object GestorActualizaciones {
             Log.i(TAG, "Archivo APK descargado exitosamente: ${archivoApk.absolutePath} (${archivoApk.length()} bytes)")
             archivoApk
         } catch (e: Exception) {
-            Log.e(TAG, "Error durante la descarga del APK: ${e.message}", e)
+            Log.e(TAG, "Error durante la descarga HTTP del APK: ${e.message}", e)
+            // Rescate definitivo: Descargar directamente de Firebase Storage bucket 'updates/TeamTX-latest.apk'
+            try {
+                Log.w(TAG, "Iniciando descarga de rescate directa desde Firebase Storage updates/TeamTX-latest.apk...")
+                val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
+                val rescueRef = storage.reference.child("updates/TeamTX-latest.apk")
+                var completado = false
+                var errDescarga: Exception? = null
+                val rescueTask = rescueRef.getFile(archivoApk)
+                rescueTask.addOnProgressListener { snapshot ->
+                    val transferred = snapshot.bytesTransferred
+                    val total = snapshot.totalByteCount
+                    if (total > 0) {
+                        val prog = transferred.toFloat() / total.toFloat()
+                        val mbLeidos = String.format(java.util.Locale.US, "%.1f", transferred / (1024f * 1024f))
+                        val mbTotal = String.format(java.util.Locale.US, "%.1f", total / (1024f * 1024f))
+                        onProgreso(prog, mbLeidos, mbTotal)
+                    }
+                }.addOnSuccessListener {
+                    completado = true
+                }.addOnFailureListener { e ->
+                    errDescarga = e
+                    completado = true
+                }
+                while (!completado) {
+                    kotlinx.coroutines.delay(100)
+                }
+                if (errDescarga == null && archivoApk.exists() && archivoApk.length() > 0) {
+                    Log.i(TAG, "Descarga de rescate exitosa: ${archivoApk.length()} bytes")
+                    return@withContext archivoApk
+                }
+            } catch (exRescue: Exception) {
+                Log.e(TAG, "Descarga de rescate falló: ${exRescue.message}")
+            }
             null
         }
     }

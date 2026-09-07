@@ -159,7 +159,7 @@ Registro: Queda guardado en el gestor para que cualquier otro agente sepa que es
 
 ---
 
-## 🚀 Regla Principal: Publicación Obligatoria de APK en Firebase Storage (Sistema OTA) y Registro de Versiones
+## 🚀 Regla Principal: Publicación Obligatoria de APK en Firebase Storage (Sistema OTA), Tokens y Registro de Versiones
 
 > **REGLA OBLIGATORIA PARA TODOS LOS AGENTES:**  
 > Cada vez que se confirmen mejoras, adición de nuevas funciones, parches, optimizaciones o reparación de bugs en la app:
@@ -170,7 +170,8 @@ Registro: Queda guardado en el gestor para que cualquier otro agente sepa que es
 >      - **Enlace Directo Consola:** [Firebase Storage /updates](https://console.firebase.google.com/project/teamnacionaltx/storage/teamnacionaltx.firebasestorage.app/files/~2Fupdates?hl=es-419)
 >      - **Comando automatizado de subida:**  
 >        ```powershell
->        gsutil -m cp "d:\MAPA\Team-Nacional-TX-Aragua\app\build\outputs\apk\debug\app-debug.apk" "gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-latest.apk"
+>        gcloud storage cp "apk\TeamTX-latest.apk" "gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-latest.apk"
+>        gcloud storage cp "apk\TeamTX-v{VERSION}.apk" "gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-v{VERSION}.apk"
 >        ```
 >
 > 2. **Changelog y Registro Detallado de lo Actualizado:**
@@ -185,5 +186,60 @@ Registro: Queda guardado en el gestor para que cualquier otro agente sepa que es
 >    - para lo que necesite sincronizar y aprobechar 
 >    - 
 > 3. **Disponibilidad para el Módulo Info / OTA:**
->    - El archivo `TeamTX-latest.apk` es el binario que descarga el sistema de actualización interno de la app (módulo Info). Por ende, debe mantenerse siempre como la versión más reciente, estable y testeada.
+>    - El archivo `TeamTX-latest.apk` es el binario que descarga el sistema de actualización interno de la app (módulo Info y botón rojo superior). Por ende, debe mantenerse siempre como la versión más reciente, estable y testeada.
+
+---
+
+### 📡 Protocolo Técnico Estricto: Tokens de Firebase Storage, Firestore OTA y Alerta Automática en la App
+
+Para que la aplicación detecte de forma instantánea la nueva versión, active la campana/aviso oficial y descargue sin errores 403/404 desde el **botón rojo superior de actualizar**, todo agente DEBE ejecutar rigurosamente los siguientes 5 pasos:
+
+#### Paso 1: Versionado e Incremento en Gradle y Código
+1. Incrementar `versionCode = N + 1` y `versionName = "X.Y.Z-beta"` en `app/build.gradle.kts`.
+2. Registrar la ficha histórica en `HISTORIAL_VERSIONES_OFICIALES` dentro de `app/src/main/java/com/example/ACTUALIZADOR.kt`, marcando `esRecomendada = true` en la nueva y `false` en las anteriores.
+3. Compilar con `./gradlew.bat :app:assembleDebug`.
+4. Copiar el binario resultante de `app/build/outputs/apk/debug/app-debug.apk` a:
+   - `apk/TeamTX-latest.apk` (puntero global de actualización rápida)
+   - `apk/TeamTX-v{versionName}.apk` (respaldo histórico de versión)
+
+#### Paso 2: Subida Dual y Asignación de Tokens en Firebase Storage
+El botón rojo de actualizar consulta la URL con token directo de Firebase Storage. Sin el token en los metadatos del objeto, Google Cloud Storage deniega la descarga pública anónima arrojando error HTTP 403.
+1. Subir ambos binarios:
+   ```powershell
+   gcloud storage cp apk/TeamTX-latest.apk gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-latest.apk
+   gcloud storage cp apk/TeamTX-v{versionName}.apk gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-v{versionName}.apk
+   ```
+2. Generar un UUID para el token (ejemplo: `[guid]::NewGuid().ToString()`) y aplicarlo como metadato público a ambos archivos en Storage:
+   ```powershell
+   gcloud storage objects update gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-latest.apk --custom-metadata=firebaseStorageDownloadTokens=<TOKEN_UUID>
+   gcloud storage objects update gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-v{versionName}.apk --custom-metadata=firebaseStorageDownloadTokens=<TOKEN_UUID>
+   ```
+3. La URL de descarga directa funcional resultante tendrá el formato:
+   `https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=<TOKEN_UUID>`
+
+#### Paso 3: Sincronización Inmediata en Firestore (`Configuracion/OTA` y `configuracion/OTA`)
+El sistema OTA de la app (`GestorActualizaciones.verificarActualizacion()`) escucha los documentos de Firestore. Debe actualizarse mediante API REST de Firestore o script Python/Node tanto en `Configuracion/OTA` como en `configuracion/OTA`:
+- **Campos del Documento:**
+  - `versionCode`: (integerValue) Código numérico de versión coincidente con Gradle.
+  - `versionName`: (stringValue) Nombre de versión coincidente (ej. "1.3.9-beta").
+  - `urlDescarga`: (stringValue) URL de Firebase Storage con el token configurado en el Paso 2.
+  - `titulo`: (stringValue) Nombre del release.
+  - `notas`: (stringValue) Resumen ejecutivo del parche.
+  - `novedades`: (arrayValue de stringValue) Lista de nuevas funciones.
+  - `correcciones`: (arrayValue de stringValue) Lista de errores corregidos.
+
+#### Paso 4: Detección y Aviso Automático en la App
+- Cuando cualquier usuario abre la app, `TeamTxViewModel.kt` ejecuta en segundo plano:
+  ```kotlin
+  val ota = GestorActualizaciones.verificarActualizacion()
+  if (ota != null && ota.versionCode > BuildConfig.VERSION_CODE) {
+      sincronizarAvisoActualizacionOta(ota, forzar = false)
+  }
+  ```
+- Esto genera un aviso oficial en el Muro (`notices`), activa la campana de notificaciones y enciende el botón de actualización en la barra superior con el changelog detallado.
+- Adicionalmente, actualizar `apk/ota_info.json` con la misma estructura para respaldo y descarga alternativa.
+
+#### Paso 5: Commit y Push en Git
+- Realizar `git add`, `git commit -m "..."` y `git push origin main` para que los binarios versionados (gestionados por Git LFS) y los archivos de metadatos queden totalmente sincronizados en GitHub.
+
  

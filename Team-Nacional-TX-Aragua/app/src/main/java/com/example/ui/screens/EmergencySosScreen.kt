@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -67,6 +68,7 @@ data class QuickAlertData(
 fun EmergencySosScreen(
     alerts: List<EmergencyAlert>,
     currentMember: MemberProfile?,
+    allMembers: List<MemberProfile> = emptyList(),
     isDirectivaMode: Boolean,
     onBack: () -> Unit = {},
     onBroadcastSos: (
@@ -82,6 +84,19 @@ fun EmergencySosScreen(
 ) {
     val context = LocalContext.current
     PreferenciasApp.init(context)
+
+    // 🔴 Especialistas reales desde los miembros registrados en la app
+    val mecanicoReal = remember(allMembers) {
+        allMembers.firstOrNull { it.role == MemberRole.MECANICO_OFICIAL && !it.isSuspended }
+    }
+    val medicoReal = remember(allMembers) {
+        allMembers.firstOrNull {
+            (it.role == MemberRole.MEDICO_CLUB || it.role == MemberRole.PARAMEDICO_MOTERO) && !it.isSuspended
+        }
+    }
+    val seguridadReal = remember(allMembers) {
+        allMembers.firstOrNull { it.role == MemberRole.SEGURIDAD_VIAL && !it.isSuspended }
+    }
 
     var showConsentDialog by remember { mutableStateOf(!PreferenciasApp.sosConsentimientoUbicacionAceptado) }
     var showEmitSosDialog by remember { mutableStateOf(false) }
@@ -308,12 +323,15 @@ fun EmergencySosScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(IntrinsicSize.Min)
                                 .padding(vertical = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             QuickAlertButton(
                                 data = quickAlertTypes[i],
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
                                 onClick = {
                                     initialSosType = quickAlertTypes[i].type
                                     showEmitSosDialog = true
@@ -322,7 +340,9 @@ fun EmergencySosScreen(
                             if (i + 1 < quickAlertTypes.size) {
                                 QuickAlertButton(
                                     data = quickAlertTypes[i + 1],
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
                                     onClick = {
                                         initialSosType = quickAlertTypes[i + 1].type
                                         showEmitSosDialog = true
@@ -375,47 +395,79 @@ fun EmergencySosScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Row 1: Mecánico Oficial + Médico del Club
+                        // Row 1: Mecánico Oficial + Médico del Club (datos reales de la app)
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // 🔧 Mecánico Oficial TX — dato real desde miembros
                             OutlinedButton(
-                                onClick = { dialPhoneNumber(context, "+584129904433") },
-                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    val phone = mecanicoReal?.phone?.ifBlank { null }
+                                    if (phone != null) dialPhoneNumber(context, phone)
+                                    else Toast.makeText(context, "Sin mecánico oficial asignado en el sistema", Toast.LENGTH_SHORT).show()
+                                },
+                                enabled = mecanicoReal != null,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color(0xFFFFF7ED)
+                                    containerColor = if (mecanicoReal != null) Color(0xFFFFF7ED) else Color(0xFFF1F5F9),
+                                    disabledContentColor = Color(0xFF94A3B8)
                                 ),
-                                border = BorderStroke(1.dp, Color(0xFFFB923C)),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                                border = BorderStroke(1.dp, if (mecanicoReal != null) Color(0xFFFB923C) else Color(0xFFCBD5E1)),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Build, contentDescription = null, tint = Color(0xFFEA580C), modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(Icons.Default.Build, contentDescription = null,
+                                        tint = if (mecanicoReal != null) Color(0xFFEA580C) else Color(0xFF94A3B8),
+                                        modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(5.dp))
                                     Column(horizontalAlignment = Alignment.Start) {
-                                        Text("Mecánico TX", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                        Text("P. Torrealba", fontSize = 9.sp, color = Color(0xFFEA580C), fontWeight = FontWeight.SemiBold)
+                                        Text("Mecánico TX", fontSize = 10.5.sp, fontWeight = FontWeight.Bold,
+                                            color = if (mecanicoReal != null) Color(0xFF0F172A) else Color(0xFF94A3B8), maxLines = 1)
+                                        Text(
+                                            text = mecanicoReal?.let { it.nickname.ifBlank { it.fullName.split(" ").firstOrNull() ?: "Mecánico" } } ?: "Sin asignar",
+                                            fontSize = 9.sp,
+                                            color = if (mecanicoReal != null) Color(0xFFEA580C) else Color(0xFFCBD5E1),
+                                            fontWeight = FontWeight.SemiBold, maxLines = 1
+                                        )
                                     }
                                 }
                             }
 
+                            // 🏥 Médico del Club — dato real desde miembros
                             OutlinedButton(
-                                onClick = { dialPhoneNumber(context, "+584245551290") },
-                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    val phone = medicoReal?.phone?.ifBlank { null }
+                                    if (phone != null) dialPhoneNumber(context, phone)
+                                    else Toast.makeText(context, "Sin médico del club asignado en el sistema", Toast.LENGTH_SHORT).show()
+                                },
+                                enabled = medicoReal != null,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color(0xFFECFDF5)
+                                    containerColor = if (medicoReal != null) Color(0xFFECFDF5) else Color(0xFFF1F5F9),
+                                    disabledContentColor = Color(0xFF94A3B8)
                                 ),
-                                border = BorderStroke(1.dp, Color(0xFF34D399)),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                                border = BorderStroke(1.dp, if (medicoReal != null) Color(0xFF34D399) else Color(0xFFCBD5E1)),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.MedicalServices, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(Icons.Default.MedicalServices, contentDescription = null,
+                                        tint = if (medicoReal != null) Color(0xFF059669) else Color(0xFF94A3B8),
+                                        modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(5.dp))
                                     Column(horizontalAlignment = Alignment.Start) {
-                                        Text("Médico Club", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                        Text("Dra. Gómez", fontSize = 9.sp, color = Color(0xFF059669), fontWeight = FontWeight.SemiBold)
+                                        Text("Médico Club", fontSize = 10.5.sp, fontWeight = FontWeight.Bold,
+                                            color = if (medicoReal != null) Color(0xFF0F172A) else Color(0xFF94A3B8), maxLines = 1)
+                                        Text(
+                                            text = medicoReal?.let { it.nickname.ifBlank { it.fullName.split(" ").take(2).joinToString(" ") } } ?: "Sin asignar",
+                                            fontSize = 9.sp,
+                                            color = if (medicoReal != null) Color(0xFF059669) else Color(0xFFCBD5E1),
+                                            fontWeight = FontWeight.SemiBold, maxLines = 1
+                                        )
                                     }
                                 }
                             }
@@ -423,51 +475,88 @@ fun EmergencySosScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Row 2: VEN 911 + Seguridad Vial + Contacto SOS
+                        // Row 2: VEN 911 + Seguridad Vial (real) + Contacto SOS Familiar
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min),
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             OutlinedButton(
                                 onClick = { dialPhoneNumber(context, "911") },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
                                 shape = RoundedCornerShape(8.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFEF2F2)),
                                 border = BorderStroke(1.dp, Color(0xFFF87171)),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
                             ) {
-                                Icon(Icons.Default.LocalHospital, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("VEN 911", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                    Icon(Icons.Default.LocalHospital, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(13.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text("VEN 911", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626), maxLines = 1)
+                                }
                             }
 
-                            OutlinedButton(
-                                onClick = { dialPhoneNumber(context, "+584128887766") },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFF0F9FF)),
-                                border = BorderStroke(1.dp, Color(0xFF38BDF8)),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                            ) {
-                                Icon(Icons.Default.Shield, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Seguridad", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
-                            }
-
+                            // 🛡️ Seguridad Vial — dato real desde miembros
                             OutlinedButton(
                                 onClick = {
-                                    val phone = currentMember?.emergencyContactPhone ?: "+584141234567"
-                                    dialPhoneNumber(context, phone)
+                                    val phone = seguridadReal?.phone?.ifBlank { null }
+                                    if (phone != null) dialPhoneNumber(context, phone)
+                                    else Toast.makeText(context, "Sin oficial de seguridad vial asignado", Toast.LENGTH_SHORT).show()
                                 },
-                                modifier = Modifier.weight(1f),
+                                enabled = seguridadReal != null,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
                                 shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFEFF6FF)),
-                                border = BorderStroke(1.dp, Color(0xFF60A5FA)),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (seguridadReal != null) Color(0xFFF0F9FF) else Color(0xFFF1F5F9),
+                                    disabledContentColor = Color(0xFF94A3B8)
+                                ),
+                                border = BorderStroke(1.dp, if (seguridadReal != null) Color(0xFF38BDF8) else Color(0xFFCBD5E1)),
+                                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
                             ) {
-                                Icon(Icons.Default.ContactPhone, contentDescription = null, tint = Color(0xFF2563EB), modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Familiar", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                    Icon(Icons.Default.Shield, contentDescription = null,
+                                        tint = if (seguridadReal != null) Color(0xFF0284C7) else Color(0xFF94A3B8),
+                                        modifier = Modifier.size(13.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = seguridadReal?.nickname?.ifBlank { "Seguridad" } ?: "Seguridad",
+                                        fontSize = 9.5.sp, fontWeight = FontWeight.Bold,
+                                        color = if (seguridadReal != null) Color(0xFF0284C7) else Color(0xFF94A3B8),
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+
+                            // 📞 Contacto SOS Familiar — del perfil del usuario
+                            OutlinedButton(
+                                onClick = {
+                                    val phone = currentMember?.emergencyContactPhone?.ifBlank { null }
+                                    if (!phone.isNullOrBlank()) dialPhoneNumber(context, phone)
+                                    else Toast.makeText(context, "Registra tu contacto de emergencia en tu perfil", Toast.LENGTH_SHORT).show()
+                                },
+                                enabled = !currentMember?.emergencyContactPhone.isNullOrBlank(),
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (!currentMember?.emergencyContactPhone.isNullOrBlank()) Color(0xFFEFF6FF) else Color(0xFFF1F5F9),
+                                    disabledContentColor = Color(0xFF94A3B8)
+                                ),
+                                border = BorderStroke(1.dp, if (!currentMember?.emergencyContactPhone.isNullOrBlank()) Color(0xFF60A5FA) else Color(0xFFCBD5E1)),
+                                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                    Icon(Icons.Default.ContactPhone, contentDescription = null,
+                                        tint = if (!currentMember?.emergencyContactPhone.isNullOrBlank()) Color(0xFF2563EB) else Color(0xFF94A3B8),
+                                        modifier = Modifier.size(13.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = currentMember?.emergencyContactName?.ifBlank { "Familiar" } ?: "Familiar",
+                                        fontSize = 9.5.sp, fontWeight = FontWeight.Bold,
+                                        color = if (!currentMember?.emergencyContactPhone.isNullOrBlank()) Color(0xFF2563EB) else Color(0xFF94A3B8),
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                     }
@@ -665,9 +754,15 @@ fun EmergencySosScreen(
                 }
             } else {
                 items(filteredAlerts, key = { it.id }) { alert ->
+                    val isReporter = currentMember != null && (
+                        (currentMember.memberNumber.isNotBlank() && alert.memberNumber == currentMember.memberNumber) ||
+                        (currentMember.phone.isNotBlank() && alert.reporterPhone == currentMember.phone) ||
+                        (currentMember.fullName.isNotBlank() && alert.reporterName.equals(currentMember.fullName, ignoreCase = true))
+                    )
                     AlertItemCard(
                         alert = alert,
                         isDirectivaMode = isDirectivaMode,
+                        isReporter = isReporter,
                         onWhatsAppShare = { sendEmergencyWhatsApp(context, alert) },
                         onCallReporter = { dialPhoneNumber(context, alert.reporterPhone) },
                         onManage = { selectedAlertForManage = alert }
@@ -761,13 +856,21 @@ fun EmergencySosScreen(
         )
     }
 
-    // ─── Modal de Gestión de Alerta (Directiva) ──────────────────────────────
+    // ─── Modal de Gestión y Resolución de Alerta (Directiva y Usuario Emisor) ───
     if (selectedAlertForManage != null) {
+        val alertToManage = selectedAlertForManage!!
+        val isReporter = currentMember != null && (
+            (currentMember.memberNumber.isNotBlank() && alertToManage.memberNumber == currentMember.memberNumber) ||
+            (currentMember.phone.isNotBlank() && alertToManage.reporterPhone == currentMember.phone) ||
+            (currentMember.fullName.isNotBlank() && alertToManage.reporterName.equals(currentMember.fullName, ignoreCase = true))
+        )
         ManageAlertDialog(
-            alert = selectedAlertForManage!!,
+            alert = alertToManage,
+            isDirectiva = isDirectivaMode,
+            isReporter = isReporter,
             onDismiss = { selectedAlertForManage = null },
             onUpdate = { newStatus, notes ->
-                onUpdateAlertStatus(selectedAlertForManage!!, newStatus, notes)
+                onUpdateAlertStatus(alertToManage, newStatus, notes)
                 selectedAlertForManage = null
             }
         )
@@ -786,18 +889,18 @@ private fun QuickAlertButton(
         color = data.bgTint,
         border = BorderStroke(1.5.dp, data.color.copy(alpha = 0.5f)),
         shadowElevation = 2.dp,
-        modifier = modifier.height(74.dp)
+        modifier = modifier.defaultMinSize(minHeight = 82.dp)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(34.dp)
+                    .size(32.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(data.color.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
@@ -806,30 +909,36 @@ private fun QuickAlertButton(
                     data.icono,
                     contentDescription = null,
                     tint = data.color,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
                     text = data.nivelTag,
                     fontSize = 9.sp,
+                    lineHeight = 11.sp,
                     fontWeight = FontWeight.Black,
                     color = data.color
                 )
                 Text(
                     text = data.titulo,
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
+                    lineHeight = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0F172A),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    softWrap = true,
+                    maxLines = 2
                 )
                 Text(
                     text = data.subtitulo,
                     fontSize = 9.sp,
+                    lineHeight = 12.sp,
                     color = Color(0xFF475569),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    softWrap = true,
+                    maxLines = 2
                 )
             }
         }
@@ -885,6 +994,7 @@ fun ProtocolLevelItem(
 fun AlertItemCard(
     alert: EmergencyAlert,
     isDirectivaMode: Boolean,
+    isReporter: Boolean = false,
     onWhatsAppShare: () -> Unit,
     onCallReporter: () -> Unit,
     onManage: () -> Unit,
@@ -902,24 +1012,17 @@ fun AlertItemCard(
         colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
         border = BorderStroke(
             1.5.dp,
-            when (alert.status) {
-                EmergencyStatus.ACTIVA -> levelColor
-                EmergencyStatus.EN_CAMINO -> StatusWarning
-                EmergencyStatus.ATENDIDA -> StatusInfo
-                EmergencyStatus.RESUELTA -> StatusSuccess
-            }
+            if (alert.status == EmergencyStatus.ACTIVA) levelColor.copy(alpha = 0.5f) else DashboardFondoConfig.ColorBordeClaro
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("sos_alert_card_${alert.id}")
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(14.dp)
         ) {
-            // Header: Emergency Level Badge + Status Badge
+            // Header: Level Badge & Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -928,14 +1031,14 @@ fun AlertItemCard(
                 Surface(
                     shape = RoundedCornerShape(6.dp),
                     color = levelColor.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, levelColor)
+                    border = BorderStroke(1.dp, levelColor.copy(alpha = 0.5f))
                 ) {
                     Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        val icon = when (alert.emergencyType.iconType) {
+                        val headerIcon = when (alert.emergencyType.iconType) {
                             "gas" -> Icons.Default.LocalGasStation
                             "mechanic" -> Icons.Default.Build
                             "fall" -> Icons.Default.PersonalInjury
@@ -944,15 +1047,18 @@ fun AlertItemCard(
                             "security" -> Icons.Default.Shield
                             else -> Icons.Default.Warning
                         }
-                        Icon(icon, contentDescription = null, tint = levelColor, modifier = Modifier.size(14.dp))
+                        Icon(headerIcon, contentDescription = null, tint = levelColor, modifier = Modifier.size(14.dp))
                         Text(
                             text = "${alert.emergencyType.levelTag}: ${alert.emergencyType.label.uppercase()}",
                             color = levelColor,
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.Black
+                            fontWeight = FontWeight.Black,
+                            softWrap = true
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.width(6.dp))
 
                 Surface(
                     shape = RoundedCornerShape(4.dp),
@@ -1111,23 +1217,27 @@ fun AlertItemCard(
             HorizontalDivider(color = Color(0xFFE2E8F0))
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Footer Actions: WhatsApp broadcast, Call, Manage
+            // Footer Actions: WhatsApp broadcast, Call, Manage / Resolve
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
                     Button(
                         onClick = onWhatsAppShare,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                         modifier = Modifier.testTag("btn_share_sos_whatsapp_${alert.id}")
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("WhatsApp SOS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("WhatsApp SOS", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
                     }
 
                     OutlinedButton(
@@ -1135,20 +1245,50 @@ fun AlertItemCard(
                         shape = RoundedCornerShape(8.dp),
                         border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0F172A)),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
                     ) {
-                        Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFF0F172A), modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Llamar", fontSize = 11.sp, color = Color(0xFF0F172A))
+                        Icon(Icons.Default.Phone, contentDescription = null, tint = Color(0xFF0F172A), modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Llamar", fontSize = 10.5.sp, color = Color(0xFF0F172A), maxLines = 1)
                     }
                 }
 
-                if (isDirectivaMode) {
-                    TextButton(
-                        onClick = onManage,
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text("Gestionar", fontSize = 11.sp, color = MotoOrangePrimary, fontWeight = FontWeight.Bold)
+                // Acciones de Gestión y Resolución (Directiva y Piloto que emitió la alerta)
+                if (alert.status != EmergencyStatus.RESUELTA) {
+                    if (isDirectivaMode) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Button(
+                            onClick = onManage,
+                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.Tune, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Gestionar", fontSize = 10.5.sp, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
+                    } else if (isReporter) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Button(
+                            onClick = onManage,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Marcar Resuelta", fontSize = 10.5.sp, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
+                    }
+                } else {
+                    if (isDirectivaMode) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        TextButton(
+                            onClick = onManage,
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Text("Ver Bitácora", fontSize = 10.5.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
                     }
                 }
             }
@@ -1159,38 +1299,89 @@ fun AlertItemCard(
 @Composable
 fun ManageAlertDialog(
     alert: EmergencyAlert,
+    isDirectiva: Boolean = true,
+    isReporter: Boolean = false,
     onDismiss: () -> Unit,
     onUpdate: (EmergencyStatus, notes: String) -> Unit
 ) {
-    var status by remember { mutableStateOf(alert.status) }
+    var status by remember { mutableStateOf(if (!isDirectiva && isReporter) EmergencyStatus.RESUELTA else alert.status) }
     var notes by remember { mutableStateOf(alert.respondersNotes) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Gestionar Incidente SOS (Directiva)", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A)) },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(
+                    imageVector = if (!isDirectiva && isReporter) Icons.Default.CheckCircle else Icons.Default.Tune,
+                    contentDescription = null,
+                    tint = if (!isDirectiva && isReporter) Color(0xFF10B981) else MotoOrangePrimary
+                )
+                Text(
+                    text = if (!isDirectiva && isReporter) "Resolver Mi Emergencia SOS" else "Gestionar Incidente SOS",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A),
+                    fontSize = 15.sp
+                )
+            }
+        },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Reportado por: ${alert.reporterName} (${alert.memberNumber})", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                Text("Nivel: ${alert.emergencyType.levelTag} - ${alert.emergencyType.label}", color = Color(alert.emergencyType.severityColorHex), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text(
+                    text = "Reportado por: ${alert.reporterName} (${alert.memberNumber})",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    color = Color(0xFF0F172A)
+                )
+                Text(
+                    text = "Nivel: ${alert.emergencyType.levelTag} - ${alert.emergencyType.label}",
+                    color = Color(alert.emergencyType.severityColorHex),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
 
-                Text("Estado del Incidente:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
-                EmergencyStatus.values().forEach { st ->
-                    FilterChip(
-                        selected = status == st,
-                        onClick = { status = st },
-                        label = { Text(st.label, fontSize = 11.sp) },
+                if (!isDirectiva && isReporter) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFECFDF5),
+                        border = BorderStroke(1.dp, Color(0xFF6EE7B7)),
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Security, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(20.dp))
+                            Text(
+                                text = "Al marcar la emergencia como RESUELTA, confirmas que ya recibiste asistencia y estás fuera de peligro. Se avisará al chat de la hermandad y se retirará la alerta del mapa táctico y avisos.",
+                                fontSize = 11.sp,
+                                color = Color(0xFF065F46),
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
+                }
+
+                if (isDirectiva) {
+                    Text("Estado del Incidente:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
+                    EmergencyStatus.values().forEach { st ->
+                        FilterChip(
+                            selected = status == st,
+                            onClick = { status = st },
+                            label = { Text(st.label, fontSize = 11.sp) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
 
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Bitácora de Atención / Notas de Despacho") },
-                    placeholder = { Text("ej. El Mecánico Oficial Pedro Torrealba llegó al sitio") },
+                    label = { Text(if (!isDirectiva && isReporter) "Bitácora / Agradecimiento" else "Bitácora de Atención / Notas de Despacho") },
+                    placeholder = { Text(if (!isDirectiva && isReporter) "ej. Ya me asistieron con el desperfecto, todo bien!" else "ej. El Mecánico Oficial Pedro Torrealba llegó al sitio") },
                     minLines = 2,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1199,9 +1390,15 @@ fun ManageAlertDialog(
         confirmButton = {
             Button(
                 onClick = { onUpdate(status, notes) },
-                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (status == EmergencyStatus.RESUELTA) Color(0xFF10B981) else MotoOrangePrimary
+                )
             ) {
-                Text("Actualizar Registro", color = Color.White)
+                Text(
+                    text = if (status == EmergencyStatus.RESUELTA) "Marcar como Resuelta ✅" else "Actualizar Registro",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }

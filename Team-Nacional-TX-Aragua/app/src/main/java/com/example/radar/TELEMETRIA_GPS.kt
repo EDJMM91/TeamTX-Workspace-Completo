@@ -75,6 +75,18 @@ class TelemetriaGps : Service() {
                 .addOnSuccessListener { Log.d(ETIQUETA, "Ubicación borrada del servidor") }
                 .addOnFailureListener { Log.w(ETIQUETA, "Error al borrar: ${it.message}") }
         }
+
+        fun limpiarAlertaSos(contexto: Context, userId: String? = null) {
+            val prefs = contexto.getSharedPreferences(PREFS_NOMBRE, Context.MODE_PRIVATE)
+            prefs.edit().putString(PREFS_ALERTA_SOS, "").apply()
+            val id = userId?.ifBlank { null } ?: prefs.getString(PREFS_USER_ID, "") ?: ""
+            if (id.isNotBlank()) {
+                FirebaseFirestore.getInstance().collection(COLECCION).document(id)
+                    .update("alertaSos", "")
+                    .addOnSuccessListener { Log.d(ETIQUETA, "Alerta SOS limpiada del radar para $id") }
+                    .addOnFailureListener { Log.w(ETIQUETA, "Error al limpiar SOS del servidor: ${it.message}") }
+            }
+        }
     }
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient

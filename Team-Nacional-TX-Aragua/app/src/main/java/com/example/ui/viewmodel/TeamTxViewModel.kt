@@ -529,6 +529,21 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         expelledBy: String = currentMember.value?.let { "${it.fullName} (${it.role.displayName})" } ?: "Directiva Nacional"
     ) {
         viewModelScope.launch(Dispatchers.IO) {
+            // 🛡️ REGLA SUPREMA: Solo Presidente (o con código de presidente activo) y Desarrollador pueden eliminar personas
+            val caller = currentMember.value
+            val isPresCaller = caller?.role == MemberRole.PRESIDENTE || _isLeaderSuperAdmin.value
+            val isDevCaller = caller?.role == MemberRole.DESARROLLADOR || caller?.memberNumber?.startsWith("TX-DEV-") == true
+            if (!isPresCaller && !isDevCaller) {
+                Log.w("TeamTxViewModel", "Intento no autorizado de expulsión por ${caller?.fullName} (${caller?.role?.displayName})")
+                return@launch
+            }
+
+            // 🛡️ REGLA SUPREMA: El Desarrollador y el Presidente están blindados y son inmunes a la expulsión
+            if (member.role == MemberRole.DESARROLLADOR || member.memberNumber.startsWith("TX-DEV-") || member.role == MemberRole.PRESIDENTE) {
+                Log.w("TeamTxViewModel", "Intento de expulsar al Presidente o Desarrollador bloqueado por jerarquía suprema.")
+                return@launch
+            }
+
             val now = System.currentTimeMillis()
             val motivoFinal = reason.trim().ifBlank { "Expulsión definitiva acordada por la Directiva del Club TX" }
 
@@ -568,10 +583,19 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 Log.e("TeamTxViewModel", "Error eliminando del radar: ${e.message}")
             }
 
-            // 4. Eliminar el perfil del miembro de Room y Firebase
+            // 4. Desvincular en Firestore y eliminar documento en usuarios/{uid}
+            try {
+                if (!member.email.isNullOrBlank()) {
+                    VINCULACION.desvincularCuentaGoogle(member.email ?: "", member.firebaseUid ?: "", member.memberNumber)
+                }
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error desvinculando en Firestore durante expulsión: ${e.message}")
+            }
+
+            // 5. Eliminar el perfil del miembro de Room y Firebase
             repository.deleteMember(member)
 
-            // 5. Si el usuario expulsado es el que tiene la app abierta, cerrar su sesión
+            // 6. Si el usuario expulsado es el que tiene la app abierta, cerrar su sesión
             if (currentMember.value?.id == member.id) {
                 _currentMemberId.value = -1L
                 _isDirectivaMode.value = false
@@ -581,7 +605,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 clearSession()
             }
 
-            // 6. Notificar al canal privado de gobernanza de directiva
+            // 7. Notificar al canal privado de gobernanza de directiva
             notifyDirectivaChannel(
                 titulo = "EXPULSIÓN DEFINITIVA DE MIEMBRO",
                 detalle = "🚨 RESOLUCIÓN DISCIPLINARIA:\n" +
@@ -1396,10 +1420,58 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         locationDesc: String,
         details: String,
         bloodTypeNeeded: String? = null,
-        lat: Double = 10.4806,
-        lng: Double = -66.9036
+        lat: Double = 0.0,
+        lng: Double = 0.0
     ) {
         viewModelScope.launch {
+            var finalLat = lat
+            var finalLng = lng
+            var finalDesc = locationDesc
+
+            // Si las coordenadas son 0.0 o el valor legado de Caracas (10.4806, -66.9036), capturar las coordenadas reales del piloto
+            if ((finalLat == 0.0 || finalLat == 10.4806) && (finalLng == 0.0 || finalLng == -66.9036)) {
+                try {
+                    val gestor = com.example.chat.GestorUbicacion(getApplication())
+                    val loc = gestor.capturarLocationObjeto()
+                    if (loc != null && loc.latitude != 0.0 && loc.longitude != 0.0) {
+                        finalLat = loc.latitude
+                        finalLng = loc.longitude
+                        if (finalDesc.isBlank() || finalDesc.contains("cerca de Tazón", ignoreCase = true) || finalDesc.contains("Caracas", ignoreCase = true)) {
+                            finalDesc = gestor.obtenerNombreUbicacion(loc.latitude, loc.longitude)
+                        }
+                    } else {
+                        val rPrefs = getApplication<android.app.Application>().getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
+                        val sLat = rPrefs.getString("last_lat", null)?.toDoubleOrNull()
+                        val sLon = rPrefs.getString("last_lon", null)?.toDoubleOrNull()
+                        if (sLat != null && sLon != null && sLat != 0.0 && sLat != 10.4806) {
+                            finalLat = sLat
+                            finalLng = sLon
+                            if (finalDesc.isBlank() || finalDesc.contains("cerca de Tazón", ignoreCase = true) || finalDesc.contains("Caracas", ignoreCase = true)) {
+                                finalDesc = gestor.obtenerNombreUbicacion(sLat, sLon)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG_SOS, "Error resolviendo GPS real en broadcastSosEmergency: ${e.message}")
+                }
+            }
+
+            if (finalDesc.isBlank()) {
+                finalDesc = if (finalLat != 0.0 && finalLng != 0.0) "Coordenadas GPS: %.5f, %.5f".format(finalLat, finalLng) else "Ubicación del Piloto"
+            }
+
+            // Guardar destino en radar para centrar mapa en el punto del SOS
+            if (finalLat != 0.0 && finalLng != 0.0) {
+                try {
+                    val rPrefs = getApplication<android.app.Application>().getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
+                    rPrefs.edit()
+                        .putString("target_dest_lat", finalLat.toString())
+                        .putString("target_dest_lon", finalLng.toString())
+                        .putString("target_dest_name", "🚨 SOS: ${emergencyType.label}")
+                        .apply()
+                } catch (_: Exception) {}
+            }
+
             val member = currentMember.value
             val alert = EmergencyAlert(
                 id = System.currentTimeMillis(), // 🛡️ ID Manual Atómico
@@ -1407,9 +1479,9 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 reporterPhone = member?.phone ?: "+58 412 000 0000",
                 memberNumber = member?.memberNumber ?: "TX-SOS",
                 emergencyType = emergencyType,
-                locationDescription = locationDesc,
-                coordinateLat = lat,
-                coordinateLng = lng,
+                locationDescription = finalDesc,
+                coordinateLat = finalLat,
+                coordinateLng = finalLng,
                 bikeDetails = "${member?.bikeModel ?: "Keeway TX 200"} - Placa: ${member?.bikePlate ?: "N/A"}",
                 bloodTypeNeeded = bloodTypeNeeded ?: member?.bloodType,
                 details = details,
@@ -1417,41 +1489,48 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 respondersNotes = "Alerta emitida. Grupo de apoyo y Directiva notificados."
             )
             repository.insertAlert(alert)
-            Log.i(TAG_SOS, "🚨 Alerta SOS emitida: ${alert.reporterName} en $locationDesc")
+            Log.i(TAG_SOS, "🚨 Alerta SOS emitida: ${alert.reporterName} en $finalDesc ($finalLat, $finalLng)")
 
             val esCopiloto = member?.role == MemberRole.COPILOTO
             val rolTexto = if (esCopiloto) "El copiloto" else "El piloto"
+            val gradoInfo = "[${emergencyType.levelTag} - ${emergencyType.levelName}]"
 
             notifyDirectivaChannel(
-                titulo = "EMERGENCIA SOS VIAL",
-                detalle = "🚨 $rolTexto ${alert.reporterName} (${alert.memberNumber}) ha emitido una alerta de ${emergencyType.name} en: $locationDesc.\nDetalles: $details",
+                titulo = "EMERGENCIA SOS $gradoInfo",
+                detalle = "🚨 $rolTexto ${alert.reporterName} (${alert.memberNumber}) ha emitido una alerta de ${emergencyType.label} (Nivel ${emergencyType.levelNumber}).\n📍 Ubicación: $finalDesc\n🗺️ Coordenadas GPS: $finalLat, $finalLng\n🏍️ Moto: ${alert.bikeDetails}\n📋 Protocolo: ${emergencyType.actionProtocol}\n👨‍⚕️ Especialista: ${emergencyType.recommendedSpecialist}\n📝 Detalles: $details",
                 tipo = "SOS"
             )
 
-            // Auto-publicación en el Chat Táctico General y Auxilio
-            val chatMsg = "🚨 ALERTA SOS VIAL: $rolTexto ${alert.reporterName} (${alert.memberNumber}) ha emitido una alerta por ${emergencyType.name} en: $locationDesc.\n📍 GPS: $lat, $lng\n📝 Detalles: $details\n🏍️ Vehículo: ${alert.bikeDetails}"
+            // Auto-publicación en el Chat Táctico General, Auxilio y Directiva
+            val chatMsg = "🚨 ALERTA SOS VIAL $gradoInfo: $rolTexto ${alert.reporterName} (${alert.memberNumber}) reporta ${emergencyType.label.uppercase()} en: $finalDesc.\n📍 GPS: $finalLat, $finalLng\n🏍️ Vehículo: ${alert.bikeDetails}\n📋 Protocolo: ${emergencyType.actionProtocol}\n👨‍⚕️ Especialista asignado: ${emergencyType.recommendedSpecialist}\n📝 Detalles: $details"
             sendChatMessage("GENERAL", chatMsg, isRadioCallout = true)
             sendChatMessage("AUXILIO", chatMsg, isRadioCallout = true)
+            sendChatMessage("DIRECTIVA", "🚨 [DIRECTIVA SOS] $gradoInfo: $rolTexto ${alert.reporterName} (${alert.memberNumber}) reporta ${emergencyType.label} en $finalDesc (GPS: $finalLat, $finalLng). Requerido: ${emergencyType.recommendedSpecialist}.", isRadioCallout = true)
 
-            // Auto-publicación en el Muro como Aviso Oficial Urgente
-            postSystemNotice(
-                title = "🚨 ALERTA SOS VIAL: $rolTexto ${alert.reporterName} en $locationDesc",
-                content = "⚠️ *Tipo de Emergencia:* ${emergencyType.name}\n" +
-                        "👤 *Emisor:* $rolTexto ${alert.reporterName} (${alert.memberNumber})\n" +
-                        "📍 *Ubicación:* $locationDesc\n" +
-                        "🏍️ *Vehículo:* ${alert.bikeDetails}\n" +
-                        (if (!alert.bloodTypeNeeded.isNullOrBlank()) "🩸 *Tipo de Sangre:* ${alert.bloodTypeNeeded}\n" else "") +
-                        "📝 *Detalles:* $details\n\n" +
-                        "📲 Contacto: ${alert.reporterPhone}. Hermanos moteros en la zona, prestar asistencia inmediata.",
-                category = NoticeCategory.AVISO_OFICIAL,
-                priority = NoticePriority.URGENTE,
-                isPinned = true
-            )
+            // Auto-publicación en el Muro: SOLO SI ES CHOQUE, CAÍDA, ACCIDENTE O NIVEL CRÍTICO (Gasolina o Mecánico NO van al feed)
+            if (emergencyType.sePublicaEnMuro) {
+                postSystemNotice(
+                    title = "🚨 [${emergencyType.levelTag}] SOS VIAL: $rolTexto ${alert.reporterName} (${emergencyType.label})",
+                    content = "⚠️ *Emergencia Crítica:* ${emergencyType.label} (${emergencyType.levelName})\n" +
+                            "👤 *Afectado:* $rolTexto ${alert.reporterName} (${alert.memberNumber})\n" +
+                            "📍 *Ubicación:* $finalDesc\n" +
+                            "🗺️ *Coordenadas GPS:* $finalLat, $finalLng\n" +
+                            "🏍️ *Vehículo:* ${alert.bikeDetails}\n" +
+                            (if (!alert.bloodTypeNeeded.isNullOrBlank()) "🩸 *Tipo de Sangre:* ${alert.bloodTypeNeeded}\n" else "") +
+                            "📋 *Protocolo activado:* ${emergencyType.actionProtocol}\n" +
+                            "👨‍⚕️ *Especialista:* ${emergencyType.recommendedSpecialist}\n" +
+                            "📝 *Detalles:* $details\n\n" +
+                            "📲 Contacto: ${alert.reporterPhone}. Asistencia y despeje vial prioritario.",
+                    category = NoticeCategory.AVISO_OFICIAL,
+                    priority = NoticePriority.URGENTE,
+                    isPinned = true
+                )
+            }
 
             // Emitir Notificación del Sistema con sonido y alerta en barra
             GestorNotificacionesApp.notificarAlertaSOS(
                 remitente = "$rolTexto ${alert.reporterName}",
-                ubicacion = "$locationDesc (${emergencyType.name})"
+                ubicacion = "$finalDesc (${emergencyType.label})"
             )
 
             // Activar Telemetría GPS en el Radar del Mapa marcando estado SOS
@@ -1469,23 +1548,104 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             } catch (e: Exception) {
                 Log.w(TAG_SOS, "No se pudo activar telemetría SOS: ${e.message}")
             }
+
+            // Sincronizar Mapa TX inmediatamente con el nuevo punto SOS
+            try {
+                val appCtx = getApplication<android.app.Application>()
+                val db = com.example.data.local.AppDatabase.getDatabase(appCtx, viewModelScope)
+                val pubs = db.publicationDao().getAllPublications().first()
+                val events = db.calendarDao().getAllEvents().first()
+                val allAlerts = db.emergencyDao().getAllAlerts().first()
+                val activeAlerts = (allAlerts + alert).filter { it.status != EmergencyStatus.RESUELTA }
+                com.example.radar.GestorRadar.sincronizarEventosEnMapa(pubs, events, activeAlerts)
+            } catch (e: Exception) {
+                Log.w(TAG_SOS, "Error actualizando mapa tras SOS: ${e.message}")
+            }
         }
     }
 
     fun updateAlertStatus(alert: EmergencyAlert, newStatus: EmergencyStatus, notes: String) {
         viewModelScope.launch {
-            repository.updateAlert(alert.copy(status = newStatus, respondersNotes = notes))
+            val updatedAlert = alert.copy(status = newStatus, respondersNotes = notes)
+            repository.updateAlert(updatedAlert)
             Log.i(TAG_SOS, "🚨 Alerta SOS ${alert.id} actualizada a $newStatus")
 
-            if (newStatus == EmergencyStatus.RESUELTA || newStatus == EmergencyStatus.ATENDIDA) {
-                postSystemNotice(
-                    title = "✅ SOS VIAL RESUELTO: ${alert.reporterName}",
-                    content = "La alerta de emergencia en ${alert.locationDescription} ha sido atendida con éxito.\n" +
-                            "📋 Notas: ${notes.ifBlank { "Hermano asistido por el equipo de ruta." }}\n" +
-                            "¡Gracias a la hermandad por la respuesta y solidaridad!",
-                    category = NoticeCategory.COMUNICADO,
-                    priority = NoticePriority.NORMAL
+            val gradoInfo = "[${alert.emergencyType.levelTag} - ${alert.emergencyType.label}]"
+
+            if (newStatus == EmergencyStatus.RESUELTA) {
+                val appCtx = getApplication<android.app.Application>()
+
+                // 1. Limpiar estado SOS de telemetría GPS
+                try {
+                    com.example.radar.TelemetriaGps.limpiarAlertaSos(appCtx, alert.memberNumber)
+                    currentMember.value?.id?.toString()?.let {
+                        com.example.radar.TelemetriaGps.limpiarAlertaSos(appCtx, it)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG_SOS, "Error limpiando telemetría SOS: ${e.message}")
+                }
+
+                // 2. Desanclar avisos SOS previos del Muro/Feed
+                try {
+                    val pubs = repository.allPublications.first()
+                    pubs.filter { it.isPinned && it.title.contains("SOS") && (it.title.contains(alert.reporterName) || it.content.contains(alert.memberNumber)) }
+                        .forEach { p ->
+                            repository.updatePublication(p.copy(isPinned = false))
+                        }
+                } catch (e: Exception) {
+                    Log.w(TAG_SOS, "Error desanclando aviso de emergencia previo: ${e.message}")
+                }
+
+                // 3. Si era emergencia crítica de Muro, publicar aviso de situación solventada
+                if (alert.emergencyType.sePublicaEnMuro) {
+                    postSystemNotice(
+                        title = "✅ SOS VIAL SOLVENTADO: ${alert.reporterName} a salvo",
+                        content = "Se informa a la comunidad motera que la alerta vial $gradoInfo en ${alert.locationDescription} ha sido totalmente SOLVENTADA.\n\n" +
+                                "👤 Piloto: ${alert.reporterName} (${alert.memberNumber})\n" +
+                                "🏍️ Vehículo: ${alert.bikeDetails}\n" +
+                                "📋 Bitácora: ${notes.ifBlank { "Hermano motero asistido en sitio y fuera de peligro." }}\n\n" +
+                                "El punto de auxilio ha sido retirado del Mapa TX. ¡Gracias a todos los que acudieron y colaboraron!",
+                        category = NoticeCategory.COMUNICADO,
+                        priority = NoticePriority.NORMAL,
+                        isPinned = false
+                    )
+                }
+
+                // 4. Enviar reporte de resolución a Chat General, Auxilio y Directiva
+                val resMsg = "✅ EMERGENCIA SOLVENTADA $gradoInfo:\n" +
+                        "La alerta de ${alert.emergencyType.label} emitida por ${alert.reporterName} (${alert.memberNumber}) en ${alert.locationDescription} ha sido marcada como RESUELTA.\n" +
+                        "📋 Nivel: ${alert.emergencyType.levelNumber} (${alert.emergencyType.levelName})\n" +
+                        "🏍️ Vehículo: ${alert.bikeDetails}\n" +
+                        "📝 Bitácora: ${notes.ifBlank { "Hermano asistido y fuera de peligro." }}\n" +
+                        "🤝 El punto de auxilio ha sido retirado del Mapa TX. ¡Gracias a todos por la hermandad!"
+
+                sendChatMessage("GENERAL", resMsg, isRadioCallout = false)
+                sendChatMessage("AUXILIO", resMsg, isRadioCallout = false)
+
+                val directivaResMsg = "✅ [SOS RESUELTO] $gradoInfo: Emergencia de ${alert.reporterName} (${alert.memberNumber}) en ${alert.locationDescription} cerrada en el sistema.\nBitácora: ${notes.ifBlank { "Atendido satisfactoriamente." }}"
+                sendChatMessage("DIRECTIVA", directivaResMsg, isRadioCallout = false)
+                notifyDirectivaChannel(
+                    titulo = "EMERGENCIA RESUELTA $gradoInfo",
+                    detalle = "✅ Alerta de ${alert.reporterName} en ${alert.locationDescription} cerrada.\nBitácora: ${notes.ifBlank { "Atendido satisfactoriamente." }}",
+                    tipo = "SOS_RESUELTO"
                 )
+
+                // 5. Actualizar Mapa TX para remover inmediatamente el punto de emergencia
+                try {
+                    val db = com.example.data.local.AppDatabase.getDatabase(appCtx, viewModelScope)
+                    val pubs = db.publicationDao().getAllPublications().first()
+                    val events = db.calendarDao().getAllEvents().first()
+                    val allAlerts = db.emergencyDao().getAllAlerts().first()
+                    val activeAlerts = allAlerts.filter { it.id != alert.id && it.status != EmergencyStatus.RESUELTA }
+                    com.example.radar.GestorRadar.sincronizarEventosEnMapa(pubs, events, activeAlerts)
+                } catch (e: Exception) {
+                    Log.w(TAG_SOS, "Error actualizando capa mapa tras resolver SOS: ${e.message}")
+                }
+            } else if (newStatus == EmergencyStatus.ATENDIDA || newStatus == EmergencyStatus.EN_CAMINO) {
+                // Notificar cambio de estado a brigadas y directiva
+                val avisoEstado = "ℹ️ [ESTADO SOS] $gradoInfo: La emergencia de ${alert.reporterName} ahora está: ${newStatus.label}.\nNotas: ${notes.ifBlank { "En proceso de auxilio." }}"
+                sendChatMessage("AUXILIO", avisoEstado, isRadioCallout = false)
+                sendChatMessage("DIRECTIVA", avisoEstado, isRadioCallout = false)
             }
         }
     }
@@ -2076,8 +2236,9 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             uid = uid,
             alDetectarDispositivoDistinto = { mensaje ->
                 viewModelScope.launch(Dispatchers.Main) {
-                    _sesionDesplazadaPorOtroDispositivo.value = true
-                    Log.w("PERFIL_SYNC", "🚨 $mensaje")
+                    _sesionDesplazadaPorOtroDispositivo.value = false
+                    Log.w("PERFIL_SYNC", "🚨 $mensaje: Sesión iniciada/reclamada en otro dispositivo. Desvinculando y cerrando sesión local automáticamente.")
+                    logout()
                 }
             },
             alSerBloqueado = {
@@ -2566,7 +2727,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 isDirectiva = true,
                 solvencyStatus = true,
                 avatarInitials = "EM",
-                email = "eduardo.androide.em@gmail.com"
+                email = "eduardo.androide.em@gmail.com",
+                firebaseUid = "XqLJxsoQFFWYdK8R0qrxh0b03D22"
             )
             isDev2 -> MemberProfile(
                 id = 1002L,
@@ -2577,7 +2739,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 isDirectiva = true,
                 solvencyStatus = true,
                 avatarInitials = "JM",
-                email = "eduardo.jose.marquez.matos@gmail.com"
+                email = "eduardo.jose.marquez.matos@gmail.com",
+                firebaseUid = "JF6CyIjXKlYB253CKzi5N6gN02n1"
             )
             isPresident -> MemberProfile(
                 id = 1000L,
@@ -2627,7 +2790,12 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 } catch (_: Exception) {}
             }
             
-            saveSession(newProfile.id, emailFinal, com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+            val uidParaSesion = newProfile.firebaseUid?.ifBlank { null }
+                ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            saveSession(newProfile.id, emailFinal, uidParaSesion)
+            if (!newProfile.firebaseUid.isNullOrBlank()) {
+                iniciarSincronizacionDePerfil(newProfile.firebaseUid)
+            }
             return Pair(true, "¡Acceso concedido como ${newProfile.role.displayName}!")
         }
 
@@ -2679,7 +2847,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 isDirectiva = true,
                 solvencyStatus = true,
                 avatarInitials = "EM",
-                email = cleanEmail
+                email = cleanEmail,
+                firebaseUid = "XqLJxsoQFFWYdK8R0qrxh0b03D22"
             )
             isDev2 -> MemberProfile(
                 id = 1002L,
@@ -2690,7 +2859,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 isDirectiva = true,
                 solvencyStatus = true,
                 avatarInitials = "JM",
-                email = cleanEmail
+                email = cleanEmail,
+                firebaseUid = "JF6CyIjXKlYB253CKzi5N6gN02n1"
             )
             else -> null
         }
@@ -2766,10 +2936,14 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             } catch (_: Exception) {}
         }
 
-        saveSession(perfilCargado.id, cleanEmail, uidFirebase.ifBlank { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid })
+        val uidFinal = perfilCargado.firebaseUid?.ifBlank { null }
+            ?: uidFirebase.ifBlank { null }
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 
-        if (uidFirebase.isNotBlank()) {
-            iniciarSincronizacionDePerfil(uidFirebase)
+        saveSession(perfilCargado.id, cleanEmail, uidFinal)
+
+        if (!uidFinal.isNullOrBlank()) {
+            iniciarSincronizacionDePerfil(uidFinal)
         }
 
         return Pair(true, "¡Acceso concedido exitosamente a ${perfilCargado.fullName}!")
@@ -3112,7 +3286,9 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---------------- GESTIÓN DE CARGOS Y ROLES DE PILOTOS ---------------- //
     fun transferCargo(fromMember: MemberProfile, toMember: MemberProfile, cargoToTransfer: MemberRole) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
+            val isTransferringPresidency = cargoToTransfer == MemberRole.PRESIDENTE || fromMember.role == MemberRole.PRESIDENTE
+
             // Update toMember to the cargo
             val updatedTo = toMember.copy(
                 role = cargoToTransfer,
@@ -3126,8 +3302,45 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             repository.updateMember(updatedTo)
             repository.updateMember(updatedFrom)
 
+            if (isTransferringPresidency) {
+                // Ajustar flags de sesión local si alguno es el usuario activo
+                if (currentMember.value?.id == fromMember.id) {
+                    _isLeaderSuperAdmin.value = false
+                    _isDirectivaMode.value = false
+                    saveSession(fromMember.id, fromMember.email, fromMember.firebaseUid)
+                }
+                if (currentMember.value?.id == toMember.id) {
+                    _isLeaderSuperAdmin.value = true
+                    _isDirectivaMode.value = true
+                    saveSession(toMember.id, toMember.email, toMember.firebaseUid)
+                }
+
+                // Sincronizar en Firestore
+                try {
+                    val db = FirebaseFirestore.getInstance()
+                    if (!fromMember.email.isNullOrBlank()) {
+                        val idSanitizadoFrom = com.example.data.remote.PerfilNube.sanitizarEmailDocId(fromMember.email ?: "")
+                        db.collection("vinculos_google").document(idSanitizadoFrom).update(
+                            mapOf("role" to "MIEMBRO_ACTIVO", "is_directiva" to false, "codigo_acceso" to "")
+                        ).await()
+                    }
+                    if (!toMember.email.isNullOrBlank()) {
+                        val idSanitizadoTo = com.example.data.remote.PerfilNube.sanitizarEmailDocId(toMember.email ?: "")
+                        db.collection("vinculos_google").document(idSanitizadoTo).update(
+                            mapOf("role" to "PRESIDENTE", "is_directiva" to true)
+                        ).await()
+                    }
+                } catch (e: Exception) {
+                    Log.e("TeamTxViewModel", "Error sincronizando transferencia de presidencia en Firestore: ${e.message}")
+                }
+            }
+
             // Post notice in Directiva chat and feed
-            val transferNotice = "🔄 TRANSFERENCIA OFICIAL DE CARGO: ${fromMember.fullName} ha transferido el cargo de '${cargoToTransfer.displayName}' a ${toMember.fullName} (${toMember.nickname} - ${toMember.memberNumber}). Decisión ratificada."
+            val transferNotice = if (isTransferringPresidency) {
+                "🏛️ TRANSFERENCIA DE LA PRESIDENCIA NACIONAL: ${fromMember.fullName} ha transferido oficialmente la Presidencia Nacional a ${toMember.fullName} (${toMember.nickname} - ${toMember.memberNumber}). El nuevo Presidente asume todas las facultades institucionales."
+            } else {
+                "🔄 TRANSFERENCIA OFICIAL DE CARGO: ${fromMember.fullName} ha transferido el cargo de '${cargoToTransfer.displayName}' a ${toMember.fullName} (${toMember.nickname} - ${toMember.memberNumber}). Decisión ratificada."
+            }
             repository.insertChatMessage(
                 ChatMessage(
                     id = System.currentTimeMillis(),
@@ -3147,12 +3360,12 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             repository.insertPublication(
                 Publication(
                     id = System.currentTimeMillis() + 1,
-                    title = "Nombramiento y Transferencia: ${cargoToTransfer.displayName}",
+                    title = if (isTransferringPresidency) "Nueva Presidencia Nacional TX" else "Nombramiento y Transferencia: ${cargoToTransfer.displayName}",
                     content = transferNotice,
                     category = NoticeCategory.COMUNICADO,
-                    priority = NoticePriority.IMPORTANTE,
-                    authorName = currentMember.value?.fullName ?: "Presidente Nacional",
-                    authorRole = "Directiva Nacional TX Aragua",
+                    priority = NoticePriority.URGENTE,
+                    authorName = fromMember.fullName,
+                    authorRole = "Presidencia Saliente TX Aragua",
                     isPinned = true,
                     timestamp = System.currentTimeMillis()
                 )
@@ -3161,15 +3374,63 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun abandonCargo(member: MemberProfile) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val previousRole = member.role
+            val isPresident = previousRole == MemberRole.PRESIDENTE
             val updated = member.copy(
                 role = MemberRole.MIEMBRO_ACTIVO,
                 isDirectiva = false
             )
             repository.updateMember(updated)
 
-            val notice = "⚠️ CARGO DECLARADO VACANTE: ${member.fullName} (${member.nickname}) ha abandonado/puesto a disposición el cargo de '${previousRole.displayName}'. El Líder Nacional procederá a la reasignación."
+            // Si era Presidente, anular su código y dejar el cargo libre
+            if (isPresident) {
+                if (currentMember.value?.id == member.id) {
+                    _isLeaderSuperAdmin.value = false
+                    _isDirectivaMode.value = false
+                    saveSession(member.id, member.email, member.firebaseUid)
+                }
+
+                // Anular códigos en Firestore
+                try {
+                    val db = FirebaseFirestore.getInstance()
+                    val codesSnapshot = db.collection("invitation_codes")
+                        .whereEqualTo("targetRole", "PRESIDENTE")
+                        .get().await()
+                    for (doc in codesSnapshot.documents) {
+                        doc.reference.update(mapOf("status" to "ANULADO", "isUsed" to true)).await()
+                    }
+
+                    if (!member.email.isNullOrBlank()) {
+                        val idSanitizado = com.example.data.remote.PerfilNube.sanitizarEmailDocId(member.email ?: "")
+                        db.collection("vinculos_google").document(idSanitizado).update(
+                            mapOf(
+                                "role" to "MIEMBRO_ACTIVO",
+                                "is_directiva" to false,
+                                "codigo_acceso" to ""
+                            )
+                        ).await()
+                    }
+
+                    if (!member.firebaseUid.isNullOrBlank()) {
+                        db.collection("usuarios").document(member.firebaseUid ?: "").update(
+                            mapOf(
+                                "role" to "MIEMBRO_ACTIVO",
+                                "isDirectiva" to false
+                            )
+                        ).await()
+                    }
+                } catch (e: Exception) {
+                    Log.e("TeamTxViewModel", "Error al anular código presidencial en Firestore: ${e.message}")
+                }
+            }
+
+            val notice = if (isPresident) {
+                "⚠️ PRESIDENCIA VACANTE Y CÓDIGO ANULADO: ${member.fullName} (${member.nickname}) ha abandonado la Presidencia Nacional. El cargo queda LIBRE y su código de acceso ha sido ANULADO."
+            } else {
+                "⚠️ CARGO DECLARADO VACANTE: ${member.fullName} (${member.nickname}) ha abandonado/puesto a disposición el cargo de '${previousRole.displayName}'. El Líder Nacional procederá a la reasignación."
+            }
+
             repository.insertChatMessage(
                 ChatMessage(
                     id = System.currentTimeMillis(),
@@ -3186,6 +3447,22 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     timestamp = System.currentTimeMillis()
                 )
             )
+
+            if (isPresident) {
+                repository.insertPublication(
+                    Publication(
+                        id = System.currentTimeMillis() + 1,
+                        title = "Presidencia Nacional Vacante",
+                        content = notice,
+                        category = NoticeCategory.COMUNICADO,
+                        priority = NoticePriority.URGENTE,
+                        authorName = "Tribunal Institucional TX",
+                        authorRole = "Gobernanza TX Aragua",
+                        isPinned = true,
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+            }
         }
     }
 

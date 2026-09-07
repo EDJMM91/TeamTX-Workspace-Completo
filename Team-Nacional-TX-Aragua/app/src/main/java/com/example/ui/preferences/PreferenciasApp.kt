@@ -139,6 +139,13 @@ object PreferenciasApp {
         get() = prefs.getBoolean("sos_sonido_alerta", true)
         set(value) = prefs.edit().putBoolean("sos_sonido_alerta", value).apply()
 
+    /** Último tipo de alerta SOS seleccionado para emisión rápida desde el Mapa TX (nombre del enum EmergencyType) */
+    var sosMapaTipoRapido: String?
+        get() = prefs.getString("sos_mapa_tipo_rapido", null)
+        set(value) = if (value != null) prefs.edit().putString("sos_mapa_tipo_rapido", value).apply()
+                     else prefs.edit().remove("sos_mapa_tipo_rapido").apply()
+
+
     // ─── MÓDULO 8: NORMATIVAS ─────────────────────────────────────────────────
 
     /** Tamaño de texto en las normativas: "normal" o "grande" */

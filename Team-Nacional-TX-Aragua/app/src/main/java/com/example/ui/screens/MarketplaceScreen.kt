@@ -80,7 +80,7 @@ fun MarketplaceScreen(
                 title = {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Storefront, contentDescription = null, tint = MotoOrangePrimary)
+                            Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = MotoOrangePrimary)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("MERCADO MOTERO TX", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                         }
@@ -181,7 +181,7 @@ fun MarketplaceScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Storefront, contentDescription = null, tint = TxSteelSilver, modifier = Modifier.size(54.dp))
+                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = TxSteelSilver, modifier = Modifier.size(54.dp))
                         Spacer(modifier = Modifier.height(12.dp))
                         Text("No hay artículos en esta categoría", color = TxSteelSilver, fontSize = 14.sp)
                     }
