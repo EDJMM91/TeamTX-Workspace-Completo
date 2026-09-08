@@ -1,16 +1,18 @@
 {
-  "versionCode": 22,
-  "versionName": "1.4.1-beta",
-  "urlDescarga": "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=e4b308dc-36e2-45e0-8113-d499ec76fce0",
-  "titulo": "Botón SOS Flotante Nativo en el Mapa (OsmAnd HUD)",
-  "notas": "🚀 Release v1.4.1-beta (Botón SOS Flotante Nativo en el Mapa): Integración del botón SOS flotante directamente sobre la interfaz nativa del mapa OsmAnd. Toca el botón rojo SOS en el mapa para desplegar el selector de auxilios con emisión en vivo a todo el grupo.",
+  "versionCode": 26,
+  "versionName": "1.4.5-beta",
+  "urlDescarga": "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=0c7d7632-eb43-4127-a96b-9deb1ece7f2c",
+  "titulo": "Desarrollador Máster Inmutable, Eliminación Definitiva de Usuarios & Killswitch Modular",
+  "notas": "🚀 Release v1.4.5-beta: Rol inmutable Desarrollador Máster para la cuenta del creador, jerarquía de designación de Presidente, purga definitiva de usuarios eliminados por la directiva, Killswitch modular por piloto y nuevo rol Director de Redes TX.",
   "novedades": [
-    "🚨 Botón SOS Flotante Nativo en Mapa OsmAnd: Integración directa en la barra derecha de controles sobre el mapa nativo.",
-    "📱 Diálogo Táctico SOS en el Mapa: Selector interactivo con los 7 tipos de auxilio vial (Gasolina, Mecánico, Caída, Choque, Médico, Peligro, Alcabala).",
-    "📡 Transmisión Satelital en Vivo: Emisión instantánea a Firestore, Radar GPS, Chat Auxilio y Radio Malla."
+    "💻 Rol Desarrollador Máster: Rol inmutable para eduardo.androide.em@gmail.com con jerarquía suprema y asignación exclusiva del cargo de Presidente.",
+    "🗑️ Eliminación Definitiva de Usuarios: Purga completa e instantánea en Firestore (usuarios, users, members, vinculos_google) y Room local al eliminar un usuario desde la Directiva.",
+    "🎛️ Killswitch Modular por Piloto: La Directiva puede restringir el acceso a módulos específicos (Player TX, Velocímetro, Mercado, Chat, Radar, Mesh TX) a pilotos individuales.",
+    "📢 Nuevo Cargo 'Director de Redes TX & Avisos': Creación del rol oficial para la gestión de redes comunitarias y comunicados en el Muro.",
+    "👥 Conteo Real de Pilotos: Filtrado estricto del contador oficial de miembros activos reales registrados en la plataforma."
   ],
   "correcciones": [
-    "Corregido: El botón SOS anterior quedaba oculto detrás de la actividad nativa de OsmAnd.",
-    "Alineación perfecta con controles de zoom, radar y radio intercomunicador."
+    "Corregido: El desarrollador aparecía como 'Presidente' en lugar de su cargo oficial 'Desarrollador Máster'.",
+    "Corregido: Usuarios eliminados podían reingresar sin pasar por el proceso inicial de solicitud."
   ]
 }

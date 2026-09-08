@@ -67,6 +67,11 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     private val _isAuthenticated = MutableStateFlow(false)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
 
+    // 🔐 NUEVA PROPIEDAD: Estado del usuario desde Firestore
+    // Valores posibles: "ACTIVO", "PENDIENTE", "RECHAZADO"
+    private val _usuarioEstado = MutableStateFlow("PENDIENTE")
+    val usuarioEstado: StateFlow<String> = _usuarioEstado.asStateFlow()
+
     private val _isLeaderSuperAdmin = MutableStateFlow(false)
     val isLeaderSuperAdmin: StateFlow<Boolean> = _isLeaderSuperAdmin.asStateFlow()
 
@@ -620,10 +625,84 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun updateMemberRole(member: MemberProfile, newRole: MemberRole) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val operator = currentMember.value
+            val isOperatorDev = operator?.role == MemberRole.DESARROLLADOR || _isLeaderSuperAdmin.value
+            
+            // Regla Jerárquica: Solamente el Desarrollador Máster puede asignar o modificar el rol de Presidente
+            if (newRole == MemberRole.PRESIDENTE && !isOperatorDev) {
+                Log.w("TeamTxViewModel", "⚠️ Intento no autorizado de asignar cargo de Presidente por un operador no Desarrollador Máster.")
+                return@launch
+            }
 
-        viewModelScope.launch {
-            val isDir = newRole.canManageApp || newRole == MemberRole.DIRECTIVA || newRole == MemberRole.PRESIDENTE || newRole == MemberRole.CAPITAN_RUTA
-            repository.updateMember(member.copy(role = newRole, isDirectiva = isDir))
+            val isDir = newRole.canManageApp || newRole == MemberRole.DIRECTIVA || newRole == MemberRole.PRESIDENTE || newRole == MemberRole.CAPITAN_RUTA || newRole == MemberRole.DEPARTAMENTO_REDES
+            val updated = member.copy(role = newRole, isDirectiva = isDir)
+            
+            repository.updateMember(updated)
+
+            // Sincronizar en Firestore
+            val uid = updated.firebaseUid
+            if (!uid.isNullOrBlank()) {
+                val updateData = mapOf(
+                    "role" to newRole.name,
+                    "isDirectiva" to isDir,
+                    "lastActiveTimestamp" to System.currentTimeMillis()
+                )
+                try {
+                    val db = FirebaseFirestore.getInstance()
+                    db.collection("usuarios").document(uid).set(updateData, com.google.firebase.firestore.SetOptions.merge()).await()
+                    db.collection("users").document(uid).set(updateData, com.google.firebase.firestore.SetOptions.merge()).await()
+                    db.collection("members").document(updated.id.toString()).set(updateData, com.google.firebase.firestore.SetOptions.merge()).await()
+                } catch (e: Exception) {
+                    Log.e("TeamTxViewModel", "Error sincronizando nuevo rol en Firestore: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /** Purga completa y definitiva de un usuario en Firestore y Room */
+    fun eliminarUsuarioDefinitivamente(member: MemberProfile) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val uid = member.firebaseUid ?: ""
+            val email = member.email ?: ""
+            val id = member.id
+
+            // 1. Purga total en Firestore (usuarios, users, members, vinculos_google)
+            PerfilNube.eliminarUsuarioTotalmente(uid, email, id)
+
+            // 2. Borrado local en Room DB
+            repository.deleteMember(member)
+
+            Log.i("TeamTxViewModel", "🗑️ Usuario ${member.fullName} (${member.memberNumber}) purgado definitivamente por la Directiva.")
+        }
+    }
+
+    /** Inhabilita/Habilita individualmente módulos por piloto (Killswitch Modular) */
+    fun toggleModuloPiloto(member: MemberProfile, moduloTag: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentDisabled = member.disabledModulesList.toMutableList()
+            if (currentDisabled.contains(moduloTag)) {
+                currentDisabled.remove(moduloTag)
+            } else {
+                currentDisabled.add(moduloTag)
+            }
+            val newJson = currentDisabled.joinToString(",")
+            val updated = member.copy(disabledModulesJson = newJson)
+
+            repository.updateMember(updated)
+
+            val uid = updated.firebaseUid
+            if (!uid.isNullOrBlank()) {
+                try {
+                    val updateMap = mapOf("disabledModulesJson" to newJson)
+                    val db = FirebaseFirestore.getInstance()
+                    db.collection("usuarios").document(uid).set(updateMap, com.google.firebase.firestore.SetOptions.merge()).await()
+                    db.collection("users").document(uid).set(updateMap, com.google.firebase.firestore.SetOptions.merge()).await()
+                    db.collection("members").document(updated.id.toString()).set(updateMap, com.google.firebase.firestore.SetOptions.merge()).await()
+                } catch (e: Exception) {
+                    Log.e("TeamTxViewModel", "Error actualizando módulos deshabilitados en Firestore: ${e.message}")
+                }
+            }
         }
     }
 
@@ -2360,7 +2439,10 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 var finalMember = matched
 
                 // Validar que la vinculación del correo siga existiendo en la nube (evita recordar vínculos del pasado)
-                if (!finalMember.email.isNullOrBlank() && finalMember.email?.endsWith("@teamtx.com") != true) {
+                val emailLimpio = (finalMember.email ?: "").trim().lowercase()
+                val esDevBypass = emailLimpio == "eduardo.androide.em@gmail.com" || emailLimpio == "eduardo.jose.marquez.matos@gmail.com"
+
+                if (!esDevBypass && !finalMember.email.isNullOrBlank() && finalMember.email?.endsWith("@teamtx.com") != true) {
                     val vinculo = PerfilNube.consultarVinculacionPorEmail(finalMember.email ?: "")
                     if (vinculo == null || !vinculo.memberNumber.equals(finalMember.memberNumber, ignoreCase = true)) {
                         Log.i("RESTORE_SESSION", "El vínculo del correo ${finalMember.email} ya no existe en Firestore. Limpiando perfil local desde cero...")
@@ -2386,7 +2468,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                         repository.updateMember(finalMember)
                         clearSession()
                     }
-                } else if (finalMember.email.isNullOrBlank() || finalMember.email?.endsWith("@teamtx.com") == true) {
+                } else if (!esDevBypass && (finalMember.email.isNullOrBlank() || finalMember.email?.endsWith("@teamtx.com") == true)) {
                     // Limpiar también si tenía correos falsos o está sin vincular
                     finalMember = finalMember.copy(
                             email = "", 
@@ -2417,6 +2499,29 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 }
                 _currentMemberId.value = finalMember.id
                 _isAuthenticated.value = true
+
+                // 🔐 Consultar usuarioEstado actualizado desde Firestore (usuarios/{uid})
+                val uidVerificar = finalMember.firebaseUid
+                if (!uidVerificar.isNullOrBlank()) {
+                    try {
+                        val firestore = FirebaseFirestore.getInstance()
+                        var docVerif = firestore.collection("usuarios").document(uidVerificar).get().await()
+                        if (!docVerif.exists()) {
+                            docVerif = firestore.collection("users").document(uidVerificar).get().await()
+                        }
+                        if (docVerif.exists()) {
+                            val estadoRemoto = docVerif.getString("usuarioEstado") ?: docVerif.getString("estado") ?: "ACTIVO"
+                            _usuarioEstado.value = estadoRemoto
+                        } else {
+                            _usuarioEstado.value = if (esDevBypass) "ACTIVO" else "PENDIENTE"
+                        }
+                    } catch (e: Exception) {
+                        _usuarioEstado.value = "ACTIVO"
+                    }
+                } else {
+                    _usuarioEstado.value = "ACTIVO"
+                }
+
                 if (finalMember.role == MemberRole.PRESIDENTE || finalMember.role.canManageApp || finalMember.isDirectiva) {
                     _isDirectivaMode.value = true
                     if (finalMember.role == MemberRole.PRESIDENTE) _isLeaderSuperAdmin.value = true
@@ -2459,8 +2564,11 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
+            val app = getApplication<Application>()
             try {
                 com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                com.aistudio.teamtxvzla.nube.AutenticacionGoogle.cerrarSesionGoogle(app)
+                com.aistudio.teamtxvzla.nube.AutenticacionGoogle.revocarAcceso(app)
             } catch (_: Exception) {}
             detenerSincronizacionDePerfil()
             clearSession()
@@ -2473,7 +2581,6 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             com.example.ui.preferences.PreferenciasApp.carnetTipoFoto = "LOCAL"
 
             // 2. Limpiar preferencias de radar (avatar y alias)
-            val app = getApplication<Application>()
             try {
                 app.getSharedPreferences("radar_prefs", Context.MODE_PRIVATE).edit().clear().apply()
                 app.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE).edit().clear().apply()
@@ -2493,6 +2600,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             // 5. Resetear estados de sesión reactivos
             _currentMemberId.value = -1L
             _isAuthenticated.value = false
+            _usuarioEstado.value = "PENDIENTE"
             _isLeaderSuperAdmin.value = false
             _isDirectivaMode.value = false
             _sesionDesplazadaPorOtroDispositivo.value = false
@@ -2509,6 +2617,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         return if (matched != null) {
             _currentMemberId.value = matched.id
             _isAuthenticated.value = true
+            _usuarioEstado.value = "ACTIVO"
             if (matched.role == MemberRole.PRESIDENTE || matched.role.canManageApp || matched.isDirectiva) {
                 _isDirectivaMode.value = true
                 if (matched.role == MemberRole.PRESIDENTE) _isLeaderSuperAdmin.value = true
@@ -2530,6 +2639,217 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             true
         } else {
             false
+        }
+    }
+
+    fun procesarIngresoGoogle(uid: String, email: String, googlePhotoUrl: String? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val cleanEmail = email.trim().lowercase()
+            val idDispositivoLocal = SEGURIDAD_CUENTAS.obtenerIdDispositivo(getApplication())
+
+            // 🛡️ REGLA 4: Privilegio Nivel Dios (Bypass del Creador)
+            val isDev = cleanEmail == "eduardo.androide.em@gmail.com" || cleanEmail == "eduardo.jose.marquez.matos@gmail.com"
+
+            if (isDev) {
+                Log.i("TeamTxViewModel", "👑 Bypass Creador/Super Admin detectado para: $cleanEmail")
+
+                loginWithGoogle(email, uid, googlePhotoUrl)
+
+                val perfilActual = currentMember.value
+                val idMember = perfilActual?.id ?: System.currentTimeMillis()
+                val numMember = perfilActual?.memberNumber?.ifBlank { "TX-001" } ?: "TX-001"
+                val nombreDev = perfilActual?.fullName?.ifBlank { "Eduardo Marquez (EM)" } ?: "Eduardo Marquez (EM)"
+
+                val datosDev = mapOf(
+                    "id" to idMember,
+                    "fullName" to nombreDev,
+                    "nickname" to "Dev TX",
+                    "memberNumber" to numMember,
+                    "cedulaDni" to "V-19554402",
+                    "phone" to "04120000000",
+                    "email" to cleanEmail,
+                    "firebaseUid" to uid,
+                    "role" to MemberRole.DESARROLLADOR.name,
+                    "isDirectiva" to true,
+                    "isSuspended" to false,
+                    "suspensionReason" to "",
+                    "estado" to "ACTIVO",
+                    "usuarioEstado" to "ACTIVO",
+                    "solvencyStatus" to true,
+                    "id_dispositivo_activo" to idDispositivoLocal,
+                    "activeDeviceId" to idDispositivoLocal,
+                    "timestamp" to System.currentTimeMillis(),
+                    "lastActiveTimestamp" to System.currentTimeMillis()
+                )
+
+                try {
+                    val db = FirebaseFirestore.getInstance()
+                    db.collection("usuarios").document(uid).set(datosDev, com.google.firebase.firestore.SetOptions.merge()).await()
+                    db.collection("users").document(uid).set(datosDev, com.google.firebase.firestore.SetOptions.merge()).await()
+                } catch (e: Exception) {
+                    Log.e("TeamTxViewModel", "Error guardando datos Super Admin en Firestore: ${e.message}")
+                }
+
+                // Registrar vinculación 1-a-1 en vinculos_google
+                val vinculacionDev = com.example.data.remote.VinculacionGoogle(
+                    email = cleanEmail,
+                    correo = cleanEmail,
+                    firebaseUid = uid,
+                    uid_firebase = uid,
+                    memberNumber = numMember,
+                    numero_miembro = numMember,
+                    memberName = nombreDev,
+                    nombre_piloto = nombreDev,
+                    memberId = idMember,
+                    activeDeviceId = idDispositivoLocal,
+                    id_dispositivo_activo = idDispositivoLocal,
+                    linkedAt = System.currentTimeMillis(),
+                    lastActiveTimestamp = System.currentTimeMillis()
+                )
+                PerfilNube.registrarVinculacion(vinculacionDev)
+
+                _usuarioEstado.value = "ACTIVO"
+                _isAuthenticated.value = true
+                _isDirectivaMode.value = true
+                _isLeaderSuperAdmin.value = true
+                iniciarSincronizacionDePerfil(uid)
+                return@launch
+            }
+
+            try {
+                val db = FirebaseFirestore.getInstance()
+                var doc = db.collection("usuarios").document(uid).get().await()
+                if (!doc.exists()) {
+                    doc = db.collection("users").document(uid).get().await()
+                }
+
+                if (doc.exists()) {
+                    val estadoRemote = doc.getString("usuarioEstado") ?: doc.getString("estado") ?: "PENDIENTE"
+                    val deviceIdRemoto = doc.getString("id_dispositivo_activo") ?: doc.getString("activeDeviceId")
+
+                    // 🛡️ REGLA 5: Bloqueo Multi-cuenta por Device ID
+                    if (!deviceIdRemoto.isNullOrBlank() && deviceIdRemoto != idDispositivoLocal) {
+                        Log.w("TeamTxViewModel", "🚨 Dispositivo en Firestore ($deviceIdRemoto) no coincide con teléfono ($idDispositivoLocal). Acceso bloqueado.")
+                        _usuarioEstado.value = "RECHAZADO"
+                        _isAuthenticated.value = true
+                        return@launch
+                    }
+
+                    // Actualizar ID del teléfono actual en Firestore
+                    PerfilNube.actualizarDispositivoActivo(cleanEmail, uid, idDispositivoLocal)
+
+                    _usuarioEstado.value = estadoRemote
+                    _isAuthenticated.value = true
+
+                    if (estadoRemote == "ACTIVO") {
+                        loginWithGoogle(email, uid, googlePhotoUrl)
+                        iniciarSincronizacionDePerfil(uid)
+                    }
+                } else {
+                    // 🛡️ REGLA 2: Si el UID NO existe en Firestore -> Dirigir a Formulario de Registro
+                    _usuarioEstado.value = "NUEVO_REGISTRO"
+                    _isAuthenticated.value = true
+                }
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error procesando ingreso Google: ${e.message}")
+                _usuarioEstado.value = "NUEVO_REGISTRO"
+                _isAuthenticated.value = true
+            }
+        }
+    }
+
+    fun guardarNuevoPerfilFirestore(nuevoPerfil: MemberProfile) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val uid = nuevoPerfil.firebaseUid?.ifBlank { null }
+                ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+            val idDispositivoLocal = SEGURIDAD_CUENTAS.obtenerIdDispositivo(getApplication())
+            val cleanEmail = (nuevoPerfil.email ?: "").trim().lowercase()
+
+            val isDev = cleanEmail == "eduardo.androide.em@gmail.com" || cleanEmail == "eduardo.jose.marquez.matos@gmail.com"
+            val estadoInicial = if (isDev) "ACTIVO" else "PENDIENTE"
+
+            val perfilFinal = nuevoPerfil.copy(
+                firebaseUid = uid,
+                email = cleanEmail,
+                solvencyStatus = if (isDev) true else false,
+                role = if (isDev) MemberRole.PRESIDENTE else nuevoPerfil.role,
+                isDirectiva = if (isDev) true else nuevoPerfil.isDirectiva
+            )
+
+            val datosMap = mapOf(
+                "id" to perfilFinal.id,
+                "fullName" to perfilFinal.fullName,
+                "nickname" to perfilFinal.nickname,
+                "memberNumber" to perfilFinal.memberNumber,
+                "email" to perfilFinal.email,
+                "firebaseUid" to uid,
+                "bikeModel" to perfilFinal.bikeModel,
+                "bikePlate" to perfilFinal.bikePlate,
+                "bloodType" to perfilFinal.bloodType,
+                "emergencyContactPhone" to perfilFinal.emergencyContactPhone,
+                "role" to perfilFinal.role.name,
+                "isDirectiva" to perfilFinal.isDirectiva,
+                "estado" to estadoInicial,
+                "usuarioEstado" to estadoInicial,
+                "id_dispositivo_activo" to idDispositivoLocal,
+                "activeDeviceId" to idDispositivoLocal,
+                "timestamp" to System.currentTimeMillis(),
+                "lastActiveTimestamp" to System.currentTimeMillis()
+            )
+
+            try {
+                val db = FirebaseFirestore.getInstance()
+                if (uid.isNotBlank()) {
+                    db.collection("usuarios").document(uid).set(datosMap, com.google.firebase.firestore.SetOptions.merge()).await()
+                    db.collection("users").document(uid).set(datosMap, com.google.firebase.firestore.SetOptions.merge()).await()
+                }
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error guardando nuevo perfil en Firestore: ${e.message}")
+            }
+
+            repository.insertMember(perfilFinal)
+            _currentMemberId.value = perfilFinal.id
+            _usuarioEstado.value = estadoInicial
+            _isAuthenticated.value = true
+            if (isDev) {
+                _isDirectivaMode.value = true
+                _isLeaderSuperAdmin.value = true
+            }
+            saveSession(perfilFinal.id, perfilFinal.email, uid)
+            if (uid.isNotBlank()) {
+                iniciarSincronizacionDePerfil(uid)
+            }
+        }
+    }
+
+    fun verificarEstadoFirestore() {
+        val uid = currentMember.value?.firebaseUid?.ifBlank { null }
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            ?: return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val db = FirebaseFirestore.getInstance()
+                var doc = db.collection("usuarios").document(uid).get().await()
+                if (!doc.exists()) {
+                    doc = db.collection("users").document(uid).get().await()
+                }
+
+                if (doc.exists()) {
+                    val nuevoEstado = doc.getString("usuarioEstado") ?: doc.getString("estado") ?: "PENDIENTE"
+                    _usuarioEstado.value = nuevoEstado
+                    if (nuevoEstado == "ACTIVO") {
+                        currentMember.value?.let { current ->
+                            val updated = current.copy(
+                                solvencyStatus = true
+                            )
+                            repository.updateMember(updated)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error verificando estado Firestore: ${e.message}")
+            }
         }
     }
 
@@ -2579,45 +2899,75 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
-        // 3. Developer / President account special handling
-        if (matched == null && cleanEmail == "eduardo.androide.em@gmail.com") {
-            val president = localMembers.find { it.role == MemberRole.PRESIDENTE }
-            if (president != null) {
-                matched = president.copy(email = cleanEmail, firebaseUid = authUid)
-                repository.updateMember(matched)
-            } else {
-                val newPresident = MemberProfile(
-                    id = System.currentTimeMillis(), // 🛡️ ID Manual Atómico
-                    fullName = "Eduardo Androide",
-                    nickname = "Dev TX",
-                    memberNumber = "TX-001",
-                    role = MemberRole.PRESIDENTE,
-                    isDirectiva = true,
-                    solvencyStatus = true,
+        // 3. Developer / Master account special handling
+        val isDevEmail = cleanEmail == "eduardo.androide.em@gmail.com" || cleanEmail == "eduardo.jose.marquez.matos@gmail.com"
+        if (isDevEmail) {
+            if (matched != null) {
+                matched = matched!!.copy(
                     email = cleanEmail,
-                    firebaseUid = authUid,
-                    avatarInitials = "EA",
-                    cedulaDni = "V-19554402",
-                    phone = "04120000000",
-                    bikePlate = "TX-001",
-                    emergencyContactName = "Directiva TX",
-                    emergencyContactPhone = "04120000000"
+                    firebaseUid = authUid ?: matched!!.firebaseUid,
+                    role = MemberRole.DESARROLLADOR,
+                    isDirectiva = true,
+                    isSuspended = false,
+                    suspensionReason = "",
+                    solvencyStatus = true
                 )
-                repository.insertMember(newPresident)
-                matched = newPresident
+            } else {
+                val devMaster = localMembers.find { it.role == MemberRole.DESARROLLADOR }
+                if (devMaster != null) {
+                    matched = devMaster.copy(
+                        email = cleanEmail,
+                        firebaseUid = authUid,
+                        role = MemberRole.DESARROLLADOR,
+                        isDirectiva = true,
+                        isSuspended = false,
+                        suspensionReason = "",
+                        solvencyStatus = true
+                    )
+                } else {
+                    matched = MemberProfile(
+                        id = System.currentTimeMillis(),
+                        fullName = "Eduardo Marquez (EM)",
+                        nickname = "Dev TX",
+                        memberNumber = "TX-001",
+                        role = MemberRole.DESARROLLADOR,
+                        isDirectiva = true,
+                        isSuspended = false,
+                        suspensionReason = "",
+                        solvencyStatus = true,
+                        email = cleanEmail,
+                        firebaseUid = authUid,
+                        avatarInitials = "EA",
+                        cedulaDni = "V-19554402",
+                        phone = "04120000000",
+                        bikePlate = "TX-001",
+                        emergencyContactName = "Directiva TX",
+                        emergencyContactPhone = "04120000000"
+                    )
+                }
             }
         }
 
         if (matched != null) {
-            val conFoto = if (matched.profilePhotoUri.isNullOrBlank() && !googlePhotoUrl.isNullOrBlank())
-                matched.copy(profilePhotoUri = googlePhotoUrl) else matched
-            val updated = conFoto.copy(
+            val conFoto = if (matched!!.profilePhotoUri.isNullOrBlank() && !googlePhotoUrl.isNullOrBlank())
+                matched!!.copy(profilePhotoUri = googlePhotoUrl) else matched!!
+            var updated = conFoto.copy(
                 email = cleanEmail,
                 firebaseUid = authUid ?: conFoto.firebaseUid
             )
+            if (isDevEmail) {
+                updated = updated.copy(
+                    role = MemberRole.PRESIDENTE,
+                    isDirectiva = true,
+                    isSuspended = false,
+                    suspensionReason = "",
+                    solvencyStatus = true
+                )
+            }
             repository.updateMember(updated)
             _currentMemberId.value = updated.id
             _isAuthenticated.value = true
+            _usuarioEstado.value = "ACTIVO"
             if (updated.role == MemberRole.PRESIDENTE || updated.role.canManageApp || updated.isDirectiva) {
                 _isDirectivaMode.value = true
                 if (updated.role == MemberRole.PRESIDENTE) _isLeaderSuperAdmin.value = true
@@ -2651,6 +3001,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             }
             _currentMemberId.value = nuevoMiembro.id
             _isAuthenticated.value = true
+            _usuarioEstado.value = "ACTIVO"
             saveSession(nuevoMiembro.id, nuevoMiembro.email, nuevoMiembro.firebaseUid)
             iniciarSincronizacionDePerfil(nuevoMiembro.firebaseUid ?: authUid)
             Log.i("TeamTxViewModel", "✅ Nuevo piloto registrado con Google: $cleanEmail (UID: $authUid)")
@@ -2708,7 +3059,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 )
                 repository.insertMember(newProfile)
                 _currentMemberId.value = newProfile.id
-                _isAuthenticated.value = true
+                _usuarioEstado.value = "PENDIENTE"
                 saveSession(newProfile.id, null, null)
                 return Pair(true, "¡Acceso concedido! Por favor vincula tu cuenta Google en el perfil.")
             } catch (e: Exception) {
@@ -2782,14 +3133,12 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             _isAuthenticated.value = true
             _isDirectivaMode.value = newProfile.isDirectiva
             _isLeaderSuperAdmin.value = newProfile.role == MemberRole.PRESIDENTE || newProfile.role == MemberRole.DESARROLLADOR
-            
-            // Login anónimo preventivo si no hay sesión
-            if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
-                try {
-                    com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously().await()
-                } catch (_: Exception) {}
-            }
-            
+            _usuarioEstado.value = if (newProfile.isDirectiva || newProfile.role == MemberRole.PRESIDENTE || newProfile.role == MemberRole.DESARROLLADOR) "ACTIVO" else "PENDIENTE"
+
+            try {
+                com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously().await()
+            } catch (_: Exception) {}
+
             val uidParaSesion = newProfile.firebaseUid?.ifBlank { null }
                 ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
             saveSession(newProfile.id, emailFinal, uidParaSesion)
@@ -2925,9 +3274,10 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         // Guardar perfil en Room
         repository.insertMember(perfilCargado)
         _currentMemberId.value = perfilCargado.id
-        _isAuthenticated.value = true
-        _isDirectivaMode.value = perfilCargado.isDirectiva || perfilCargado.role == MemberRole.DESARROLLADOR || perfilCargado.role == MemberRole.PRESIDENTE
-        _isLeaderSuperAdmin.value = perfilCargado.role == MemberRole.PRESIDENTE || perfilCargado.role == MemberRole.DESARROLLADOR
+_isAuthenticated.value = true
+            _isDirectivaMode.value = perfilCargado.isDirectiva || perfilCargado.role == MemberRole.DESARROLLADOR || perfilCargado.role == MemberRole.PRESIDENTE
+            _isLeaderSuperAdmin.value = perfilCargado.role == MemberRole.PRESIDENTE || perfilCargado.role == MemberRole.DESARROLLADOR
+            _usuarioEstado.value = if (perfilCargado.isDirectiva || perfilCargado.role == MemberRole.PRESIDENTE || perfilCargado.role == MemberRole.DESARROLLADOR) "ACTIVO" else "PENDIENTE"
 
         // Asegurar Auth anónima preventiva si no hay Auth activa
         if (com.google.firebase.auth.FirebaseAuth.getInstance().currentUser == null) {
@@ -3722,13 +4072,9 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             // Log them in
             _currentMemberId.value = matchedMember.id
             _isAuthenticated.value = true
-            if (matchedMember.role == MemberRole.PRESIDENTE || matchedMember.role.canManageApp || matchedMember.isDirectiva) {
-                _isDirectivaMode.value = true
-                if (matchedMember.role == MemberRole.PRESIDENTE) _isLeaderSuperAdmin.value = true
-            }
-            
-            // Force sync their data from Firestore (mocked logic for modularity)
-            forceSyncFromFirebase(uid)
+            _isDirectivaMode.value = matchedMember.role == MemberRole.PRESIDENTE || matchedMember.role.canManageApp || matchedMember.isDirectiva
+            if (matchedMember.role == MemberRole.PRESIDENTE) _isLeaderSuperAdmin.value = true
+            _usuarioEstado.value = if (matchedMember.role == MemberRole.PRESIDENTE || matchedMember.role.canManageApp || matchedMember.isDirectiva) "ACTIVO" else "PENDIENTE"
             
             return Pair(true, "¡Bienvenido de vuelta, ${matchedMember.nickname}!")
         }

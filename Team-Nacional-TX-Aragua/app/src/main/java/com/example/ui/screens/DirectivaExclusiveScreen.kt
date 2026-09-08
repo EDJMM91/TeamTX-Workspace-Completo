@@ -109,6 +109,7 @@ fun DirectivaExclusiveScreen(
     onToggleChatMute: (MemberProfile, Boolean, String) -> Unit = { _, _, _ -> },
     onSuspendMember: (MemberProfile, String, Int) -> Unit = { _, _, _ -> },
     onReactivateMember: (MemberProfile) -> Unit = {},
+    onToggleModuloPiloto: (MemberProfile, String) -> Unit = { _, _ -> },
     onToggleSolvency: (MemberProfile) -> Unit = {},
     onToggleBottomNav: (() -> Unit)? = null,
     allPrivateGroups: List<PrivateGroup> = emptyList(),
@@ -575,22 +576,19 @@ fun DirectivaExclusiveScreen(
                                 }
                             }
                         )
-                        0 -> DirectivaCodigosSection(
-                            invitationCodes = invitationCodes,
-                            allMembers = allMembers,
-                            onOpenGenerateDialog = { showGenerateCodeDialog = true },
-                            onDeleteCode = onDeleteCode,
-                            onDarDeBajaInvitado = onDarDeBajaInvitado,
-                            context = context
-                        )
-                        1 -> DirectivaSolicitudesSection(
-                            accessRequests = accessRequests,
-                            onApprove = { req ->
-                                val generated = onApproveRequest(req)
-                                newlyCreatedCodeInfo = "Código de 24h generado para ${req.fullName}: $generated"
+                        0 -> SolicitudesIngreso(
+                            userUid = currentMember?.firebaseUid ?: "",
+                            onUsuarioAprobado = { perfilAprobado ->
+                                onAssignRole(perfilAprobado, perfilAprobado.role)
                             },
-                            onReject = onRejectRequest,
-                            context = context
+                            onVolver = { selectedSection = null }
+                        )
+                        1 -> SolicitudesIngreso(
+                            userUid = currentMember?.firebaseUid ?: "",
+                            onUsuarioAprobado = { perfilAprobado ->
+                                onAssignRole(perfilAprobado, perfilAprobado.role)
+                            },
+                            onVolver = { selectedSection = null }
                         )
                         2 -> DirectivaCargosSection(
                             allMembers = allMembers,
@@ -614,6 +612,7 @@ fun DirectivaExclusiveScreen(
                             onToggleChatMute = onToggleChatMute,
                             onSuspendMember = onSuspendMember,
                             onReactivateMember = onReactivateMember,
+                            onToggleModuloPiloto = onToggleModuloPiloto,
                             onToggleSolvency = onToggleSolvency,
                             onExpelMember = onExpelMember,
                             onOpenMuteDialog = { member ->
@@ -2202,6 +2201,7 @@ private fun DirectivaCargosSection(
     onToggleChatMute: (MemberProfile, Boolean, String) -> Unit,
     onSuspendMember: (MemberProfile, String, Int) -> Unit,
     onReactivateMember: (MemberProfile) -> Unit,
+    onToggleModuloPiloto: (MemberProfile, String) -> Unit = { _, _ -> },
     onToggleSolvency: (MemberProfile) -> Unit,
     onOpenMuteDialog: (MemberProfile) -> Unit,
     onOpenSuspendDialog: (MemberProfile) -> Unit,
@@ -2211,6 +2211,7 @@ private fun DirectivaCargosSection(
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("TODOS") }
     var memberToExpel by remember { mutableStateOf<MemberProfile?>(null) }
+    var memberForKillswitch by remember { mutableStateOf<MemberProfile?>(null) }
     var expelReasonInput by remember { mutableStateOf("") }
 
     val filterOptions = listOf("TODOS", "DIRECTIVA", "ACTIVOS", "SILENCIADOS", "SUSPENDIDOS", "INSOLVENTES", "BAJAS / EXPULSADOS")
@@ -2733,8 +2734,22 @@ private fun DirectivaCargosSection(
                                     ) {
                                         Icon(Icons.Default.DeleteForever, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text(if (actorPuedeEliminar) "Expulsar" else "Sin Permiso", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text(if (actorPuedeEliminar) "Eliminar Definitivo" else "Sin Permiso", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                     }
+                                }
+
+                                OutlinedButton(
+                                    onClick = { memberForKillswitch = member },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
+                                    border = BorderStroke(1.dp, LightBorder),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.fillMaxWidth().height(30.dp)
+                                ) {
+                                    Icon(Icons.Default.Tune, contentDescription = null, tint = MotoOrangePrimary, modifier = Modifier.size(13.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Restringir Módulos (${member.disabledModulesList.size})", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
                                 }
                             }
                         }
@@ -2743,7 +2758,6 @@ private fun DirectivaCargosSection(
             }
         }
     }
-}
 
     // 🛑 Diálogo de Confirmación: Expulsión Definitiva de Miembro
     memberToExpel?.let { target ->
@@ -2837,6 +2851,80 @@ private fun DirectivaCargosSection(
             containerColor = LightCardBg,
             shape = RoundedCornerShape(16.dp)
         )
+    }
+
+    // 🎛️ Diálogo: Restricción Modular por Piloto (Killswitch)
+    memberForKillswitch?.let { target ->
+        Dialog(onDismissRequest = { memberForKillswitch = null }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = LightCardBg,
+                border = BorderStroke(1.dp, MotoOrangePrimary),
+                shadowElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Restringir Módulos: ${target.nickname.ifBlank { target.fullName }}", fontWeight = FontWeight.Black, fontSize = 14.sp, color = LightTextPrimary)
+                        IconButton(onClick = { memberForKillswitch = null }) {
+                            Icon(Icons.Default.Close, contentDescription = null, tint = LightTextMuted)
+                        }
+                    }
+
+                    Text("Selecciona los módulos que deseas inhabilitar para este piloto:", fontSize = 11.5.sp, color = LightTextSecondary)
+
+                    val modulosSoportados = listOf(
+                        "PLAYER" to "Player TX (Música)",
+                        "VELOCIMETRO" to "Velocímetro & Odómetro",
+                        "MERCADO" to "Mercado Biker",
+                        "CHAT" to "Chat del Club",
+                        "RANKING" to "Ranking Gamificado",
+                        "RIDES" to "Rodadas Programadas"
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        modulosSoportados.forEach { (tag, name) ->
+                            val isOff = target.isModuleDisabled(tag)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isOff) StatusError.copy(alpha = 0.1f) else LightCardSubtle)
+                                    .clickable {
+                                        onToggleModuloPiloto(target, tag)
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isOff) StatusError else LightTextPrimary)
+                                Switch(
+                                    checked = !isOff,
+                                    onCheckedChange = {
+                                        onToggleModuloPiloto(target, tag)
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = { memberForKillswitch = null },
+                        colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Guardar y Cerrar", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -3566,18 +3654,6 @@ fun DirectivaDashboardHubView(
                 badgeText = if (pendingRequestsCount > 0) "$pendingRequestsCount PENDIENTES" else "Al día",
                 isBadgeUrgent = pendingRequestsCount > 0,
                 onClick = { onSelectSection(1) }
-            )
-        }
-
-        // 0. Códigos de Invitación (24H)
-        item {
-            DirectivaHubCard(
-                title = "Códigos de Acceso (24H)",
-                subtitle = "Emisión de pases temporales e invitados especiales",
-                icon = Icons.Default.Key,
-                iconTint = Color(0xFF2563EB),
-                badgeText = "$activeCodesCount activos",
-                onClick = { onSelectSection(0) }
             )
         }
 

@@ -47,6 +47,7 @@ object DashboardFondoConfig {
     val ColorContenedorAzul = Color(0xFFE3F2FD)
     val ColorContenedorDorado = Color(0xFFFFF8E1)
     val ColorContenedorVerde = Color(0xFFE8F5E9)
+    val ColorContenedorClaro = Color(0xFFF1F5F9)
 
     fun inicializar(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

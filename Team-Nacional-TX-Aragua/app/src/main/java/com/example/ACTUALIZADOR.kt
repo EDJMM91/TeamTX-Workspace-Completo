@@ -104,6 +104,84 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 26,
+            versionName = "1.4.5-beta",
+            titulo = "Desarrollador Máster Inmutable, Eliminación Definitiva de Usuarios & Killswitch Modular",
+            fecha = "08 sep 2026",
+            descripcionCorta = "Rol inmutable Desarrollador Máster para la cuenta del creador, jerarquía de designación de Presidente, purga definitiva de usuarios eliminados por la directiva, Killswitch modular por piloto y nuevo rol Director de Redes TX.",
+            novedades = listOf(
+                "💻 Rol Desarrollador Máster: Rol inmutable para eduardo.androide.em@gmail.com con jerarquía suprema y asignación exclusiva del cargo de Presidente.",
+                "🗑️ Eliminación Definitiva de Usuarios: Purga completa e instantánea en Firestore (usuarios, users, members, vinculos_google) y Room local al eliminar un usuario desde la Directiva.",
+                "🎛️ Killswitch Modular por Piloto: La Directiva puede restringir el acceso a módulos específicos (Player TX, Velocímetro, Mercado, Chat, Radar, Mesh TX) a pilotos individuales.",
+                "📢 Nuevo Cargo 'Director de Redes TX & Avisos': Creación del rol oficial para la gestión de redes comunitarias y comunicados en el Muro.",
+                "👥 Conteo Real de Pilotos: Filtrado estricto del contador oficial de miembros activos reales registrados en la plataforma."
+            ),
+            correcciones = listOf(
+                "Corregido: El desarrollador aparecía como 'Presidente' en lugar de su cargo oficial 'Desarrollador Máster'.",
+                "Corregido: Usuarios eliminados podían reingresar sin pasar por el proceso inicial de solicitud."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
+            versionCode = 25,
+            versionName = "1.4.4-beta",
+            titulo = "Desbloqueo Inmediato de Cuentas Aprobadas por Directiva & Enlace de Creación Google",
+            fecha = "08 sep 2026",
+            descripcionCorta = "Sincronización instantánea de estado 'ACTIVO' en restauración de sesión para cuentas aprobadas, actualización completa de colecciones Firestore (usuarios, users, members, vinculos_google y Room) y panel de creación de cuenta Google si no posee correo.",
+            novedades = listOf(
+                "✅ Desbloqueo Inmediato de Cuentas Aprobadas: Consulta dinámica de usuarioEstado en Firestore al restaurar sesión para ingresar directo a la app sin quedarse en Sala de Espera.",
+                "🛡️ Aprobación Integral por Directiva: Al aprobar en Solicitudes de Ingreso, se actualizan de forma atómica 'usuarios', 'users', 'members', 'vinculos_google' y la base de datos local Room.",
+                "🌐 Panel de Creación de Cuenta Google: Tarjeta intuitiva en la pantalla de inicio de sesión que redirige a la creación de cuenta Google y retorno a la app.",
+                "👥 Sincronización Total con Directorio de Miembros: Los usuarios aprobados aparecen de forma instantánea en el Módulo de Miembros y Ranking."
+            ),
+            correcciones = listOf(
+                "Corregido: Cuentas aprobadas por la directiva quedaban atrapadas en la pantalla de 'Cuenta en evaluación' por estado 'PENDIENTE' en caché.",
+                "Corregido: Falta de actualización de la colección 'members' al aprobar solicitudes de ingreso."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
+            versionCode = 24,
+            versionName = "1.4.3-beta",
+            titulo = "Sincronización Atómica de Vinculación 1-a-1 y Estabilidad de Sesión Creador",
+            fecha = "08 sep 2026",
+            descripcionCorta = "Sincronización atómica de Vinculación Google en vinculos_google, inmunidad de sesión para cuenta creador/desarrollador, estandarización de Device ID en SEGURIDAD_CUENTAS y depuración de cierres de sesión por deserialización.",
+            novedades = listOf(
+                "🔑 Vinculación 1-a-1 Atómica: Registro automático e instantáneo en la colección 'vinculos_google' durante el inicio de sesión con Google.",
+                "👑 Inmunidad Creador / Super Admin: Excepción permanente para eduardo.androide.em@gmail.com en el listener de perfil para evitar cierres de sesión por cambio de dispositivo o estado.",
+                "📱 Estandarización de Device ID: Unificación de la generación de UUID único a través de SEGURIDAD_CUENTAS.obtenerIdDispositivo().",
+                "🛡️ Deserialización Segura de Perfil: Manejo seguro en 'PerfilNube.escucharPerfil()' para prevenir fallos al mapear documentos de Firestore.",
+                "🔒 Cierre de Sesión Limpio: Purga local física completa preservando siempre el documento original del piloto en la nube."
+            ),
+            correcciones = listOf(
+                "Corregido: Error 'Acceso Revocado' y cierre automático tras ingresar con la cuenta de desarrollador.",
+                "Corregido: Desajuste de IDs entre GestorSesion y SEGURIDAD_CUENTAS que provocaba falso positivo de sesión en otro celular.",
+                "Corregido: Incoherencia en la verificación de vínculos de correo en checkAndRestoreSession()."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
+            versionCode = 23,
+            versionName = "1.4.2-beta",
+            titulo = "Unificación de Autenticación, Cuarentena por Estados y Panel de Gobernanza",
+            fecha = "08 sep 2026",
+            descripcionCorta = "Corregido el bucle de inicio de sesión con Google. Flujo de estados en Firestore (NUEVO_REGISTRO -> PENDIENTE -> ACTIVO), Sala de Espera con desbloqueo en tiempo real, Panel de Gobernanza reactivo de Directiva y Bypass de Creador.",
+            novedades = listOf(
+                "🔑 Selector de Cuentas Forzado en Google: Sign-Out previo explícito para garantizar la ventana emergente de selección de cuenta.",
+                "📋 Enrutamiento por Estados de Firestore: Validación en vivo de UID (NUEVO_REGISTRO -> PENDIENTE -> ACTIVO) con formulario de registro automático.",
+                "⏳ Sala de Espera Reactiva: Escucha en vivo de aprobación por Firestore para desbloquear automáticamente el sistema.",
+                "👑 Bypass Nivel Dios Creador: Reconocimiento inmediato de eduardo.androide.em@gmail.com con perfil activo de SUPER_ADMIN.",
+                "🛡️ Panel de Gobernanza Reactivo: Lista en vivo de solicitudes pendientes en Firestore con asignación de roles y activación instantánea.",
+                "📱 Purga Local Segura: Limpieza física de Room, SharedPreferences y caché de imágenes en Cierre de Sesión sin borrar el documento en Firestore."
+            ),
+            correcciones = listOf(
+                "Corregido: Bucle de cierre de sesión al acceder con Google por falta de documento inicial en Firestore.",
+                "Corregido: Eliminados bloques y botones obsoletos de códigos de acceso manuales en el panel de directiva.",
+                "Corregido: Control estricto de dispositivo activo por id_dispositivo_activo."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
             versionCode = 22,
             versionName = "1.4.1-beta",
             titulo = "Botón SOS Flotante Nativo en el Mapa (OsmAnd HUD)",
@@ -118,7 +196,7 @@ object GestorActualizaciones {
                 "Corregido: El botón SOS anterior quedaba oculto detrás de la actividad nativa de OsmAnd.",
                 "Alineación perfecta con controles de zoom, radar y radio intercomunicador."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 21,

@@ -218,6 +218,28 @@ object PreferenciasApp {
         return if (items.size == 5) items else null
     }
 
+    // ─── REGISTRO Y CONTEO DE USO DE MÓDULOS (MÁS USADOS) ──────────────────
+
+    /** Incrementar el contador de uso de un módulo para ordenar los más usados */
+    fun registrarUsoModulo(tabName: String) {
+        if (!::prefs.isInitialized) return
+        val currentCount = prefs.getInt("uso_modulo_$tabName", 0)
+        prefs.edit().putInt("uso_modulo_$tabName", currentCount + 1).apply()
+    }
+
+    /** Obtener el mapa de conteos de uso para ordenar módulos en el Dashboard */
+    fun obtenerUsoModulosMap(): Map<String, Int> {
+        if (!::prefs.isInitialized) return emptyMap()
+        val allMap = prefs.all
+        val map = mutableMapOf<String, Int>()
+        for ((key, value) in allMap) {
+            if (key.startsWith("uso_modulo_") && value is Int) {
+                map[key.removePrefix("uso_modulo_")] = value
+            }
+        }
+        return map
+    }
+
     // ─── GOBERNANZA & DIRECTIVA INSTITUCIONAL ──────────────────────────────────
     /** Lema oficial o comunicado de cabecera del Capítulo */
     var lemaClub: String

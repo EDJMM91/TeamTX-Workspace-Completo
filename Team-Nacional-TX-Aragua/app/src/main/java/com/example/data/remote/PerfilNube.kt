@@ -110,6 +110,32 @@ object PerfilNube {
         }
     }
 
+    /** Elimina totalmente al usuario de Firestore (usuarios, users, members y vinculos_google) */
+    suspend fun eliminarUsuarioTotalmente(uid: String, correo: String, memberId: Long): Boolean {
+        return try {
+            if (uid.isNotBlank()) {
+                try { db.collection(COLECCION_USUARIOS).document(uid).delete().await() } catch (_: Exception) {}
+                try { db.collection("users").document(uid).delete().await() } catch (_: Exception) {}
+            }
+            if (memberId > 0) {
+                try { db.collection("members").document(memberId.toString()).delete().await() } catch (_: Exception) {}
+            }
+            if (correo.isNotBlank()) {
+                val idDoc = sanitizarEmailDocId(correo)
+                val correoLimpio = correo.trim().lowercase()
+                try { db.collection(COLECCION_VINCULOS).document(idDoc).delete().await() } catch (_: Exception) {}
+                if (idDoc != correoLimpio) {
+                    try { db.collection(COLECCION_VINCULOS).document(correoLimpio).delete().await() } catch (_: Exception) {}
+                }
+            }
+            Log.i(ETIQUETA_LOG, "🗑️ Usuario purgado totalmente de Firestore (UID: $uid, Correo: $correo, ID: $memberId)")
+            true
+        } catch (error: Exception) {
+            Log.e(ETIQUETA_LOG, "Error eliminando totalmente al usuario: ${error.message}", error)
+            false
+        }
+    }
+
     /** Actualiza el dispositivo activo en Firestore para control anti-trampas */
     suspend fun actualizarDispositivoActivo(correo: String, uid: String, idDispositivo: String): Boolean {
         return try {
@@ -206,14 +232,31 @@ object PerfilNube {
                     }
                     
                     if (snapshot == null || !snapshot.exists()) {
-                        Log.w(ETIQUETA_LOG, "🚨 Documento de perfil usuarios/$uid no existe (posible borrado)")
-                        alSerBloqueado()
+                        Log.i(ETIQUETA_LOG, "ℹ️ Documento usuarios/$uid aún no existe en Firestore (esperando registro de carnet o primera creación)")
                         return@addSnapshotListener
                     }
 
                     val perfil = snapshot.toObject(MemberProfile::class.java)
                     if (perfil == null) {
                         alSerBloqueado()
+                        return@addSnapshotListener
+                    }
+
+                    val idDispositivoLocal = SEGURIDAD_CUENTAS.obtenerIdDispositivo(contexto)
+                    val emailActual = (perfil.email ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: "").trim().lowercase()
+                    val esCreadorDev = emailActual == "eduardo.androide.em@gmail.com" || emailActual == "eduardo.jose.marquez.matos@gmail.com"
+
+                    if (esCreadorDev) {
+                        // 👑 Bypass Creador/Super Admin: NUNCA bloquear por suspensión ni por cambio de dispositivo
+                        val perfilDev = perfil.copy(
+                            id = 0L,
+                            isSuspended = false,
+                            suspensionReason = "",
+                            role = com.example.data.model.MemberRole.PRESIDENTE,
+                            isDirectiva = true,
+                            solvencyStatus = true
+                        )
+                        alCambiar(perfilDev, idDispositivoLocal)
                         return@addSnapshotListener
                     }
 
@@ -234,9 +277,6 @@ object PerfilNube {
                     // 1. Extraer campo 'id_dispositivo_activo' (o 'activeDeviceId') desde Firestore
                     val idDispositivoRemoto = snapshot.getString("id_dispositivo_activo")
                         ?: snapshot.getString("activeDeviceId")
-
-                    // 2. Obtener el ID único local del dispositivo
-                    val idDispositivoLocal = SEGURIDAD_CUENTAS.obtenerIdDispositivo(contexto)
 
                     // 3. Comparar si el remoto existe y difiere del local (sesión iniciada en otro celular)
                     if (!idDispositivoRemoto.isNullOrBlank() && idDispositivoRemoto != idDispositivoLocal) {
@@ -317,6 +357,7 @@ object PerfilNube {
             "bikePhotoUri" to p.bikePhotoUri,
             "firebaseUid" to p.firebaseUid,
             "email" to p.email,
+            "disabledModulesJson" to p.disabledModulesJson,
             "id_dispositivo_activo" to idDispositivo,
             "activeDeviceId" to idDispositivo
         )

@@ -93,12 +93,14 @@ object AutenticacionGoogle {
     }
 
     /**
-     * Lanza el selector de cuentas de Google.
-     * La pantalla debe implementar un ActivityResultLauncher con esta función.
+     * Lanza el selector de cuentas de Google forzando un signOut previo
+     * para obligar al SO Android a mostrar siempre la ventana emergente.
      */
     fun lanzarSelector(cliente: GoogleSignInClient, launcher: ActivityResultLauncher<Intent>) {
-        Log.i(ETIQUETA, "Abriendo selector de cuentas de Google...")
-        launcher.launch(cliente.signInIntent)
+        Log.i(ETIQUETA, "Forzando Google Sign-Out previo y abriendo selector de cuentas...")
+        cliente.signOut().addOnCompleteListener {
+            launcher.launch(cliente.signInIntent)
+        }
     }
 
     // ═══════════════════════════════════════════════

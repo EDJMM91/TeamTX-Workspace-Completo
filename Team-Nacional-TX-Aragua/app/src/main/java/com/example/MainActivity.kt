@@ -16,6 +16,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.aistudio.teamtxvzla.BuildConfig
 import com.aistudio.teamtxvzla.R
 import androidx.compose.animation.AnimatedVisibility
@@ -58,6 +61,9 @@ import com.example.data.model.*
 import com.example.ui.components.ClubTopBar
 import com.example.ui.preferences.PreferenciasApp
 import com.example.ui.screens.*
+import com.example.ui.screens.FormularioIngreso
+import com.example.ui.screens.SalaEspera
+import com.example.ui.screens.SolicitudesIngreso
 import com.example.ui.screens.dialogs.EmitSosDialog
 import com.example.ui.screens.permissions.PermissionHandler
 import com.example.ui.theme.MotoOrangePrimary
@@ -66,6 +72,7 @@ import com.example.ui.theme.StatusError
 import com.example.ui.theme.TxFlameRed
 import com.example.ui.viewmodel.TeamTxViewModel
 import com.example.GestorNotificacionesApp
+import com.example.GestorSesion
 import com.aistudio.teamtxvzla.nube.NubeMultimedia
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.MainScope
@@ -97,7 +104,8 @@ enum class NavigationTab(val label: String, val iconFilled: ImageVector, val ico
     INFO("Info", Icons.Default.Info, Icons.Outlined.Info, "tab_info"),
     CONFIGURACIONES("Ajustes", Icons.Default.Settings, Icons.Outlined.Settings, "tab_configuraciones"),
     MESHTX("Mesh TX", Icons.Default.Podcasts, Icons.Default.Podcasts, "tab_meshtx"),
-    REDES("Redes TX", Icons.Default.Share, Icons.Outlined.Share, "tab_redes")
+    REDES("Redes TX", Icons.Default.Share, Icons.Outlined.Share, "tab_redes"),
+    RUTAS("Rutas TX", Icons.Default.Navigation, Icons.Outlined.Navigation, "tab_rutas")
 }
 
 class MainActivity : ComponentActivity() {
@@ -174,6 +182,156 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+fun GoogleLoginPantalla(viewModel: TeamTxViewModel) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+
+    val gso = remember {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("554561749183-q637440n43im5mjfg5pp9lsb4uu0a441.apps.googleusercontent.com")
+            .requestEmail()
+            .build()
+    }
+    val googleSignInClient = remember { GoogleSignIn.getClient(context, gso) }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        isLoading = false
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val idToken = account?.idToken
+            val fallbackEmail = account?.email ?: ""
+            val googlePhotoUrl = account?.photoUrl?.toString()
+
+            if (idToken != null) {
+                com.aistudio.teamtxvzla.nube.AutenticacionNube.iniciarSesionConGoogle(idToken) { usuarioFirebase ->
+                    if (usuarioFirebase != null) {
+                        coroutineScope.launch {
+                            val uid = usuarioFirebase.uid
+                            val userEmail = usuarioFirebase.email ?: fallbackEmail
+                            viewModel.procesarIngresoGoogle(uid, userEmail, googlePhotoUrl)
+                        }
+                    } else {
+                        Toast.makeText(context, "Error conectando a Firebase Auth.", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        } catch (e: ApiException) {
+            if (e.statusCode != 12501 && e.statusCode != 12502) {
+                Log.e("GoogleSignIn", "ApiException code: ${e.statusCode}", e)
+                Toast.makeText(context, "Error al acceder con Google (${e.statusCode}): ${e.localizedMessage ?: e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFFF8FAFC)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Bienvenido a Team Nacional TX Aragua",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFF0F172A),
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            Text(
+                text = "Selecciona tu cuenta de Google vinculada o autorizada por la Directiva para ingresar.",
+                fontSize = 14.sp,
+                color = Color(0xFF64748B),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+
+            Button(
+                onClick = {
+                    isLoading = true
+                    // 🛡️ REGLA OBLIGATORIA: Forzar Sign-Out previo para romper sesiones cacheadas
+                    // y obligar a Android a desplegar siempre el diálogo selector de cuentas de Google
+                    googleSignInClient.signOut().addOnCompleteListener {
+                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                } else {
+                    Icon(Icons.Default.AccountCircle, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text("ACCEDER CON GOOGLE", fontWeight = FontWeight.Bold, color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 🌐 Opción para crear cuenta de Google si no posee una
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFF1F5F9),
+                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                data = android.net.Uri.parse("https://accounts.google.com/signup")
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            Toast.makeText(context, "Abre tu navegador para crear una cuenta de Google", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PersonAdd,
+                        contentDescription = null,
+                        tint = MotoOrangePrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "¿No tienes cuenta de Google?",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.5.sp,
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            text = "Toca aquí para crear una cuenta nueva y volver a la app",
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = Color(0xFF64748B),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun AppEntryPoint(
     viewModel: TeamTxViewModel = viewModel()
 ) {
@@ -187,30 +345,18 @@ fun AppEntryPoint(
     
     // Manejo automático de notificaciones
     SolicitadorNotificaciones()
-
+    
     if (showSplash) {
         SplashScreen(onComplete = { showSplash = false })
     } else if (!permissionsGranted) {
         PermissionHandler(onAllPermissionsGranted = { permissionsGranted = true }, scope = scope)
     } else if (!isAuthenticated) {
-        VistaLogin(
-            onRequestCodeLogin = { code -> viewModel.loginWithCode(code) },
-            onLoginWithEmailAndCode = { email, code -> viewModel.loginWithEmailAndCode(email, code) },
-            onVerificarEstadoCorreo = { email -> viewModel.verificarEstadoCorreoParaLogin(email) },
-            onSubmitAccessRequest = { name, phone, dni, brand, model, color, plate, chapter, reason, birthDate, role ->
-                viewModel.submitAccessRequest(name, phone, dni, brand, model, color, plate, chapter, reason, birthDate, role)
-            },
-            onSolicitarCodigoPorCorreo = { email ->
-                viewModel.solicitarCodigoPorCorreoSincronizado(email)
-            },
-            attemptsLeft = attemptsLeft
-        )
+        GoogleLoginPantalla(viewModel)
     } else {
         val currentMember by viewModel.currentMember.collectAsStateWithLifecycle()
         val context = LocalContext.current
         var skipOnboarding by remember { mutableStateOf(false) }
-
-        // Inicializar preferencias y verificar Pacto de Honor Biker (se muestra una sola vez por piloto)
+        
         PreferenciasApp.init(context)
         var mostrarCompromisoHonor by remember(currentMember?.id) {
             mutableStateOf(
@@ -228,7 +374,6 @@ fun AppEntryPoint(
             )
         }
 
-        // 🛡️ Si el perfil está incompleto, mostrar notificación (no bloquear)
         LaunchedEffect(currentMember) {
             if (currentMember != null && !currentMember!!.isProfileComplete) {
                 notificarPerfilIncompleto(context)
@@ -236,14 +381,54 @@ fun AppEntryPoint(
         }
 
         LaunchedEffect(currentMember?.isSuspended) {
-            if (currentMember != null && currentMember!!.isSuspended) {
+            val emailLimpio = (currentMember?.email ?: "").trim().lowercase()
+            val esDevBypass = emailLimpio == "eduardo.androide.em@gmail.com" || emailLimpio == "eduardo.jose.marquez.matos@gmail.com"
+            if (currentMember != null && currentMember!!.isSuspended && !esDevBypass) {
                 val reason = currentMember!!.suspensionReason.ifBlank { "Acceso temporal finalizado o revocado por la Directiva." }
                 Toast.makeText(context, "Acceso Revocado: $reason", Toast.LENGTH_LONG).show()
                 viewModel.logout()
             }
         }
 
-        MainAppScreen(viewModel = viewModel)
+        // 🔐 ENRUTAMIENTO BASADO EN ESTADO DE FIRESTORE (usuarioEstado):
+        // "NUEVO_REGISTRO" -> FormularioIngreso (Carnet TX)
+        // "PENDIENTE"      -> SalaEspera (Cuarentena)
+        // "RECHAZADO"      -> SalaEspera / Rechazo
+        // "ACTIVO"         -> MainAppScreen
+        val usuarioEstado by viewModel.usuarioEstado.collectAsStateWithLifecycle()
+        
+        when (usuarioEstado) {
+            "NUEVO_REGISTRO" -> {
+                FormularioIngreso(
+                    onCompletarRegistro = { nuevoPerfil ->
+                        viewModel.guardarNuevoPerfilFirestore(nuevoPerfil)
+                    },
+                    onVolver = {
+                        viewModel.logout()
+                    }
+                )
+            }
+            "PENDIENTE" -> {
+                SalaEspera(
+                    onVerificarYRedirigir = {
+                        viewModel.verificarEstadoFirestore()
+                    },
+                    userUid = currentMember?.firebaseUid ?: ""
+                )
+            }
+            "RECHAZADO" -> {
+                SalaEspera(
+                    onVerificarYRedirigir = {
+                        viewModel.verificarEstadoFirestore()
+                    },
+                    userUid = currentMember?.firebaseUid ?: "",
+                    initialState = "RECHAZADO"
+                )
+            }
+            else -> {
+                MainAppScreen(viewModel = viewModel)
+            }
+        }
     }
 }
 
@@ -590,7 +775,41 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
             targetState = selectedTab,
             modifier = Modifier.padding(innerPadding)
         ) { tab ->
-            when (tab) {
+            val isCurrentModuleDisabled = (currentMember?.isModuleDisabled(tab.name) == true || currentMember?.isModuleDisabled(tab.tag) == true) &&
+                    !isLeaderSuperAdmin && currentMember?.role != MemberRole.DESARROLLADOR
+
+            if (isCurrentModuleDisabled) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color(0xFFF8FAFC)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Block, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(72.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Módulo Inhabilitado", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "El módulo '${tab.label}' ha sido inhabilitado para tu cuenta por la Directiva del Club. Contacta al Presidente o Desarrollador Máster para solicitar acceso.",
+                            fontSize = 14.sp,
+                            color = Color(0xFF64748B),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = { selectedTab = NavigationTab.DASHBOARD },
+                            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Volver al Inicio", fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            } else {
+                when (tab) {
                 NavigationTab.DASHBOARD -> {
                     com.example.dashboard.DashboardScreen(
                         currentMember = currentMember,
@@ -1089,7 +1308,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         accessRequests = accessRequests,
                         directivaChatMessages = directivaChatMessages,
                         disciplinaryRecords = viewModel.allDisciplinaryRecords.collectAsStateWithLifecycle().value ?: emptyList(),
-                        onExpelMember = { member, reason -> viewModel.expelMember(member, reason) },
+                        onExpelMember = { member, _ -> viewModel.eliminarUsuarioDefinitivamente(member) },
                         onGenerateCode = { role, note, isGuest, hours -> viewModel.generateInvitationCode(role, note, isGuest, hours) },
                         onDeleteCode = { viewModel.deleteInvitationCode(it) },
                         onDarDeBajaInvitado = { member -> viewModel.darDeBajaInvitado(member) },
@@ -1119,6 +1338,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onToggleChatMute = { member, isMuted, reason -> viewModel.toggleMemberChatMute(member, isMuted, reason) },
                         onSuspendMember = { member, reason, days -> viewModel.suspendMember(member, reason, days) },
                         onReactivateMember = { member -> viewModel.reactivateMember(member) },
+                        onToggleModuloPiloto = { member, tag -> viewModel.toggleModuloPiloto(member, tag) },
                         onToggleSolvency = { member -> viewModel.toggleMemberSolvency(member) },
                         onToggleBottomNav = { isBottomNavVisible = !isBottomNavVisible },
                         allPrivateGroups = allPrivateGroups,
@@ -1221,6 +1441,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                 }
             }
         }
+    }
     }
 
     if (showQuickSosModal) {

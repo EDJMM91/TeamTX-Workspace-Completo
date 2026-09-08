@@ -54,7 +54,7 @@ fun DashboardHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -152,15 +152,15 @@ fun PilotStatusCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .shadow(elevation = 1.5.dp, shape = RoundedCornerShape(14.dp))
             .clickable(onClick = onOpenCarnet),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         color = DashboardFondoConfig.ColorTarjetaClara,
         border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -258,6 +258,279 @@ fun PilotStatusCard(
                     fontWeight = FontWeight.Bold,
                     color = DashboardFondoConfig.ColorRojoCarrera
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Barra / Sidebar desplegable interactiva entre el piloto autenticado y el panel.
+ * Muestra los módulos más usados ordenados por frecuencia de uso, accesos de sistema (Info, Ajustes)
+ * y el acceso exclusivo a Gobernanza Directiva solo si el usuario tiene rol directivo.
+ */
+@Composable
+fun DashboardSidebarBar(
+    currentMember: MemberProfile?,
+    isDirectivaMode: Boolean = false,
+    onNavigateToTab: (com.example.NavigationTab) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    val esDirectivo = isDirectivaMode ||
+            currentMember?.isDirectiva == true ||
+            currentMember?.role?.canManageApp == true ||
+            currentMember?.role == MemberRole.PRESIDENTE ||
+            currentMember?.role == MemberRole.DESARROLLADOR
+
+    val usoMap = remember(isExpanded) { com.example.ui.preferences.PreferenciasApp.obtenerUsoModulosMap() }
+
+    val modulosCandidatos = remember {
+        listOf(
+            com.example.NavigationTab.FEED to "Muro de Noticias",
+            com.example.NavigationTab.CHAT to "Chat Táctico",
+            com.example.NavigationTab.NOTIFICACIONES to "Avisos y Notificaciones",
+            com.example.NavigationTab.MAPA to "Mapa TX y Radar",
+            com.example.NavigationTab.VELOCIMETRO to "Velocímetro",
+            com.example.NavigationTab.PLAYER to "Player TX Pro",
+            com.example.NavigationTab.RIDES to "Rodadas",
+            com.example.NavigationTab.MERCADO to "Mercado Biker",
+            com.example.NavigationTab.CALENDARIO to "Calendario",
+            com.example.NavigationTab.RANKING to "Ranking",
+            com.example.NavigationTab.MEMBERS to "Directorio Miembros",
+            com.example.NavigationTab.DIRECTORIO to "Directorio Comercios",
+            com.example.NavigationTab.RETOS to "Retos y Desafíos",
+            com.example.NavigationTab.PASAPORTE to "Pasaporte Motero",
+            com.example.NavigationTab.FINANCES to "Tesorería",
+            com.example.NavigationTab.INVENTORY to "Inventario",
+            com.example.NavigationTab.SOS to "SOS Vial",
+            com.example.NavigationTab.NORMATIVAS to "Normativas",
+            com.example.NavigationTab.REDES to "Redes TX"
+        )
+    }
+
+    val modulosOrdenados = remember(usoMap) {
+        modulosCandidatos.sortedByDescending { (tab, _) ->
+            usoMap[tab.name] ?: usoMap[tab.tag] ?: 0
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .shadow(elevation = 1.5.dp, shape = RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        color = DashboardFondoConfig.ColorTarjetaClara,
+        border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .background(DashboardFondoConfig.ColorContenedorRojo),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menú Sidebar",
+                            tint = DashboardFondoConfig.ColorRojoCarrera,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                    Text(
+                        text = "Módulos & Accesos Rápidos",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = DashboardFondoConfig.ColorTextoPrimario
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.12f)
+                    ) {
+                        Text(
+                            text = if (isExpanded) "Ocultar" else "Ver Sidebar",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DashboardFondoConfig.ColorRojoCarrera,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = DashboardFondoConfig.ColorTextoSecundario,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            androidx.compose.animation.AnimatedVisibility(visible = isExpanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro.copy(alpha = 0.5f))
+
+                    Text(
+                        text = "🔥 MÓDULOS MÁS USADOS",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        color = DashboardFondoConfig.ColorRojoCarrera,
+                        letterSpacing = 0.5.sp
+                    )
+
+                    val topModulos = modulosOrdenados.take(5)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        topModulos.forEach { (tab, label) ->
+                            val conteo = usoMap[tab.name] ?: usoMap[tab.tag] ?: 0
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = DashboardFondoConfig.ColorContenedorClaro,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        com.example.ui.preferences.PreferenciasApp.registrarUsoModulo(tab.name)
+                                        isExpanded = false
+                                        onNavigateToTab(tab)
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = tab.iconFilled,
+                                            contentDescription = null,
+                                            tint = DashboardFondoConfig.ColorRojoCarrera,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                        Text(
+                                            text = label,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = DashboardFondoConfig.ColorTextoPrimario
+                                        )
+                                    }
+                                    if (conteo > 0) {
+                                        Text(
+                                            text = "$conteo accesos",
+                                            fontSize = 9.5.sp,
+                                            color = DashboardFondoConfig.ColorTextoSecundario
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro.copy(alpha = 0.5f))
+
+                    Text(
+                        text = "⚙️ MÓDULOS DE SISTEMA",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        color = DashboardFondoConfig.ColorTextoSecundario,
+                        letterSpacing = 0.5.sp
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                com.example.ui.preferences.PreferenciasApp.registrarUsoModulo("INFO")
+                                isExpanded = false
+                                onNavigateToTab(com.example.NavigationTab.INFO)
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.weight(1f).height(32.dp)
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = DashboardFondoConfig.ColorRojoCarrera, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Info App", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                com.example.ui.preferences.PreferenciasApp.registrarUsoModulo("CONFIGURACIONES")
+                                isExpanded = false
+                                onNavigateToTab(com.example.NavigationTab.CONFIGURACIONES)
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.weight(1f).height(32.dp)
+                        ) {
+                            Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF546E7A), modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Ajustes", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DashboardFondoConfig.ColorTextoPrimario)
+                        }
+                    }
+
+                    if (esDirectivo) {
+                        HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro.copy(alpha = 0.5f))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = DashboardFondoConfig.ColorContenedorDorado,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorDoradoOro.copy(alpha = 0.6f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    com.example.ui.preferences.PreferenciasApp.registrarUsoModulo("DIRECTIVA")
+                                    isExpanded = false
+                                    onNavigateToTab(com.example.NavigationTab.DIRECTIVA)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Shield, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(16.dp))
+                                    Column {
+                                        Text("Gobernanza Directiva", fontWeight = FontWeight.Black, fontSize = 12.sp, color = DashboardFondoConfig.ColorTextoPrimario)
+                                        Text("Panel exclusivo de decisiones y sanciones", fontSize = 9.5.sp, color = DashboardFondoConfig.ColorTextoSecundario)
+                                    }
+                                }
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -17,7 +17,7 @@ enum class MemberRole(
     val roleDuties: String = "Participación y deberes de la agrupación."
 ) {
     DESARROLLADOR(
-        "Desarrollador (Super Admin)",
+        "Desarrollador Máster",
         0xFF00E5FF,
         canManageApp = true,
         canCreateRides = true,
@@ -25,7 +25,7 @@ enum class MemberRole(
         canManageMembers = true,
         canManageFinances = true,
         canCoordinateEmergency = true,
-        defaultTitle = "Desarrollador / Control Supremo",
+        defaultTitle = "Desarrollador Máster",
         roleDuties = "Control absoluto del sistema, depuración, administración total y supervisión técnica de la plataforma."
     ),
     PRESIDENTE(
@@ -99,6 +99,18 @@ enum class MemberRole(
         canCoordinateEmergency = true,
         defaultTitle = "Miembro de Directiva",
         roleDuties = "Voto en consejo directivo, apoyo en administración y gobernanza del club."
+    ),
+    DEPARTAMENTO_REDES(
+        "Director de Redes TX & Avisos",
+        0xFFEC4899,
+        canManageApp = true,
+        canCreateRides = true,
+        canPostAnnouncements = true,
+        canManageMembers = false,
+        canManageFinances = false,
+        canCoordinateEmergency = true,
+        defaultTitle = "Director de Redes TX & Avisos",
+        roleDuties = "Gestión de redes sociales oficiales, publicación de avisos y flyers institucionales en el Muro."
     ),
     CAPITAN_RUTA(
         "Capitán de Ruta (Puntero)",
@@ -482,10 +494,21 @@ data class MemberProfile(
     var negativeRatingsCount: Int = 0,
     var reputationPoints: Int = 0,
     var ratedByMemberIdsJson: String = "",
+    // Restricción Modular Individual por Directiva (Killswitch)
+    var disabledModulesJson: String = "",
     // Google / Firebase Sync
     var firebaseUid: String? = null,
     var email: String? = null
 ) {
+    @get:Ignore
+    val disabledModulesList: List<String>
+        get() = if (disabledModulesJson.isNotBlank()) {
+            disabledModulesJson.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        } else emptyList()
+
+    fun isModuleDisabled(moduleTag: String): Boolean {
+        return disabledModulesList.contains(moduleTag)
+    }
     @get:Ignore
     val suspensionStartDate: String
         get() = if (suspensionStartTimestamp > 0) {
