@@ -35,12 +35,15 @@ import com.example.data.model.MemberProfile
 import com.example.dashboard.DashboardFondoConfig
 import java.util.Locale
 
+import coil.compose.AsyncImage
+import net.osmand.plus.OsmandApplication
+
 /**
  * Pantalla principal e Interfaz de Usuario Compose del Módulo de Rutas Tácticas de Team Nacional TX Aragua.
  * Implementa las 3 Opciones principales del botón central inferior:
  * - Opción A: Iniciar/Pausar/Detener Tracking Táctico en segundo plano.
  * - Opción B: Crear Ruta Guiada.
- * - Opción C: Generar Reporte y Video MP4 en Galería (RUTASVIDEO.kt).
+ * - Opción C: Generar Reporte y Video MP4 en Galería (RUTASVIDEO.kt) con animación 2D en REPRODUCTOR.kt.
  * - Seguro de Batería: Monitoreo en vivo de carga con respaldo automático en NUBE.kt si baja del 5%.
  *
  * Totalmente en Tema Claro del Dashboard y documentado en español.
@@ -58,6 +61,11 @@ fun VistaRutasScreen(
     val respaldoEjecutado by RUTA.respaldoCriticoEjecutadoState.collectAsStateWithLifecycle()
     val servicioActivo by SERVICIO.servicioActivoState.collectAsStateWithLifecycle()
     val grabandoVideo by RUTASVIDEO.grabandoVideoState.collectAsStateWithLifecycle()
+
+    // Estados del Reproductor 2D Relive
+    val estadoReproductor by REPRODUCTOR.estadoReproductor.collectAsStateWithLifecycle()
+    val telemetriaReproduccion by REPRODUCTOR.telemetria.collectAsStateWithLifecycle()
+    val fotoEnPantalla by REPRODUCTOR.fotoEnPantalla.collectAsStateWithLifecycle()
 
     var mostrarModalOpcionesCentrales by remember { mutableStateOf(false) }
     var mostrarModalCrearRutaGuiada by remember { mutableStateOf(false) }
@@ -239,6 +247,40 @@ fun VistaRutasScreen(
                         }
                     )
                 }
+            }
+
+            // 5. Estudio de Reproducción Cinemática 2D (Relive con OsmAnd y Fotos)
+            item {
+                TarjetaEstudioReproduccion2D(
+                    resumenRuta = resumenRuta,
+                    estadoReproductor = estadoReproductor,
+                    telemetria = telemetriaReproduccion,
+                    grabandoVideo = grabandoVideo,
+                    onIniciarReproduccion = {
+                        val app = contexto.applicationContext as? OsmandApplication
+                        val mapView = app?.osmandMap?.mapView
+                        REPRODUCTOR.iniciarReproduccion2D(
+                            ruta = resumenRuta,
+                            mapView = mapView,
+                            multiplicadorVelocidad = 2.0f
+                        ) {
+                            Toast.makeText(contexto, "🏁 Recorrido 2D completado", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onPausarOReanudar = { REPRODUCTOR.alternarPausa() },
+                    onDetener = { REPRODUCTOR.detenerReproduccion() },
+                    onGrabarVideo = {
+                        val projManager = contexto.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                        mediaProjectionLauncher.launch(projManager.createScreenCaptureIntent())
+                    },
+                    onFinalizarVideo = {
+                        RUTASVIDEO.detenerYGuardarVideoGaleria(contexto) { uri ->
+                            if (uri != null) {
+                                Toast.makeText(contexto, "🎬 Video guardado en Galería", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                )
             }
         }
     }
@@ -422,6 +464,256 @@ fun VistaRutasScreen(
             },
             containerColor = Color.White
         )
+    }
+
+    // Overlay visual para foto inyectada en vivo durante la animación 2D (Relive)
+    if (fotoEnPantalla != null) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.White,
+                shadowElevation = 14.dp,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color(0xFFFF6B00), modifier = Modifier.size(18.dp))
+                            Text("Foto en Ruta", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
+                        }
+                        Text("Pausa 2.5s", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF64748B))
+                    }
+
+                    AsyncImage(
+                        model = fotoEnPantalla!!.uriFoto,
+                        contentDescription = "Foto en Ruta",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+
+                    if (fotoEnPantalla!!.descripcion.isNotBlank()) {
+                        Text(
+                            text = fotoEnPantalla!!.descripcion,
+                            fontSize = 12.sp,
+                            color = Color(0xFF475569),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TarjetaEstudioReproduccion2D(
+    resumenRuta: ResumenRutaTX,
+    estadoReproductor: EstadoReproductorRuta,
+    telemetria: TelemetriaReproduccion,
+    grabandoVideo: Boolean,
+    onIniciarReproduccion: () -> Unit,
+    onPausarOReanudar: () -> Unit,
+    onDetener: () -> Unit,
+    onGrabarVideo: () -> Unit,
+    onFinalizarVideo: () -> Unit
+) {
+    val estaReproduciendo = estadoReproductor == EstadoReproductorRuta.REPRODUCIENDO || estadoReproductor == EstadoReproductorRuta.PAUSADO_FOTO
+    val estaEnPausa = estadoReproductor == EstadoReproductorRuta.PAUSADO_MANUAL
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF8B5CF6).copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MovieCreation,
+                            contentDescription = null,
+                            tint = Color(0xFF8B5CF6),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Estudio 2D Relive & Video",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            text = when (estadoReproductor) {
+                                EstadoReproductorRuta.REPRODUCIENDO -> "Reproduciendo recorrido con OsmAnd"
+                                EstadoReproductorRuta.PAUSADO_FOTO -> "Pausa fotográfica en ruta"
+                                EstadoReproductorRuta.PAUSADO_MANUAL -> "Animación pausada"
+                                EstadoReproductorRuta.FINALIZADO -> "Recorrido completado"
+                                else -> "Listo para simular la ruta"
+                            },
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+                }
+
+                if (grabandoVideo) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFFEBEE)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(modifier = Modifier.size(8.dp).background(Color(0xFFE53935), CircleShape))
+                            Text("GRABANDO MP4", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE53935))
+                        }
+                    }
+                }
+            }
+
+            // Barra de progreso interactiva
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                LinearProgressIndicator(
+                    progress = { telemetria.porcentajeProgreso },
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                    color = Color(0xFF8B5CF6),
+                    trackColor = Color(0xFFEDE9FE)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Punto ${telemetria.indicePuntoActual + 1} de ${telemetria.totalPuntos.coerceAtLeast(resumenRuta.puntos.size)}",
+                        fontSize = 10.sp,
+                        color = Color(0xFF94A3B8)
+                    )
+                    Text(
+                        text = "%.0f%%".format(telemetria.porcentajeProgreso * 100),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF8B5CF6)
+                    )
+                }
+            }
+
+            // Métricas instantáneas de la animación
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Rumbo (Azimuth)", fontSize = 10.sp, color = Color(0xFF64748B))
+                    Text("%.0f°".format(telemetria.rumboAzimuth), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Velocidad Sim.", fontSize = 10.sp, color = Color(0xFF64748B))
+                    Text("%.1f Km/h".format(telemetria.velocidadSimuladaKmh), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFFF6B00))
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Distancia Sim.", fontSize = 10.sp, color = Color(0xFF64748B))
+                    Text("%.2f Km".format(telemetria.distanciaRecorridaKm), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0288D1))
+                }
+            }
+
+            // Botones de acción del reproductor
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (!estaReproduciendo && !estaEnPausa) {
+                    Button(
+                        onClick = onIniciarReproduccion,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Reproducir 2D", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Button(
+                        onClick = onPausarOReanudar,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            if (estaEnPausa) Icons.Default.PlayArrow else Icons.Default.Pause,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (estaEnPausa) "Reanudar" else "Pausar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = onDetener,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE53935)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Stop, contentDescription = null, tint = Color(0xFFE53935), modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Detener", color = Color(0xFFE53935), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Botón Grabar / Finalizar Video MP4
+                if (!grabandoVideo) {
+                    Button(
+                        onClick = onGrabarVideo,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE11D48)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.FiberManualRecord, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Grabar MP4", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Button(
+                        onClick = onFinalizarVideo,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Guardar MP4", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
     }
 }
 

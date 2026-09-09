@@ -43,6 +43,61 @@ enum class EstadoRutaEnum {
 }
 
 /**
+ * Representa una fotografía capturada durante la ruta para su inyección visual en el reproductor 2D.
+ *
+ * @property idFoto Identificador único de la foto.
+ * @property uriFoto Ruta local o URI de la imagen en el dispositivo.
+ * @property latitud Coordenada de latitud donde fue tomada.
+ * @property longitud Coordenada de longitud donde fue tomada.
+ * @property timestamp Momento exacto en milisegundos en que se tomó la foto.
+ * @property descripcion Nota u observación opcional del piloto.
+ */
+data class FotoRuta(
+    val idFoto: String = "",
+    val uriFoto: String = "",
+    val latitud: Double = 0.0,
+    val longitud: Double = 0.0,
+    val timestamp: Long = System.currentTimeMillis(),
+    val descripcion: String = ""
+)
+
+/**
+ * Estados del motor cinemático del reproductor 2D tipo Relive.
+ */
+enum class EstadoReproductorRuta {
+    DETENIDO,
+    REPRODUCIENDO,
+    PAUSADO_FOTO,
+    PAUSADO_MANUAL,
+    FINALIZADO
+}
+
+/**
+ * Telemetría en tiempo real emitida por el reproductor durante la animación.
+ *
+ * @property indicePuntoActual Índice del punto actual en la matriz de recorrido.
+ * @property totalPuntos Cantidad total de puntos en la ruta.
+ * @property latitudActual Latitud actual de la cámara/marcador.
+ * @property longitudActual Longitud actual de la cámara/marcador.
+ * @property rumboAzimuth Grados de orientación (0 a 360°) de la moto sobre el mapa.
+ * @property velocidadSimuladaKmh Velocidad en km/h calculada en este segmento.
+ * @property distanciaRecorridaKm Kilómetros simulados recorridos hasta el momento.
+ * @property porcentajeProgreso Progreso de 0.0f a 1.0f.
+ * @property fotoVisible Foto actual mostrada en overlay flotante (si aplica).
+ */
+data class TelemetriaReproduccion(
+    val indicePuntoActual: Int = 0,
+    val totalPuntos: Int = 0,
+    val latitudActual: Double = 0.0,
+    val longitudActual: Double = 0.0,
+    val rumboAzimuth: Float = 0f,
+    val velocidadSimuladaKmh: Float = 0f,
+    val distanciaRecorridaKm: Double = 0.0,
+    val porcentajeProgreso: Float = 0f,
+    val fotoVisible: FotoRuta? = null
+)
+
+/**
  * Estructura completa que empaqueta y resume una ruta realizada por un piloto del club.
  *
  * @property idRuta Identificador único de la ruta (UUID o Timestamp).
@@ -52,6 +107,7 @@ enum class EstadoRutaEnum {
  * @property fechaInicioMs Timestamp en milisegundos del inicio de la ruta.
  * @property fechaFinMs Timestamp en milisegundos de finalización o último respaldo.
  * @property puntos Lista de puntos GPS recolectados durante la ruta.
+ * @property fotos Lista de fotos tomadas durante la ruta para inyección en el reproductor.
  * @property distanciaTotalKm Kilómetros totales acumulados en el recorrido.
  * @property velocidadPromedioKmh Velocidad media registrada durante el recorrido.
  * @property velocidadMaximaKmh Velocidad máxima alcanzada en el recorrido.
@@ -66,6 +122,7 @@ data class ResumenRutaTX(
     val fechaInicioMs: Long = System.currentTimeMillis(),
     val fechaFinMs: Long = System.currentTimeMillis(),
     val puntos: List<PuntoRutaGPS> = emptyList(),
+    val fotos: List<FotoRuta> = emptyList(),
     val distanciaTotalKm: Double = 0.0,
     val velocidadPromedioKmh: Float = 0f,
     val velocidadMaximaKmh: Float = 0f,

@@ -375,6 +375,19 @@ fun DashboardScreen(
 
             item {
                 ModuleListRow(
+                    titulo = "Rutas TX & Estudio 2D (Relive)",
+                    descripcion = "Tracking GPS ininterrumpido, seguro de batería y video cinemático",
+                    icono = Icons.Default.Navigation,
+                    colorIcono = Color(0xFFFF6B00),
+                    onClick = {
+                        com.example.ui.preferences.PreferenciasApp.registrarUsoModulo("RUTAS")
+                        onNavigateToTab(NavigationTab.RUTAS)
+                    }
+                )
+            }
+
+            item {
+                ModuleListRow(
                     titulo = "Velocímetro y Telemetría",
                     descripcion = "Registro de velocidad máxima, odómetro continuo y viajes",
                     icono = Icons.Default.Speed,

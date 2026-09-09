@@ -484,6 +484,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
     var showQuickSosModal by remember { mutableStateOf(false) }
     var readOnlyCarnetMember by remember { mutableStateOf<MemberProfile?>(null) }
     var isBottomNavVisible by remember { mutableStateOf(true) }
+    var showMenuRutasBottomSheet by remember { mutableStateOf(false) }
 
     // 🎛️ Estado para los 5 accesos rápidos principales de la barra inferior (personalizables y persistentes)
     var bottomTabs by remember {
@@ -497,7 +498,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                 listOf(
                     NavigationTab.DASHBOARD,
                     NavigationTab.MAPA,
-                    NavigationTab.CHAT,
+                    NavigationTab.RUTAS,
                     NavigationTab.SOS,
                     NavigationTab.NOTIFICACIONES
                 )
@@ -643,7 +644,13 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                     .clip(RoundedCornerShape(14.dp))
                                     .pointerInput(tab) {
                                         detectTapGestures(
-                                            onTap = { selectedTab = tab },
+                                            onTap = {
+                                                if (tab == NavigationTab.RUTAS) {
+                                                    showMenuRutasBottomSheet = true
+                                                } else {
+                                                    selectedTab = tab
+                                                }
+                                            },
                                             onLongPress = { slotToEditIndex = index }
                                         )
                                     }
@@ -1439,9 +1446,32 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
+                NavigationTab.RUTAS -> {
+                    com.example.rutas.VistaRutasScreen(
+                        currentMember = currentMember,
+                        onVolver = { selectedTab = NavigationTab.DASHBOARD }
+                    )
+                }
             }
         }
     }
+    }
+
+    // 🗺️ Menú Táctico Desplegable para el Botón Central (Rutas TX & Telemetría)
+    if (showMenuRutasBottomSheet) {
+        com.example.rutas.MenuRutasBottomSheet(
+            currentMember = currentMember,
+            onDismiss = { showMenuRutasBottomSheet = false },
+            onNavegarAPanelCompleto = {
+                selectedTab = NavigationTab.RUTAS
+            },
+            onCrearRutaGuiada = {
+                selectedTab = NavigationTab.RUTAS
+            },
+            onGenerarVideoYReporte = {
+                selectedTab = NavigationTab.RUTAS
+            }
+        )
     }
 
     if (showQuickSosModal) {
