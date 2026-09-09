@@ -973,7 +973,26 @@ fun StorageVersionsHistoryDialog(
     fun recargar() {
         cargando = true
         coroutineScope.launch {
-            versionsList = GestorActualizaciones.obtenerListaVersionesStorage()
+            val otaList = GestorActualizaciones.obtenerListaVersionesFirestore()
+            versionsList = otaList.map { ota ->
+                GestorActualizaciones.StorageApkVersion(
+                    fileName = "TeamTX-${ota.versionName}.apk",
+                    downloadUrl = ota.urlDescarga,
+                    sizeBytes = 395443512L,
+                    formattedSize = "377.1 MB",
+                    updatedTimestamp = System.currentTimeMillis(),
+                    formattedDate = ota.fechaPublicacion,
+                    versionName = ota.versionName,
+                    versionCode = ota.versionCode,
+                    titulo = ota.titulo,
+                    notas = ota.notas,
+                    novedades = ota.novedades,
+                    correcciones = ota.correcciones,
+                    isStable = !ota.versionName.contains("beta", ignoreCase = true),
+                    isBeta = ota.versionName.contains("beta", ignoreCase = true),
+                    isRecommendedLatest = (ota.versionCode == 27)
+                )
+            }
             cargando = false
         }
     }

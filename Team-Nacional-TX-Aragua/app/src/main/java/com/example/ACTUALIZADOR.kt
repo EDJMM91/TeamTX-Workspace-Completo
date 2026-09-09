@@ -592,6 +592,76 @@ object GestorActualizaciones {
     }
 
     /**
+     * Consulta y devuelve la lista completa de versiones/rollbacks desde la colección 'updates' en Firestore.
+     */
+    suspend fun obtenerListaVersionesFirestore(): List<InformacionOta> = withContext(Dispatchers.IO) {
+        val listaResult = mutableListOf<InformacionOta>()
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val querySnapshot = db.collection("updates").get().await()
+
+            for (doc in querySnapshot.documents) {
+                val code = when (val rawCode = doc.get("versionCode")) {
+                    is Number -> rawCode.toInt()
+                    is String -> rawCode.trim().toIntOrNull() ?: 0
+                    else -> 0
+                }
+                val name = doc.getString("versionName") ?: "v$code"
+                val url = (doc.getString("urlDescarga") ?: doc.getString("downloadUrl") ?: "").trim()
+                val customNotas = doc.getString("notas") ?: ""
+                val customTitulo = doc.getString("titulo") ?: ""
+                val fecha = doc.getString("fechaPublicacion") ?: ""
+
+                val novedadesList = mutableListOf<String>()
+                val rawNov = doc.get("novedades")
+                if (rawNov is List<*>) rawNov.filterIsInstance<String>().forEach { novedadesList.add(it) }
+
+                val correccionesList = mutableListOf<String>()
+                val rawCorr = doc.get("correcciones")
+                if (rawCorr is List<*>) rawCorr.filterIsInstance<String>().forEach { correccionesList.add(it) }
+
+                if (code > 0 && url.isNotBlank()) {
+                    val detalle = obtenerDetalleVersion(code, name)
+                    listaResult.add(
+                        InformacionOta(
+                            versionCode = code,
+                            versionName = name,
+                            titulo = if (customTitulo.isNotBlank()) customTitulo else detalle.titulo,
+                            urlDescarga = url,
+                            notas = if (customNotas.isNotBlank()) customNotas else detalle.descripcionCorta,
+                            novedades = if (novedadesList.isNotEmpty()) novedadesList else detalle.novedades,
+                            correcciones = if (correccionesList.isNotEmpty()) correccionesList else detalle.correcciones,
+                            fechaPublicacion = if (fecha.isNotBlank()) fecha else detalle.fecha
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error consultando colección 'updates' en Firestore: ${e.message}")
+        }
+
+        if (listaResult.isEmpty()) {
+            HISTORIAL_VERSIONES_OFICIALES.forEach { ver ->
+                val fallbackUrl = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-v${ver.versionName}.apk"
+                listaResult.add(
+                    InformacionOta(
+                        versionCode = ver.versionCode,
+                        versionName = ver.versionName,
+                        titulo = ver.titulo,
+                        urlDescarga = if (ver.versionCode == 27) "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk" else fallbackUrl,
+                        notas = ver.descripcionCorta,
+                        novedades = ver.novedades,
+                        correcciones = ver.correcciones,
+                        fechaPublicacion = ver.fecha
+                    )
+                )
+            }
+        }
+
+        listaResult.sortedByDescending { it.versionCode }
+    }
+
+    /**
      * Consulta las actualizaciones OTA sincronizando en tiempo real con Firebase Storage
      * y la base de datos Firestore.
      */
