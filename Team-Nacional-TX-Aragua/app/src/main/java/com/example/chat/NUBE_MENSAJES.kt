@@ -53,7 +53,15 @@ object NubeMensajes {
                         val senderRole = documento.getString("senderRole") ?: "MIEMBRO_ACTIVO"
                         val senderCustomRoleTitle = documento.getString("senderCustomRoleTitle")
                         val senderInitials = documento.getString("senderInitials") ?: "TX"
+                        val senderPhotoUrl = documento.getString("senderPhotoUrl") ?: ""
                         val isRadioCallout = documento.getBoolean("isRadioCallout") ?: false
+                        val expiresAt = documento.getLong("expiresAt")
+                        
+                        // Si el mensaje tiene fecha de expiración y ya pasó, lo omitimos
+                        if (expiresAt != null && expiresAt < System.currentTimeMillis()) {
+                            return@mapNotNull null
+                        }
+
                         Mensaje(
                             id = id,
                             texto = texto,
@@ -69,7 +77,9 @@ object NubeMensajes {
                             senderRole = senderRole,
                             senderCustomRoleTitle = senderCustomRoleTitle,
                             senderInitials = senderInitials,
-                            isRadioCallout = isRadioCallout
+                            senderPhotoUrl = senderPhotoUrl,
+                            isRadioCallout = isRadioCallout,
+                            expiresAt = expiresAt
                         )
                     }
                     trySend(lista)
@@ -99,7 +109,9 @@ object NubeMensajes {
         senderRole: String = "MIEMBRO_ACTIVO",
         senderCustomRoleTitle: String? = null,
         senderInitials: String = "TX",
+        senderPhotoUrl: String = "",
         isRadioCallout: Boolean = false,
+        expiresAt: Long? = null,
         alCompletar: (Boolean) -> Unit = {}
     ) {
         if (texto.isBlank()) return
@@ -120,8 +132,10 @@ object NubeMensajes {
                 "senderRole" to senderRole,
                 "senderCustomRoleTitle" to senderCustomRoleTitle,
                 "senderInitials" to senderInitials,
+                "senderPhotoUrl" to senderPhotoUrl,
                 "isRadioCallout" to isRadioCallout
             )
+            expiresAt?.let { mapaMensaje["expiresAt"] = it }
 
             baseDatos.collection(COLECCION)
                 .add(mapaMensaje)
@@ -154,7 +168,9 @@ object NubeMensajes {
         senderRole: String = "MIEMBRO_ACTIVO",
         senderCustomRoleTitle: String? = null,
         senderInitials: String = "TX",
+        senderPhotoUrl: String = "",
         isRadioCallout: Boolean = false,
+        expiresAt: Long? = null,
         alCompletar: (Boolean) -> Unit = {}
     ) {
         if (urlMultimedia.isBlank()) return
@@ -175,8 +191,10 @@ object NubeMensajes {
                 "senderRole" to senderRole,
                 "senderCustomRoleTitle" to senderCustomRoleTitle,
                 "senderInitials" to senderInitials,
+                "senderPhotoUrl" to senderPhotoUrl,
                 "isRadioCallout" to isRadioCallout
             )
+            expiresAt?.let { mapaMensaje["expiresAt"] = it }
 
             baseDatos.collection(COLECCION)
                 .add(mapaMensaje)

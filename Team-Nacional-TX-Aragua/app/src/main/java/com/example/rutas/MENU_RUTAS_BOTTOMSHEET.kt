@@ -55,6 +55,13 @@ fun MenuRutasBottomSheet(
 
     var mostrarDialogoIniciarRuta by remember { mutableStateOf(false) }
     var tituloRutaInput by remember { mutableStateOf("") }
+    
+    // Estado para Ruta Guiada (Opción B)
+    var mostrarDialogoRutaGuiada by remember { mutableStateOf(false) }
+    var origenStr by remember { mutableStateOf("") }
+    var destinoStr by remember { mutableStateOf("") }
+    var origenLatLon by remember { mutableStateOf<net.osmand.data.LatLon?>(null) }
+    var destinoLatLon by remember { mutableStateOf<net.osmand.data.LatLon?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -221,18 +228,29 @@ fun MenuRutasBottomSheet(
             // ─── OPCIÓN B: Crear Ruta Guiada ────────────────────────────────
             TarjetaOpcionRuta(
                 titulo = "Opción B: Crear Ruta Guiada",
-                subtitulo = "Planificar origen, destino, puntos de encuentro y waypoints",
+                subtitulo = "Establece origen y destino para navegar en Mapa TX",
                 icono = Icons.Default.AltRoute,
                 colorIcono = Color(0xFF0284C7),
                 onClick = {
-                    onDismiss()
-                    onCrearRutaGuiada()
+                    mostrarDialogoRutaGuiada = true
                 }
             )
 
-            // ─── OPCIÓN C: Generar Reporte y Video 2D (Relive) ──────────────
+            // ─── OPCIÓN C: Buscar Dirección para ir ─────────────────────────
             TarjetaOpcionRuta(
-                titulo = "Opción C: Generar Reporte & Video 2D",
+                titulo = "Opción C: Buscar Dirección",
+                subtitulo = "Busca talleres, estaciones o direcciones en Mapa TX",
+                icono = Icons.Default.Search,
+                colorIcono = Color(0xFF10B981),
+                onClick = {
+                    onDismiss()
+                    GestorNavegacionOsmand.invocarBuscadorNativo(contexto)
+                }
+            )
+
+            // ─── OPCIÓN D: Generar Reporte y Video 2D (Relive) ──────────────
+            TarjetaOpcionRuta(
+                titulo = "Opción D: Generar Reporte & Video 2D",
                 subtitulo = "Estudio cinemático con OsmAnd, fotos y video MP4 en Galería",
                 icono = Icons.Default.VideoCameraBack,
                 colorIcono = Color(0xFF8B5CF6),
@@ -307,6 +325,107 @@ fun MenuRutasBottomSheet(
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogoIniciarRuta = false }) {
+                    Text("Cancelar", color = Color(0xFF64748B))
+                }
+            },
+            containerColor = Color.White
+        )
+    }
+
+    // Diálogo para crear Ruta Guiada
+    if (mostrarDialogoRutaGuiada) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoRutaGuiada = false },
+            title = {
+                Text(
+                    "Crear Ruta Guiada",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A),
+                    fontSize = 16.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Ve al Mapa TX, haz un tap prolongado y copia las coordenadas, o pega una dirección.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF64748B)
+                    )
+                    
+                    // Origen
+                    OutlinedTextField(
+                        value = origenStr,
+                        onValueChange = { origenStr = it },
+                        label = { Text("Origen (Lat, Lon)") },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                val latLon = GestorNavegacionOsmand.leerCoordenadasPortapapeles(contexto)
+                                if (latLon != null) {
+                                    origenLatLon = latLon
+                                    origenStr = "${latLon.latitude}, ${latLon.longitude}"
+                                    Toast.makeText(contexto, "Origen pegado con éxito", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(contexto, "No se encontraron coordenadas en el portapapeles", Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Icon(Icons.Default.ContentPaste, contentDescription = "Pegar Origen", tint = Color(0xFF0284C7))
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    // Destino
+                    OutlinedTextField(
+                        value = destinoStr,
+                        onValueChange = { destinoStr = it },
+                        label = { Text("Destino (Lat, Lon)") },
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                val latLon = GestorNavegacionOsmand.leerCoordenadasPortapapeles(contexto)
+                                if (latLon != null) {
+                                    destinoLatLon = latLon
+                                    destinoStr = "${latLon.latitude}, ${latLon.longitude}"
+                                    Toast.makeText(contexto, "Destino pegado con éxito", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(contexto, "No se encontraron coordenadas en el portapapeles", Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Icon(Icons.Default.ContentPaste, contentDescription = "Pegar Destino", tint = Color(0xFF10B981))
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (origenLatLon != null && destinoLatLon != null) {
+                            mostrarDialogoRutaGuiada = false
+                            onDismiss()
+                            GestorNavegacionOsmand.iniciarRutaGuiada(
+                                context = contexto,
+                                origenLat = origenLatLon!!.latitude,
+                                origenLon = origenLatLon!!.longitude,
+                                destinoLat = destinoLatLon!!.latitude,
+                                destinoLon = destinoLatLon!!.longitude
+                            )
+                        } else {
+                            Toast.makeText(contexto, "Debes pegar origen y destino válidos", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Iniciar Mapa TX", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoRutaGuiada = false }) {
                     Text("Cancelar", color = Color(0xFF64748B))
                 }
             },

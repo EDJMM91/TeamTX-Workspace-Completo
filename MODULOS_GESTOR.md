@@ -1,4 +1,11 @@
 # Gestor de Módulos - Team Nacional TX Aragua
+
+regla principal siempre crea un plan de im plementacion antes de actual pide permiso para proceder asi tengas permiso nativo de antigravity  espera mi orden  y antes de proceder a editar codigo crea un plan de implementacion detallado de que es lo que vas a hacer paso a paso . la idea es no botar codigo y siempre tener un respaldo en caso de problemas con la app . NO MODIFIQUES O BORRES ESTE ARCHIVO este archivo solo se actualiza a reglas nuievas sin quitar las existentes  y si lo haces asegurate de agregar las nuevas reglas que vayan naciendo al final del archivo y deja un mensaje que diga que hasta aqui son reglas nuevas . 
+
+antes de subir la version a github o firebase espera mi visto bueno de la prueba en fisico , o si vas a subir es para yo probar la version descargada ota . a menos de que yo te diga que lo subas sin mi visto bueno a github claro no a firebase . 
+
+
+
 la mayoria del contaxto esta en el archivo  D:\MAPA\Team-Nacional-TX-Aragua\graphify-out 
 > ## 🔒 REPOSITORIO OFICIAL DEL PROYECTO (REGLA INMUTABLE PARA TODOS LOS AGENTES)
 > **A partir de ahora TODO se sube a:**  
@@ -153,7 +160,18 @@ Registro: Queda guardado en el gestor para que cualquier otro agente sepa que es
 
     al culminar utilizar comando am start a los dispositivos conectados por adb o por red local para que funcione con el wifi-enabled wifiadb 
 
----
+////////////////////////////////////////
+"Actúa como un auditor de código estricto y analiza la totalidad de los modulos o el que estamos modificando Tu único objetivo es detectar problemas de rendimiento, basura acumulada y fallos lógicos, respetando siempre la arquitectura modular del usuario. Ejecuta el siguiente escaneo general:
+
+Rastreo de Código Zombi: Inspecciona todos los archivos y módulos. Haz una lista exacta de variables, funciones, clases, importaciones o archivos .kt (ej. VISTA.kt, RED.kt) completos que estén declarados pero que no se utilicen en ninguna parte del flujo de la aplicación.
+
+Detección de Cuellos de Botella: Analiza el flujo de datos. Identifica cualquier proceso pesado que esté bloqueando el hilo principal (Main Thread), especialmente en conexiones con bases de datos, procesamiento de sensores, cálculos matemáticos o comunicación entre lenguajes -usados aqui
+
+Incongruencias y Fugas: Revisa las llamadas desde la interfaz principal hacia los módulos independientes. Detecta instancias mal cerradas, ciclos infinitos lógicos, fugas de memoria, o módulos que entran en conflicto entre sí.
+
+Reporte y Acción Estricta: Entregame un reporte detallado con tus hallazgos. Si propones solucionar un error o limpiar un código zombi, nombres en español básico, comentarios claros y manteniendo el 100% de las funciones anteriores intactas."
+
+////////////////////////////////////////////
 
 ## ☁️ Regla Obligatoria: Subida de Cada Versión APK a Firebase Storage (`updates/`)
 

@@ -34,7 +34,9 @@ data class Mensaje(
     val senderRole: String = "MIEMBRO_ACTIVO",
     val senderCustomRoleTitle: String? = null,
     val senderInitials: String = "TX",
-    val isRadioCallout: Boolean = false
+    val senderPhotoUrl: String = "",
+    val isRadioCallout: Boolean = false,
+    val expiresAt: Long? = null
 ) {
     val isSticker: Boolean
         get() = tipo == TipoMensaje.STICKER && (nombreArchivo.isNotBlank() || urlMultimedia.isNotBlank())

@@ -1,18 +1,17 @@
 {
-  "versionCode": 26,
-  "versionName": "1.4.5-beta",
-  "urlDescarga": "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=0c7d7632-eb43-4127-a96b-9deb1ece7f2c",
-  "titulo": "Desarrollador Máster Inmutable, Eliminación Definitiva de Usuarios & Killswitch Modular",
-  "notas": "🚀 Release v1.4.5-beta: Rol inmutable Desarrollador Máster para la cuenta del creador, jerarquía de designación de Presidente, purga definitiva de usuarios eliminados por la directiva, Killswitch modular por piloto y nuevo rol Director de Redes TX.",
+  "versionCode": 27,
+  "versionName": "1.4.6-beta",
+  "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
+  "titulo": "Restablecimiento Total de Carga y Sincronización de Imágenes en Tiempo Real",
+  "notas": "🚀 Release v1.4.6-beta: Creación del sanitizador universal de URLs para Coil, enriquecimiento de esquemas de imagen en Firestore (feed, chat, calendario, carnet, mapa) y normalización de descargas con soporte para gs://, rutas relativas y tokens de Firebase Storage.",
   "novedades": [
-    "💻 Rol Desarrollador Máster: Rol inmutable para eduardo.androide.em@gmail.com con jerarquía suprema y asignación exclusiva del cargo de Presidente.",
-    "🗑️ Eliminación Definitiva de Usuarios: Purga completa e instantánea en Firestore (usuarios, users, members, vinculos_google) y Room local al eliminar un usuario desde la Directiva.",
-    "🎛️ Killswitch Modular por Piloto: La Directiva puede restringir el acceso a módulos específicos (Player TX, Velocímetro, Mercado, Chat, Radar, Mesh TX) a pilotos individuales.",
-    "📢 Nuevo Cargo 'Director de Redes TX & Avisos': Creación del rol oficial para la gestión de redes comunitarias y comunicados en el Muro.",
-    "👥 Conteo Real de Pilotos: Filtrado estricto del contador oficial de miembros activos reales registrados en la plataforma."
+    "🖼️ Sanitizador Universal de Imágenes (`SanitizadorImagenUrl`): Normalización automática de esquemas `gs://`, rutas relativas (`avisos/`, `perfiles/`, `imagenes_chat/`) y URLs de Firebase Storage con `alt=media` para carga instantánea en Coil.",
+    "📡 Enriquecimiento en Vivo de Firestore (`BaseFirestoreSync`): Mapeo inteligente con fallbacks de nombres de campo (camelCase / snake_case) para no perder ninguna foto de aviso, flyer o avatar en la sincronización en tiempo real.",
+    "📸 Carga Multimodular Garantizada: Solución aplicada en Muro/Feed, Chat Táctico, Calendario, Carnet TX, Mercado Biker, Directorio de Miembros y Radar GPS.",
+    "🔒 Garantía de Autenticación en Almacenamiento: Sesión activa de Firebase Auth verificada antes de subir o descargar archivos multimedia."
   ],
   "correcciones": [
-    "Corregido: El desarrollador aparecía como 'Presidente' en lugar de su cargo oficial 'Desarrollador Máster'.",
-    "Corregido: Usuarios eliminados podían reingresar sin pasar por el proceso inicial de solicitud."
+    "Corregido: Error de carga de imágenes en avisos, chat, carnet y calendario por URLs desformateadas o sin token de acceso de Firebase Storage.",
+    "Corregido: Pérdida de foto de perfil por disparidades entre los campos `fotoPerfilUri` y `profilePhotoUri` al deserializar de Firestore."
   ]
 }

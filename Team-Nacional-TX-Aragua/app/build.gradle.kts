@@ -20,8 +20,8 @@ android {
         applicationId = "com.aistudio.teamtxvzla.rkqp"
         minSdk = 24
         targetSdk = 35
-        versionCode = 26
-        versionName = "1.4.5-beta"
+        versionCode = 27
+        versionName = "1.4.6-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "MASTER_CODE_1", "\"linda19554402\"")
@@ -148,6 +148,8 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 
 dependencies {
     implementation(libs.androidx.multidex)
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     // Generacion de codigo QR para el Carnet TX
     implementation("com.google.zxing:core:3.5.3")
@@ -171,6 +173,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.coil.compose)
+    implementation("io.coil-kt:coil-gif:2.4.0")
     implementation(libs.converter.moshi)
     implementation(libs.firebase.ai)
     implementation(libs.firebase.firestore)

@@ -22,6 +22,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.PauseCircle
+import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import coil.ImageLoader
+import coil.decode.ImageDecoderDecoder
+import coil.decode.GifDecoder
+import android.os.Build
 import androidx.compose.ui.layout.ContentScale
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -59,6 +67,23 @@ fun VistaChat(
     val mensajes by NubeMensajes.escucharMensajes().collectAsState(initial = emptyList())
     var textoEscrito by remember { mutableStateOf("") }
     val estadoLista = rememberLazyListState()
+
+    // Opciones de borrado automático (Mensajes Temporales)
+    var mostrarMenuExpiracion by remember { mutableStateOf(false) }
+    var duracionExpiracionMs by remember { mutableStateOf<Long?>(null) } // null = Off
+
+    // Configuración de Coil para soportar GIFs y WebP Animados
+    val imageLoader = remember {
+        ImageLoader.Builder(contextoAndroid)
+            .components {
+                if (Build.VERSION.SDK_INT >= 28) {
+                    add(ImageDecoderDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+            }
+            .build()
+    }
 
     // Estado del panel de stickers
     var mostrarPanelStickers by remember { mutableStateOf(false) }
@@ -91,7 +116,8 @@ fun VistaChat(
                     urlMultimedia = url,
                     nombreArchivo = archivoSticker.name,
                     emisor = nombreUsuario,
-                    apodoEmisor = nombreUsuario
+                    apodoEmisor = nombreUsuario,
+                    expiresAt = duracionExpiracionMs?.let { System.currentTimeMillis() + it }
                 )
             }
         }
@@ -118,7 +144,8 @@ fun VistaChat(
                         nombreArchivo = "ubicacion.geo",
                         texto = coords,
                         emisor = nombreUsuario,
-                        apodoEmisor = nombreUsuario
+                        apodoEmisor = nombreUsuario,
+                        expiresAt = duracionExpiracionMs?.let { System.currentTimeMillis() + it }
                     )
                     android.widget.Toast.makeText(contextoAndroid, "📍 Ubicación compartida", android.widget.Toast.LENGTH_SHORT).show()
                 } else {
@@ -152,7 +179,8 @@ fun VistaChat(
                         nombreArchivo = "ubicacion.geo",
                         texto = coords,
                         emisor = nombreUsuario,
-                        apodoEmisor = nombreUsuario
+                        apodoEmisor = nombreUsuario,
+                        expiresAt = duracionExpiracionMs?.let { System.currentTimeMillis() + it }
                     )
                     android.widget.Toast.makeText(contextoAndroid, "📍 Ubicación compartida", android.widget.Toast.LENGTH_SHORT).show()
                 } else {
@@ -193,7 +221,7 @@ fun VistaChat(
                     tint = Color(0xFFFF3B30),
                     modifier = Modifier.size(24.dp)
                 )
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Sala de Chat Comunitaria",
                         fontWeight = FontWeight.Bold,
@@ -205,6 +233,45 @@ fun VistaChat(
                         fontSize = 11.sp,
                         color = Color(0xFFB0BEC5)
                     )
+                }
+
+                // Menú de Mensajes Temporales
+                Box {
+                    IconButton(onClick = { mostrarMenuExpiracion = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Timer,
+                            contentDescription = "Borrado Automático",
+                            tint = if (duracionExpiracionMs != null) Color(0xFF00E676) else Color(0xFFB0BEC5),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = mostrarMenuExpiracion,
+                        onDismissRequest = { mostrarMenuExpiracion = false },
+                        modifier = Modifier.background(Color(0xFF1B2230))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Desactivado", color = Color.White) },
+                            onClick = { 
+                                duracionExpiracionMs = null
+                                mostrarMenuExpiracion = false 
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("24 horas", color = Color.White) },
+                            onClick = { 
+                                duracionExpiracionMs = 24L * 60 * 60 * 1000
+                                mostrarMenuExpiracion = false 
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("7 días", color = Color.White) },
+                            onClick = { 
+                                duracionExpiracionMs = 7L * 24 * 60 * 60 * 1000
+                                mostrarMenuExpiracion = false 
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -237,7 +304,11 @@ fun VistaChat(
             } else {
                 items(mensajes, key = { it.id.ifEmpty { "${it.hora}_${it.texto.hashCode()}" } }) { msg ->
                     val esMio = msg.emisor == nombreUsuario
-                    TarjetaMensaje(mensaje = msg, esMio = esMio)
+                    TarjetaMensaje(
+                        mensaje = msg, 
+                        esMio = esMio,
+                        imageLoader = imageLoader
+                    )
                 }
             }
         }
@@ -246,6 +317,7 @@ fun VistaChat(
         if (mostrarPanelStickers) {
             PanelStickers(
                 stickers = stickersGuardados,
+                imageLoader = imageLoader,
                 onStickerClick = { archivo -> enviarSticker(archivo) },
                 onCerrar = { mostrarPanelStickers = false },
                 onImportar = { GestorStickers.abrirSelectorStickers(contextoAndroid as android.app.Activity) }
@@ -390,7 +462,8 @@ fun VistaChat(
                             NubeMensajes.enviarMensaje(
                                 texto = textoEscrito,
                                 emisor = nombreUsuario,
-                                apodoEmisor = nombreUsuario
+                                apodoEmisor = nombreUsuario,
+                                expiresAt = duracionExpiracionMs?.let { System.currentTimeMillis() + it }
                             )
                             textoEscrito = ""
                         }
@@ -420,6 +493,7 @@ fun VistaChat(
 @Composable
 fun PanelStickers(
     stickers: List<java.io.File>,
+    imageLoader: coil.ImageLoader,
     onStickerClick: (java.io.File) -> Unit,
     onCerrar: () -> Unit,
     onImportar: () -> Unit,
@@ -497,6 +571,7 @@ fun PanelStickers(
                     items(stickers) { archivo ->
                         StickerThumbnail(
                             archivo = archivo,
+                            imageLoader = imageLoader,
                             onClick = { onStickerClick(archivo) }
                         )
                     }
@@ -512,6 +587,7 @@ fun PanelStickers(
 @Composable
 fun StickerThumbnail(
     archivo: java.io.File,
+    imageLoader: coil.ImageLoader,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -535,6 +611,7 @@ fun StickerThumbnail(
                 model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
                     .data(uriArchivo)
                     .build(),
+                imageLoader = imageLoader,
                 contentDescription = "Sticker ${archivo.name}",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
@@ -553,6 +630,7 @@ fun StickerThumbnail(
 fun TarjetaMensaje(
     mensaje: Mensaje,
     esMio: Boolean,
+    imageLoader: coil.ImageLoader,
     modifier: Modifier = Modifier
 ) {
     val formatoHora = remember(mensaje.hora) {
@@ -565,20 +643,34 @@ fun TarjetaMensaje(
         verticalAlignment = Alignment.Top
     ) {
         if (!esMio) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF2C384E)),
-                contentAlignment = Alignment.Center
-            ) {
-                val iniciales = mensaje.emisor.take(2).uppercase()
-                Text(
-                    text = if (iniciales.isBlank()) "TX" else iniciales,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFF9500)
+            if (mensaje.senderPhotoUrl.isNotBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        .data(mensaje.senderPhotoUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Foto de perfil de ${mensaje.emisor}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2C384E)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val iniciales = mensaje.emisor.take(2).uppercase()
+                    Text(
+                        text = if (iniciales.isBlank()) "TX" else iniciales,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFF9500)
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(6.dp))
         }
@@ -607,6 +699,7 @@ fun TarjetaMensaje(
                                 model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
                                     .data(url)
                                     .build(),
+                                imageLoader = imageLoader,
                                 contentDescription = "Sticker de ${mensaje.emisor}",
                                 contentScale = ContentScale.Fit,
                                 modifier = Modifier
@@ -665,13 +758,87 @@ fun TarjetaMensaje(
                     ) {
                         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
                             if (mensaje.tipo == TipoMensaje.AUDIO) {
-                                // Placeholder para audio
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(Icons.Default.PlayCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
-                                    Text(text = mensaje.nombreArchivo.ifBlank { "Mensaje de voz" }, color = Color.White, fontSize = 13.sp)
+                                var isPlaying by remember { mutableStateOf(false) }
+                                var progress by remember { mutableFloatStateOf(0f) }
+                                var transcripcion by remember { mutableStateOf<String?>(null) }
+                                var cargandoTranscripcion by remember { mutableStateOf(false) }
+
+                                Column(modifier = Modifier.widthIn(min = 180.dp, max = 220.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        IconButton(
+                                            onClick = { isPlaying = !isPlaying },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isPlaying) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
+                                                contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                                                tint = Color.White,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+                                        Text(
+                                            text = mensaje.nombreArchivo.ifBlank { "Nota de voz" }, 
+                                            color = Color.White, 
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        // Botón Transcripción
+                                        IconButton(
+                                            onClick = { 
+                                                cargandoTranscripcion = true
+                                                // Simular extracción
+                                                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                                    kotlinx.coroutines.delay(2000)
+                                                    transcripcion = "Audio convertido a texto (Simulación)."
+                                                    cargandoTranscripcion = false
+                                                }
+                                            },
+                                            modifier = Modifier.size(20.dp)
+                                        ) {
+                                            if (cargandoTranscripcion) {
+                                                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Default.ClosedCaption,
+                                                    contentDescription = "Transcribir audio",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Progress bar de audio en la parte inferior
+                                    Slider(
+                                        value = progress,
+                                        onValueChange = { progress = it },
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Color.White,
+                                            activeTrackColor = Color.White,
+                                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(20.dp)
+                                            .padding(horizontal = 4.dp)
+                                    )
+
+                                    transcripcion?.let { txt ->
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "“$txt”",
+                                            color = Color.White.copy(alpha = 0.8f),
+                                            fontSize = 12.sp,
+                                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                            modifier = Modifier
+                                                .background(Color.Black.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                                .padding(6.dp)
+                                        )
+                                    }
                                 }
                             } else {
                                 Text(

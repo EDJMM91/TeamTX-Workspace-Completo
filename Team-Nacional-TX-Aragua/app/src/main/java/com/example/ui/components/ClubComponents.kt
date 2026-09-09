@@ -170,7 +170,7 @@ fun ClubTopBar(
                             val photoUri = currentMember?.profilePhotoUri
                             if (!photoUri.isNullOrBlank()) {
                                 AsyncImage(
-                                    model = photoUri,
+                                    model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(photoUri),
                                     contentDescription = "Carnet TX",
                                     modifier = Modifier.fillMaxSize().clip(CircleShape),
                                     contentScale = ContentScale.Crop
@@ -377,7 +377,7 @@ fun PilotAvatar(
             contentAlignment = Alignment.Center
         ) {
             if (!member.profilePhotoUri.isNullOrBlank()) {
-                val photoUrl = member.profilePhotoUri
+                val photoUrl = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(member.profilePhotoUri)
                 LaunchedEffect(photoUrl) {
                     android.util.Log.d("TEAM_TX_IMAGES", "👤 Cargando Avatar: ${member.nickname} | URL: $photoUrl")
                 }
@@ -597,12 +597,13 @@ fun DigitalCredentialCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (!effectivePhotoUrl.isNullOrBlank()) {
-                        LaunchedEffect(effectivePhotoUrl) {
-                            android.util.Log.d("TEAM_TX_IMAGES", "📸 Cargando Foto Carnet: ${member.fullName} | URL: $effectivePhotoUrl")
-                        }
-                        AsyncImage(
-                            model = effectivePhotoUrl,
+                val photoUrlClean = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(effectivePhotoUrl)
+                if (!photoUrlClean.isNullOrBlank()) {
+                    LaunchedEffect(photoUrlClean) {
+                        android.util.Log.d("TEAM_TX_IMAGES", "📸 Cargando Foto Carnet: ${member.fullName} | URL: $photoUrlClean")
+                    }
+                    AsyncImage(
+                        model = photoUrlClean,
                             contentDescription = "Foto de carnet",
                             onSuccess = { android.util.Log.i("TEAM_TX_IMAGES", "✅ Foto Carnet cargada: ${member.fullName}") },
                             onError = { e -> android.util.Log.e("TEAM_TX_IMAGES", "❌ Error Foto Carnet: ${member.fullName} | ${e.result.throwable.message}") },

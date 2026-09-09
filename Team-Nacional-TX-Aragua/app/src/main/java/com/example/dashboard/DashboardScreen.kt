@@ -20,7 +20,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.NavigationTab
+import com.example.ui.theme.TxFlameRed
+import com.example.dashboard.DashboardFondoConfig
 import com.example.data.model.BikerCalendarEvent
 import com.example.data.model.EmergencyAlert
 import com.example.data.model.MemberProfile
@@ -145,24 +150,60 @@ fun DashboardScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Bento 1: Tarjeta destacada grande: Reproductor Musical TX Pro
-                    BentoGridCard(
-                        titulo = "Reproductor Musical TX Pro",
-                        subtitulo = "Audio motero, podcasts, transmisiones y nube flotante",
-                        icono = Icons.Default.MusicNote,
-                        colorIcono = Color(0xFF8E24AA),
-                        colorFondoIcono = Color(0xFFF3E5F5),
-                        badgeTexto = "Audio TX",
-                        badgeColor = Color(0xFF8E24AA),
-                        esDestacadoLargo = true,
-                        onClick = {
-                            com.example.ui.preferences.PreferenciasApp.registrarUsoModulo("PLAYER")
-                            onNavigateToTab(NavigationTab.PLAYER)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(110.dp)
-                    )
+                    // Fila 1: Accesos rápidos (Scroll horizontal interactivo con iconos modernos)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(80.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Scroll Horizontal de Iconos Rápidos Estilo Moderno
+                        androidx.compose.foundation.lazy.LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth().height(80.dp)
+                        ) {
+                            val accesosRapidos = listOf(
+                                Triple(NavigationTab.PLAYER, Color(0xFF8E24AA), Color(0xFFF3E5F5)),
+                                Triple(NavigationTab.SOS, DashboardFondoConfig.ColorRojoCarrera, DashboardFondoConfig.ColorContenedorRojo),
+                                Triple(NavigationTab.VELOCIMETRO, Color(0xFF00ACC1), Color(0xFFE0F7FA)),
+                                Triple(NavigationTab.CALENDARIO, Color(0xFF43A047), Color(0xFFE8F5E9)),
+                                Triple(NavigationTab.MAPA, DashboardFondoConfig.ColorRojoCarrera, DashboardFondoConfig.ColorContenedorRojo),
+                                Triple(NavigationTab.DIRECTORIO, Color(0xFF00897B), Color(0xFFE0F2F1)),
+                                Triple(NavigationTab.CONFIGURACIONES, Color(0xFF546E7A), Color(0xFFECEFF1))
+                            )
+                            items(accesosRapidos) { (tab, tint, bg) ->
+                                Surface(
+                                    onClick = {
+                                        com.example.ui.preferences.PreferenciasApp.registrarUsoModulo(tab.name)
+                                        onNavigateToTab(tab)
+                                    },
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = bg,
+                                    modifier = Modifier.width(80.dp).fillMaxHeight()
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = tab.iconFilled,
+                                            contentDescription = tab.label,
+                                            tint = tint,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = tab.label,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = tint.copy(alpha = 0.9f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // Bento Fila 1: Directorio Comercios y Directorio de Miembros (con icono de contactos)
                     Row(
@@ -185,7 +226,7 @@ fun DashboardScreen(
                         )
 
                         BentoGridCard(
-                            titulo = "Miembros & Contactos",
+                            titulo = "Pilotos",
                             subtitulo = "Directorio de contactos",
                             icono = Icons.Default.Contacts, // 📇 Icono explícito de contactos
                             colorIcono = Color(0xFF0288D1),

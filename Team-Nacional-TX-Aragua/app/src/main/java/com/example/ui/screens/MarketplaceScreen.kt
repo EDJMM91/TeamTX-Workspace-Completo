@@ -303,7 +303,7 @@ fun MarketplaceItemCard(
             Row(modifier = Modifier.fillMaxWidth()) {
                 if (item.imageUrl != null) {
                     AsyncImage(
-                        model = item.imageUrl,
+                        model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(item.imageUrl),
                         contentDescription = item.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier

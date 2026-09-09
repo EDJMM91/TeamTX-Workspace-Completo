@@ -139,7 +139,7 @@ fun MeshTxScreen(
     LaunchedEffect(currentMember) {
         if (currentMember != null) {
             val foto = currentMember.profilePhotoUri
-                ?: contextoLocal.getSharedPreferences("radar_prefs", android.content.Context.MODE_PRIVATE).getString("radar_avatar", "")
+                ?: contextoLocal.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE).getString("radar_avatar", "")
                 ?: ""
             val alias = currentMember.nickname.ifBlank { currentMember.fullName.ifBlank { "Piloto TX" } }
             val moto = currentMember.bikeModel.ifBlank { "Keeway TX 200" }

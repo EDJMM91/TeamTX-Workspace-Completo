@@ -254,7 +254,7 @@ fun ProfileAndAdminScreen(
                                     ) {
                                         if (!currentMember?.profilePhotoUri.isNullOrBlank()) {
                                             AsyncImage(
-                                                model = currentMember?.profilePhotoUri,
+                                                model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(currentMember?.profilePhotoUri),
                                                 contentDescription = "Foto Perfil",
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier.fillMaxSize()
@@ -350,7 +350,7 @@ fun ProfileAndAdminScreen(
                                     ) {
                                         if (!googlePhoto.isNullOrBlank()) {
                                             AsyncImage(
-                                                model = googlePhoto,
+                                                model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(googlePhoto),
                                                 contentDescription = "Foto Google",
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier.fillMaxSize()
@@ -1324,25 +1324,34 @@ fun EditProfileDialog(
             coroutineScope.launch {
                 if (target == "profile") {
                     isUploadingProfile = true
-                    val url = NubeArchivos.subirArchivo(uriToUpload, NubeArchivos.TipoArchivo.IMAGEN, "profile_${member.id}_${System.currentTimeMillis()}.jpg")
-                    if (url != null) {
-                        profilePhotoUri = url
-                        com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, url)
-                        context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
-                            .edit().putString("radar_avatar", url).apply()
-                        Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
+                    val bytes = context.contentResolver.openInputStream(uriToUpload)?.readBytes()
+                    if (bytes != null) {
+                        val url = NubeArchivos.subirBytes(bytes, NubeArchivos.TipoArchivo.IMAGEN, "profile_${member.id}_${System.currentTimeMillis()}.jpg")
+                        if (url != null) {
+                            profilePhotoUri = url
+                            com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, url)
+                            PreferenciasApp.carnetFotoPerfil = url
+                            Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Error al subir la foto de perfil", Toast.LENGTH_SHORT).show()
+                        }
                     } else {
-                        Toast.makeText(context, "Error al subir la foto de perfil", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Error al leer imagen", Toast.LENGTH_SHORT).show()
                     }
                     isUploadingProfile = false
                 } else if (target == "bike") {
                     isUploadingBike = true
-                    val url = NubeArchivos.subirArchivo(uriToUpload, NubeArchivos.TipoArchivo.IMAGEN, "bike_${member.id}_${System.currentTimeMillis()}.jpg")
-                    if (url != null) {
-                        bikePhotoUri = url
-                        Toast.makeText(context, "Foto de la moto actualizada", Toast.LENGTH_SHORT).show()
+                    val bytes = context.contentResolver.openInputStream(uriToUpload)?.readBytes()
+                    if (bytes != null) {
+                        val url = NubeArchivos.subirBytes(bytes, NubeArchivos.TipoArchivo.IMAGEN, "bike_${member.id}_${System.currentTimeMillis()}.jpg")
+                        if (url != null) {
+                            bikePhotoUri = url
+                            Toast.makeText(context, "Foto de la moto actualizada", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Error al subir la foto de la moto", Toast.LENGTH_SHORT).show()
+                        }
                     } else {
-                        Toast.makeText(context, "Error al subir la foto de la moto", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Error al leer imagen", Toast.LENGTH_SHORT).show()
                     }
                     isUploadingBike = false
                 }
@@ -1354,15 +1363,19 @@ fun EditProfileDialog(
         uri?.let {
             coroutineScope.launch {
                 isUploadingProfile = true
-                val url = NubeArchivos.subirArchivo(it, NubeArchivos.TipoArchivo.IMAGEN, "profile_${member.id}_${System.currentTimeMillis()}.jpg")
-                if (url != null) {
-                    profilePhotoUri = url
-                    com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, url)
-                    context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
-                        .edit().putString("radar_avatar", url).apply()
-                    Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
+                val bytes = context.contentResolver.openInputStream(it)?.readBytes()
+                if (bytes != null) {
+                    val url = NubeArchivos.subirBytes(bytes, NubeArchivos.TipoArchivo.IMAGEN, "profile_${member.id}_${System.currentTimeMillis()}.jpg")
+                    if (url != null) {
+                        profilePhotoUri = url
+                        com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, url)
+                        PreferenciasApp.carnetFotoPerfil = url
+                        Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Error al subir la imagen", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
-                    Toast.makeText(context, "Error al subir la imagen", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Error al leer imagen", Toast.LENGTH_SHORT).show()
                 }
                 isUploadingProfile = false
             }
@@ -1373,12 +1386,17 @@ fun EditProfileDialog(
         uri?.let {
             coroutineScope.launch {
                 isUploadingBike = true
-                val url = NubeArchivos.subirArchivo(it, NubeArchivos.TipoArchivo.IMAGEN, "bike_${member.id}_${System.currentTimeMillis()}.jpg")
-                if (url != null) {
-                    bikePhotoUri = url
-                    Toast.makeText(context, "Foto de la moto actualizada", Toast.LENGTH_SHORT).show()
+                val bytes = context.contentResolver.openInputStream(it)?.readBytes()
+                if (bytes != null) {
+                    val url = NubeArchivos.subirBytes(bytes, NubeArchivos.TipoArchivo.IMAGEN, "bike_${member.id}_${System.currentTimeMillis()}.jpg")
+                    if (url != null) {
+                        bikePhotoUri = url
+                        Toast.makeText(context, "Foto de la moto actualizada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Error al subir la imagen", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
-                    Toast.makeText(context, "Error al subir la imagen", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Error al leer imagen", Toast.LENGTH_SHORT).show()
                 }
                 isUploadingBike = false
             }
@@ -1440,7 +1458,7 @@ fun EditProfileDialog(
                                 CircularProgressIndicator(color = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(24.dp))
                             } else if (profilePhotoUri != null) {
                                 AsyncImage(
-                                    model = profilePhotoUri,
+                                    model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(profilePhotoUri),
                                     contentDescription = "Foto de Perfil",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
@@ -1483,6 +1501,7 @@ fun EditProfileDialog(
                             value = cedulaDni,
                             onValueChange = { cedulaDni = it },
                             label = { Text("Cédula / DNI") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(0.9f)
                         )
                     }
@@ -1537,7 +1556,7 @@ fun EditProfileDialog(
                                 CircularProgressIndicator(color = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(32.dp))
                             } else if (bikePhotoUri != null) {
                                 AsyncImage(
-                                    model = bikePhotoUri,
+                                    model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(bikePhotoUri),
                                     contentDescription = "Foto de la moto",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
@@ -1581,6 +1600,7 @@ fun EditProfileDialog(
                             value = bikeDisplacementCc,
                             onValueChange = { bikeDisplacementCc = it },
                             label = { Text("Cilindrada (cc)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(0.9f)
                         )
                     }
@@ -1591,12 +1611,14 @@ fun EditProfileDialog(
                             value = bikeTankCapacityLiters,
                             onValueChange = { bikeTankCapacityLiters = it },
                             label = { Text("Tanque (ej: 11.5 L)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = bikeYear,
                             onValueChange = { bikeYear = it },
                             label = { Text("Año (ej: 2023)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(0.8f)
                         )
                         OutlinedTextField(
@@ -1715,10 +1737,18 @@ fun EditProfileDialog(
                         profilePhotoUri = profilePhotoUri,
                         bikePhotoUri = bikePhotoUri
                     )
+                    PreferenciasApp.carnetFotoPerfil = profilePhotoUri ?: ""
+                    PreferenciasApp.carnetFotoMoto = bikePhotoUri ?: ""
+                    PreferenciasApp.carnetMotoMarca = bikeBrand
+                    PreferenciasApp.carnetMotoModelo = bikeModel
+                    PreferenciasApp.carnetMotoPlaca = bikePlate
+                    PreferenciasApp.carnetMotoColor = bikeColor
+                    PreferenciasApp.carnetSangre = bloodType
+                    PreferenciasApp.carnetSosNombre = emergencyContactName
+                    PreferenciasApp.carnetSosTelefono = emergencyContactPhone
+
                     if (!profilePhotoUri.isNullOrBlank()) {
                         com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, profilePhotoUri!!)
-                        context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
-                            .edit().putString("radar_avatar", profilePhotoUri).apply()
                     }
                     onSave(updated)
                 },
@@ -1751,10 +1781,14 @@ fun EditProfileDialog(
                         onClick = {
                             showProfileImageSourceDialog = false
                             try {
-                                val uri = createCameraUri("profile")
-                                tempCameraUri = uri
-                                cameraTarget = "profile"
-                                cameraLauncher.launch(uri)
+                                try {
+                                    val uri = createCameraUri("profile")
+                                    tempCameraUri = uri
+                                    cameraTarget = "profile"
+                                    cameraLauncher.launch(uri)
+                                } catch (e: android.content.ActivityNotFoundException) {
+                                    Toast.makeText(context, "No se encontró aplicación de cámara", Toast.LENGTH_SHORT).show()
+                                }
                             } catch (e: Exception) {
                                 Toast.makeText(context, "Error al abrir la cámara: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
@@ -1808,10 +1842,14 @@ fun EditProfileDialog(
                         onClick = {
                             showBikeImageSourceDialog = false
                             try {
-                                val uri = createCameraUri("bike")
-                                tempCameraUri = uri
-                                cameraTarget = "bike"
-                                cameraLauncher.launch(uri)
+                                try {
+                                    val uri = createCameraUri("bike")
+                                    tempCameraUri = uri
+                                    cameraTarget = "bike"
+                                    cameraLauncher.launch(uri)
+                                } catch (e: android.content.ActivityNotFoundException) {
+                                    Toast.makeText(context, "No se encontró aplicación de cámara", Toast.LENGTH_SHORT).show()
+                                }
                             } catch (e: Exception) {
                                 Toast.makeText(context, "Error al abrir la cámara: ${e.message}", Toast.LENGTH_SHORT).show()
                             }

@@ -104,6 +104,24 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 27,
+            versionName = "1.4.6-beta",
+            titulo = "Restablecimiento Total de Carga y Sincronización de Imágenes en Tiempo Real",
+            fecha = "09 sep 2026",
+            descripcionCorta = "Creación del sanitizador universal de URLs para Coil, enriquecimiento de esquemas de imagen en Firestore (feed, chat, calendario, carnet, mapa) y normalización de descargas con soporte para gs://, rutas relativas y tokens de Firebase Storage.",
+            novedades = listOf(
+                "🖼️ Sanitizador Universal de Imágenes (`SanitizadorImagenUrl`): Normalización automática de esquemas `gs://`, rutas relativas (`avisos/`, `perfiles/`, `imagenes_chat/`) y URLs de Firebase Storage con `alt=media` para carga instantánea en Coil.",
+                "📡 Enriquecimiento en Vivo de Firestore (`BaseFirestoreSync`): Mapeo inteligente con fallbacks de nombres de campo (camelCase / snake_case) para no perder ninguna foto de aviso, flyer o avatar en la sincronización en tiempo real.",
+                "📸 Carga Multimodular Garantizada: Solución aplicada en Muro/Feed, Chat Táctico, Calendario, Carnet TX, Mercado Biker, Directorio de Miembros y Radar GPS.",
+                "🔒 Garantía de Autenticación en Almacenamiento: Sesión activa de Firebase Auth verificada antes de subir o descargar archivos multimedia."
+            ),
+            correcciones = listOf(
+                "Corregido: Error de carga de imágenes en avisos, chat, carnet y calendario por URLs desformateadas o sin token de acceso de Firebase Storage.",
+                "Corregido: Pérdida de foto de perfil por disparidades entre los campos `fotoPerfilUri` y `profilePhotoUri` al deserializar de Firestore."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 26,
             versionName = "1.4.5-beta",
             titulo = "Desarrollador Máster Inmutable, Eliminación Definitiva de Usuarios & Killswitch Modular",
@@ -120,7 +138,7 @@ object GestorActualizaciones {
                 "Corregido: El desarrollador aparecía como 'Presidente' en lugar de su cargo oficial 'Desarrollador Máster'.",
                 "Corregido: Usuarios eliminados podían reingresar sin pasar por el proceso inicial de solicitud."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 25,
@@ -578,8 +596,8 @@ object GestorActualizaciones {
      * y la base de datos Firestore.
      */
     suspend fun verificarActualizacion(): InformacionOta = withContext(Dispatchers.IO) {
-        val urlOficialFirebaseStorage = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=422ded53-82b3-48a5-945a-87e2c30745bb"
-        val urlInfoOtaJson = "https://raw.githubusercontent.com/EDJMM91/Team-Nacional-TX-Aragua/main/apk/ota_info.json"
+        val urlOficialFirebaseStorage = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk"
+        val urlInfoOtaJson = "https://raw.githubusercontent.com/EDJMM91/TeamTX-Workspace-Completo/main/Team-Nacional-TX-Aragua/apk/ota_info.json"
 
         // 1. Consultar PRIMERO Firebase Storage directamente (la fuente real de los APKs)
         var versionStorage: StorageApkVersion? = null
@@ -621,7 +639,7 @@ object GestorActualizaciones {
                     
                     versionStorage = StorageApkVersion(
                         fileName = "TeamTX-latest.apk",
-                        downloadUrl = if (urlDesc.isNotBlank() && !urlDesc.contains("github.com")) urlDesc else urlOficialFirebaseStorage,
+                        downloadUrl = if (urlDesc.isNotBlank()) urlDesc else urlOficialFirebaseStorage,
                         versionCode = code,
                         versionName = name,
                         titulo = "Actualización Oficial (GitHub/Storage)",

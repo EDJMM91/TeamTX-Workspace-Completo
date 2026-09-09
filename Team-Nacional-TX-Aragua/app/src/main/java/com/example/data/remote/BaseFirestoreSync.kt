@@ -68,6 +68,7 @@ abstract class BaseFirestoreSync<T : Any>(
     abstract fun getId(item: T): Long
     abstract fun setId(item: T, id: Long): T
     abstract fun getTimestamp(item: T): Long
+    protected open fun enriquecerCamposImagenes(doc: com.google.firebase.firestore.DocumentSnapshot, item: T): T = item
 
     protected open fun setupChannelListener(channelId: String = collectionName) {
         canalesActivos.add(channelId)
@@ -105,8 +106,9 @@ abstract class BaseFirestoreSync<T : Any>(
                     for (doc in snapshot.documents) {
                         try {
                             val item = doc.toObject(entityClass)
-                            item?.let {
-                                val itemWithId = setId(it, doc.id.toLongOrNull() ?: getId(it))
+                            item?.let { unparsed ->
+                                val itemEnriquecido = enriquecerCamposImagenes(doc, unparsed)
+                                val itemWithId = setId(itemEnriquecido, doc.id.toLongOrNull() ?: getId(itemEnriquecido))
                                 toUpsert.add(itemWithId)
                             }
                         } catch (e: Exception) {

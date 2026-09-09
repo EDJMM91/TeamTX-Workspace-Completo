@@ -64,6 +64,19 @@ class PublicationSync(
     override fun setId(item: Publication, id: Long): Publication = item.copy(id = id)
     override fun getTimestamp(item: Publication): Long = item.timestamp
 
+    override fun enriquecerCamposImagenes(doc: com.google.firebase.firestore.DocumentSnapshot, item: Publication): Publication {
+        val rawImg = (item.imageUrl ?: "").ifBlank { null }
+            ?: doc.getString("imageUrl")
+            ?: doc.getString("image_url")
+            ?: doc.getString("foto_url")
+            ?: doc.getString("flyerUrl")
+            ?: doc.getString("flyer_url")
+            ?: doc.getString("url")
+            ?: doc.getString("imagenUrl")
+        val effectiveUrl = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(rawImg)
+        return if (effectiveUrl != item.imageUrl) item.copy(imageUrl = effectiveUrl) else item
+    }
+
     override suspend fun deleteById(id: Long) = withContext(Dispatchers.IO) {
         try {
             database.publicationDao().deletePublicationById(id)

@@ -162,7 +162,7 @@ private fun CarnetTxDetallado(
         if (!perfil.profilePhotoUri.isNullOrBlank()) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(perfil.profilePhotoUri ?: "")
+                    .data(com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(perfil.profilePhotoUri) ?: "")
                     .crossfade(true)
                     .build(),
                 contentDescription = perfil.fullName,

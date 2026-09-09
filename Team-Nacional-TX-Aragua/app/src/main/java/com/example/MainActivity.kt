@@ -493,7 +493,10 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
         }
         mutableStateOf(
             if (guardados != null && guardados.size == 5) {
-                guardados
+                // Forzar que el del medio SIEMPRE sea RUTAS
+                val listaMutable = guardados.toMutableList()
+                listaMutable[2] = NavigationTab.RUTAS
+                listaMutable.toList()
             } else {
                 listOf(
                     NavigationTab.DASHBOARD,
@@ -534,7 +537,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
         }
         val aliasBase = miembro?.nickname?.ifBlank { miembro.fullName.ifBlank { "Piloto TX" } } ?: "Piloto TX"
         val fotoPerfil = miembro?.profilePhotoUri
-            ?: appCtx.getSharedPreferences("radar_prefs", android.content.Context.MODE_PRIVATE).getString("radar_avatar", "")
+            ?: appCtx.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE).getString("radar_avatar", "")
             ?: ""
         val modeloMoto = miembro?.bikeModel?.ifBlank { "Keeway TX 200" } ?: "Keeway TX 200"
         val fichaMiembro = miembro?.memberNumber ?: ""
@@ -651,7 +654,12 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                                     selectedTab = tab
                                                 }
                                             },
-                                            onLongPress = { slotToEditIndex = index }
+                                            onLongPress = { 
+                                                // Bloqueado para Rutas
+                                                if (tab != NavigationTab.RUTAS) {
+                                                    slotToEditIndex = index 
+                                                }
+                                            }
                                         )
                                     }
                                     .padding(vertical = 4.dp, horizontal = 6.dp)

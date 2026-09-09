@@ -38,7 +38,7 @@ object SEGURIDAD_CUENTAS {
      * Ejecuta un cierre forzoso total de sesión ("Hard Logout"):
      * 1. Cierra sesión en FirebaseAuth.
      * 2. Desconecta y revoca acceso en GoogleSignInClient para evitar inicio silencioso automático.
-     * 3. Limpia cachés locales de SharedPreferences (radar_prefs, preferencias de carnet).
+     * 3. Limpia cachés locales de SharedPreferences (prefs_radar_tx, preferencias de carnet).
      * 4. Purga la memoria de imágenes de Coil.
      * 5. Ejecuta la acción de terminación [alTerminar].
      */
@@ -54,7 +54,7 @@ object SEGURIDAD_CUENTAS {
 
         // 2. Limpiar cachés privadas locales
         try {
-            contexto.getSharedPreferences("radar_prefs", Context.MODE_PRIVATE).edit().clear().apply()
+            contexto.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE).edit().clear().apply()
             PreferenciasApp.carnetGooglePhotoUrl = null
             PreferenciasApp.carnetTipoFoto = "LOCAL"
         } catch (error: Exception) {

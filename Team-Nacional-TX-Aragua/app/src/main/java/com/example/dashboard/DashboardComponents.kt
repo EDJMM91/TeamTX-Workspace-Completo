@@ -97,10 +97,19 @@ fun DashboardHeader(
                 .clickable(onClick = onOpenCarnet),
             contentAlignment = Alignment.Center
         ) {
-            if (!currentMember?.profilePhotoUri.isNullOrBlank()) {
+            var radarAvatar by remember { mutableStateOf("") }
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val sharedPrefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+                    radarAvatar = sharedPrefs.getString("radar_avatar", "") ?: ""
+                }
+            }
+            val finalPhotoUri = currentMember?.profilePhotoUri?.takeIf { it.isNotBlank() } ?: radarAvatar.takeIf { it.isNotBlank() }
+
+            if (finalPhotoUri != null) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(currentMember?.profilePhotoUri)
+                        .data(finalPhotoUri)
                         .crossfade(true)
                         .build(),
                     contentDescription = "Carnet TX",
@@ -160,7 +169,7 @@ fun PilotStatusCard(
         border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -216,49 +225,6 @@ fun PilotStatusCard(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro.copy(alpha = 0.6f))
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.TwoWheeler,
-                        contentDescription = "Moto",
-                        tint = DashboardFondoConfig.ColorTextoSecundario,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "${currentMember?.bikeBrand ?: "Keeway"} ${currentMember?.bikeModel ?: "TX 200"}",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = DashboardFondoConfig.ColorTextoPrimario
-                    )
-                    if (!currentMember?.bikePlate.isNullOrBlank()) {
-                        Text(
-                            text = "• ${currentMember?.bikePlate}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = DashboardFondoConfig.ColorTextoSecundario
-                        )
-                    }
-                }
-
-                Text(
-                    text = "N° Socio: ${currentMember?.memberNumber?.ifBlank { "-" } ?: "-"}",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DashboardFondoConfig.ColorRojoCarrera
-                )
-            }
         }
     }
 }
@@ -283,7 +249,14 @@ fun DashboardSidebarBar(
             currentMember?.role == MemberRole.PRESIDENTE ||
             currentMember?.role == MemberRole.DESARROLLADOR
 
-    val usoMap = remember(isExpanded) { com.example.ui.preferences.PreferenciasApp.obtenerUsoModulosMap() }
+    var usoMap by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    LaunchedEffect(isExpanded) {
+        if (isExpanded) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                usoMap = com.example.ui.preferences.PreferenciasApp.obtenerUsoModulosMap()
+            }
+        }
+    }
 
     val modulosCandidatos = remember {
         listOf(
@@ -315,84 +288,64 @@ fun DashboardSidebarBar(
         }
     }
 
-    Surface(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 2.dp)
-            .shadow(elevation = 1.5.dp, shape = RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
-        color = DashboardFondoConfig.ColorTarjetaClara,
-        border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        // Botón expansor estilo moderno
+        Button(
+            onClick = { isExpanded = !isExpanded },
+            modifier = Modifier.fillMaxWidth().height(44.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = DashboardFondoConfig.ColorTarjetaClara,
+                contentColor = DashboardFondoConfig.ColorTextoPrimario
+            ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+        ) {
             Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.MenuOpen,
+                        contentDescription = "Sidebar",
+                        tint = DashboardFondoConfig.ColorRojoCarrera,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isExpanded) "Cerrar Sidebar" else "Abrir Sidebar Módulos",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = DashboardFondoConfig.ColorTextoSecundario
+                )
+            }
+        }
+
+        androidx.compose.animation.AnimatedVisibility(visible = isExpanded) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = DashboardFondoConfig.ColorTarjetaClara,
+                border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(top = 8.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(DashboardFondoConfig.ColorContenedorRojo),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menú Sidebar",
-                            tint = DashboardFondoConfig.ColorRojoCarrera,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
-                    Text(
-                        text = "Módulos & Accesos Rápidos",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = DashboardFondoConfig.ColorTextoPrimario
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.12f)
-                    ) {
-                        Text(
-                            text = if (isExpanded) "Ocultar" else "Ver Sidebar",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = DashboardFondoConfig.ColorRojoCarrera,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        tint = DashboardFondoConfig.ColorTextoSecundario,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            androidx.compose.animation.AnimatedVisibility(visible = isExpanded) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro.copy(alpha = 0.5f))
-
                     Text(
                         text = "🔥 MÓDULOS MÁS USADOS",
                         fontSize = 10.sp,

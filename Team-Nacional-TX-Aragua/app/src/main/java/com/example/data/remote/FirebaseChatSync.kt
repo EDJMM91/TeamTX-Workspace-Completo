@@ -179,7 +179,24 @@ class FirebaseChatSync(
                         val messages = snapshot.documents.mapNotNull { doc ->
                             try {
                                 doc.toObject(ChatMessage::class.java)?.let { msg ->
-                                    msg.copy(id = doc.id.toLongOrNull() ?: msg.id)
+                                    val photo = (msg.senderPhotoUrl ?: "").ifBlank { null }
+                                        ?: doc.getString("senderPhotoUrl")
+                                        ?: doc.getString("photoUrl")
+                                        ?: doc.getString("photo_url")
+                                        ?: doc.getString("foto_url")
+                                        ?: doc.getString("avatarUrl")
+                                    val photoSanitizada = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(photo)
+
+                                    val audio = (msg.audioUrl ?: "").ifBlank { null }
+                                        ?: doc.getString("audioUrl")
+                                        ?: doc.getString("audio_url")
+                                    val audioSanitizado = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(audio)
+
+                                    msg.copy(
+                                        id = doc.id.toLongOrNull() ?: msg.id,
+                                        senderPhotoUrl = photoSanitizada,
+                                        audioUrl = audioSanitizado
+                                    )
                                 }
                             } catch (e: Exception) {
                                 Log.e(TAG, "❌ Error parseando msg ${doc.id}: ${e.message}")

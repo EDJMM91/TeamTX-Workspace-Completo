@@ -2582,7 +2582,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
 
             // 2. Limpiar preferencias de radar (avatar y alias)
             try {
-                app.getSharedPreferences("radar_prefs", Context.MODE_PRIVATE).edit().clear().apply()
+                app.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE).edit().clear().apply()
                 app.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE).edit().clear().apply()
             } catch (_: Exception) {}
 

@@ -1157,7 +1157,7 @@ fun MemberDetailDossierDialog(
                             modifier = Modifier.fillMaxWidth().height(200.dp)
                         ) {
                             AsyncImage(
-                                model = member.bikePhotoUri,
+                                model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(member.bikePhotoUri),
                                 contentDescription = "Foto de la moto de ${member.fullName}",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()

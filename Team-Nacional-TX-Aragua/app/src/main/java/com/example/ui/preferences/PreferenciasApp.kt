@@ -13,10 +13,12 @@ object PreferenciasApp {
 
     private const val PREFS_NAME = "team_tx_app_preferences"
     private lateinit var prefs: SharedPreferences
+    private lateinit var prefsRadar: SharedPreferences
 
     fun init(context: Context) {
         if (!::prefs.isInitialized) {
             prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefsRadar = context.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
             _modoOscuroState.value = prefs.getBoolean("modo_oscuro", false)
         }
     }
@@ -256,7 +258,44 @@ object PreferenciasApp {
         get() = if (::prefs.isInitialized) prefs.getBoolean("directiva_solo_publica_feed", false) else false
         set(value) { if (::prefs.isInitialized) prefs.edit().putBoolean("directiva_solo_publica_feed", value).apply() }
 
-    // ─── PACTO DE HONOR BIKER ──────────────────────────────────────────────────
+    // ─── CARNET TX (PERSISTENCIA TOTAL EN CACHE) ──────────────────────────────
+    var carnetFotoPerfil: String
+        get() = if (::prefsRadar.isInitialized) prefsRadar.getString("radar_avatar", "") ?: "" else ""
+        set(value) { if (::prefsRadar.isInitialized) prefsRadar.edit().putString("radar_avatar", value).apply() }
+
+    var carnetFotoMoto: String
+        get() = if (::prefsRadar.isInitialized) prefsRadar.getString("radar_bike_avatar", "") ?: "" else ""
+        set(value) { if (::prefsRadar.isInitialized) prefsRadar.edit().putString("radar_bike_avatar", value).apply() }
+
+    var carnetMotoMarca: String
+        get() = if (::prefsRadar.isInitialized) prefsRadar.getString("carnet_moto_marca", "") ?: "" else ""
+        set(value) { if (::prefsRadar.isInitialized) prefsRadar.edit().putString("carnet_moto_marca", value).apply() }
+
+    var carnetMotoModelo: String
+        get() = if (::prefsRadar.isInitialized) prefsRadar.getString("carnet_moto_modelo", "") ?: "" else ""
+        set(value) { if (::prefsRadar.isInitialized) prefsRadar.edit().putString("carnet_moto_modelo", value).apply() }
+
+    var carnetMotoPlaca: String
+        get() = if (::prefsRadar.isInitialized) prefsRadar.getString("carnet_moto_placa", "") ?: "" else ""
+        set(value) { if (::prefsRadar.isInitialized) prefsRadar.edit().putString("carnet_moto_placa", value).apply() }
+
+    var carnetMotoColor: String
+        get() = if (::prefsRadar.isInitialized) prefsRadar.getString("carnet_moto_color", "") ?: "" else ""
+        set(value) { if (::prefsRadar.isInitialized) prefsRadar.edit().putString("carnet_moto_color", value).apply() }
+
+    var carnetSangre: String
+        get() = if (::prefsRadar.isInitialized) prefsRadar.getString("carnet_sangre", "") ?: "" else ""
+        set(value) { if (::prefsRadar.isInitialized) prefsRadar.edit().putString("carnet_sangre", value).apply() }
+
+    var carnetSosNombre: String
+        get() = if (::prefsRadar.isInitialized) prefsRadar.getString("carnet_sos_nombre", "") ?: "" else ""
+        set(value) { if (::prefsRadar.isInitialized) prefsRadar.edit().putString("carnet_sos_nombre", value).apply() }
+
+    var carnetSosTelefono: String
+        get() = if (::prefsRadar.isInitialized) prefsRadar.getString("carnet_sos_telefono", "") ?: "" else ""
+        set(value) { if (::prefsRadar.isInitialized) prefsRadar.edit().putString("carnet_sos_telefono", value).apply() }
+
+    // ─── CARNET DIGITAL (VINCULACIÓN GOOGLE Y SESIÓN) ──────────────────────────────────────────────────
 
     /** Verifica si el miembro ya aceptó el compromiso de honor biker y buen uso */
     fun haAceptadoCompromisoBiker(memberId: Long): Boolean {

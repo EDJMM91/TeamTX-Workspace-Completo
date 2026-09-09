@@ -23,6 +23,17 @@ class CalendarSync(
     override fun setId(item: BikerCalendarEvent, id: Long): BikerCalendarEvent = item.copy(id = id)
     override fun getTimestamp(item: BikerCalendarEvent): Long = item.timestamp
 
+    override fun enriquecerCamposImagenes(doc: com.google.firebase.firestore.DocumentSnapshot, item: BikerCalendarEvent): BikerCalendarEvent {
+        val rawFlyer = (item.flyerUrl ?: "").ifBlank { null }
+            ?: doc.getString("flyerUrl")
+            ?: doc.getString("flyer_url")
+            ?: doc.getString("imageUrl")
+            ?: doc.getString("image_url")
+            ?: doc.getString("url")
+        val effectiveUrl = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(rawFlyer)
+        return if (effectiveUrl != item.flyerUrl) item.copy(flyerUrl = effectiveUrl) else item
+    }
+
     fun getOfficialEvents(): Flow<List<BikerCalendarEvent>> = database.calendarDao().getOfficialEvents()
     fun getEventsByDate(date: String): Flow<List<BikerCalendarEvent>> = database.calendarDao().getEventsByDate(date)
 }

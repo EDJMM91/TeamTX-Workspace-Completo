@@ -277,7 +277,7 @@ fun ClubChatScreen(
                                 if (isDirectChatActive && otherDirectMember != null) {
                                     if (!otherDirectMember.profilePhotoUri.isNullOrBlank()) {
                                         coil.compose.AsyncImage(
-                                            model = otherDirectMember.profilePhotoUri,
+                                            model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(otherDirectMember.profilePhotoUri),
                                             contentDescription = otherDirectMember.fullName,
                                             modifier = Modifier.fillMaxSize().clip(CircleShape),
                                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -1825,7 +1825,7 @@ fun ChatMessageBubble(
                 ) {
                     if (!message.senderPhotoUrl.isNullOrBlank()) {
                         coil.compose.SubcomposeAsyncImage(
-                            model = message.senderPhotoUrl,
+                            model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(message.senderPhotoUrl),
                             contentDescription = "Foto de ${message.senderNickname}",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
@@ -1907,7 +1907,7 @@ fun ChatMessageBubble(
                             )
                     ) {
                         coil.compose.SubcomposeAsyncImage(
-                            model = stickerSource,
+                            model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(stickerSource),
                             contentDescription = "Sticker",
                             modifier = Modifier
                                 .size(140.dp)
@@ -2093,22 +2093,26 @@ fun ChatMessageBubble(
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
 
                                     Column(
                                         modifier = Modifier.weight(1f),
                                         verticalArrangement = Arrangement.Center
                                     ) {
+                                        // Barra de progreso centrada
                                         LinearProgressIndicator(
                                             progress = { progress },
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(5.dp)
-                                                .clip(RoundedCornerShape(3.dp)),
+                                                .height(4.dp)
+                                                .clip(RoundedCornerShape(2.dp)),
                                             color = Color(0xFF8C1414),
                                             trackColor = if (isSystemInDarkTheme()) Color.White.copy(alpha = 0.2f) else Color(0xFFCBD5E1),
                                         )
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        
+                                        // Fila con el tiempo y el ícono debajo de la barra
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -2284,7 +2288,7 @@ fun ChatMessageBubble(
                 ) {
                     if (!message.senderPhotoUrl.isNullOrBlank()) {
                         coil.compose.SubcomposeAsyncImage(
-                            model = message.senderPhotoUrl,
+                            model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(message.senderPhotoUrl),
                             contentDescription = "Mi Foto",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
@@ -3265,7 +3269,7 @@ fun PrivateChatsManagerDialog(
                                     ) {
                                         if (!otherMember.profilePhotoUri.isNullOrBlank()) {
                                             coil.compose.AsyncImage(
-                                                model = otherMember.profilePhotoUri,
+                                                model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(otherMember.profilePhotoUri),
                                                 contentDescription = otherMember.fullName,
                                                 modifier = Modifier.fillMaxSize().clip(CircleShape),
                                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
