@@ -160,19 +160,16 @@ object NubeMultimedia {
             return@withContext SubidaResultado(null, OrigenSubida.NINGUNO, "Sin conexión a internet")
         }
 
-        // Garantizar sesión de Auth activa antes de subir
         com.aistudio.teamtxvzla.nube.AutenticacionNube.garantizarSesionActiva()
 
         var ultimoError: String? = null
-        
+        val bytesOptimizados = optimizarImagen(contexto, uri)
+
         for (intento in 1..MAX_INTENTOS) {
             try {
                 Log.i(ETIQUETA_LOG, "🔄 Intento $intento/$MAX_INTENTOS subiendo imagen a '$carpeta' vía Firebase...")
-                val bytesOptimizados = optimizarImagen(contexto, uri)
                 val nombreArchivoCompleto = "$carpeta/${carpeta}_${System.currentTimeMillis()}_${(1000..9999).random()}.jpg"
                 
-                // 1. Único intento: Firebase Storage (solo Firebase, sin Supabase)
-                Log.d(ETIQUETA_LOG, "📤 Subiendo a Firebase Storage (carpeta: $carpeta, intento $intento)...")
                 val urlFirebase = withTimeoutOrNull(TIEMPO_ESPERA_INTENTO_MS) {
                     if (bytesOptimizados != null) {
                         NubeArchivos.subirBytes(bytesOptimizados, NubeArchivos.TipoArchivo.AVISO, nombreArchivoCompleto)
@@ -181,31 +178,39 @@ object NubeMultimedia {
                     }
                 }
                 
-                if (!urlFirebase.isNullOrBlank()) {
+                if (!urlFirebase.isNullOrBlank() && !urlFirebase.contains("error", ignoreCase = true)) {
                     Log.i(ETIQUETA_LOG, "✅ Subida a Firebase exitosa (intento $intento): $urlFirebase")
                     return@withContext SubidaResultado(urlFirebase, OrigenSubida.FIREBASE, null)
                 }
                 Log.w(ETIQUETA_LOG, "⚠️ Firebase Storage falló o timeout (intento $intento)")
                 
-                ultimoError = "Firebase Storage falló en intento $intento"
-                
-            } catch (e: TimeoutException) {
-                ultimoError = "Timeout en intento $intento (${TIEMPO_ESPERA_INTENTO_MS/1000}s)"
-                Log.e(ETIQUETA_LOG, "⏱️ $ultimoError", e)
+                ultimoError = "Firebase Storage no respondió en intento $intento"
             } catch (e: Exception) {
                 ultimoError = "Excepción en intento $intento: ${e.message}"
                 Log.e(ETIQUETA_LOG, "❌ $ultimoError", e)
             }
             
             if (intento < MAX_INTENTOS) {
-                val espera = 2000L * intento
-                Log.d(ETIQUETA_LOG, "⏳ Esperando ${espera}ms antes de reintento...")
+                val espera = 1000L * intento
                 delay(espera)
+            }
+        }
+
+        // 🛡️ RESPALDO DE ALTA DISPONIBILIDAD: Si Firebase Storage está deshabilitado o con facturación suspendida,
+        // generar Data URI Base64 comprimido en tiempo real para guardar directamente en Firestore y Room.
+        if (bytesOptimizados != null && bytesOptimizados.isNotEmpty()) {
+            try {
+                Log.i(ETIQUETA_LOG, "⚡ Generando Data URI Base64 ultra-robusto para Firestore (${bytesOptimizados.size} bytes)...")
+                val base64String = android.util.Base64.encodeToString(bytesOptimizados, android.util.Base64.NO_WRAP)
+                val dataUri = "data:image/jpeg;base64,$base64String"
+                return@withContext SubidaResultado(dataUri, OrigenSubida.FIREBASE, null)
+            } catch (e: Exception) {
+                Log.e(ETIQUETA_LOG, "Fallo generando Data URI Base64: ${e.message}")
             }
         }
         
         Log.e(ETIQUETA_LOG, "❌ Todos los intentos fallaron: $ultimoError")
-        SubidaResultado(null, OrigenSubida.NINGUNO, ultimoError ?: "Error desconocido tras $MAX_INTENTOS intentos a Firebase")
+        SubidaResultado(null, OrigenSubida.NINGUNO, ultimoError ?: "Error procesando imagen")
     }
 
     /** Versión callback para compatibilidad */

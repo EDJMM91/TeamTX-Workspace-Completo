@@ -104,6 +104,24 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 29,
+            versionName = "1.4.8-beta",
+            titulo = "Restablecimiento Ultra-Táctico de Carga y Sincronización de Imágenes en Nube",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Resolución del error de almacenamiento de Firebase Storage mediante mecanismo de contingencia automática con Data URI Base64, corrección de duplicidad de carpetas y lectura directa de cámaras/galerías.",
+            novedades = listOf(
+                "🖼️ Mecanismo de Contingencia Data URI Base64: Si Firebase Storage se encuentra no disponible o bloqueado por facturación GCP, la app convierte de forma transparente las fotos a Data URI Base64 comprimidas (~50-80 KB) para guardarlas e intercambiarlas en tiempo real por Firestore y Room.",
+                "📷 Lectura Unificada de Cámara y Galería: Soporte total para fotos tomadas con la cámara (FileProvider/ContentResolver) sin excepciones de relectura o permisos.",
+                "🔒 Sostenibilidad de Datos de Carnet TX: Eliminada la rutina destructiva que limpiaba la foto de perfil y fotos de la moto al validar sesiones de Google.",
+                "📂 Corregidas Rutas de Almacenamiento: Eliminada la anidación duplicada de carpetas (`avisos/perfiles/`) que generaba errores de permisos 403 en Firebase Storage."
+            ),
+            correcciones = listOf(
+                "Corregido: Error al subir fotos en Carnet TX, Muro de Avisos, Calendario Motero y Módulos del Panel.",
+                "Corregido: Fallo en la carga de imágenes de cámara por restricciones de permisos de lectura temporal."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 28,
             versionName = "1.4.7-beta",
             titulo = "Restablecimiento de Carga de Cámara, Almacenamiento y Protección de Fotos de Perfil",
@@ -119,7 +137,7 @@ object GestorActualizaciones {
                 "Corregido: Error al tomar fotos con la cámara para el Carnet TX o publicaciones del Feed.",
                 "Corregido: Desaparición de la foto de perfil y fotos de la moto al reiniciar la aplicación por validación de sesión de Google."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 27,

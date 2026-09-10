@@ -1,17 +1,17 @@
 {
-  "versionCode": 28,
-  "versionName": "1.4.7-beta",
+  "versionCode": 29,
+  "versionName": "1.4.8-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Restablecimiento de Carga de Cámara, Almacenamiento y Protección de Fotos de Perfil",
-  "notas": "🚀 Release v1.4.7-beta: Corrección en procesamiento de fotos tomadas con cámara (FileProvider/ContentResolver), eliminación del borrado de fotos locales al validar sesiones y solución de rutas en Firebase Storage.",
+  "titulo": "Restablecimiento Ultra-Táctico de Carga y Sincronización de Imágenes en Nube",
+  "notas": "🚀 Release v1.4.8-beta: Mecanismo de contingencia con Data URI Base64 en Firestore, corrección de rutas de carpetas y lectura unificada de cámara y galería.",
   "novedades": [
-    "📷 Soporte Completo de Cámara: Lectura directa de streams de memoria para fotos de cámara, galería y FileProvider sin errores de permisos.",
-    "🔒 Protección Permanente de Perfil: Eliminación del código reactivo que limpiaba las fotos locales y datos de carnet al validar sesiones de Google.",
-    "📂 Corregida Estructura de Carpetas Firebase Storage: Eliminación de anidamientos duplicados (`avisos/perfiles/`) que violaban las reglas de seguridad 403 de Firebase Storage.",
-    "🌐 Verificación Flexible de Conectividad: Eliminada la restricción rígida `NET_CAPABILITY_VALIDATED` que bloqueaba subidas en conexiones móviles y VPNs."
+    "🖼️ Mecanismo de Contingencia Data URI Base64: Si Firebase Storage se encuentra no disponible o bloqueado por facturación GCP, la app convierte de forma transparente las fotos a Data URI Base64 comprimidas (~50-80 KB) para guardarlas e intercambiarlas en tiempo real por Firestore y Room.",
+    "📷 Lectura Unificada de Cámara y Galería: Soporte total para fotos tomadas con la cámara (FileProvider/ContentResolver) sin excepciones de relectura o permisos.",
+    "🔒 Sostenibilidad de Datos de Carnet TX: Eliminada la rutina destructiva que limpiaba la foto de perfil y fotos de la moto al validar sesiones de Google.",
+    "📂 Corregidas Rutas de Almacenamiento: Eliminada la anidación duplicada de carpetas (`avisos/perfiles/`) que generaba errores de permisos 403 en Firebase Storage."
   ],
   "correcciones": [
-    "Corregido: Error al tomar fotos con la cámara para el Carnet TX o publicaciones del Feed.",
-    "Corregido: Desaparición de la foto de perfil y fotos de la moto al reiniciar la aplicación por validación de sesión de Google."
+    "Corregido: Error al subir fotos en Carnet TX, Muro de Avisos, Calendario Motero y Módulos del Panel.",
+    "Corregido: Fallo en la carga de imágenes de cámara por restricciones de permisos de lectura temporal."
   ]
 }

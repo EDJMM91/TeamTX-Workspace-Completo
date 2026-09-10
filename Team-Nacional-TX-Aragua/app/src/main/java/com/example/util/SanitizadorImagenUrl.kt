@@ -52,12 +52,17 @@ object SanitizadorImagenUrl {
                     "$FIREBASE_STORAGE_BASE_URL$encodedPath?alt=media"
                 }
 
-                // 4. URL de Supabase Storage u otros servidores HTTP/HTTPS
+                // 4. Data URIs de imágenes comprimidas en Base64 (Soporte directo de Coil)
+                urlLimpia.startsWith("data:image/") -> {
+                    urlLimpia
+                }
+
+                // 5. URL de Supabase Storage u otros servidores HTTP/HTTPS
                 urlLimpia.contains("supabase.co") || urlLimpia.startsWith("http://") || urlLimpia.startsWith("https://") -> {
                     urlLimpia
                 }
 
-                // 5. URI local de Android
+                // 6. URI local de Android
                 urlLimpia.startsWith("content://") || urlLimpia.startsWith("file://") -> {
                     urlLimpia
                 }
