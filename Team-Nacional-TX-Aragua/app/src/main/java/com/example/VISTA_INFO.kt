@@ -105,7 +105,7 @@ fun VistaInfoScreen(
     var showStorageVersionsDialog by remember { mutableStateOf(false) }
 
     var urlDescargaDirecta by remember {
-        mutableStateOf("https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=e4b308dc-36e2-45e0-8113-d499ec76fce0")
+        mutableStateOf("https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk")
     }
 
     LaunchedEffect(Unit) {
@@ -974,13 +974,14 @@ fun StorageVersionsHistoryDialog(
         cargando = true
         coroutineScope.launch {
             val otaList = GestorActualizaciones.obtenerListaVersionesFirestore()
+            val maxCode = otaList.maxOfOrNull { it.versionCode } ?: 28
             versionsList = otaList.map { ota ->
                 GestorActualizaciones.StorageApkVersion(
                     fileName = "TeamTX-${ota.versionName}.apk",
                     downloadUrl = ota.urlDescarga,
                     sizeBytes = 395443512L,
                     formattedSize = "377.1 MB",
-                    updatedTimestamp = System.currentTimeMillis(),
+                    updatedTimestamp = ota.versionCode * 1000000L,
                     formattedDate = ota.fechaPublicacion,
                     versionName = ota.versionName,
                     versionCode = ota.versionCode,
@@ -990,7 +991,7 @@ fun StorageVersionsHistoryDialog(
                     correcciones = ota.correcciones,
                     isStable = !ota.versionName.contains("beta", ignoreCase = true),
                     isBeta = ota.versionName.contains("beta", ignoreCase = true),
-                    isRecommendedLatest = (ota.versionCode == 27)
+                    isRecommendedLatest = (ota.versionCode == maxCode)
                 )
             }
             cargando = false

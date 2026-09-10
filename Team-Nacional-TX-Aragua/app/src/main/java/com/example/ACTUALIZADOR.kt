@@ -1093,8 +1093,8 @@ object GestorActualizaciones {
     fun abrirDescargaEnNavegador(context: Context, urlDescarga: String) {
         try {
             var urlFinal = urlDescarga.trim()
-            if (urlFinal.isBlank() || urlFinal.contains("github.com")) {
-                urlFinal = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=a0e6f96b-0431-46c4-9413-f40f9288dfcd"
+            if (urlFinal.isBlank() || urlFinal.contains("firebasestorage.googleapis.com")) {
+                urlFinal = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk"
             }
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(urlFinal)).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
