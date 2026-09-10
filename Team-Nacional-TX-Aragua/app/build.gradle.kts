@@ -20,8 +20,8 @@ android {
         applicationId = "com.aistudio.teamtxvzla.rkqp"
         minSdk = 24
         targetSdk = 35
-        versionCode = 30
-        versionName = "1.4.9-beta"
+        versionCode = 31
+        versionName = "1.5.0-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "MASTER_CODE_1", "\"linda19554402\"")

@@ -254,7 +254,7 @@ fun ProfileAndAdminScreen(
                                     ) {
                                         if (!currentMember?.profilePhotoUri.isNullOrBlank()) {
                                             AsyncImage(
-                                                model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(currentMember?.profilePhotoUri),
+                                                model = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(currentMember?.profilePhotoUri),
                                                 contentDescription = "Foto Perfil",
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier.fillMaxSize()
@@ -1450,7 +1450,7 @@ fun EditProfileDialog(
                                 CircularProgressIndicator(color = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(24.dp))
                             } else if (profilePhotoUri != null) {
                                 AsyncImage(
-                                    model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(profilePhotoUri),
+                                    model = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(profilePhotoUri),
                                     contentDescription = "Foto de Perfil",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
@@ -1548,7 +1548,7 @@ fun EditProfileDialog(
                                 CircularProgressIndicator(color = DashboardFondoConfig.ColorDoradoOro, modifier = Modifier.size(32.dp))
                             } else if (bikePhotoUri != null) {
                                 AsyncImage(
-                                    model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(bikePhotoUri),
+                                    model = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(bikePhotoUri),
                                     contentDescription = "Foto de la moto",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()

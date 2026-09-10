@@ -23,14 +23,19 @@ object SanitizadorImagenUrl {
 
         return try {
             when {
-                // 1. Esquema gs:// (Ej: gs://teamnacionaltx.firebasestorage.app/avisos/foto.jpg)
+                // 1. Data URIs de imágenes comprimidas en Base64 (Decodificación a ByteArray para Coil)
+                urlLimpia.startsWith("data:image/") -> {
+                    urlLimpia
+                }
+
+                // 2. Esquema gs:// (Ej: gs://teamnacionaltx.firebasestorage.app/avisos/foto.jpg)
                 urlLimpia.startsWith("gs://") -> {
                     val pathSinGs = urlLimpia.substringAfter("gs://").substringAfter("/")
                     val encodedPath = java.net.URLEncoder.encode(pathSinGs, "UTF-8").replace("+", "%20")
                     "$FIREBASE_STORAGE_BASE_URL$encodedPath?alt=media"
                 }
 
-                // 2. URL de Firebase Storage (Verificar y asegurar ?alt=media)
+                // 3. URL de Firebase Storage (Verificar y asegurar ?alt=media)
                 urlLimpia.contains("firebasestorage.googleapis.com") -> {
                     if (!urlLimpia.contains("alt=media")) {
                         if (urlLimpia.contains("?")) "$urlLimpia&alt=media" else "$urlLimpia?alt=media"
@@ -39,7 +44,7 @@ object SanitizadorImagenUrl {
                     }
                 }
 
-                // 3. Rutas relativas de carpetas de Firebase Storage
+                // 4. Rutas relativas de carpetas de Firebase Storage
                 urlLimpia.startsWith("avisos/") ||
                 urlLimpia.startsWith("imagenes_chat/") ||
                 urlLimpia.startsWith("stickers_chat/") ||
@@ -52,11 +57,6 @@ object SanitizadorImagenUrl {
                     "$FIREBASE_STORAGE_BASE_URL$encodedPath?alt=media"
                 }
 
-                // 4. Data URIs de imágenes comprimidas en Base64 (Soporte directo de Coil)
-                urlLimpia.startsWith("data:image/") -> {
-                    urlLimpia
-                }
-
                 // 5. URL de Supabase Storage u otros servidores HTTP/HTTPS
                 urlLimpia.contains("supabase.co") || urlLimpia.startsWith("http://") || urlLimpia.startsWith("https://") -> {
                     urlLimpia
@@ -67,7 +67,7 @@ object SanitizadorImagenUrl {
                     urlLimpia
                 }
 
-                // 6. Ruta de archivo física local
+                // 7. Ruta de archivo física local
                 urlLimpia.startsWith("/") -> {
                     "file://$urlLimpia"
                 }
@@ -77,6 +77,29 @@ object SanitizadorImagenUrl {
         } catch (e: Exception) {
             Log.w(TAG, "Error sanitizando URL de imagen '$rawUrl': ${e.message}")
             rawUrl
+        }
+    }
+
+    /**
+     * Convierte cualquier cadena de imagen (URL, Data URI Base64, Uri o ruta) en un objeto
+     * que Coil (AsyncImage / SubcomposeAsyncImage) puede cargar directamente.
+     * Si la cadena es un Data URI Base64 ("data:image/..."), la decodifica a ByteArray
+     * para que Coil la renderice de forma nativa e instantánea.
+     */
+    fun obtenerModelParaCoil(rawUrl: String?): Any? {
+        if (rawUrl.isNullOrBlank()) return null
+        val urlLimpia = rawUrl.trim()
+
+        return try {
+            if (urlLimpia.startsWith("data:image/")) {
+                val base64Data = urlLimpia.substringAfter(",")
+                android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+            } else {
+                obtenerUrlEfectiva(urlLimpia)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error decodificando modelo de imagen para Coil: ${e.message}")
+            obtenerUrlEfectiva(urlLimpia)
         }
     }
 }

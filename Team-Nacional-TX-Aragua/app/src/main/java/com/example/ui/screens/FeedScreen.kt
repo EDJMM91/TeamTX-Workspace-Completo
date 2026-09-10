@@ -1054,9 +1054,9 @@ fun NoticeCard(
             // Flyer / Imagen de la publicación (Ancho completo con soporte para tocar y ver pantalla completa)
             if (!pub.imageUrl.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                val imageUrl = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(pub.imageUrl)
-                LaunchedEffect(imageUrl) {
-                    android.util.Log.d("TEAM_TX_IMAGES", "🖼️ Cargando flyer para: ${pub.title} | URL: $imageUrl")
+                val imageModel = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(pub.imageUrl)
+                LaunchedEffect(pub.imageUrl) {
+                    android.util.Log.d("TEAM_TX_IMAGES", "🖼️ Cargando flyer para: ${pub.title} | Raw: ${pub.imageUrl?.take(40)}")
                 }
                 Box(
                     modifier = Modifier
@@ -1065,7 +1065,7 @@ fun NoticeCard(
                         .clickable(onClick = onViewFlyer)
                 ) {
                     SubcomposeAsyncImage(
-                        model = imageUrl,
+                        model = imageModel,
                         contentDescription = "Flyer de la Publicación",
                         loading = {
                             Box(
@@ -2862,7 +2862,7 @@ fun FlyerImageViewerDialog(
             ) {
                 if (!pub.imageUrl.isNullOrBlank()) {
                     SubcomposeAsyncImage(
-                        model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(pub.imageUrl),
+                        model = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(pub.imageUrl),
                         contentDescription = pub.title,
                         loading = {
                             CircularProgressIndicator(color = TxFlameRed, strokeWidth = 3.dp)

@@ -170,7 +170,7 @@ fun ClubTopBar(
                             val photoUri = currentMember?.profilePhotoUri
                             if (!photoUri.isNullOrBlank()) {
                                 AsyncImage(
-                                    model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(photoUri),
+                                    model = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(photoUri),
                                     contentDescription = "Carnet TX",
                                     modifier = Modifier.fillMaxSize().clip(CircleShape),
                                     contentScale = ContentScale.Crop
@@ -377,12 +377,12 @@ fun PilotAvatar(
             contentAlignment = Alignment.Center
         ) {
             if (!member.profilePhotoUri.isNullOrBlank()) {
-                val photoUrl = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(member.profilePhotoUri)
-                LaunchedEffect(photoUrl) {
-                    android.util.Log.d("TEAM_TX_IMAGES", "👤 Cargando Avatar: ${member.nickname} | URL: $photoUrl")
+                val photoModel = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(member.profilePhotoUri)
+                LaunchedEffect(member.profilePhotoUri) {
+                    android.util.Log.d("TEAM_TX_IMAGES", "👤 Cargando Avatar: ${member.nickname}")
                 }
                 AsyncImage(
-                    model = photoUrl,
+                    model = photoModel,
                     contentDescription = member.fullName,
                     onSuccess = { android.util.Log.i("TEAM_TX_IMAGES", "✅ Avatar cargado: ${member.nickname}") },
                     onError = { e -> android.util.Log.e("TEAM_TX_IMAGES", "❌ Error Avatar: ${member.nickname} | ${e.result.throwable.message}") },
@@ -597,13 +597,13 @@ fun DigitalCredentialCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                val photoUrlClean = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(effectivePhotoUrl)
-                if (!photoUrlClean.isNullOrBlank()) {
-                    LaunchedEffect(photoUrlClean) {
-                        android.util.Log.d("TEAM_TX_IMAGES", "📸 Cargando Foto Carnet: ${member.fullName} | URL: $photoUrlClean")
+                val photoModel = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(effectivePhotoUrl)
+                if (photoModel != null) {
+                    LaunchedEffect(effectivePhotoUrl) {
+                        android.util.Log.d("TEAM_TX_IMAGES", "📸 Cargando Foto Carnet: ${member.fullName}")
                     }
                     AsyncImage(
-                        model = photoUrlClean,
+                        model = photoModel,
                             contentDescription = "Foto de carnet",
                             onSuccess = { android.util.Log.i("TEAM_TX_IMAGES", "✅ Foto Carnet cargada: ${member.fullName}") },
                             onError = { e -> android.util.Log.e("TEAM_TX_IMAGES", "❌ Error Foto Carnet: ${member.fullName} | ${e.result.throwable.message}") },

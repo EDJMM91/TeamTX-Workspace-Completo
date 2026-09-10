@@ -2621,7 +2621,7 @@ fun BikerEventCard(
             // Flyer if present
             if (!event.flyerUrl.isNullOrBlank()) {
                 SubcomposeAsyncImage(
-                    model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(event.flyerUrl),
+                    model = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(event.flyerUrl),
                     contentDescription = event.title,
                     modifier = Modifier
                         .fillMaxWidth()

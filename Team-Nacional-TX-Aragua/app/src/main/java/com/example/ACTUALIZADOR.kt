@@ -104,6 +104,23 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 31,
+            versionName = "1.5.0-beta",
+            titulo = "Decodificación Nativa de Data URIs Base64 en Coil para Carga Instantánea de Imágenes",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Creación de `obtenerModelParaCoil` en `SanitizadorImagenUrl` para decodificar cadenas Data URIs Base64 directamente en `ByteArray`, permitiendo que Coil renderice instantáneamente flyers, fotos de perfil, carnet y calendario.",
+            novedades = listOf(
+                "🖼️ Decodificación Nativa en Coil (`obtenerModelParaCoil`): Conversión atómica de Data URIs Base64 a `ByteArray` para que Coil renderice las imágenes inmediatamente sin excepciones de esquema HTTP no soportado.",
+                "📸 Carga Instantánea en Todos los Módulos: Muro de Avisos, Carnet TX, Calendario Motero, Mercado y Radar GPS renderizan instantáneamente las fotos creadas.",
+                "🔒 Sincronización Ininterrumpida: Rendimiento offline y en vivo sin depender de servidores de almacenamiento ni facturación de GCP."
+            ),
+            correcciones = listOf(
+                "Corregido: Error 'Error al cargar la imagen' en flyers de avisos y fotos de carnet que contenían formato Data URI Base64.",
+                "Corregido: Fallo de renderizado en Coil al recibir esquemas de URL `data:image/jpeg;base64`."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 30,
             versionName = "1.4.9-beta",
             titulo = "Restablecimiento Definitivo de Subida de Fotos en Carnet TX y Perfiles",
@@ -118,7 +135,7 @@ object GestorActualizaciones {
                 "Corregido: Mensaje 'Error al subir la foto de perfil' en la ficha de edición de Carnet TX al seleccionar imagen de cámara o galería.",
                 "Corregido: Error de subida en fotos de la moto en el Carnet TX."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 29,
