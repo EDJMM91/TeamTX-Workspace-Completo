@@ -1,17 +1,17 @@
 {
-  "versionCode": 27,
-  "versionName": "1.4.6-beta",
+  "versionCode": 28,
+  "versionName": "1.4.7-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Restablecimiento Total de Carga y Sincronización de Imágenes en Tiempo Real",
-  "notas": "🚀 Release v1.4.6-beta: Creación del sanitizador universal de URLs para Coil, enriquecimiento de esquemas de imagen en Firestore (feed, chat, calendario, carnet, mapa) y normalización de descargas con soporte para gs://, rutas relativas y tokens de Firebase Storage.",
+  "titulo": "Restablecimiento de Carga de Cámara, Almacenamiento y Protección de Fotos de Perfil",
+  "notas": "🚀 Release v1.4.7-beta: Corrección en procesamiento de fotos tomadas con cámara (FileProvider/ContentResolver), eliminación del borrado de fotos locales al validar sesiones y solución de rutas en Firebase Storage.",
   "novedades": [
-    "🖼️ Sanitizador Universal de Imágenes (`SanitizadorImagenUrl`): Normalización automática de esquemas `gs://`, rutas relativas (`avisos/`, `perfiles/`, `imagenes_chat/`) y URLs de Firebase Storage con `alt=media` para carga instantánea en Coil.",
-    "📡 Enriquecimiento en Vivo de Firestore (`BaseFirestoreSync`): Mapeo inteligente con fallbacks de nombres de campo (camelCase / snake_case) para no perder ninguna foto de aviso, flyer o avatar en la sincronización en tiempo real.",
-    "📸 Carga Multimodular Garantizada: Solución aplicada en Muro/Feed, Chat Táctico, Calendario, Carnet TX, Mercado Biker, Directorio de Miembros y Radar GPS.",
-    "🔒 Garantía de Autenticación en Almacenamiento: Sesión activa de Firebase Auth verificada antes de subir o descargar archivos multimedia."
+    "📷 Soporte Completo de Cámara: Lectura directa de streams de memoria para fotos de cámara, galería y FileProvider sin errores de permisos.",
+    "🔒 Protección Permanente de Perfil: Eliminación del código reactivo que limpiaba las fotos locales y datos de carnet al validar sesiones de Google.",
+    "📂 Corregida Estructura de Carpetas Firebase Storage: Eliminación de anidamientos duplicados (`avisos/perfiles/`) que violaban las reglas de seguridad 403 de Firebase Storage.",
+    "🌐 Verificación Flexible de Conectividad: Eliminada la restricción rígida `NET_CAPABILITY_VALIDATED` que bloqueaba subidas en conexiones móviles y VPNs."
   ],
   "correcciones": [
-    "Corregido: Error de carga de imágenes en avisos, chat, carnet y calendario por URLs desformateadas o sin token de acceso de Firebase Storage.",
-    "Corregido: Pérdida de foto de perfil por disparidades entre los campos `fotoPerfilUri` y `profilePhotoUri` al deserializar de Firestore."
+    "Corregido: Error al tomar fotos con la cámara para el Carnet TX o publicaciones del Feed.",
+    "Corregido: Desaparición de la foto de perfil y fotos de la moto al reiniciar la aplicación por validación de sesión de Google."
   ]
 }

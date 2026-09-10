@@ -2468,27 +2468,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                         repository.updateMember(finalMember)
                         clearSession()
                     }
-                } else if (!esDevBypass && (finalMember.email.isNullOrBlank() || finalMember.email?.endsWith("@teamtx.com") == true)) {
-                    // Limpiar también si tenía correos falsos o está sin vincular
-                    finalMember = finalMember.copy(
-                            email = "", 
-                            firebaseUid = null,
-                            profilePhotoUri = null,
-                            bikePhotoUri = null,
-                            licenseImageUri = null,
-                            medicalCertImageUri = null,
-                            bikeRegImageUri = null,
-                            insuranceImageUri = null,
-                            phone = "",
-                            cedulaDni = "",
-                            bikePlate = "",
-                            emergencyContactName = "",
-                            emergencyContactPhone = "",
-                            medicalNotes = "",
-                            copilotName = null,
-                            copilotRelation = null
-                        )
-                    com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl = null
+                } else if (!esDevBypass && finalMember.email?.endsWith("@teamtx.com") == true) {
+                    finalMember = finalMember.copy(email = "")
                     repository.updateMember(finalMember)
                 }
 

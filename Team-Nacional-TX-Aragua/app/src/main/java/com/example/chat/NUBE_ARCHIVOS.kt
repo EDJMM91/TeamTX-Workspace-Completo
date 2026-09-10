@@ -60,8 +60,12 @@ object NubeArchivos {
                 TipoArchivo.AVISO -> ".jpg"
             }
 
-            val nombreArchivo = nombrePersonalizado ?: "${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}$extension"
-            val rutaCompleta = "$carpeta/$nombreArchivo"
+            val rutaCompleta = if (!nombrePersonalizado.isNullOrBlank() && nombrePersonalizado.contains("/")) {
+                nombrePersonalizado
+            } else {
+                val nombreArchivo = nombrePersonalizado ?: "${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}$extension"
+                "$carpeta/$nombreArchivo"
+            }
             val referencia: StorageReference = almacenamiento.reference.child(rutaCompleta)
 
             val tareaSubida: UploadTask = referencia.putFile(uriArchivo)
@@ -99,8 +103,13 @@ object NubeArchivos {
                 TipoArchivo.AVISO -> ".jpg"
             }
 
-            val nombreArchivo = nombrePersonalizado ?: "${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}$extension"
-            val referencia = almacenamiento.reference.child("$carpeta/$nombreArchivo")
+            val rutaCompleta = if (!nombrePersonalizado.isNullOrBlank() && nombrePersonalizado.contains("/")) {
+                nombrePersonalizado
+            } else {
+                val nombreArchivo = nombrePersonalizado ?: "${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}$extension"
+                "$carpeta/$nombreArchivo"
+            }
+            val referencia = almacenamiento.reference.child(rutaCompleta)
 
             val tareaSubida = referencia.putBytes(bytes)
             manejarTareaSubida(tareaSubida, referencia, deferred)

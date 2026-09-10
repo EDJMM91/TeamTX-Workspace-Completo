@@ -116,11 +116,14 @@ object NubeMultimedia {
     }
 
     private fun verificarConectividad(contexto: Context): Boolean {
-        val cm = contexto.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetwork = cm.activeNetwork ?: return false
-        val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-               capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        return try {
+            val cm = contexto.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val activeNetwork = cm.activeNetwork ?: return false
+            val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        } catch (_: Exception) {
+            true
+        }
     }
 
     private fun verificarFirebaseEntornos() {
@@ -166,15 +169,15 @@ object NubeMultimedia {
             try {
                 Log.i(ETIQUETA_LOG, "🔄 Intento $intento/$MAX_INTENTOS subiendo imagen a '$carpeta' vía Firebase...")
                 val bytesOptimizados = optimizarImagen(contexto, uri)
-                val nombreArchivo = "${carpeta}_${System.currentTimeMillis()}_${(1000..9999).random()}.jpg"
+                val nombreArchivoCompleto = "$carpeta/${carpeta}_${System.currentTimeMillis()}_${(1000..9999).random()}.jpg"
                 
                 // 1. Único intento: Firebase Storage (solo Firebase, sin Supabase)
                 Log.d(ETIQUETA_LOG, "📤 Subiendo a Firebase Storage (carpeta: $carpeta, intento $intento)...")
                 val urlFirebase = withTimeoutOrNull(TIEMPO_ESPERA_INTENTO_MS) {
                     if (bytesOptimizados != null) {
-                        NubeArchivos.subirBytes(bytesOptimizados, NubeArchivos.TipoArchivo.AVISO, nombreArchivo)
+                        NubeArchivos.subirBytes(bytesOptimizados, NubeArchivos.TipoArchivo.AVISO, nombreArchivoCompleto)
                     } else {
-                        NubeArchivos.subirArchivo(uri, NubeArchivos.TipoArchivo.AVISO, nombreArchivo)
+                        NubeArchivos.subirArchivo(uri, NubeArchivos.TipoArchivo.AVISO, nombreArchivoCompleto)
                     }
                 }
                 
@@ -280,31 +283,28 @@ object NubeMultimedia {
 
     private fun optimizarImagen(contexto: Context, uri: Uri): ByteArray? {
         return try {
-            // 1. Detectar orientación EXIF para evitar que las fotos grandes se volteen
+            val rawBytes = contexto.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+            if (rawBytes.isEmpty()) return null
+
             var rotationDegrees = 0f
             try {
-                contexto.contentResolver.openInputStream(uri)?.use { exifStream ->
-                    val exif = ExifInterface(exifStream)
-                    val orientation = exif.getAttributeInt(
-                        ExifInterface.TAG_ORIENTATION,
-                        ExifInterface.ORIENTATION_NORMAL
-                    )
-                    rotationDegrees = when (orientation) {
-                        ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-                        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                        else -> 0f
-                    }
+                val exif = ExifInterface(rawBytes.inputStream())
+                val orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+                rotationDegrees = when (orientation) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
                 }
             } catch (e: Exception) {
                 Log.w(ETIQUETA_LOG, "No se pudo leer EXIF de imagen: ${e.message}")
             }
 
-            val input: InputStream? = contexto.contentResolver.openInputStream(uri)
-            val bitmapDecoded = BitmapFactory.decodeStream(input) ?: return null
-            input?.close()
+            val bitmapDecoded = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size) ?: return rawBytes
 
-            // 2. Corregir rotación física si el sensor de la cámara guardó orientación
             val bitmapOriginal = if (rotationDegrees != 0f) {
                 val matrix = Matrix().apply { postRotate(rotationDegrees) }
                 Bitmap.createBitmap(bitmapDecoded, 0, 0, bitmapDecoded.width, bitmapDecoded.height, matrix, true)
@@ -312,7 +312,6 @@ object NubeMultimedia {
                 bitmapDecoded
             }
 
-            // 3. Redimensionar preservando proporción (máximo 1280px para no consumir datos ni almacenamiento)
             val maxDimension = 1280
             val width = bitmapOriginal.width
             val height = bitmapOriginal.height
@@ -336,8 +335,10 @@ object NubeMultimedia {
             bitmapRedimensionado.compress(Bitmap.CompressFormat.JPEG, 85, baos)
             baos.toByteArray()
         } catch (e: Exception) {
-            Log.e(ETIQUETA_LOG, "Error optimizando imagen", e)
-            null
+            Log.e(ETIQUETA_LOG, "Error optimizando imagen: ${e.message}", e)
+            try {
+                contexto.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            } catch (_: Exception) { null }
         }
     }
 

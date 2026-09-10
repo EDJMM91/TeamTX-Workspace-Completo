@@ -104,6 +104,24 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 28,
+            versionName = "1.4.7-beta",
+            titulo = "Restablecimiento de Carga de Cámara, Almacenamiento y Protección de Fotos de Perfil",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Corrección en el procesamiento de fotos tomadas con la cámara, protección de fotos locales al validar sesiones Google y solución de rutas de carpetas en Firebase Storage.",
+            novedades = listOf(
+                "📷 Soporte Completo de Cámara: Lectura directa de streams de memoria para fotos de cámara, galería y FileProvider sin errores de permisos.",
+                "🔒 Protección Permanente de Perfil: Eliminación de la limpieza reactiva de fotos de perfil al restaurar sesión.",
+                "📂 Corregida Estructura de Carpetas Firebase Storage: Eliminación de anidamientos duplicados (`avisos/perfiles/`) que violaban las reglas de seguridad 403 de Firebase Storage.",
+                "🌐 Verificación Flexible de Conectividad: Eliminada la restricción rígida `NET_CAPABILITY_VALIDATED` que bloqueaba subidas en conexiones móviles y VPNs."
+            ),
+            correcciones = listOf(
+                "Corregido: Error al tomar fotos con la cámara para el Carnet TX o publicaciones del Feed.",
+                "Corregido: Desaparición de la foto de perfil y fotos de la moto al reiniciar la aplicación por validación de sesión de Google."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 27,
             versionName = "1.4.6-beta",
             titulo = "Restablecimiento Total de Carga y Sincronización de Imágenes en Tiempo Real",
@@ -119,7 +137,7 @@ object GestorActualizaciones {
                 "Corregido: Error de carga de imágenes en avisos, chat, carnet y calendario por URLs desformateadas o sin token de acceso de Firebase Storage.",
                 "Corregido: Pérdida de foto de perfil por disparidades entre los campos `fotoPerfilUri` y `profilePhotoUri` al deserializar de Firestore."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 26,
