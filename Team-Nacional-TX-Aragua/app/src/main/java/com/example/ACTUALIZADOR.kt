@@ -104,6 +104,23 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 30,
+            versionName = "1.4.9-beta",
+            titulo = "Restablecimiento Definitivo de Subida de Fotos en Carnet TX y Perfiles",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Corrección en los lanzadores de cámara y galería de Carnet TX y Ficha de Piloto para conectar con la subida de contingencia Base64/Firestore, eliminando por completo los errores de subida de fotos.",
+            novedades = listOf(
+                "📇 Subida de Fotos en Carnet TX e Identificación: Conexión directa de los selectores de cámara y galería con el motor de contingencia multimedia NubeMultimedia.",
+                "🖼️ Sincronización Inmediata en Nube: Las fotos de perfil y de la moto se almacenan atómicamente en Firestore y Room local sin fallar ante incidencias de facturación de Storage.",
+                "🔒 Persistencia Garantizada de Fichas Técnicas: Protección permanente de la foto del carnet, fotos de la moto y documentos."
+            ),
+            correcciones = listOf(
+                "Corregido: Mensaje 'Error al subir la foto de perfil' en la ficha de edición de Carnet TX al seleccionar imagen de cámara o galería.",
+                "Corregido: Error de subida en fotos de la moto en el Carnet TX."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 29,
             versionName = "1.4.8-beta",
             titulo = "Restablecimiento Ultra-Táctico de Carga y Sincronización de Imágenes en Nube",
@@ -119,7 +136,7 @@ object GestorActualizaciones {
                 "Corregido: Error al subir fotos en Carnet TX, Muro de Avisos, Calendario Motero y Módulos del Panel.",
                 "Corregido: Fallo en la carga de imágenes de cámara por restricciones de permisos de lectura temporal."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 28,

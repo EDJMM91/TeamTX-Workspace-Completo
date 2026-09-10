@@ -1324,34 +1324,30 @@ fun EditProfileDialog(
             coroutineScope.launch {
                 if (target == "profile") {
                     isUploadingProfile = true
-                    val bytes = context.contentResolver.openInputStream(uriToUpload)?.readBytes()
-                    if (bytes != null) {
-                        val url = NubeArchivos.subirBytes(bytes, NubeArchivos.TipoArchivo.IMAGEN, "profile_${member.id}_${System.currentTimeMillis()}.jpg")
-                        if (url != null) {
-                            profilePhotoUri = url
-                            com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, url)
-                            PreferenciasApp.carnetFotoPerfil = url
-                            Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "Error al subir la foto de perfil", Toast.LENGTH_SHORT).show()
-                        }
+                    com.aistudio.teamtxvzla.nube.AutenticacionNube.garantizarSesionActiva()
+                    val res = com.aistudio.teamtxvzla.nube.NubeMultimedia.subirImagenAvisoAsync(
+                        context, uriToUpload, "perfiles"
+                    )
+                    if (res.url != null) {
+                        profilePhotoUri = res.url
+                        com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, res.url!!)
+                        PreferenciasApp.carnetFotoPerfil = res.url!!
+                        Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "Error al leer imagen", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Error al procesar foto de perfil: ${res.error}", Toast.LENGTH_SHORT).show()
                     }
                     isUploadingProfile = false
                 } else if (target == "bike") {
                     isUploadingBike = true
-                    val bytes = context.contentResolver.openInputStream(uriToUpload)?.readBytes()
-                    if (bytes != null) {
-                        val url = NubeArchivos.subirBytes(bytes, NubeArchivos.TipoArchivo.IMAGEN, "bike_${member.id}_${System.currentTimeMillis()}.jpg")
-                        if (url != null) {
-                            bikePhotoUri = url
-                            Toast.makeText(context, "Foto de la moto actualizada", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "Error al subir la foto de la moto", Toast.LENGTH_SHORT).show()
-                        }
+                    com.aistudio.teamtxvzla.nube.AutenticacionNube.garantizarSesionActiva()
+                    val res = com.aistudio.teamtxvzla.nube.NubeMultimedia.subirImagenAvisoAsync(
+                        context, uriToUpload, "motos"
+                    )
+                    if (res.url != null) {
+                        bikePhotoUri = res.url
+                        Toast.makeText(context, "Foto de la moto actualizada", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "Error al leer imagen", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Error al procesar foto de la moto: ${res.error}", Toast.LENGTH_SHORT).show()
                     }
                     isUploadingBike = false
                 }
@@ -1363,19 +1359,17 @@ fun EditProfileDialog(
         uri?.let {
             coroutineScope.launch {
                 isUploadingProfile = true
-                val bytes = context.contentResolver.openInputStream(it)?.readBytes()
-                if (bytes != null) {
-                    val url = NubeArchivos.subirBytes(bytes, NubeArchivos.TipoArchivo.IMAGEN, "profile_${member.id}_${System.currentTimeMillis()}.jpg")
-                    if (url != null) {
-                        profilePhotoUri = url
-                        com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, url)
-                        PreferenciasApp.carnetFotoPerfil = url
-                        Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Error al subir la imagen", Toast.LENGTH_SHORT).show()
-                    }
+                com.aistudio.teamtxvzla.nube.AutenticacionNube.garantizarSesionActiva()
+                val res = com.aistudio.teamtxvzla.nube.NubeMultimedia.subirImagenAvisoAsync(
+                    context, it, "perfiles"
+                )
+                if (res.url != null) {
+                    profilePhotoUri = res.url
+                    com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, res.url!!)
+                    PreferenciasApp.carnetFotoPerfil = res.url!!
+                    Toast.makeText(context, "Foto de perfil actualizada", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "Error al leer imagen", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Error al procesar imagen: ${res.error}", Toast.LENGTH_SHORT).show()
                 }
                 isUploadingProfile = false
             }
@@ -1386,17 +1380,15 @@ fun EditProfileDialog(
         uri?.let {
             coroutineScope.launch {
                 isUploadingBike = true
-                val bytes = context.contentResolver.openInputStream(it)?.readBytes()
-                if (bytes != null) {
-                    val url = NubeArchivos.subirBytes(bytes, NubeArchivos.TipoArchivo.IMAGEN, "bike_${member.id}_${System.currentTimeMillis()}.jpg")
-                    if (url != null) {
-                        bikePhotoUri = url
-                        Toast.makeText(context, "Foto de la moto actualizada", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Error al subir la imagen", Toast.LENGTH_SHORT).show()
-                    }
+                com.aistudio.teamtxvzla.nube.AutenticacionNube.garantizarSesionActiva()
+                val res = com.aistudio.teamtxvzla.nube.NubeMultimedia.subirImagenAvisoAsync(
+                    context, it, "motos"
+                )
+                if (res.url != null) {
+                    bikePhotoUri = res.url
+                    Toast.makeText(context, "Foto de la moto actualizada", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "Error al leer imagen", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Error al procesar imagen: ${res.error}", Toast.LENGTH_SHORT).show()
                 }
                 isUploadingBike = false
             }

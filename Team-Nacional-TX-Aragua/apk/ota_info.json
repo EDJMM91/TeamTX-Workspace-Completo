@@ -1,17 +1,16 @@
 {
-  "versionCode": 29,
-  "versionName": "1.4.8-beta",
+  "versionCode": 30,
+  "versionName": "1.4.9-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Restablecimiento Ultra-Táctico de Carga y Sincronización de Imágenes en Nube",
-  "notas": "🚀 Release v1.4.8-beta: Mecanismo de contingencia con Data URI Base64 en Firestore, corrección de rutas de carpetas y lectura unificada de cámara y galería.",
+  "titulo": "Restablecimiento Definitivo de Subida de Fotos en Carnet TX y Perfiles",
+  "notas": "🚀 Release v1.4.9-beta: Conexión de lanzadores de cámara y galería de Carnet TX con el motor de subida NubeMultimedia y contingencia Data URI Base64.",
   "novedades": [
-    "🖼️ Mecanismo de Contingencia Data URI Base64: Si Firebase Storage se encuentra no disponible o bloqueado por facturación GCP, la app convierte de forma transparente las fotos a Data URI Base64 comprimidas (~50-80 KB) para guardarlas e intercambiarlas en tiempo real por Firestore y Room.",
-    "📷 Lectura Unificada de Cámara y Galería: Soporte total para fotos tomadas con la cámara (FileProvider/ContentResolver) sin excepciones de relectura o permisos.",
-    "🔒 Sostenibilidad de Datos de Carnet TX: Eliminada la rutina destructiva que limpiaba la foto de perfil y fotos de la moto al validar sesiones de Google.",
-    "📂 Corregidas Rutas de Almacenamiento: Eliminada la anidación duplicada de carpetas (`avisos/perfiles/`) que generaba errores de permisos 403 en Firebase Storage."
+    "📇 Subida de Fotos en Carnet TX e Identificación: Conexión directa de los selectores de cámara y galería con el motor de contingencia multimedia NubeMultimedia.",
+    "🖼️ Sincronización Inmediata en Nube: Las fotos de perfil y de la moto se almacenan atómicamente en Firestore y Room local sin fallar ante incidencias de facturación de Storage.",
+    "🔒 Persistencia Garantizada de Fichas Técnicas: Protección permanente de la foto del carnet, fotos de la moto y documentos."
   ],
   "correcciones": [
-    "Corregido: Error al subir fotos en Carnet TX, Muro de Avisos, Calendario Motero y Módulos del Panel.",
-    "Corregido: Fallo en la carga de imágenes de cámara por restricciones de permisos de lectura temporal."
+    "Corregido: Mensaje 'Error al subir la foto de perfil' en la ficha de edición de Carnet TX al seleccionar imagen de cámara o galería.",
+    "Corregido: Error de subida en fotos de la moto en el Carnet TX."
   ]
 }
