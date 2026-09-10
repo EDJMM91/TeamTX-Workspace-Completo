@@ -1825,7 +1825,7 @@ fun ChatMessageBubble(
                 ) {
                     if (!message.senderPhotoUrl.isNullOrBlank()) {
                         coil.compose.SubcomposeAsyncImage(
-                            model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(message.senderPhotoUrl),
+                            model = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(message.senderPhotoUrl),
                             contentDescription = "Foto de ${message.senderNickname}",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
@@ -2288,7 +2288,7 @@ fun ChatMessageBubble(
                 ) {
                     if (!message.senderPhotoUrl.isNullOrBlank()) {
                         coil.compose.SubcomposeAsyncImage(
-                            model = com.example.util.SanitizadorImagenUrl.obtenerUrlEfectiva(message.senderPhotoUrl),
+                            model = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(message.senderPhotoUrl),
                             contentDescription = "Mi Foto",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop,

@@ -104,6 +104,22 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 32,
+            versionName = "1.5.1-beta",
+            titulo = "Sincronización Unificada de Foto de Perfil en Dashboard y Chat Táctico",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Unificación de la foto de perfil en el avatar del Chat Táctico y en el botón superior derecho del Carnet TX en el Dashboard, garantizando el renderizado idéntico de la foto del piloto.",
+            novedades = listOf(
+                "💬 Foto de Perfil en Chat Táctico: El círculo avatar del piloto que escribe en el Chat Táctico muestra de forma idéntica la foto de perfil configurada en el Carnet TX.",
+                "📊 Botón Carnet TX en Dashboard: El círculo superior derecho del Dashboard integra la misma foto del perfil con fallbacks de respaldo para coincidir 1:1 con el Carnet TX.",
+                "🔒 Asignación Atómica de Mensaje: Asignación automática de foto de perfil con contingencia local al enviar mensajes en cualquier canal del chat."
+            ),
+            correcciones = listOf(
+                "Corregido: Parpadeo o discrepancia entre la foto de perfil del Chat y la foto del botón superior del Dashboard."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 31,
             versionName = "1.5.0-beta",
             titulo = "Decodificación Nativa de Data URIs Base64 en Coil para Carga Instantánea de Imágenes",
@@ -118,7 +134,7 @@ object GestorActualizaciones {
                 "Corregido: Error 'Error al cargar la imagen' en flyers de avisos y fotos de carnet que contenían formato Data URI Base64.",
                 "Corregido: Fallo de renderizado en Coil al recibir esquemas de URL `data:image/jpeg;base64`."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 30,

@@ -104,14 +104,16 @@ fun DashboardHeader(
                     radarAvatar = sharedPrefs.getString("radar_avatar", "") ?: ""
                 }
             }
-            val finalPhotoUri = currentMember?.profilePhotoUri?.takeIf { it.isNotBlank() } ?: radarAvatar.takeIf { it.isNotBlank() }
+            val rawPhoto = currentMember?.profilePhotoUri?.takeIf { it.isNotBlank() }
+                ?: radarAvatar.takeIf { it.isNotBlank() }
+                ?: com.example.ui.preferences.PreferenciasApp.carnetFotoPerfil.takeIf { it.isNotBlank() }
+                ?: com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl?.takeIf { it.isNotBlank() }
 
-            if (finalPhotoUri != null) {
+            val photoModel = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(rawPhoto)
+
+            if (photoModel != null) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(finalPhotoUri)
-                        .crossfade(true)
-                        .build(),
+                    model = photoModel,
                     contentDescription = "Carnet TX",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

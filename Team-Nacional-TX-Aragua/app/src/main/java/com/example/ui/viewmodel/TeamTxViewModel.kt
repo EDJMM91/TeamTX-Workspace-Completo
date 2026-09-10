@@ -2033,6 +2033,10 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val member = currentMember.value
             val roleCfg = roleConfigs.value.find { it.roleKey == (member?.role?.name ?: "MIEMBRO_ACTIVO") }
+            val photoToUse = member?.profilePhotoUri?.takeIf { it.isNotBlank() }
+                ?: com.example.ui.preferences.PreferenciasApp.carnetFotoPerfil.takeIf { it.isNotBlank() }
+                ?: com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl
+
             val message = ChatMessage(
                 id = System.currentTimeMillis(), // 🛡️ ID Manual Atómico
                 channelId = channelId,
@@ -2043,7 +2047,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 senderRole = member?.role ?: MemberRole.MIEMBRO_ACTIVO,
                 senderCustomRoleTitle = roleCfg?.customTitle ?: member?.role?.displayName,
                 senderInitials = member?.avatarInitials ?: "TX",
-                senderPhotoUrl = member?.profilePhotoUri, // 📸 Foto configurada (Google o Manual)
+                senderPhotoUrl = photoToUse, // 📸 Foto configurada (Google o Manual)
                 messageText = text.trim(),
                 isRadioCallout = isRadioCallout,
                 replyToMessageId = replyToMessageId,
