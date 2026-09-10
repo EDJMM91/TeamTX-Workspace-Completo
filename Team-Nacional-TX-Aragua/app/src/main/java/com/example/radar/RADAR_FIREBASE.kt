@@ -17,8 +17,8 @@ object RadarFirebase {
 
     private const val ETIQUETA = "RADAR_FIREBASE"
     private const val COLECCION = "radar_en_vivo"
-    private const val TIMEOUT_MS = 60_000L
-    private const val TIMEOUT_LIMPIEZA_MS = 120_000L
+    private const val TIMEOUT_MS = 12 * 3600_000L
+    private const val TIMEOUT_LIMPIEZA_MS = 24 * 3600_000L
     private const val CARPETA_AVATARS = "radar_avatars"
     private const val ARCHIVO_AVATAR_LOCAL = "avatar_local_permanente.jpg"
     private const val TAM_MAX_AVATAR_PX = 200
@@ -318,6 +318,17 @@ object RadarFirebase {
     fun obtenerAvatar(id: String, url: String, context: Context?): Bitmap? {
         if (url.isNotBlank()) {
             avataresCache[url]?.let { return it }
+            if (url.startsWith("data:image/")) {
+                try {
+                    val base64Data = url.substringAfter(",")
+                    val bytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                    val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    if (bmp != null) {
+                        avataresCache[url] = bmp
+                        return bmp
+                    }
+                } catch (_: Exception) {}
+            }
             val disco = cargarAvatarDeDisco(url)
             if (disco != null) return disco
         }

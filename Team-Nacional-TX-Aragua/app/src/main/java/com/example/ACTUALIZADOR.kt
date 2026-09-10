@@ -104,6 +104,25 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 33,
+            versionName = "1.5.2-beta",
+            titulo = "Rol Desarrollador Inmutable, Eliminación Definitiva, Sincronización de Radar y Fix Mapa",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Asignación inmutable del cargo Desarrollador Máster, designación exclusiva del cargo de Presidente por el Desarrollador, opción 'Eliminar Definitivo' en Directiva, enrutamiento directo de cuentas aprobadas, sincronización bidireccional de 'Mostrarme en el Mapa' y prevención de cierres en el Mapa TX.",
+            novedades = listOf(
+                "💻 Rol Inmutable Desarrollador Máster: Fijación del rol `DESARROLLADOR` para eduardo.androide.em@gmail.com con jerarquía suprema y asignación exclusiva del cargo de Presidente.",
+                "🗑️ Opción 'Eliminar Definitivo': Purga atómica del usuario de todas las colecciones de Firestore (`usuarios`, `users`, `members`, `vinculos_google`) y Room local.",
+                "🚀 Enrutamiento Directo sin Bucles: Las cuentas aprobadas ingresan directo a `MainAppScreen` sin caer en la pantalla de 'Cuenta en evaluación'.",
+                "🛰️ Radar GPS Continuo y Sincronizado: Sincronización bidireccional del interruptor de ubicación entre Ajustes y Mapa TX, con umbral de tolerancia ampliado a 12h.",
+                "📍 Estabilidad en Mapa TX: Prevención de cierres del mapa al tocar marcadores de pilotos y soporte de avatares Base64 en el radar."
+            ),
+            correcciones = listOf(
+                "Corregido: Cierre/crash del mapa al tocar la ficha de un piloto en el Radar GPS.",
+                "Corregido: Sobreescritura del rol del Desarrollador a Presidente durante la vinculación de Google OAuth."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 32,
             versionName = "1.5.1-beta",
             titulo = "Sincronización Unificada de Foto de Perfil en Dashboard y Chat Táctico",
@@ -117,7 +136,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Parpadeo o discrepancia entre la foto de perfil del Chat y la foto del botón superior del Dashboard."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 31,

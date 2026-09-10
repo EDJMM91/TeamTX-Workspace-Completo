@@ -36,6 +36,7 @@ object DialogosMapaTx {
      */
     @JvmStatic
     fun mostrarPiloto(activity: Activity, piloto: PilotoRadar) {
+        if (activity.isFinishing || activity.isDestroyed) return
         if (!piloto.alertaSos.isNullOrBlank()) {
             mostrarDetalleEmergenciaSos(activity, piloto)
         } else {
@@ -48,6 +49,7 @@ object DialogosMapaTx {
      */
     @JvmStatic
     fun mostrarCarnetPiloto(activity: Activity, piloto: PilotoRadar) {
+        if (activity.isFinishing || activity.isDestroyed) return
         val app = activity.application as? OsmandApplication ?: return
         val dialog = Dialog(activity)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -253,7 +255,13 @@ object DialogosMapaTx {
                 dialog.dismiss()
                 val prefs = activity.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
                 prefs.edit().putString("target_carnet_pilot_id", piloto.id).apply()
-                activity.finish() // Regresa a la app para ver el Carnet TX en modo lectura
+                // Mantiene el mapa abierto enfocando al piloto seleccionado
+                val mapView = app.osmandMap?.mapView
+                mapView?.setLatLon(piloto.lat, piloto.lon)
+                if ((mapView?.zoom ?: 0) < 16) {
+                    mapView?.setIntZoom(16)
+                }
+                mapView?.refreshMap(true)
             }
         }
         buttonsCol.addView(btnCarnet)

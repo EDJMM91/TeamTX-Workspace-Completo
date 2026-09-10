@@ -2498,7 +2498,8 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                             val estadoRemoto = docVerif.getString("usuarioEstado") ?: docVerif.getString("estado") ?: "ACTIVO"
                             _usuarioEstado.value = estadoRemoto
                         } else {
-                            _usuarioEstado.value = if (esDevBypass) "ACTIVO" else "PENDIENTE"
+                            val esAspirante = finalMember.role == MemberRole.ASPIRANTE || finalMember.role == MemberRole.INVITADO
+                            _usuarioEstado.value = if (esDevBypass || !esAspirante) "ACTIVO" else "PENDIENTE"
                         }
                     } catch (e: Exception) {
                         _usuarioEstado.value = "ACTIVO"
@@ -2757,7 +2758,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 firebaseUid = uid,
                 email = cleanEmail,
                 solvencyStatus = if (isDev) true else false,
-                role = if (isDev) MemberRole.PRESIDENTE else nuevoPerfil.role,
+                role = if (isDev) MemberRole.DESARROLLADOR else nuevoPerfil.role,
                 isDirectiva = if (isDev) true else nuevoPerfil.isDirectiva
             )
 
@@ -2808,9 +2809,16 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun verificarEstadoFirestore() {
-        val uid = currentMember.value?.firebaseUid?.ifBlank { null }
+        val current = currentMember.value
+        val isApprovedLocal = current != null && current.role != MemberRole.ASPIRANTE && current.role != MemberRole.INVITADO
+        val uid = current?.firebaseUid?.ifBlank { null }
             ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-            ?: return
+
+        if (isApprovedLocal) {
+            _usuarioEstado.value = "ACTIVO"
+        }
+
+        if (uid.isNullOrBlank()) return
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -2821,19 +2829,22 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 if (doc.exists()) {
-                    val nuevoEstado = doc.getString("usuarioEstado") ?: doc.getString("estado") ?: "PENDIENTE"
-                    _usuarioEstado.value = nuevoEstado
+                    val nuevoEstado = doc.getString("usuarioEstado") ?: doc.getString("estado") ?: "ACTIVO"
+                    _usuarioEstado.value = if (isApprovedLocal) "ACTIVO" else nuevoEstado
                     if (nuevoEstado == "ACTIVO") {
-                        currentMember.value?.let { current ->
-                            val updated = current.copy(
-                                solvencyStatus = true
-                            )
+                        currentMember.value?.let { member ->
+                            val updated = member.copy(solvencyStatus = true)
                             repository.updateMember(updated)
                         }
                     }
+                } else if (isApprovedLocal) {
+                    _usuarioEstado.value = "ACTIVO"
                 }
             } catch (e: Exception) {
                 Log.e("TeamTxViewModel", "Error verificando estado Firestore: ${e.message}")
+                if (isApprovedLocal) {
+                    _usuarioEstado.value = "ACTIVO"
+                }
             }
         }
     }
@@ -2942,7 +2953,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             )
             if (isDevEmail) {
                 updated = updated.copy(
-                    role = MemberRole.PRESIDENTE,
+                    role = MemberRole.DESARROLLADOR,
                     isDirectiva = true,
                     isSuspended = false,
                     suspensionReason = "",
@@ -2953,9 +2964,9 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             _currentMemberId.value = updated.id
             _isAuthenticated.value = true
             _usuarioEstado.value = "ACTIVO"
-            if (updated.role == MemberRole.PRESIDENTE || updated.role.canManageApp || updated.isDirectiva) {
+            if (updated.role == MemberRole.PRESIDENTE || updated.role == MemberRole.DESARROLLADOR || updated.role.canManageApp || updated.isDirectiva) {
                 _isDirectivaMode.value = true
-                if (updated.role == MemberRole.PRESIDENTE) _isLeaderSuperAdmin.value = true
+                if (updated.role == MemberRole.PRESIDENTE || updated.role == MemberRole.DESARROLLADOR) _isLeaderSuperAdmin.value = true
             }
             saveSession(updated.id, updated.email, updated.firebaseUid)
             iniciarSincronizacionDePerfil(updated.firebaseUid ?: authUid)
@@ -3802,12 +3813,27 @@ _isAuthenticated.value = true
     }
 
     fun assignMemberRole(member: MemberProfile, newRole: MemberRole) {
+        val caller = currentMember.value
+        val isDevCaller = caller?.role == MemberRole.DESARROLLADOR || caller?.email?.trim()?.lowercase() == "eduardo.androide.em@gmail.com"
+
+        // 🛡️ Jerarquía: Solo el Desarrollador Máster puede asignar o modificar los cargos de Presidente o Desarrollador
+        if ((newRole == MemberRole.PRESIDENTE || newRole == MemberRole.DESARROLLADOR || member.role == MemberRole.DESARROLLADOR) && !isDevCaller) {
+            Log.w("TeamTxViewModel", "⚠️ Solo el Desarrollador Máster puede designar o modificar el cargo de Presidente o Desarrollador.")
+            return
+        }
+
         viewModelScope.launch {
             val updated = member.copy(
                 role = newRole,
-                isDirectiva = newRole.canManageApp || newRole == MemberRole.PRESIDENTE || newRole == MemberRole.CAPITAN_RUTA
+                isDirectiva = newRole.canManageApp || newRole == MemberRole.PRESIDENTE || newRole == MemberRole.CAPITAN_RUTA || newRole == MemberRole.DESARROLLADOR
             )
             repository.updateMember(updated)
+
+            // Sincronizar en Firestore
+            val uid = member.firebaseUid
+            if (!uid.isNullOrBlank()) {
+                PerfilNube.subirPerfil(uid, updated)
+            }
 
             val assignNotice = "🎖️ ASIGNACIÓN DE CARGO: El Líder ha designado a ${member.fullName} (${member.nickname}) como '${newRole.displayName}'."
             repository.insertChatMessage(
@@ -3815,12 +3841,12 @@ _isAuthenticated.value = true
                     id = System.currentTimeMillis(),
                     channelId = "DIRECTIVA",
                     senderMemberId = currentMember.value?.id ?: 2,
-                    senderName = currentMember.value?.fullName ?: "Presidente",
+                    senderName = currentMember.value?.fullName ?: "Desarrollador Máster",
                     senderNickname = "Líder",
                     senderMemberNumber = "TX-001",
-                    senderRole = MemberRole.PRESIDENTE,
-                    senderCustomRoleTitle = "Presidente Nacional",
-                    senderInitials = "CM",
+                    senderRole = currentMember.value?.role ?: MemberRole.DESARROLLADOR,
+                    senderCustomRoleTitle = currentMember.value?.role?.displayName ?: "Desarrollador Máster",
+                    senderInitials = "EM",
                     messageText = assignNotice,
                     isRadioCallout = false,
                     timestamp = System.currentTimeMillis()

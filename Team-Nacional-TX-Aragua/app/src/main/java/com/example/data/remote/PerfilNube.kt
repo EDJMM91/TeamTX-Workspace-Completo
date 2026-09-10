@@ -252,7 +252,7 @@ object PerfilNube {
                             id = 0L,
                             isSuspended = false,
                             suspensionReason = "",
-                            role = com.example.data.model.MemberRole.PRESIDENTE,
+                            role = com.example.data.model.MemberRole.DESARROLLADOR,
                             isDirectiva = true,
                             solvencyStatus = true
                         )
