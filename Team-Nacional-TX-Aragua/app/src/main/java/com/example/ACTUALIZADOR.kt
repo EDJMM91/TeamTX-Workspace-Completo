@@ -104,6 +104,23 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 34,
+            versionName = "1.5.3-beta",
+            titulo = "Fijación Inamovible de Estado Aprobado e Inspección In-Map Táctico sin Salir del Mapa",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Fijación permanente de 'usuarioEstado = ACTIVO' para cuentas aprobadas eliminando el bucle de 'cuenta en evaluación' o 'cuenta verificada', y despliegue del Carnet TX in-map manteniendo el mapa 100% activo.",
+            novedades = listOf(
+                "🚀 Fijación de Estado Aprobado: Cuentas verificadas y aprobadas ingresan directamente a MainAppScreen sin parpadeos ni caídas a 'Cuenta en evaluación'.",
+                "🗺️ Inspección In-Map Táctica: Tocar el marcador o disco de un piloto despliega su Carnet TX flotante directamente sobre el mapa sin cerrar MapActivity ni reiniciar la app.",
+                "🔒 Cero Pantallas Redundantes: Las pantallas de evaluación y verificación inicial se muestran una sola vez en la vida de la cuenta al ser aprobada."
+            ),
+            correcciones = listOf(
+                "Corregido: Cierre de la actividad del mapa al tocar el botón de inspección de un piloto.",
+                "Corregido: Reaparición temporal de la pantalla de 'Cuenta en evaluación' al reanudar la app desde segundo plano o mapas."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 33,
             versionName = "1.5.2-beta",
             titulo = "Rol Desarrollador Inmutable, Eliminación Definitiva, Sincronización de Radar y Fix Mapa",
@@ -120,7 +137,7 @@ object GestorActualizaciones {
                 "Corregido: Cierre/crash del mapa al tocar la ficha de un piloto en el Radar GPS.",
                 "Corregido: Sobreescritura del rol del Desarrollador a Presidente durante la vinculación de Google OAuth."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 32,

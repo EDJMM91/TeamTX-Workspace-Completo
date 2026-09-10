@@ -237,9 +237,9 @@ object DialogosMapaTx {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
 
-        // Botón: Acceder a Carnet TX
+        // Botón: Centrar y Enfocar Piloto
         val btnCarnet = Button(activity).apply {
-            text = "🏍️ Acceder a Carnet TX Completo"
+            text = "📍 Enfocar Piloto en el Mapa"
             setTextColor(Color.BLACK)
             textSize = 14f
             typeface = Typeface.DEFAULT_BOLD
@@ -253,9 +253,6 @@ object DialogosMapaTx {
             }
             setOnClickListener {
                 dialog.dismiss()
-                val prefs = activity.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
-                prefs.edit().putString("target_carnet_pilot_id", piloto.id).apply()
-                // Mantiene el mapa abierto enfocando al piloto seleccionado
                 val mapView = app.osmandMap?.mapView
                 mapView?.setLatLon(piloto.lat, piloto.lon)
                 if ((mapView?.zoom ?: 0) < 16) {

@@ -397,7 +397,13 @@ fun AppEntryPoint(
         // "ACTIVO"         -> MainAppScreen
         val usuarioEstado by viewModel.usuarioEstado.collectAsStateWithLifecycle()
         
-        when (usuarioEstado) {
+        val esAprobadoLocal = currentMember != null &&
+                currentMember?.role != MemberRole.ASPIRANTE &&
+                currentMember?.role != MemberRole.INVITADO
+
+        val estadoEfectivo = if (esAprobadoLocal) "ACTIVO" else usuarioEstado
+
+        when (estadoEfectivo) {
             "NUEVO_REGISTRO" -> {
                 FormularioIngreso(
                     onCompletarRegistro = { nuevoPerfil ->
