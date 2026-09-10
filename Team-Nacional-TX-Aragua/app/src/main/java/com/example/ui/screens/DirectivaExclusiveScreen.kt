@@ -116,6 +116,10 @@ fun DirectivaExclusiveScreen(
     onToggleBlockPrivateGroup: (groupId: String, isBlocked: Boolean, reason: String) -> Unit = { _, _, _ -> },
     onDeletePrivateGroup: (groupId: String) -> Unit = {},
     onCreateOfficialNotice: ((title: String, content: String, priority: String, isPinned: Boolean) -> Unit)? = null,
+    spotReports: List<SpotReport> = emptyList(),
+    interestPoints: List<BikerInterestPoint> = emptyList(),
+    onDismissReport: (SpotReport) -> Unit = {},
+    onDeleteSpot: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -666,6 +670,13 @@ fun DirectivaExclusiveScreen(
                         )
                         9 -> DirectivaConfiguracionClubSection(
                             context = context
+                        )
+                        10 -> DevSpotModerationSection(
+                            context = context,
+                            spotReports = spotReports,
+                            interestPoints = interestPoints,
+                            onDismissReport = onDismissReport,
+                            onDeleteSpot = onDeleteSpot
                         )
                         else -> DirectivaDashboardHubView(
                             invitationCodes = invitationCodes,
@@ -4805,6 +4816,105 @@ fun DirectivaConfiguracionClubSection(
                         Icon(Icons.Default.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Guardar Parámetros Directiva", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DevSpotModerationSection(
+    context: Context,
+    spotReports: List<SpotReport>,
+    interestPoints: List<BikerInterestPoint>,
+    onDismissReport: (SpotReport) -> Unit,
+    onDeleteSpot: (Long) -> Unit
+) {
+    val pendingReports = remember(spotReports) { spotReports.filter { it.status == "PENDIENTE" } }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(
+            color = Color(0xFF1E293B),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Color(0xFF00E5FF)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(Icons.Default.Terminal, contentDescription = null, tint = Color(0xFF00E5FF), modifier = Modifier.size(24.dp))
+                Column {
+                    Text("MODERACIÓN DE PUNTOS Y DENUNCIAS TX", fontWeight = FontWeight.Black, fontSize = 13.sp, color = Color.White)
+                    Text("Panel exclusivo de Desarrollador Máster para auditoría de sitios y reportes", fontSize = 10.5.sp, color = Color(0xFFCBD5E1))
+                }
+            }
+        }
+
+        Text("DENUNCIAS DE PILOTOS PENDIENTES (${pendingReports.size})", fontWeight = FontWeight.Black, fontSize = 12.sp, color = MotoOrangePrimary)
+
+        if (pendingReports.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                Text("No hay denuncias activas de sitios o comercios", color = Color.Gray, fontSize = 13.sp)
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(pendingReports, key = { it.id }) { rep ->
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, StatusError.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("🚨 Denuncia: ${rep.spotName}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = LightTextPrimary)
+                                Surface(color = StatusError.copy(alpha = 0.15f), shape = RoundedCornerShape(4.dp)) {
+                                    Text(rep.spotType, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = StatusError, modifier = Modifier.padding(4.dp))
+                                }
+                            }
+
+                            Text("Denunciante: ${rep.reporterName} (${rep.reporterPhone})", fontSize = 11.sp, color = LightTextSecondary)
+                            Text("Motivo: ${rep.reason}", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = StatusError)
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { onDismissReport(rep) },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Desestimar", fontSize = 11.sp)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        onDeleteSpot(rep.spotId)
+                                        onDismissReport(rep)
+                                        Toast.makeText(context, "🗑️ Sitio eliminado de la plataforma", Toast.LENGTH_SHORT).show()
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = StatusError),
+                                    modifier = Modifier.weight(1.2f)
+                                ) {
+                                    Text("Eliminar Sitio", fontSize = 11.sp, color = Color.White)
+                                }
+                            }
+                        }
                     }
                 }
             }

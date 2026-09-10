@@ -43,9 +43,11 @@ import kotlinx.coroutines.launch
         BikerCalendarEvent::class,
         CancionLocalEntity::class,
         ListaReproduccionEntity::class,
-        EstadoReproductorEntity::class
+        EstadoReproductorEntity::class,
+        BikerInterestPoint::class,
+        SpotReport::class
     ],
-    version = 32, // 🛡️ Módulos: Adición de disabledModulesJson para Killswitch Modular de la Directiva
+    version = 33, // 🛡️ Módulos: Adición de Sitios de Interés TX y Denuncias
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -74,6 +76,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun cancionLocalDao(): CancionLocalDao
     abstract fun listaReproduccionDao(): ListaReproduccionDao
     abstract fun estadoReproductorDao(): EstadoReproductorDao
+    abstract fun interestPointDao(): InterestPointDao
+    abstract fun spotReportDao(): SpotReportDao
     abstract fun globalNukeDao(): GlobalNukeDao
 
     companion object {
@@ -681,6 +685,54 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_32_33 = object : Migration(32, 33) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                try {
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS `biker_interest_points` (
+                            `id` INTEGER PRIMARY KEY NOT NULL,
+                            `name` TEXT NOT NULL,
+                            `category` TEXT NOT NULL,
+                            `description` TEXT NOT NULL,
+                            `address` TEXT NOT NULL,
+                            `latitude` REAL NOT NULL,
+                            `longitude` REAL NOT NULL,
+                            `imageUrl` TEXT,
+                            `iconDrawableName` TEXT NOT NULL DEFAULT 'ic_menu_compass',
+                            `phone` TEXT NOT NULL DEFAULT '',
+                            `addedBy` TEXT NOT NULL DEFAULT 'Piloto Team TX',
+                            `addedByMemberId` INTEGER NOT NULL DEFAULT 0,
+                            `likesCount` INTEGER NOT NULL DEFAULT 0,
+                            `dislikesCount` INTEGER NOT NULL DEFAULT 0,
+                            `likedByMemberIds` TEXT NOT NULL DEFAULT '',
+                            `dislikedByMemberIds` TEXT NOT NULL DEFAULT '',
+                            `reportsCount` INTEGER NOT NULL DEFAULT 0,
+                            `isReported` INTEGER NOT NULL DEFAULT 0,
+                            `reportReason` TEXT,
+                            `timestamp` INTEGER NOT NULL
+                        )
+                    """.trimIndent())
+                } catch (_: Exception) {}
+                try {
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS `spot_reports` (
+                            `id` INTEGER PRIMARY KEY NOT NULL,
+                            `spotId` INTEGER NOT NULL,
+                            `spotName` TEXT NOT NULL,
+                            `spotType` TEXT NOT NULL,
+                            `reporterMemberId` INTEGER NOT NULL,
+                            `reporterName` TEXT NOT NULL,
+                            `reporterPhone` TEXT NOT NULL,
+                            `reason` TEXT NOT NULL,
+                            `status` TEXT NOT NULL DEFAULT 'PENDIENTE',
+                            `reviewedBy` TEXT,
+                            `timestamp` INTEGER NOT NULL
+                        )
+                    """.trimIndent())
+                } catch (_: Exception) {}
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -688,7 +740,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "team_tx_venezuela_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33)
                 .fallbackToDestructiveMigration(dropAllTables = true) // 🛡️ Fuerza la limpieza total para evitar conflicto de IDs
                 .addCallback(DatabaseCallback(scope))
                 .build()

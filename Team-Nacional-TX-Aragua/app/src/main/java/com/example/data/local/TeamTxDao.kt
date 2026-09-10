@@ -260,6 +260,45 @@ interface InvitationCodeDao {
 }
 
 @Dao
+interface InterestPointDao {
+    @Query("SELECT * FROM biker_interest_points ORDER BY timestamp DESC")
+    fun getAllInterestPoints(): Flow<List<BikerInterestPoint>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertInterestPoint(point: BikerInterestPoint): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertInterestPoints(points: List<BikerInterestPoint>)
+
+    @Update
+    suspend fun updateInterestPoint(point: BikerInterestPoint)
+
+    @Delete
+    suspend fun deleteInterestPoint(point: BikerInterestPoint)
+
+    @Query("DELETE FROM biker_interest_points WHERE id = :id")
+    suspend fun deleteInterestPointById(id: Long)
+}
+
+@Dao
+interface SpotReportDao {
+    @Query("SELECT * FROM spot_reports ORDER BY timestamp DESC")
+    fun getAllSpotReports(): Flow<List<SpotReport>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSpotReport(report: SpotReport): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSpotReports(reports: List<SpotReport>)
+
+    @Update
+    suspend fun updateSpotReport(report: SpotReport)
+
+    @Query("DELETE FROM spot_reports WHERE id = :id")
+    suspend fun deleteSpotReportById(id: Long)
+}
+
+@Dao
 interface AccessRequestDao {
     @Query("SELECT * FROM access_requests ORDER BY timestamp DESC")
     fun getAllAccessRequests(): Flow<List<AccessRequest>>

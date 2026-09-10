@@ -4846,6 +4846,184 @@ _isAuthenticated.value = true
             }
         }
     }
+
+    // 🏕️ SITIOS DE INTERÉS TX & MODERACIÓN DE DENUNCIAS
+    val allInterestPoints: StateFlow<List<BikerInterestPoint>> = repository.allInterestPoints
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allSpotReports: StateFlow<List<SpotReport>> = repository.allSpotReports
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun createPuntoTX(
+        name: String,
+        category: String,
+        description: String,
+        address: String,
+        lat: Double,
+        lon: Double,
+        imageUri: Uri? = null,
+        phone: String = "",
+        iconDrawableName: String = "ic_menu_compass",
+        onComplete: (Boolean) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            try {
+                var uploadedUrl: String? = null
+                if (imageUri != null) {
+                    com.aistudio.teamtxvzla.nube.AutenticacionNube.garantizarSesionActiva()
+                    val res = com.aistudio.teamtxvzla.nube.NubeMultimedia.subirImagenAvisoAsync(
+                        getApplication(), imageUri, "puntos_tx"
+                    )
+                    uploadedUrl = res.url
+                }
+
+                val current = currentMember.value
+                val isComercioServicio = category in listOf("Taller Mecánico", "Repuestos", "Autolavado", "Restaurante / Comida", "Posada / Hotel", "Estación de Servicio")
+
+                if (isComercioServicio) {
+                    val workshop = WorkshopDirectoryItem(
+                        id = System.currentTimeMillis(),
+                        name = name,
+                        type = category,
+                        address = address,
+                        phone = phone,
+                        whatsapp = phone,
+                        notes = description,
+                        latitude = lat,
+                        longitude = lon,
+                        recommendedBy = current?.fullName ?: "Piloto TX",
+                        timestamp = System.currentTimeMillis()
+                    )
+                    repository.insertWorkshop(workshop)
+                } else {
+                    val spot = BikerInterestPoint(
+                        id = System.currentTimeMillis(),
+                        name = name,
+                        category = category,
+                        description = description,
+                        address = address,
+                        latitude = lat,
+                        longitude = lon,
+                        imageUrl = uploadedUrl,
+                        iconDrawableName = iconDrawableName,
+                        phone = phone,
+                        addedBy = current?.fullName ?: "Piloto TX",
+                        addedByMemberId = current?.id ?: 0L,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    repository.insertInterestPoint(spot)
+                }
+                onComplete(true)
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error creando punto TX: ${e.message}", e)
+                onComplete(false)
+            }
+        }
+    }
+
+    fun likeSpot(spot: BikerInterestPoint) {
+        val memberId = currentMember.value?.id ?: return
+        viewModelScope.launch {
+            val memberIdStr = memberId.toString()
+            val likesList = spot.likedByMemberIds.split(",").filter { it.isNotBlank() }.toMutableList()
+            val dislikesList = spot.dislikedByMemberIds.split(",").filter { it.isNotBlank() }.toMutableList()
+
+            dislikesList.remove(memberIdStr)
+            if (!likesList.contains(memberIdStr)) {
+                likesList.add(memberIdStr)
+            } else {
+                likesList.remove(memberIdStr)
+            }
+
+            val updated = spot.copy(
+                likesCount = likesList.size,
+                dislikesCount = dislikesList.size,
+                likedByMemberIds = likesList.joinToString(","),
+                dislikedByMemberIds = dislikesList.joinToString(",")
+            )
+            repository.updateInterestPoint(updated)
+        }
+    }
+
+    fun dislikeSpot(spot: BikerInterestPoint) {
+        val memberId = currentMember.value?.id ?: return
+        viewModelScope.launch {
+            val memberIdStr = memberId.toString()
+            val likesList = spot.likedByMemberIds.split(",").filter { it.isNotBlank() }.toMutableList()
+            val dislikesList = spot.dislikedByMemberIds.split(",").filter { it.isNotBlank() }.toMutableList()
+
+            likesList.remove(memberIdStr)
+            if (!dislikesList.contains(memberIdStr)) {
+                dislikesList.add(memberIdStr)
+            } else {
+                dislikesList.remove(memberIdStr)
+            }
+
+            val updated = spot.copy(
+                likesCount = likesList.size,
+                dislikesCount = dislikesList.size,
+                likedByMemberIds = likesList.joinToString(","),
+                dislikedByMemberIds = dislikesList.joinToString(",")
+            )
+            repository.updateInterestPoint(updated)
+        }
+    }
+
+    fun submitSpotReport(spotId: Long, spotName: String, spotType: String, reason: String, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val member = currentMember.value
+                val report = SpotReport(
+                    id = System.currentTimeMillis(),
+                    spotId = spotId,
+                    spotName = spotName,
+                    spotType = spotType,
+                    reporterMemberId = member?.id ?: 0L,
+                    reporterName = member?.fullName ?: "Piloto TX",
+                    reporterPhone = member?.phone ?: "N/A",
+                    reason = reason,
+                    status = "PENDIENTE",
+                    timestamp = System.currentTimeMillis()
+                )
+                repository.insertSpotReport(report)
+
+                notifyDirectivaChannel(
+                    titulo = "🚨 DENUNCIA DE PUNTO TX RECIBIDA",
+                    detalle = "⚠️ El piloto ${report.reporterName} reportó el sitio '$spotName' ($spotType).\n📝 Motivo: $reason\n🔎 Revisa el panel de Moderación de Desarrollador.",
+                    tipo = "DENUNCIA"
+                )
+                onComplete(true)
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error enviando denuncia de sitio: ${e.message}", e)
+                onComplete(false)
+            }
+        }
+    }
+
+    fun dismissReport(report: SpotReport) {
+        viewModelScope.launch {
+            val reviewer = currentMember.value?.fullName ?: "Desarrollador Máster"
+            repository.updateSpotReport(report.copy(status = "DESESTIMADO", reviewedBy = reviewer))
+        }
+    }
+
+    fun updateSpotInfo(spot: BikerInterestPoint, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                repository.updateInterestPoint(spot)
+                onComplete(true)
+            } catch (e: Exception) {
+                Log.e("TeamTxViewModel", "Error actualizando sitio: ${e.message}", e)
+                onComplete(false)
+            }
+        }
+    }
+
+    fun deleteSpotDefinitively(spotId: Long) {
+        viewModelScope.launch {
+            repository.deleteInterestPoint(spotId)
+        }
+    }
 }
 
 

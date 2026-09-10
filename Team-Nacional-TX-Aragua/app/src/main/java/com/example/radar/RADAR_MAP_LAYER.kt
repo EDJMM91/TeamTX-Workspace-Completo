@@ -311,62 +311,99 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
             tileBox.centerPixelY.toFloat()
         )
 
-        // Agrupar pilotos por proximidad visual para manejar solapamiento
+        // Agrupar pilotos por proximidad visual para manejar solapamiento (~35 px)
         val pilotosAgrupados = mutableMapOf<String, MutableList<PilotoRadar>>()
         for (p in pilotos) {
             val pixX = tileBox.getPixXFromLatLon(p.lat, p.lon)
             val pixY = tileBox.getPixYFromLatLon(p.lat, p.lon)
             if (pixX < 0 || pixX > tileBox.pixWidth || pixY < 0 || pixY > tileBox.pixHeight) continue
             
-            // Llave basada en proximidad de 40 píxeles
-            val key = "${(pixX / 40).toInt()},${(pixY / 40).toInt()}"
+            val key = "${(pixX / 35).toInt()},${(pixY / 35).toInt()}"
             pilotosAgrupados.getOrPut(key) { mutableListOf() }.add(p)
         }
 
         for (grupo in pilotosAgrupados.values) {
-            val piloto = grupo.first()
-            val x = tileBox.getPixXFromLatLon(piloto.lat, piloto.lon)
-            val y = tileBox.getPixYFromLatLon(piloto.lat, piloto.lon)
-            val esLocal = grupo.any { it.id == miUserId && miUserId.isNotBlank() }
-            val esSos = grupo.any { !it.alertaSos.isNullOrBlank() }
+            val count = grupo.size
+            val centroX = tileBox.getPixXFromLatLon(grupo.first().lat, grupo.first().lon)
+            val centroY = tileBox.getPixYFromLatLon(grupo.first().lat, grupo.first().lon)
 
-            val avatar = if (esLocal) {
-                RadarFirebase.obtenerAvatarLocal(context) 
-                    ?: (if (piloto.avatarUrl.isNotBlank()) avataresCache[piloto.avatarUrl] ?: RadarFirebase.obtenerAvatarCacheado(piloto.avatarUrl) else null)
-            } else {
-                if (piloto.avatarUrl.isNotBlank()) avataresCache[piloto.avatarUrl] ?: RadarFirebase.obtenerAvatarCacheado(piloto.avatarUrl) else null
-            }
+            if (count == 1) {
+                val piloto = grupo.first()
+                val esLocal = piloto.id == miUserId && miUserId.isNotBlank()
+                val esSos = !piloto.alertaSos.isNullOrBlank()
 
-            val hasOffset = esLocal || esSos
-            val avatarCx = if (hasOffset) x + (OFFSET_LOCAL_X_DP * density) else x
-            val avatarCy = if (hasOffset) y + (OFFSET_LOCAL_Y_DP * density) else y
-
-            if (hasOffset) {
-                if (esSos) {
-                    val colorAlerta = Color.parseColor("#FF1744")
-                    paintPuntoAccidente.color = colorAlerta
-                    canvas.drawCircle(x, y, 7f * density, paintPuntoAccidente)
-                    paintLinea.color = colorAlerta
-                    paintLinea.strokeWidth = 3.5f * density
-                    canvas.drawLine(x, y, avatarCx, avatarCy, paintLinea)
+                val avatar = if (esLocal) {
+                    RadarFirebase.obtenerAvatarLocal(context) 
+                        ?: (if (piloto.avatarUrl.isNotBlank()) avataresCache[piloto.avatarUrl] ?: RadarFirebase.obtenerAvatarCacheado(piloto.avatarUrl) else null)
                 } else {
-                    paintLinea.color = colorPorRango(piloto.rango)
-                    paintLinea.strokeWidth = 2.5f * density
-                    canvas.drawLine(x, y, avatarCx, avatarCy, paintLinea)
+                    if (piloto.avatarUrl.isNotBlank()) avataresCache[piloto.avatarUrl] ?: RadarFirebase.obtenerAvatarCacheado(piloto.avatarUrl) else null
                 }
-            }
 
-            if (avatar != null) {
-                dibujarAvatar(canvas, avatarCx, avatarCy, avatar, radio.toFloat(), piloto)
+                val hasOffset = esLocal || esSos
+                val avatarCx = if (hasOffset) centroX + (OFFSET_LOCAL_X_DP * density) else centroX
+                val avatarCy = if (hasOffset) centroY + (OFFSET_LOCAL_Y_DP * density) else centroY
+
+                if (hasOffset) {
+                    val colorLinea = if (esSos) Color.parseColor("#FF1744") else colorPorRango(piloto.rango)
+                    paintLinea.color = colorLinea
+                    paintLinea.strokeWidth = if (esSos) 3.5f * density else 2.5f * density
+                    canvas.drawLine(centroX, centroY, avatarCx, avatarCy, paintLinea)
+                }
+
+                if (avatar != null) {
+                    dibujarAvatar(canvas, avatarCx, avatarCy, avatar, radio.toFloat(), piloto)
+                } else {
+                    dibujarPlaceholder(canvas, avatarCx, avatarCy, radio.toFloat(), piloto)
+                }
+
+                val labelTexto = if (esLocal) "Tú" else piloto.nombre
+                dibujarLabel(canvas, avatarCx, avatarCy + radio + 16 * density, labelTexto, esSos = esSos)
+
+                if (esSos) {
+                    dibujarIconoEmergencia(canvas, avatarCx, avatarCy, radio.toFloat(), density, piloto)
+                }
             } else {
-                dibujarPlaceholder(canvas, avatarCx, avatarCy, radio.toFloat(), piloto)
-            }
+                // 🌀 ALGORITMO ORBITAL TÁCTICO (SPIDERIFIER): Dispersar los discos en un círculo ordenado para no solaparse
+                val radioOrbita = (36f * density) + (count * 4f * density)
 
-            val labelTexto = if (grupo.size > 1) "👥 ${grupo.size} Pilotos" else if (esLocal && grupo.size == 1) "Tú" else piloto.nombre
-            dibujarLabel(canvas, avatarCx, avatarCy + radio + 16 * density, labelTexto, esSos = esSos)
+                // Dibujar punto central GPS del grupo
+                paintPuntoAccidente.color = Color.parseColor("#FF9800")
+                canvas.drawCircle(centroX, centroY, 6f * density, paintPuntoAccidente)
 
-            if (esSos) {
-                dibujarIconoEmergencia(canvas, avatarCx, avatarCy, radio.toFloat(), density, piloto)
+                for (i in 0 until count) {
+                    val piloto = grupo[i]
+                    val angulo = (2.0 * Math.PI * i) / count
+                    val avatarCx = (centroX + radioOrbita * Math.cos(angulo)).toFloat()
+                    val avatarCy = (centroY + radioOrbita * Math.sin(angulo)).toFloat()
+
+                    val esLocal = piloto.id == miUserId && miUserId.isNotBlank()
+                    val esSos = !piloto.alertaSos.isNullOrBlank()
+
+                    val avatar = if (esLocal) {
+                        RadarFirebase.obtenerAvatarLocal(context)
+                            ?: (if (piloto.avatarUrl.isNotBlank()) avataresCache[piloto.avatarUrl] ?: RadarFirebase.obtenerAvatarCacheado(piloto.avatarUrl) else null)
+                    } else {
+                        if (piloto.avatarUrl.isNotBlank()) avataresCache[piloto.avatarUrl] ?: RadarFirebase.obtenerAvatarCacheado(piloto.avatarUrl) else null
+                    }
+
+                    // Línea táctica desde el centro GPS hasta la posición orbital del piloto
+                    paintLinea.color = if (esSos) Color.parseColor("#FF1744") else colorPorRango(piloto.rango)
+                    paintLinea.strokeWidth = 2.5f * density
+                    canvas.drawLine(centroX, centroY, avatarCx, avatarCy, paintLinea)
+
+                    if (avatar != null) {
+                        dibujarAvatar(canvas, avatarCx, avatarCy, avatar, radio.toFloat(), piloto)
+                    } else {
+                        dibujarPlaceholder(canvas, avatarCx, avatarCy, radio.toFloat(), piloto)
+                    }
+
+                    val labelTexto = if (esLocal) "Tú (${piloto.nombre})" else piloto.nombre
+                    dibujarLabel(canvas, avatarCx, avatarCy + radio + 14 * density, labelTexto, esSos = esSos)
+
+                    if (esSos) {
+                        dibujarIconoEmergencia(canvas, avatarCx, avatarCy, radio.toFloat(), density, piloto)
+                    }
+                }
             }
         }
 
@@ -462,39 +499,56 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         }
 
         for (grupo in pilotosAgrupados.values) {
-            val p = grupo.first()
-            val esLocal = grupo.any { it.id == miUserId }
-            val hasOffset = esLocal || grupo.any { !it.alertaSos.isNullOrBlank() }
+            val count = grupo.size
+            val centroX = tileBox.getPixXFromLatLon(grupo.first().lat, grupo.first().lon)
+            val centroY = tileBox.getPixYFromLatLon(grupo.first().lat, grupo.first().lon)
 
-            val px = tileBox.getPixXFromLatLon(p.lat, p.lon)
-            val py = tileBox.getPixYFromLatLon(p.lat, p.lon)
+            if (count == 1) {
+                val p = grupo.first()
+                val esLocal = p.id == miUserId
+                val hasOffset = esLocal || !p.alertaSos.isNullOrBlank()
 
-            val avatarCx = if (hasOffset) px + OFFSET_LOCAL_X_DP * density else px
-            val avatarCy = if (hasOffset) py + OFFSET_LOCAL_Y_DP * density else py
+                val avatarCx = if (hasOffset) centroX + OFFSET_LOCAL_X_DP * density else centroX
+                val avatarCy = if (hasOffset) centroY + OFFSET_LOCAL_Y_DP * density else centroY
 
-            val esSos = grupo.any { !it.alertaSos.isNullOrBlank() }
-            val radioIcono = (RADIO_ICONO_PX * density).toFloat()
-            val badgeCx = avatarCx + (radioIcono * 0.72f)
-            val badgeCy = avatarCy - (radioIcono * 0.72f)
-            val badgeRadius = radioIcono * 0.54f
+                val dx = point.x - avatarCx
+                val dy = point.y - avatarCy
+                val touchDistSq = dx * dx + dy * dy
 
-            val dx = point.x - avatarCx
-            val dy = point.y - avatarCy
-            val touchDistSq = dx * dx + dy * dy
+                val isNearAvatar = touchDistSq <= (radius * radius * 1.8f)
+                val isNearBase = tileBox.isLatLonNearPixel(p.lat, p.lon, point.x, point.y, radius)
 
-            val dxBadge = point.x - badgeCx
-            val dyBadge = point.y - badgeCy
-            val touchDistBadgeSq = dxBadge * dxBadge + dyBadge * dyBadge
-
-            val isNearAvatar = touchDistSq <= (radius * radius * 1.5f)
-            val isNearBadge = esSos && (touchDistBadgeSq <= (badgeRadius * badgeRadius * 2.5f))
-            val isNearBase = tileBox.isLatLonNearPixel(p.lat, p.lon, point.x, point.y, radius)
-
-            if (isNearAvatar || isNearBadge || isNearBase) {
-                if (grupo.size > 1) {
-                    result.collect(grupo, this) // Enviar el objeto grupo (List)
-                } else {
+                if (isNearAvatar || isNearBase) {
                     result.collect(p, this)
+                }
+            } else {
+                // Detección de toque en posiciones orbitales individuales de cada piloto
+                val radioOrbita = (36f * density) + (count * 4f * density)
+                var pilotoTocado: PilotoRadar? = null
+
+                for (i in 0 until count) {
+                    val p = grupo[i]
+                    val angulo = (2.0 * Math.PI * i) / count
+                    val avatarCx = (centroX + radioOrbita * Math.cos(angulo)).toFloat()
+                    val avatarCy = (centroY + radioOrbita * Math.sin(angulo)).toFloat()
+
+                    val dx = point.x - avatarCx
+                    val dy = point.y - avatarCy
+                    if ((dx * dx + dy * dy) <= (radius * radius * 1.8f)) {
+                        pilotoTocado = p
+                        break
+                    }
+                }
+
+                // Detección de toque en el punto central del grupo GPS
+                val dxCentro = point.x - centroX
+                val dyCentro = point.y - centroY
+                val isNearCenter = (dxCentro * dxCentro + dyCentro * dyCentro) <= (radius * radius * 1.8f)
+
+                if (pilotoTocado != null) {
+                    result.collect(pilotoTocado, this)
+                } else if (isNearCenter) {
+                    result.collect(grupo, this) // Enviar lista completa del grupo
                 }
             }
         }

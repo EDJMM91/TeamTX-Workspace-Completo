@@ -1110,3 +1110,42 @@ data class BikerCalendarEvent(
     var isEventFinished: Boolean = false,
     var timestamp: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "biker_interest_points")
+data class BikerInterestPoint(
+    @PrimaryKey var id: Long = System.currentTimeMillis(),
+    var name: String = "",
+    var category: String = "Mirador / Parador Biker",
+    var description: String = "",
+    var address: String = "",
+    var latitude: Double = 0.0,
+    var longitude: Double = 0.0,
+    var imageUrl: String? = null,
+    var iconDrawableName: String = "ic_menu_compass",
+    var phone: String = "",
+    var addedBy: String = "Piloto Team TX",
+    var addedByMemberId: Long = 0L,
+    var likesCount: Int = 0,
+    var dislikesCount: Int = 0,
+    var likedByMemberIds: String = "",
+    var dislikedByMemberIds: String = "",
+    var reportsCount: Int = 0,
+    var isReported: Boolean = false,
+    var reportReason: String? = null,
+    var timestamp: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "spot_reports")
+data class SpotReport(
+    @PrimaryKey var id: Long = System.currentTimeMillis(),
+    var spotId: Long = 0L,
+    var spotName: String = "",
+    var spotType: String = "SITIO_INTERES",
+    var reporterMemberId: Long = 0L,
+    var reporterName: String = "",
+    var reporterPhone: String = "",
+    var reason: String = "",
+    var status: String = "PENDIENTE",
+    var reviewedBy: String? = null,
+    var timestamp: Long = System.currentTimeMillis()
+)

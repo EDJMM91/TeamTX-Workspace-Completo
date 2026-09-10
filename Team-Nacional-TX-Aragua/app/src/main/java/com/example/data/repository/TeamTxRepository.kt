@@ -212,6 +212,20 @@ class TeamTxRepository(
     suspend fun updateCalendarEvent(event: BikerCalendarEvent) = calendarSync.insertOrUpdate(event)
     suspend fun deleteCalendarEvent(id: Long) = calendarSync.deleteById(id)
 
+    // 🏕️ Sitios de Interés TX & Denuncias
+    private val interestPointSync = InterestPointSync(database, scope)
+    private val spotReportSync = SpotReportSync(database, scope)
+    val allInterestPoints: Flow<List<BikerInterestPoint>> = interestPointSync.getAll()
+    val allSpotReports: Flow<List<SpotReport>> = spotReportSync.getAll()
+
+    suspend fun insertInterestPoint(point: BikerInterestPoint) = interestPointSync.insertOrUpdate(point)
+    suspend fun updateInterestPoint(point: BikerInterestPoint) = interestPointSync.insertOrUpdate(point)
+    suspend fun deleteInterestPoint(id: Long) = interestPointSync.deleteById(id)
+
+    suspend fun insertSpotReport(report: SpotReport) = spotReportSync.insertOrUpdate(report)
+    suspend fun updateSpotReport(report: SpotReport) = spotReportSync.insertOrUpdate(report)
+    suspend fun deleteSpotReport(id: Long) = spotReportSync.deleteById(id)
+
     suspend fun shutdown() {
         firebaseChatSync.shutdown()
         memberSync.shutdown()

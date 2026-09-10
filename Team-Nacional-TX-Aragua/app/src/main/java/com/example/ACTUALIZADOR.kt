@@ -104,6 +104,41 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 36,
+            versionName = "1.6.0-beta",
+            titulo = "Nuevo Módulo 'Sitios de Interés TX', Menú Contextual OsmAnd (logoteam.png), Denuncias, Likes/Dislikes y Moderación Desarrollador",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Nuevo módulo Sitios de Interés TX para la base de datos de destinos turísticos y paradores biker, opción 'Agregar Punto TX' en el menú contextual del mapa con logoteam.png, doble guardado automático en Directorio Comercial o Sitios de Interés, sistema de Likes/Dislikes, denuncias de pilotos y panel de moderación para Desarrollador.",
+            novedades = listOf(
+                "📍 Menú Contextual OsmAnd con logoteam.png: Al dejar presionado cualquier punto en el Mapa TX, se integra la opción 'Agregar Punto TX' identificada con el logotipo oficial logoteam.png sin alterar las funciones nativas de OsmAnd.",
+                "🏕️ Nuevo Módulo 'Sitios de Interés TX': Pantalla oficial para explorar miradores, playas, montañas, paradores biker y campings con navegación GPS paso a paso.",
+                "📝 Categorización e Integración Doble: Los puntos comerciales (talleres, repuestos, posadas, restaurantes) se guardan automáticamente en el Directorio Comercial & Servicios, mientras los puntos turísticos se guardan en la colección sitios_interes.",
+                "👍/👎 Likes, Dislikes y Denuncias Tácticas: Sistema de reputación y denuncias enviadas en tiempo real al canal de la Directiva.",
+                "💻 Moderación de Desarrollador Máster: Apartado exclusivo en el panel de Gobernanza para auditar denuncias, editar información o eliminar sitios definitivamente."
+            ),
+            correcciones = listOf(
+                "Corregido: Falta de integración de puntos de interés turístico en el mapa con persistencia local y nube."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
+            versionCode = 35,
+            versionName = "1.5.4-beta",
+            titulo = "Algoritmo Orbital Táctico (Discos sin Solapamiento) y Lista por Jerarquía de Roles In-Map",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Implementación del algoritmo de dispersión orbital para evitar el solapamiento de avatares en el mismo punto GPS y despliegue de lista táctica de pilotos ordenada por rango institucional.",
+            novedades = listOf(
+                "🌀 Algoritmo Orbital Spiderifier: Dispersión circular automática de avatares cuando 2 o más pilotos están en un rango de 30m, conectados por líneas tácticas al centro GPS.",
+                "👥 Lista Táctica Ordenada por Jerarquía: Al tocar un grupo de pilotos en el mapa, se despliega una lista ordenada por rango institucional (Desarrollador -> Presidente -> Directiva -> Capitán -> Disciplinario -> Miembro).",
+                "📍 Toques Orbitales Directos: Detección precisa de toques en cada disco orbital individual para inspección fluida sin salir del mapa."
+            ),
+            correcciones = listOf(
+                "Corregido: Solapamiento visual de avatares cuando dos pilotos están en la misma ubicación GPS.",
+                "Corregido: Detección de toques en grupos de pilotos cercanos."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
             versionCode = 34,
             versionName = "1.5.3-beta",
             titulo = "Fijación Inamovible de Estado Aprobado e Inspección In-Map Táctico sin Salir del Mapa",
@@ -118,7 +153,7 @@ object GestorActualizaciones {
                 "Corregido: Cierre de la actividad del mapa al tocar el botón de inspección de un piloto.",
                 "Corregido: Reaparición temporal de la pantalla de 'Cuenta en evaluación' al reanudar la app desde segundo plano o mapas."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 33,

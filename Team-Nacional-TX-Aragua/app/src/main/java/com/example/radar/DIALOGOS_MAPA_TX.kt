@@ -1249,11 +1249,28 @@ object DialogosMapaTx {
         }
     }
 
+    private fun obtenerJerarquiaRol(rangoStr: String): Int {
+        val r = rangoStr.trim().lowercase()
+        return when {
+            r.contains("desarrollador") || r.contains("master") || r.contains("máster") -> 100
+            r.contains("presidente") || r.contains("líder") || r.contains("lider") -> 90
+            r.contains("vicepresidente") -> 80
+            r.contains("directiva") -> 70
+            r.contains("capitán") || r.contains("capitan") || r.contains("puntero") -> 60
+            r.contains("disciplinario") || r.contains("tribunal") -> 50
+            r.contains("secretario") || r.contains("tesorero") || r.contains("redes") -> 40
+            r.contains("mecanico") || r.contains("mecánico") || r.contains("seguridad") -> 30
+            r.contains("miembro") || r.contains("piloto") -> 20
+            else -> 10
+        }
+    }
+
     /**
-     * Muestra una lista de pilotos agrupados en la misma ubicación.
+     * Muestra una lista de pilotos agrupados en la misma ubicación, ordenada por jerarquía de rango.
      */
     @JvmStatic
     fun mostrarListaPilotos(activity: Activity, grupo: List<PilotoRadar>) {
+        if (activity.isFinishing || activity.isDestroyed) return
         val dialog = Dialog(activity)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
 
@@ -1269,7 +1286,7 @@ object DialogosMapaTx {
         }
 
         val tvTitle = TextView(activity).apply {
-            text = "👥 PILOTOS AGRUPADOS (${grupo.size})"
+            text = "👥 PILOTOS EN EL SITIO (${grupo.size})"
             setTextColor(Color.WHITE)
             textSize = 15f
             typeface = Typeface.DEFAULT_BOLD
@@ -1279,12 +1296,14 @@ object DialogosMapaTx {
         root.addView(tvTitle)
 
         val scrollView = ScrollView(activity).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (300 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (320 * density).toInt())
         }
         
         val listContainer = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
 
-        grupo.forEach { piloto ->
+        val grupoOrdenado = grupo.sortedByDescending { obtenerJerarquiaRol(it.rango) }
+
+        grupoOrdenado.forEach { piloto ->
             val row = LinearLayout(activity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -2106,6 +2125,240 @@ object DialogosMapaTx {
         dialog.setContentView(rootLayout)
         dialog.window?.let { w ->
             w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            w.setGravity(Gravity.CENTER)
+            w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+        dialog.show()
+    }
+
+    /**
+     * Formulario flotante para crear un Punto TX (Interés o Comercio) desde el menú contextual del mapa.
+     */
+    @JvmStatic
+    fun mostrarFormularioCrearPuntoTX(
+        activity: Activity,
+        lat: Double,
+        lon: Double,
+        onCreatePunto: (name: String, category: String, description: String, address: String, lat: Double, lon: Double, imageUri: Uri?, phone: String) -> Unit
+    ) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        val dialog = Dialog(activity)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val density = activity.resources.displayMetrics.density
+        val root = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 16 * density
+                setColor(Color.parseColor("#181818"))
+            }
+            setPadding((16 * density).toInt(), (14 * density).toInt(), (16 * density).toInt(), (18 * density).toInt())
+        }
+
+        // Header con logotipo logoteam.png
+        val headerRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, (10 * density).toInt())
+        }
+
+        val logoImg = ImageView(activity).apply {
+            layoutParams = LinearLayout.LayoutParams((28 * density).toInt(), (28 * density).toInt()).apply {
+                marginEnd = (10 * density).toInt()
+            }
+            val resId = activity.resources.getIdentifier("logoteam", "drawable", activity.packageName)
+            if (resId != 0) setImageResource(resId)
+        }
+        headerRow.addView(logoImg)
+
+        val tvTitle = TextView(activity).apply {
+            text = "📍 AGREGAR PUNTO TX / COMERCIO"
+            setTextColor(Color.WHITE)
+            textSize = 14f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        headerRow.addView(tvTitle)
+        root.addView(headerRow)
+
+        // Formulario en ScrollView
+        val scrollView = ScrollView(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (340 * density).toInt())
+        }
+        val formCol = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
+
+        // Campo Nombre
+        val etNombre = EditText(activity).apply {
+            hint = "Nombre del Sitio o Negocio (ej. Mirador Choroní)"
+            setHintTextColor(Color.parseColor("#888888"))
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#262626"))
+                setStroke((1 * density).toInt(), Color.parseColor("#444444"))
+            }
+            setPadding((10 * density).toInt(), (10 * density).toInt(), (10 * density).toInt(), (10 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+        formCol.addView(etNombre)
+
+        // Categoría Spinner / Selector
+        val tvCatLabel = TextView(activity).apply {
+            text = "Categoría del Punto:"
+            setTextColor(Color.parseColor("#FF9800"))
+            textSize = 11f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, (4 * density).toInt())
+        }
+        formCol.addView(tvCatLabel)
+
+        val categorias = arrayOf(
+            "Mirador / Parador Biker",
+            "Playa / Costa",
+            "Montaña / Ruta",
+            "Camping / Descanso",
+            "Punto de Encuentro",
+            "Taller Mecánico",
+            "Repuestos",
+            "Autolavado",
+            "Restaurante / Comida",
+            "Posada / Hotel",
+            "Estación de Servicio"
+        )
+
+        val spinnerCat = Spinner(activity).apply {
+            adapter = ArrayAdapter(activity, android.R.layout.simple_spinner_dropdown_item, categorias)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#262626"))
+                setStroke((1 * density).toInt(), Color.parseColor("#FF9800"))
+            }
+            setPadding((8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+        formCol.addView(spinnerCat)
+
+        // Campo Descripción
+        val etDesc = EditText(activity).apply {
+            hint = "Descripción / Notas para los pilotos..."
+            setHintTextColor(Color.parseColor("#888888"))
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            minLines = 2
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#262626"))
+                setStroke((1 * density).toInt(), Color.parseColor("#444444"))
+            }
+            setPadding((10 * density).toInt(), (10 * density).toInt(), (10 * density).toInt(), (10 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+        formCol.addView(etDesc)
+
+        // Campo Dirección
+        val etDireccion = EditText(activity).apply {
+            hint = "Dirección / Referencia de la ruta..."
+            setHintTextColor(Color.parseColor("#888888"))
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            setText("Lat: %.4f, Lon: %.4f".format(lat, lon))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#262626"))
+                setStroke((1 * density).toInt(), Color.parseColor("#444444"))
+            }
+            setPadding((10 * density).toInt(), (10 * density).toInt(), (10 * density).toInt(), (10 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+        formCol.addView(etDireccion)
+
+        // Campo Teléfono
+        val etTel = EditText(activity).apply {
+            hint = "Teléfono de Contacto / WhatsApp (Opcional)"
+            setHintTextColor(Color.parseColor("#888888"))
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#262626"))
+                setStroke((1 * density).toInt(), Color.parseColor("#444444"))
+            }
+            setPadding((10 * density).toInt(), (10 * density).toInt(), (10 * density).toInt(), (10 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+        formCol.addView(etTel)
+
+        scrollView.addView(formCol)
+        root.addView(scrollView)
+
+        // Botones de acción
+        val btnRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, (12 * density).toInt(), 0, 0)
+        }
+
+        val btnCancelar = Button(activity).apply {
+            text = "Cancelar"
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#333333"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply { marginEnd = (8 * density).toInt() }
+            setOnClickListener { dialog.dismiss() }
+        }
+        btnRow.addView(btnCancelar)
+
+        val btnGuardar = Button(activity).apply {
+            text = "Guardar Punto TX"
+            setTextColor(Color.BLACK)
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#FF9800"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1.4f)
+            setOnClickListener {
+                val nombre = etNombre.text.toString().trim()
+                val desc = etDesc.text.toString().trim()
+                val dir = etDireccion.text.toString().trim()
+                val tel = etTel.text.toString().trim()
+                val cat = spinnerCat.selectedItem.toString()
+
+                if (nombre.isNotBlank()) {
+                    onCreatePunto(nombre, cat, desc, dir, lat, lon, null, tel)
+                    dialog.dismiss()
+                    Toast.makeText(activity, "✅ Punto '$nombre' registrado en $cat", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(activity, "Ingresa el nombre del sitio o negocio", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        btnRow.addView(btnGuardar)
+        root.addView(btnRow)
+
+        dialog.setContentView(root)
+        dialog.window?.let { w ->
+            w.setLayout((activity.resources.displayMetrics.widthPixels * 0.92f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
             w.setGravity(Gravity.CENTER)
             w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }

@@ -105,7 +105,8 @@ enum class NavigationTab(val label: String, val iconFilled: ImageVector, val ico
     CONFIGURACIONES("Ajustes", Icons.Default.Settings, Icons.Outlined.Settings, "tab_configuraciones"),
     MESHTX("Mesh TX", Icons.Default.Podcasts, Icons.Default.Podcasts, "tab_meshtx"),
     REDES("Redes TX", Icons.Default.Share, Icons.Outlined.Share, "tab_redes"),
-    RUTAS("Rutas TX", Icons.Default.Navigation, Icons.Outlined.Navigation, "tab_rutas")
+    RUTAS("Rutas TX", Icons.Default.Navigation, Icons.Outlined.Navigation, "tab_rutas"),
+    SITIOS_INTERES("Sitios TX", Icons.Default.Explore, Icons.Outlined.Explore, "tab_sitios_interes")
 }
 
 class MainActivity : ComponentActivity() {
@@ -1377,7 +1378,11 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                                 priority = if (prio == "URGENTE") NoticePriority.URGENTE else if (prio == "IMPORTANTE") NoticePriority.IMPORTANTE else NoticePriority.NORMAL,
                                 isPinned = pinned
                             )
-                        }
+                        },
+                        spotReports = viewModel.allSpotReports.collectAsStateWithLifecycle().value ?: emptyList(),
+                        interestPoints = viewModel.allInterestPoints.collectAsStateWithLifecycle().value ?: emptyList(),
+                        onDismissReport = { viewModel.dismissReport(it) },
+                        onDeleteSpot = { viewModel.deleteSpotDefinitively(it) }
                     )
                 }
                 NavigationTab.MAPA -> {
@@ -1464,6 +1469,21 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     com.example.rutas.VistaRutasScreen(
                         currentMember = currentMember,
                         onVolver = { selectedTab = NavigationTab.DASHBOARD }
+                    )
+                }
+                NavigationTab.SITIOS_INTERES -> {
+                    SitiosInteresScreen(
+                        interestPoints = viewModel.allInterestPoints.collectAsStateWithLifecycle().value ?: emptyList(),
+                        currentMember = currentMember,
+                        onNavigateToMap = { _ ->
+                            selectedTab = NavigationTab.MAPA
+                        },
+                        onLikeSpot = { spot -> viewModel.likeSpot(spot) },
+                        onDislikeSpot = { spot -> viewModel.dislikeSpot(spot) },
+                        onSubmitReport = { spotId, spotName, spotType, reason ->
+                            viewModel.submitSpotReport(spotId, spotName, spotType, reason)
+                        },
+                        onBack = { selectedTab = NavigationTab.DASHBOARD }
                     )
                 }
             }
