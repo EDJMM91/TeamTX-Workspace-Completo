@@ -104,6 +104,22 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 47,
+            versionName = "1.8.5-beta",
+            titulo = "Detección Dinámica de Versión OTA v1.8.5-beta y Sincronización Inmediata",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Resolución de la versión histórica '1.3.8' reemplazándola dinámicamente por la versión oficial v1.8.5-beta (Build 47) en las consultas OTA de Firebase Storage y ota_info.json.",
+            novedades = listOf(
+                "🔄 Detección OTA Dinámica: Eliminación de fallbacks estáticos para que el módulo Info/OTA consulte y descargue directamente la Build 47 (v1.8.5-beta).",
+                "🚀 Actualización Inmediata por Voz y GPS: Enrutamiento directo y mapa dinámico para comercios, talleres y sitios de interés TX.",
+                "📡 Sincronización Total Nube/Storage: Descarga e instalación ininterrumpida de APKs sin referencias a versiones legacy."
+            ),
+            correcciones = listOf(
+                "Corregido: Detección de versión previa '1.3.8' en las consultas OTA de Firebase Storage."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 46,
             versionName = "1.8.4-beta",
             titulo = "Botón Compartir Universal, Captura de Coordenadas Táctica y Enrutamiento Unificado",
@@ -117,7 +133,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Falta de botón para compartir datos completos de puntos y comercios."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 45,
@@ -817,29 +833,24 @@ object GestorActualizaciones {
                         val isStable = !isBeta || item.name.contains("estable", ignoreCase = true) || item.name.contains("latest", ignoreCase = true)
                         val isLatest = item.name.equals("TeamTX-latest.apk", ignoreCase = true)
 
+                        val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
+
                         val vName = when {
                             item.name.contains("v", ignoreCase = true) -> {
                                 val match = Regex("""v\d+(\.\d+)*(-[a-zA-Z0-9]+)?""").find(item.name)
                                 match?.value ?: item.name.removeSuffix(".apk")
                             }
-                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v1.3.8-beta (Última)"
+                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v${latestTop.versionName} (Última)"
                             else -> item.name.removeSuffix(".apk")
                         }
 
                         val estimatedCode = when {
+                            isLatest -> latestTop.versionCode
+                            item.name.contains("1.8") -> 46
+                            item.name.contains("1.7") -> 39
+                            item.name.contains("1.6") -> 36
+                            item.name.contains("1.5") -> 31
                             item.name.contains("1.3.8") -> 19
-                            isLatest -> 19
-                            item.name.contains("1.3.7") -> 18
-                            item.name.contains("1.3.6") -> 17
-                            item.name.contains("1.3.5") -> 16
-                            item.name.contains("1.4") -> 14
-                            item.name.contains("1.3.4") -> 14
-                            item.name.contains("1.3.3") -> 14
-                            item.name.contains("1.3.2") -> 14
-                            item.name.contains("1.3.1") -> 13
-                            item.name.contains("1.3.0") -> 12
-                            item.name.contains("1.3") -> 12
-                            item.name.contains("1.2") -> 11
                             else -> 10
                         }
 
@@ -873,7 +884,7 @@ object GestorActualizaciones {
             versions.sortWith(compareByDescending<StorageApkVersion> { it.isRecommendedLatest }.thenByDescending { it.updatedTimestamp })
 
             if (versions.isEmpty()) {
-                val detalleTop = obtenerDetalleVersion(18, "1.3.7-beta")
+                val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
                 versions.add(
                     StorageApkVersion(
                         fileName = "TeamTX-latest.apk",
@@ -881,13 +892,13 @@ object GestorActualizaciones {
                         sizeBytes = 395443512L,
                         formattedSize = "377.1 MB",
                         updatedTimestamp = System.currentTimeMillis(),
-                        formattedDate = "07 sep 2026, 11:30 AM",
-                        versionName = "v1.3.7-beta (Recomendada)",
-                        versionCode = 18,
-                        titulo = detalleTop.titulo,
-                        notas = detalleTop.descripcionCorta,
-                        novedades = detalleTop.novedades,
-                        correcciones = detalleTop.correcciones,
+                        formattedDate = "11 sep 2026, 03:00 PM",
+                        versionName = "v${latestTop.versionName} (Recomendada)",
+                        versionCode = latestTop.versionCode,
+                        titulo = latestTop.titulo,
+                        notas = latestTop.descripcionCorta,
+                        novedades = latestTop.novedades,
+                        correcciones = latestTop.correcciones,
                         isStable = true,
                         isBeta = false,
                         isRecommendedLatest = true
@@ -898,7 +909,7 @@ object GestorActualizaciones {
             versions
         } catch (e: Exception) {
             Log.e(TAG, "Error listando versiones de Firebase Storage: ${e.message}", e)
-            val detalleTop = obtenerDetalleVersion(19, "1.3.8-beta")
+            val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
             listOf(
                 StorageApkVersion(
                     fileName = "TeamTX-latest.apk",
@@ -906,13 +917,13 @@ object GestorActualizaciones {
                     sizeBytes = 395443512L,
                     formattedSize = "377.1 MB",
                     updatedTimestamp = System.currentTimeMillis(),
-                    formattedDate = "07 sep 2026, 01:40 PM",
-                    versionName = "v1.3.8-beta (Recomendada)",
-                    versionCode = 19,
-                    titulo = detalleTop.titulo,
-                    notas = detalleTop.descripcionCorta,
-                    novedades = detalleTop.novedades,
-                    correcciones = detalleTop.correcciones,
+                    formattedDate = "11 sep 2026, 03:00 PM",
+                    versionName = "v${latestTop.versionName} (Recomendada)",
+                    versionCode = latestTop.versionCode,
+                    titulo = latestTop.titulo,
+                    notas = latestTop.descripcionCorta,
+                    novedades = latestTop.novedades,
+                    correcciones = latestTop.correcciones,
                     isStable = true,
                     isBeta = false,
                     isRecommendedLatest = true
@@ -1130,16 +1141,16 @@ object GestorActualizaciones {
         } else if (infoFirestore != null) {
             infoFirestore
         } else {
-            val detalleV19 = obtenerDetalleVersion(19, "1.3.8-beta")
+            val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
             InformacionOta(
-                versionCode = 19,
-                versionName = "1.3.8-beta",
-                titulo = detalleV19.titulo,
+                versionCode = latestTop.versionCode,
+                versionName = latestTop.versionName,
+                titulo = latestTop.titulo,
                 urlDescarga = urlOficialFirebaseStorage,
-                notas = detalleV19.descripcionCorta,
-                novedades = detalleV19.novedades,
-                correcciones = detalleV19.correcciones,
-                fechaPublicacion = detalleV19.fecha
+                notas = latestTop.descripcionCorta,
+                novedades = latestTop.novedades,
+                correcciones = latestTop.correcciones,
+                fechaPublicacion = latestTop.fecha
             )
         }
 
