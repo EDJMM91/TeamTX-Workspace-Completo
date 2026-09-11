@@ -156,9 +156,9 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         BentoGridCard(
-                            titulo = "Directorio & Puntos",
-                            subtitulo = "Comercios y miradores",
-                            icono = Icons.Default.Storefront,
+                            titulo = "Directorio Global TX",
+                            subtitulo = "Comercios, rutas y puntos",
+                            icono = Icons.Default.Explore,
                             colorIcono = Color(0xFF00897B),
                             colorFondoIcono = Color(0xFFE0F2F1),
                             onClick = {
@@ -452,9 +452,9 @@ fun DashboardScreen(
 
             item {
                 ModuleListRow(
-                    titulo = "Directorio Comercial & Puntos TX",
+                    titulo = "Directorio Global & Puntos TX",
                     descripcion = "Comercios, talleres, servicios, miradores y destinos turísticos",
-                    icono = Icons.Default.Storefront,
+                    icono = Icons.Default.Explore,
                     colorIcono = Color(0xFF00897B),
                     onClick = {
                         com.example.ui.preferences.PreferenciasApp.registrarUsoModulo("DIRECTORIO")

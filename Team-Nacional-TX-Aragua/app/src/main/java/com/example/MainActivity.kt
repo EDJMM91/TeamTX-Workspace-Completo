@@ -91,7 +91,7 @@ enum class NavigationTab(val label: String, val iconFilled: ImageVector, val ico
     RIDES("Rodadas", Icons.Default.TwoWheeler, Icons.Outlined.TwoWheeler, "tab_rides"),
     MERCADO("Mercado", Icons.Default.ShoppingCart, Icons.Outlined.ShoppingCart, "tab_mercado"),
     BITACORA("Bitácora", Icons.Default.Build, Icons.Outlined.Build, "tab_bitacora"),
-    DIRECTORIO("Servicios", Icons.Default.Storefront, Icons.Outlined.Storefront, "tab_directorio"),
+    DIRECTORIO("Directorio Global", Icons.Default.Explore, Icons.Outlined.Explore, "tab_directorio"),
     PASAPORTE("Pasaporte", Icons.Default.Explore, Icons.Outlined.Explore, "tab_pasaporte"),
     MEMBERS("Miembros", Icons.Default.Groups, Icons.Outlined.Groups, "tab_members"),
     FINANCES("Tesorería", Icons.Default.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet, "tab_finances"),

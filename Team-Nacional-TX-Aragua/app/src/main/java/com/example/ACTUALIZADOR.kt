@@ -104,6 +104,23 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 43,
+            versionName = "1.8.1-beta",
+            titulo = "Directorio Global TX Unificado con Icono Explícito de Mapa y Puntos Turísticos",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Unificación oficial del módulo bajo el nombre 'Directorio Global TX', icono alusivo a mapa/exploración (Icons.Default.Explore) en el Dashboard y registro de puntos unificado desde la app o mapa.",
+            novedades = listOf(
+                "🌐 Directorio Global TX Unificado: Módulo oficial renombrado a 'Directorio Global TX' en la barra superior, Bento Grid y catálogo general del Dashboard.",
+                "🧭 Icono Alusivo a Mapa y Directorio: Iconografía oficial de exploración/mapa (`Icons.Default.Explore`) en todas las tarjetas del Dashboard.",
+                "➕ Registro Unificado de Puntos y Comercios: Formulario 'Registrar Punto de Interés / Comercio' unificado para la base de datos de la plataforma."
+            ),
+            correcciones = listOf(
+                "Corregido: Eliminación de botones duplicados en la barra superior del módulo.",
+                "Corregido: Nomenclatura del módulo en la navegación principal."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 42,
             versionName = "1.8.0-beta",
             titulo = "Capa de Mapa Táctico Sitios de Interés TX, Captura de Fotos, Navegación GPS por Voz y Moderación de Denuncias",
@@ -120,7 +137,7 @@ object GestorActualizaciones {
                 "Corregido: Falta de renderizado directo de puntos de interés turístico en el mapa.",
                 "Corregido: Apertura fluida de fichas in-map al tocar marcadores turísticos."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 41,

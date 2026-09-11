@@ -162,13 +162,13 @@ fun WorkshopDirectoryScreen(
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Text("🏪", fontSize = 18.sp)
+                                Text("🌐", fontSize = 18.sp)
                             }
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Directorio Comercial & Servicios", fontWeight = FontWeight.Black, fontSize = 16.sp, color = DashboardFondoConfig.ColorTextoPrimario)
-                            Text("Talleres, Repuestos, Autolavados y Auxilio Vial", fontSize = 11.sp, color = DashboardFondoConfig.ColorTextoSecundario)
+                            Text("Directorio Global TX", fontWeight = FontWeight.Black, fontSize = 16.sp, color = DashboardFondoConfig.ColorTextoPrimario)
+                            Text("Comercios, servicios, miradores y destinos turísticos", fontSize = 11.sp, color = DashboardFondoConfig.ColorTextoSecundario)
                         }
                     }
                 },
@@ -178,43 +178,21 @@ fun WorkshopDirectoryScreen(
                     }
                 },
                 actions = {
-                    if (isAuthorizedAdmin) {
-                        IconButton(onClick = { showCreateDialog = true }) {
-                            Icon(Icons.Default.AddBusiness, contentDescription = "Registrar Comercio", tint = MotoOrangePrimary)
-                        }
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF1F5F9),
-                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                        modifier = Modifier
-                            .padding(end = 12.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onBack() }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Home, contentDescription = "Inicio", tint = MotoOrangePrimary, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Inicio", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
-                        }
+                    IconButton(onClick = { showCreateDialog = true }) {
+                        Icon(Icons.Default.AddLocationAlt, contentDescription = "Registrar Punto de Interés o Comercio", tint = MotoOrangePrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
         floatingActionButton = {
-            if (isAuthorizedAdmin) {
-                ExtendedFloatingActionButton(
-                    onClick = { showCreateDialog = true },
-                    containerColor = TxFlameRed,
-                    contentColor = Color.White,
-                    icon = { Icon(Icons.Default.AddBusiness, contentDescription = null) },
-                    text = { Text("Registrar Negocio", fontWeight = FontWeight.Bold) }
-                )
-            }
+            ExtendedFloatingActionButton(
+                onClick = { showCreateDialog = true },
+                containerColor = TxFlameRed,
+                contentColor = Color.White,
+                icon = { Icon(Icons.Default.AddLocationAlt, contentDescription = null) },
+                text = { Text("Registrar Punto / Comercio", fontWeight = FontWeight.Bold) }
+            )
         },
         containerColor = DashboardFondoConfig.ColorFondoClaro
     ) { padding ->

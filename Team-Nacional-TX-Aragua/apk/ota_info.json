@@ -1,18 +1,16 @@
 {
-  "versionCode": 42,
-  "versionName": "1.8.0-beta",
+  "versionCode": 43,
+  "versionName": "1.8.1-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Capa de Mapa Táctico Sitios de Interés TX, Captura de Fotos, Navegación GPS por Voz y Moderación de Denuncias",
-  "notas": "🚀 Release v1.8.0-beta: Renderizado completo en tiempo real de sitios turísticos y paradores en el Mapa TX, captura de fotos por cámara/galería, inyección automática de rutas guiadas por voz en OsmAnd, acciones de WhatsApp/Llamar y moderación de denuncias en Directiva.",
+  "titulo": "Directorio Global TX Unificado con Icono Explícito de Mapa y Puntos Turísticos",
+  "notas": "🚀 Release v1.8.1-beta: Unificación oficial del módulo bajo el nombre 'Directorio Global TX', icono alusivo a mapa/exploración (Icons.Default.Explore) en el Dashboard y registro de puntos unificado desde la app o mapa.",
   "novedades": [
-    "🏕️ Capa de Mapa Sitios de Interés TX: Visualización de marcadores e iconos personalizados para miradores, playas, cascadas y paradores biker en el mapa con botón toggle.",
-    "📸 Captura de Foto con Cámara y Galería: Selector en el formulario para tomar fotos con la cámara o elegir de la galería con resguardo atómico en nube.",
-    "🚀 Navegación Nativa por Voz: Tocar 'Navegar con GPS' en cualquier ficha in-map inyecta el destino e inicia la ruta por voz automáticamente en OsmAnd.",
-    "💬 Acciones Tácticas Directas: Integración de botones directos de WhatsApp y Llamadas telefónicas en todas las fichas del mapa.",
-    "🚩 Moderación de Denuncias para Directiva: Tarjeta 10 en el Hub de Directiva para auditar reportes, editar o eliminar sitios en tiempo real."
+    "🌐 Directorio Global TX Unificado: Módulo oficial renombrado a 'Directorio Global TX' en la barra superior, Bento Grid y catálogo general del Dashboard.",
+    "🧭 Icono Alusivo a Mapa y Directorio: Iconografía oficial de exploración/mapa (`Icons.Default.Explore`) en todas las tarjetas del Dashboard.",
+    "➕ Registro Unificado de Puntos y Comercios: Formulario 'Registrar Punto de Interés / Comercio' unificado para la base de datos de la plataforma."
   ],
   "correcciones": [
-    "Corregido: Falta de renderizado directo de puntos de interés turístico en el mapa.",
-    "Corregido: Apertura fluida de fichas in-map al tocar marcadores turísticos."
+    "Corregido: Eliminación de botones duplicados en la barra superior del módulo.",
+    "Corregido: Nomenclatura del módulo en la navegación principal."
   ]
 }
