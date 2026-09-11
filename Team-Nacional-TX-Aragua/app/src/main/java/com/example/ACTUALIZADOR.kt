@@ -104,6 +104,23 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 48,
+            versionName = "1.8.6-beta",
+            titulo = "Unificación Total de Formulario de Registro y Edición de Comercios/Sitios TX",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Consolidación de los diálogos de creación y edición en un único formulario interactivo completo con cámara, galería, íconos tácticos, Cashea, WhatsApp y extractor GPS de mapa.",
+            novedades = listOf(
+                "📝 Formulario Unificado Completo: Editar o crear comercios y puntos turísticos utiliza exactamente el mismo diálogo enriquecido con todas las opciones.",
+                "📸 Fotos y Discos en Mapa: Permite capturar foto con cámara o galería en edición y renderizarla como avatar circular en el mapa.",
+                "💳 Cashea y Datos Financieros: Checkbox unificado de convenio Cashea con generación de insignias flotantes en mapa.",
+                "📍 Extractor GPS Integrado: Botón 'Seleccionar Coordenadas en Mapa TX' integrado para edición y registro."
+            ),
+            correcciones = listOf(
+                "Corregido: Separación previa entre formularios de creación y edición de comercios."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 47,
             versionName = "1.8.5-beta",
             titulo = "Detección Dinámica de Versión OTA v1.8.5-beta y Sincronización Inmediata",
@@ -117,7 +134,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Detección de versión previa '1.3.8' en las consultas OTA de Firebase Storage."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 46,

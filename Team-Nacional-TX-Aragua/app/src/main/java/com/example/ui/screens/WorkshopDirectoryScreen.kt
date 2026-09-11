@@ -1448,308 +1448,33 @@ fun EditCommercialServiceDialog(
     onConfirm: (WorkshopDirectoryItem) -> Unit
 ) {
     val context = LocalContext.current
-    var name by remember { mutableStateOf(item.name) }
-    var type by remember { mutableStateOf(item.type) }
-    var state by remember { mutableStateOf(item.state) }
-    var city by remember { mutableStateOf(item.city) }
-    var address by remember { mutableStateOf(item.address) }
-    var phone by remember { mutableStateOf(item.phone) }
-    var whatsapp by remember { mutableStateOf(item.whatsapp) }
-    var notes by remember { mutableStateOf(item.notes) }
-    var hasCredit by remember { mutableStateOf(item.hasCredit || item.creditPlatforms.isNotBlank()) }
-    var creditPlatforms by remember { mutableStateOf(item.creditPlatforms) }
-    var googleMapsUrl by remember { mutableStateOf(item.googleMapsUrl) }
-    var rating by remember { mutableStateOf(item.rating) }
-    var latStr by remember { mutableStateOf(item.latitude.toString()) }
-    var lngStr by remember { mutableStateOf(item.longitude.toString()) }
-
-    val mapLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) {
-        try {
-            val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val text = clip.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-            val coords = extraerCoordenadasDeTexto(text)
-            if (coords != null) {
-                latStr = coords.first.toString()
-                lngStr = coords.second.toString()
-                Toast.makeText(context, "📍 Coordenada tomada del mapa: ${coords.first}, ${coords.second} ✓", Toast.LENGTH_LONG).show()
+    LaunchedEffect(Unit) {
+        val act = (context as? android.app.Activity)
+        if (act != null) {
+            com.example.radar.DialogosMapaTx.mostrarFormularioCrearPuntoTX(
+                act, item.latitude, item.longitude
+            ) { name, cat, desc, addr, latVal, lonVal, imageUri, phone, iconName ->
+                val hasCasheaCredit = desc.contains("[CASHEA]") || cat.contains("Cashea", ignoreCase = true)
+                val updated = item.copy(
+                    name = name,
+                    type = cat,
+                    address = addr,
+                    phone = phone,
+                    whatsapp = phone,
+                    notes = desc.replace("[CASHEA]", "").trim(),
+                    hasCredit = hasCasheaCredit,
+                    creditPlatforms = if (hasCasheaCredit) "Cashea" else "",
+                    latitude = latVal,
+                    longitude = lonVal,
+                    iconDrawableName = iconName,
+                    timestamp = System.currentTimeMillis()
+                )
+                onConfirm(updated)
             }
-        } catch (_: Exception) {}
+        } else {
+            onDismiss()
+        }
     }
-
-    val states = listOf(
-        "Aragua", "Carabobo", "Distrito Capital", "Miranda", "Lara", "Falcón", "Zulia",
-        "Táchira", "Mérida", "Guárico", "Anzoátegui", "Bolívar", "Yaracuy", "Portuguesa", "Barinas"
-    )
-    val types = listOf(
-        "Venta de Repuestos TX",
-        "Taller Mecánico",
-        "Tienda de Accesorios",
-        "Cauchera & Vulcanizadora",
-        "Autolavado Motero",
-        "Electricidad & Baterías",
-        "Tornería & Soldadura",
-        "Auxilio Vial 24H"
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("✏️ Editar Comercio / Taller", fontWeight = FontWeight.Black, color = Color(0xFF0F172A)) },
-        text = {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Nombre del Local / Taller *") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                item {
-                    Text("Tipo de Servicio:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(types) { t ->
-                            FilterChip(
-                                selected = type == t,
-                                onClick = { type = t },
-                                label = { Text(t, fontSize = 11.sp) }
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedTextField(
-                            value = state,
-                            onValueChange = { state = it },
-                            label = { Text("Estado") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = city,
-                            onValueChange = { city = it },
-                            label = { Text("Ciudad / Municipio") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                item {
-                    OutlinedTextField(
-                        value = address,
-                        onValueChange = { address = it },
-                        label = { Text("Dirección Exacta") },
-                        placeholder = { Text("Av. Principal, Sector, etc.") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                item {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedTextField(
-                            value = phone,
-                            onValueChange = { phone = it },
-                            label = { Text("Teléfono") },
-                            placeholder = { Text("0412-...") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = whatsapp,
-                            onValueChange = { whatsapp = it },
-                            label = { Text("WhatsApp") },
-                            placeholder = { Text("0412...") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                item {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.CreditCard, contentDescription = null, tint = MotoGoldSecondary)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("¿Acepta Crédito? (Cashea, etc.)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                }
-                                Switch(
-                                    checked = hasCredit,
-                                    onCheckedChange = { hasCredit = it }
-                                )
-                            }
-                            if (hasCredit) {
-                                OutlinedTextField(
-                                    value = creditPlatforms,
-                                    onValueChange = { creditPlatforms = it },
-                                    label = { Text("Plataformas / Convenios") },
-                                    placeholder = { Text("Cashea / Rapikom / Convenio Team TX") },
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    OutlinedTextField(
-                        value = googleMapsUrl,
-                        onValueChange = { googleMapsUrl = it },
-                        label = { Text("Link de Google Maps") },
-                        placeholder = { Text("https://maps.app.goo.gl/...") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                item {
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        label = { Text("Repuestos disponibles / Especialidad") },
-                        placeholder = { Text("Ej: Kits de arrastre, cauchos, rectificación...") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                item {
-                    Text("📍 Ubicación Geográfica en Mapa TX:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MotoGoldSecondary)
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                val intent = Intent(context, net.osmand.plus.activities.MapActivity::class.java)
-                                Toast.makeText(context, "🗺️ Toca un punto en el mapa y copia sus coordenadas", Toast.LENGTH_LONG).show()
-                                mapLauncher.launch(intent)
-                            },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(14.dp), tint = MotoOrangePrimary)
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text("🗺️ Mapa TX", fontSize = 10.sp)
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val text = clip.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-                                if (text.isNotBlank()) {
-                                    if (text.startsWith("http")) {
-                                        googleMapsUrl = text
-                                    }
-                                    val coords = extraerCoordenadasDeTexto(text)
-                                    if (coords != null) {
-                                        latStr = coords.first.toString()
-                                        lngStr = coords.second.toString()
-                                        Toast.makeText(context, "📍 Coordenadas extraídas: ${coords.first}, ${coords.second}", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "Link de Google Maps copiado ✓", Toast.LENGTH_SHORT).show()
-                                    }
-                                } else {
-                                    Toast.makeText(context, "El portapapeles está vacío", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text("📋 Pegar GPS", fontSize = 10.sp)
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                val prefs = context.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
-                                val lastLat = prefs.getString("last_lat", null)?.toDoubleOrNull()
-                                val lastLon = prefs.getString("last_lon", null)?.toDoubleOrNull()
-                                if (lastLat != null && lastLon != null && lastLat != 0.0) {
-                                    latStr = lastLat.toString()
-                                    lngStr = lastLon.toString()
-                                    Toast.makeText(context, "📍 Posición GPS actual fijada ✓", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    latStr = item.latitude.toString()
-                                    lngStr = item.longitude.toString()
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
-                        ) {
-                            Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text("📍 Mi GPS", fontSize = 10.sp)
-                        }
-                    }
-                }
-
-                item {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedTextField(
-                            value = latStr,
-                            onValueChange = { latStr = it },
-                            label = { Text("Latitud") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = lngStr,
-                            onValueChange = { lngStr = it },
-                            label = { Text("Longitud") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (name.isNotBlank()) {
-                        val lat = latStr.toDoubleOrNull() ?: item.latitude
-                        val lng = lngStr.toDoubleOrNull() ?: item.longitude
-                        val updated = item.copy(
-                            name = name,
-                            type = type,
-                            state = state,
-                            city = city,
-                            address = address,
-                            phone = phone,
-                            whatsapp = whatsapp,
-                            notes = notes,
-                            latitude = lat,
-                            longitude = lng,
-                            rating = rating,
-                            hasCredit = hasCredit,
-                            creditPlatforms = if (hasCredit) creditPlatforms else "",
-                            googleMapsUrl = googleMapsUrl,
-                            timestamp = System.currentTimeMillis()
-                        )
-                        onConfirm(updated)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary)
-            ) {
-                Text("Guardar Cambios", color = Color.Black, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar", color = Color(0xFF64748B)) }
-        },
-        containerColor = Color.White
-    )
 }
 
 // ═══════════════════════════════════════════════════════════════════════

@@ -1,15 +1,16 @@
 {
-  "versionCode": 46,
-  "versionName": "1.8.4-beta",
+  "versionCode": 48,
+  "versionName": "1.8.6-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Botón Compartir Universal, Captura de Coordenadas Táctica y Enrutamiento Unificado",
-  "notas": "🚀 Release v1.8.4-beta: Inclusión del botón 'Compartir Universal' en tarjetas del directorio y discos in-map, extractor táctico de coordenadas GPS en formulario y enrutamiento en el Mapa TX.",
+  "titulo": "Unificación Total de Formulario de Registro y Edición de Comercios/Sitios TX",
+  "notas": "🚀 Release v1.8.6-beta: Consolidación de los diálogos de creación y edición en un único formulario interactivo completo con cámara, galería, íconos tácticos, Cashea, WhatsApp y extractor GPS de mapa.",
   "novedades": [
-    "📤 Botón Compartir Universal: Compartir instantáneo vía WhatsApp, Telegram o cualquier app instalada con la ficha formateada del sitio (Nombre, Dirección, Coordenadas y WhatsApp).",
-    "📍 Extractor Táctico de Coordenadas: Botón 'Seleccionar Coordenadas en Mapa TX' para tocar cualquier punto en el mapa y capturar su ubicación exacta de regreso al formulario.",
-    "🗺️ Enfoque e Inyección Directa en Mapa: Enrutamiento directo al tocar 'Mapa TX' enfocando las coordenadas e iniciando la navegación."
+    "📝 Formulario Unificado Completo: Editar o crear comercios y puntos turísticos utiliza exactamente el mismo diálogo enriquecido con todas las opciones.",
+    "📸 Fotos y Discos en Mapa: Permite capturar foto con cámara o galería en edición y renderizarla como avatar circular en el mapa.",
+    "💳 Cashea y Datos Financieros: Checkbox unificado de convenio Cashea con generación de insignias flotantes en mapa.",
+    "📍 Extractor GPS Integrado: Botón 'Seleccionar Coordenadas en Mapa TX' integrado para edición y registro."
   ],
   "correcciones": [
-    "Corregido: Falta de botón para compartir datos completos de puntos y comercios."
+    "Corregido: Separación previa entre formularios de creación y edición de comercios."
   ]
 }
