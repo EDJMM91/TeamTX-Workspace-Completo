@@ -198,11 +198,17 @@ fun PilotStatusCard(
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
+                    val tituloRolUsuario = when (currentMember?.role) {
+                        MemberRole.INVITADO -> "INVITADO"
+                        MemberRole.COPILOTO -> "COPILOTO"
+                        else -> "PILOTO"
+                    }
+
                     Text(
-                        text = "PILOTO AUTENTICADO",
+                        text = tituloRolUsuario,
                         fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DashboardFondoConfig.ColorTextoSecundario,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF00E676),
                         letterSpacing = 0.5.sp
                     )
                     Text(
@@ -313,7 +319,7 @@ fun DashboardSidebarBar(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.Start
     ) {
         // Pestaña/Píldora táctica discreta sin texto para desplegar la Sidebar
         Surface(

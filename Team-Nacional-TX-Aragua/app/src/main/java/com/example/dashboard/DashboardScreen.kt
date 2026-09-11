@@ -150,69 +150,14 @@ fun DashboardScreen(
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Fila 1: Accesos rápidos (Scroll horizontal interactivo con iconos modernos)
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(80.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Scroll Horizontal de Iconos Rápidos Estilo Moderno
-                        androidx.compose.foundation.lazy.LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth().height(80.dp)
-                        ) {
-                            val accesosRapidos = listOf(
-                                Triple(NavigationTab.PLAYER, Color(0xFF8E24AA), Color(0xFFF3E5F5)),
-                                Triple(NavigationTab.SOS, DashboardFondoConfig.ColorRojoCarrera, DashboardFondoConfig.ColorContenedorRojo),
-                                Triple(NavigationTab.VELOCIMETRO, Color(0xFF00ACC1), Color(0xFFE0F7FA)),
-                                Triple(NavigationTab.CALENDARIO, Color(0xFF43A047), Color(0xFFE8F5E9)),
-                                Triple(NavigationTab.MAPA, DashboardFondoConfig.ColorRojoCarrera, DashboardFondoConfig.ColorContenedorRojo),
-                                Triple(NavigationTab.DIRECTORIO, Color(0xFF00897B), Color(0xFFE0F2F1)),
-                                Triple(NavigationTab.CONFIGURACIONES, Color(0xFF546E7A), Color(0xFFECEFF1))
-                            )
-                            items(accesosRapidos) { (tab, tint, bg) ->
-                                Surface(
-                                    onClick = {
-                                        com.example.ui.preferences.PreferenciasApp.registrarUsoModulo(tab.name)
-                                        onNavigateToTab(tab)
-                                    },
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = bg,
-                                    modifier = Modifier.width(80.dp).fillMaxHeight()
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = tab.iconFilled,
-                                            contentDescription = tab.label,
-                                            tint = tint,
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = tab.label,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = tint.copy(alpha = 0.9f),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     // Bento Fila 1: Directorio Comercios y Directorio de Miembros (con icono de contactos)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         BentoGridCard(
-                            titulo = "Comercios",
-                            subtitulo = "Talleres y servicios",
+                            titulo = "Directorio & Puntos",
+                            subtitulo = "Comercios y miradores",
                             icono = Icons.Default.Storefront,
                             colorIcono = Color(0xFF00897B),
                             colorFondoIcono = Color(0xFFE0F2F1),
@@ -507,8 +452,8 @@ fun DashboardScreen(
 
             item {
                 ModuleListRow(
-                    titulo = "Directorio Comercial & Servicios",
-                    descripcion = "Talleres, repuestos, autolavados y servicios para moteros",
+                    titulo = "Directorio Comercial & Puntos TX",
+                    descripcion = "Comercios, talleres, servicios, miradores y destinos turísticos",
                     icono = Icons.Default.Storefront,
                     colorIcono = Color(0xFF00897B),
                     onClick = {

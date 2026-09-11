@@ -541,437 +541,308 @@ fun CommercialServiceCard(
 ) {
     val hasCredit = workshop.hasCredit || workshop.creditPlatforms.isNotBlank()
     val isTopRated = workshop.rating >= 4.5
+    var isExpanded by remember { mutableStateOf(false) }
 
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
         border = BorderStroke(
-            1.2.dp,
+            1.dp,
             if (isTopRated) Color(0xFFFFB300)
             else if (hasCredit) Color(0xFF2E7D32)
             else DashboardFondoConfig.ColorBordeClaro
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { isExpanded = !isExpanded }
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            // Fila de Cabecera: Nombre y Puntuación
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            // Fila Compacta Superior (Minimizada)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = workshop.name,
                             fontWeight = FontWeight.Black,
-                            fontSize = 15.sp,
-                            color = DashboardFondoConfig.ColorTextoPrimario
+                            fontSize = 14.5.sp,
+                            color = DashboardFondoConfig.ColorTextoPrimario,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         if (isTopRated) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("⭐", fontSize = 12.sp)
+                        }
+                        if (hasCredit && workshop.creditPlatforms.contains("Cashea", ignoreCase = true)) {
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("⭐", fontSize = 13.sp)
+                            Image(
+                                painter = painterResource(id = R.drawable.logocashea),
+                                contentDescription = "Cashea",
+                                modifier = Modifier
+                                    .height(18.dp)
+                                    .width(28.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                contentScale = ContentScale.Fit
+                            )
                         }
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "📍 ${workshop.state} • ${workshop.city}",
-                        fontSize = 11.sp,
+                        text = "📍 ${workshop.state} • ${workshop.city.ifBlank { workshop.type }}",
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = DashboardFondoConfig.ColorRojoCarrera
+                        color = DashboardFondoConfig.ColorRojoCarrera,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-
-                // Badge de Calificación (Clicable para calificar)
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isTopRated) Color(0xFFFFF8E1) else Color(0xFFF1F5F9),
-                    border = BorderStroke(1.dp, if (isTopRated) Color(0xFFFFB300) else DashboardFondoConfig.ColorBordeClaro),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onRate() }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = "Calificación",
-                            tint = Color(0xFFFFB300),
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "${String.format(java.util.Locale.US, "%.1f", workshop.rating)} ${if (isTopRated) "• TOP" else ""}",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = DashboardFondoConfig.ColorTextoPrimario
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Fila de Etiquetas: Tipo de Negocio y Recomendación Top
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFFF1F5F9),
-                    border = BorderStroke(0.5.dp, DashboardFondoConfig.ColorBordeClaro)
-                ) {
-                    Text(
-                        text = "🏷️ ${workshop.type}",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DashboardFondoConfig.ColorTextoPrimario,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-
-                if (isTopRated) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFFFF8E1),
-                        border = BorderStroke(0.8.dp, Color(0xFFFFB300))
-                    ) {
-                        Text(
-                            text = "🏆 RECOMENDADO TEAM TX",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFFB28704),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                        )
-                    }
-                }
-            }
-
-            // APARTADO DESTACADO: FINANCIAMIENTO / CRÉDITO
-            if (hasCredit) {
-                Spacer(modifier = Modifier.height(8.dp))
-                val tieneCashea = workshop.creditPlatforms.contains("Cashea", ignoreCase = true)
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFE8F5E9),
-                    border = BorderStroke(1.dp, Color(0xFF2E7D32)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onShowCreditInfo() }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            if (tieneCashea) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.logocashea),
-                                    contentDescription = "Cashea",
-                                    modifier = Modifier
-                                        .height(24.dp)
-                                        .width(36.dp)
-                                        .clip(RoundedCornerShape(4.dp)),
-                                    contentScale = ContentScale.Fit
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                            } else {
-                                Text("💳", fontSize = 14.sp)
-                                Spacer(modifier = Modifier.width(6.dp))
-                            }
-                            Column {
-                                Text(
-                                    text = "Crédito: ${workshop.creditPlatforms.ifBlank { "Cashea / Rapikom" }}",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = Color(0xFF1B5E20),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "Toca para ver plataformas y condiciones",
-                                    fontSize = 9.sp,
-                                    color = Color(0xFF2E7D32)
-                                )
-                            }
-                        }
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = "Ver detalles de crédito",
-                            tint = Color(0xFF2E7D32),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-
-            if (workshop.address.isNotBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = DashboardFondoConfig.ColorTextoSecundario, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = workshop.address,
-                        fontSize = 12.sp,
-                        color = DashboardFondoConfig.ColorTextoPrimario
-                    )
-                }
-            }
-
-            if (workshop.notes.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "🔧 Especialidad / Stock: ${workshop.notes}",
-                    fontSize = 11.sp,
-                    color = DashboardFondoConfig.ColorTextoSecundario
-                )
-            }
-
-            if (workshop.recommendedBy.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "⭐ Recomendado por: ${workshop.recommendedBy}",
-                    fontSize = 10.sp,
-                    color = Color(0xFF2E7D32)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-            HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.8.dp)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // FILA 1: CONTACTO Y NAVEGACIÓN (BOTONES PRINCIPALES - SIN SOLAPAMIENTOS)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Botón Llamar
-                if (workshop.phone.isNotBlank()) {
-                    Button(
-                        onClick = {
-                            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${workshop.phone}")))
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f).height(34.dp)
-                    ) {
-                        Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Black, modifier = Modifier.size(13.dp))
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text("Llamar", fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                // Botón WhatsApp
-                if (workshop.whatsapp.isNotBlank()) {
-                    val clean = workshop.whatsapp.replace(Regex("[^0-9]"), "")
-                    val formatted = if (clean.startsWith("0")) "58" + clean.substring(1) else clean
-                    Button(
-                        onClick = {
-                            val url = "https://wa.me/$formatted?text=Hola,%20te%20escribo%20desde%20la%20App%20Team%20Nacional%20TX%20Venezuela"
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f).height(34.dp)
-                    ) {
-                        Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text("WhatsApp", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                // Botón 1: Mapa TX (Abre internamente en el mapa táctico de la app)
-                val tieneGps = workshop.latitude != 0.0 && workshop.longitude != 0.0
-                Button(
-                    onClick = {
-                        if (tieneGps) {
-                            if (onNavigateToMap != null) {
-                                onNavigateToMap(workshop.latitude, workshop.longitude, workshop.name)
-                            } else {
-                                val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:${workshop.latitude},${workshop.longitude}?q=${workshop.latitude},${workshop.longitude}(${Uri.encode(workshop.name)})"))
-                                context.startActivity(mapIntent)
-                            }
-                        } else {
-                            Toast.makeText(context, "Este comercio no tiene coordenadas GPS cargadas", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (tieneGps) Color(0xFF0288D1) else Color(0xFF94A3B8)
-                    ),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(1f).height(34.dp)
-                ) {
-                    Icon(Icons.Default.Navigation, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text("Mapa TX", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                }
-
-                // Botón 2: Google Maps (Abre la app o enlace web externo)
-                val gMapsUrl = if (workshop.googleMapsUrl.isNotBlank()) workshop.googleMapsUrl else if (tieneGps) "https://maps.google.com/?q=${workshop.latitude},${workshop.longitude}" else ""
-                OutlinedButton(
-                    onClick = {
-                        if (gMapsUrl.isNotBlank()) {
-                            try {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(gMapsUrl)))
-                            } catch (_: Exception) {
-                                Toast.makeText(context, "No se pudo abrir Google Maps", Toast.LENGTH_SHORT).show()
-                            }
-                        } else {
-                            Toast.makeText(context, "Sin enlace de Google Maps disponible", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    border = BorderStroke(1.dp, Color(0xFF90CAF9)),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color(0xFFF0F7FF),
-                        contentColor = Color(0xFF1565C0)
-                    ),
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.weight(1f).height(34.dp)
-                ) {
-                    Icon(Icons.Default.Public, contentDescription = "Google Maps", tint = Color(0xFF1565C0), modifier = Modifier.size(13.dp))
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text("G. Maps", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // FILA 2: HERRAMIENTAS COMUNITARIAS
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Calificar
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFFEF3C7),
-                    border = BorderStroke(0.8.dp, Color(0xFFFDE68A)),
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onRate() }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Default.Star, contentDescription = "Calificar", tint = Color(0xFFD97706), modifier = Modifier.size(13.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Calificar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
-                    }
-                }
-
-                // Compartir WhatsApp
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFF1F5F9),
-                    border = BorderStroke(0.8.dp, Color(0xFFCBD5E1)),
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { shareCommercialServiceViaWhatsApp(context, workshop) }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Color(0xFF0F172A), modifier = Modifier.size(13.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Compartir", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
-                    }
-                }
-
-                // Copiar Datos
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFF1F5F9),
-                    border = BorderStroke(0.8.dp, Color(0xFFCBD5E1)),
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable {
-                            val textToCopy = "${workshop.name}\n${workshop.type}\nUbicación: ${workshop.address}, ${workshop.city}, ${workshop.state}\nTlf: ${workshop.phone}\nWhatsApp: ${workshop.whatsapp}\nCalificación: ${workshop.rating} ⭐\nCrédito: ${if (hasCredit) workshop.creditPlatforms else "Contado"}\nEspecialidad: ${workshop.notes}"
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Datos Comercio TX", textToCopy))
-                            Toast.makeText(context, "Datos copiados al portapapeles ✓", Toast.LENGTH_SHORT).show()
-                        }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", tint = Color(0xFF0F172A), modifier = Modifier.size(13.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Copiar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
-                    }
-                }
-            }
-
-            // FILA 3: GESTIÓN DIRECTIVA / ADMINISTRACIÓN (EN FILA INDEPENDIENTE, NUNCA CHOCA NI TAPA BOTONES)
-            if (isAuthorizedAdmin) {
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 0.8.dp)
-                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Botón Editar Comercio
+                    // Badge Calificación
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFFEF3C7),
-                        border = BorderStroke(1.dp, Color(0xFFFDE68A)),
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isTopRated) Color(0xFFFFF8E1) else Color(0xFFF1F5F9),
+                        border = BorderStroke(0.8.dp, if (isTopRated) Color(0xFFFFB300) else DashboardFondoConfig.ColorBordeClaro),
                         modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onEdit() }
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable { onRate() }
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFFD97706), modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Editar Comercio", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
+                            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = String.format(java.util.Locale.US, "%.1f", workshop.rating),
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DashboardFondoConfig.ColorTextoPrimario
+                            )
                         }
                     }
 
-                    // Botón Eliminar Comercio
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFFEE2E2),
-                        border = BorderStroke(1.dp, Color(0xFFFECACA)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onDelete() }
+                    // Pestaña/Chevron Expansor
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = "Expandir tarjeta",
+                        tint = DashboardFondoConfig.ColorRojoCarrera,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            // CONTENIDO DESPLEGABLE (EXPANDIBLE)
+            androidx.compose.animation.AnimatedVisibility(visible = isExpanded) {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.8.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Etiquetas: Tipo de Negocio y Recomendación Top
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFF1F5F9),
+                            border = BorderStroke(0.5.dp, DashboardFondoConfig.ColorBordeClaro)
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFDC2626), modifier = Modifier.size(14.dp))
+                            Text(
+                                text = "🏷️ ${workshop.type}",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = DashboardFondoConfig.ColorTextoPrimario,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+
+                        if (isTopRated) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFFFF8E1),
+                                border = BorderStroke(0.8.dp, Color(0xFFFFB300))
+                            ) {
+                                Text(
+                                    text = "🏆 RECOMENDADO TEAM TX",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFFB28704),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // APARTADO DESTACADO: FINANCIAMIENTO / CRÉDITO
+                    if (hasCredit) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val tieneCashea = workshop.creditPlatforms.contains("Cashea", ignoreCase = true)
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFE8F5E9),
+                            border = BorderStroke(1.dp, Color(0xFF2E7D32)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onShowCreditInfo() }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    if (tieneCashea) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.logocashea),
+                                            contentDescription = "Cashea",
+                                            modifier = Modifier
+                                                .height(22.dp)
+                                                .width(32.dp)
+                                                .clip(RoundedCornerShape(4.dp)),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    } else {
+                                        Text("💳", fontSize = 13.sp)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "Crédito: ${workshop.creditPlatforms.ifBlank { "Cashea / Rapikom" }}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF1B5E20),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "Toca para ver plataformas y condiciones",
+                                            fontSize = 9.sp,
+                                            color = Color(0xFF2E7D32)
+                                        )
+                                    }
+                                }
+                                Icon(
+                                    Icons.Default.Info,
+                                    contentDescription = "Ver detalles de crédito",
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (workshop.address.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = DashboardFondoConfig.ColorTextoSecundario, modifier = Modifier.size(13.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Eliminar", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                            Text(
+                                text = workshop.address,
+                                fontSize = 11.5.sp,
+                                color = DashboardFondoConfig.ColorTextoPrimario
+                            )
+                        }
+                    }
+
+                    if (workshop.notes.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "🔧 Especialidad: ${workshop.notes}",
+                            fontSize = 11.sp,
+                            color = DashboardFondoConfig.ColorTextoSecundario
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // BOTONES DE ACCIÓN (AJUSTADOS Y SIN RECORTE DE TEXTO)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Botón Llamar
+                        if (workshop.phone.isNotBlank()) {
+                            Button(
+                                onClick = {
+                                    try {
+                                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${workshop.phone.replace(Regex("[^0-9+]"), "")}")))
+                                    } catch (_: Exception) {}
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f).height(32.dp)
+                            ) {
+                                Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Black, modifier = Modifier.size(12.dp))
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text("Llamar", fontSize = 10.sp, color = Color.Black, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+
+                        // Botón WhatsApp
+                        if (workshop.whatsapp.isNotBlank()) {
+                            val clean = workshop.whatsapp.replace(Regex("[^0-9]"), "")
+                            val formatted = if (clean.startsWith("0")) "58" + clean.substring(1) else clean
+                            Button(
+                                onClick = {
+                                    try {
+                                        val url = "https://wa.me/$formatted?text=Hola,%20te%20escribo%20desde%20la%20App%20Team%20Nacional%20TX%20Venezuela"
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                    } catch (_: Exception) {}
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1.1f).height(32.dp)
+                            ) {
+                                Icon(Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text("WhatsApp", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+
+                        // Botón Mapa TX / Navegación GPS por Voz
+                        val tieneGps = workshop.latitude != 0.0 && workshop.longitude != 0.0
+                        Button(
+                            onClick = {
+                                if (tieneGps) {
+                                    com.example.rutas.GestorNavegacionOsmand.navegarADestino(
+                                        context, workshop.latitude, workshop.longitude, workshop.name
+                                    )
+                                } else {
+                                    Toast.makeText(context, "Este comercio no tiene coordenadas GPS cargadas", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = if (tieneGps) Color(0xFF0288D1) else Color(0xFF94A3B8)),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1.1f).height(32.dp)
+                        ) {
+                            Icon(Icons.Default.Navigation, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text("Mapa TX", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+
+                        // Botón Edición / Borrado para Administradores
+                        if (isAuthorizedAdmin) {
+                            IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                            }
+                            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = StatusError, modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
                 }

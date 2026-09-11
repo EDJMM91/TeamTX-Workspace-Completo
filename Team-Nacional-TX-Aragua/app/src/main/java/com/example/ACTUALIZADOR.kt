@@ -104,6 +104,41 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 41,
+            versionName = "1.7.2-beta",
+            titulo = "Módulo Unificado Directorio & Puntos TX, Tarjetas Colapsables y Botones sin Recortes",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Módulo unificado Directorio Comercial & Puntos TX con tarjetas colapsables por defecto para optimizar espacio, botones de acción sin recorte de texto y garantía de preservación total de la base de datos.",
+            novedades = listOf(
+                "🏬 Módulo Unificado 'Directorio Comercial & Puntos TX': Unificación en el Dashboard para explorar comercios, talleres, repuestos, miradores y destinos turísticos.",
+                "📐 Tarjetas Colapsables Minimizadas: Tarjetas compactas por defecto mostrando únicamente nombre, tipo, ubicación y calificación ⭐ con pestaña de expansión.",
+                "📐 Ajuste de Botones sin Recortes: Botones de WhatsApp, Llamar, Mapa TX y G-Maps reajustados para garantizar que el texto encaje 100% visible.",
+                "🚀 Navegación Nativa OsmAnd: Tocar 'Mapa TX' inyecta el destino e inicia la navegación guiada por voz automáticamente."
+            ),
+            correcciones = listOf(
+                "Corregido: Recorte de texto en botones de WhatsApp y Mapa TX en pantallas angostas.",
+                "Corregido: Consumo excesivo de espacio vertical en el catálogo de comercios."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
+            versionCode = 40,
+            versionName = "1.7.1-beta",
+            titulo = "Etiqueta Verde de Categoría de Usuario, Eliminación de Scroll de Accesos y Pestaña Sidebar a la Izquierda",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Eliminación de la palabra AUTENTICADO en la tarjeta superior reemplazada por PILOTO, COPILOTO o INVITADO en texto verde brillante, depuración del scroll horizontal de accesos rápidos y alineación de la pestaña Sidebar a la izquierda.",
+            novedades = listOf(
+                "🟢 Etiqueta Verde de Usuario: En la tarjeta superior se muestra dinámicamente PILOTO, COPILOTO o INVITADO en verde brillante (Color 0xFF00E676), eliminando la palabra AUTENTICADO.",
+                "🧹 Eliminación de Scroll de Accesos: Depuración completa de la fila superior de scroll horizontal de accesos rápidos en la sección Mi Panel.",
+                "⬅️ Pestaña Sidebar a la Izquierda: Alineación de la pestaña minimalista desplegable de Sidebar al extremo izquierdo para dar espacio a futuros controles tácticos."
+            ),
+            correcciones = listOf(
+                "Corregido: Redundancia de scroll de accesos rápidos en la vista principal.",
+                "Corregido: Alineación central de la pestaña de Sidebar."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
             versionCode = 39,
             versionName = "1.7.0-beta",
             titulo = "Rediseño Nativo de Filas del Dashboard, Unificación de Perfil y Pestaña Táctica de Sidebar",
@@ -120,7 +155,7 @@ object GestorActualizaciones {
                 "Corregido: Aspecto de plantilla genérica con recuadros/marcos pesados detrás de cada módulo.",
                 "Corregido: Redundancia de fotos de perfil y accesos duplicados en el Dashboard."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 38,
