@@ -395,6 +395,56 @@ object GestorRadar {
         return prefs.getBoolean("mostrar_directorio_en_mapa", true)
     }
 
+    private const val Z_SITIOS = 7.2f
+    private var sitiosLayer: SitiosInteresMapLayer? = null
+
+    @JvmStatic
+    fun sincronizarSitiosInteresEnMapa(sitios: List<com.example.data.model.BikerInterestPoint>, mostrar: Boolean) {
+        val app = application ?: return
+        val mapView = app.osmandMap?.mapView ?: return
+
+        if (!mostrar) {
+            sitiosLayer?.limpiarSitios()
+            return
+        }
+
+        if (sitiosLayer == null) {
+            val layer = SitiosInteresMapLayer(app)
+            mapaActivityRef?.get()?.let { layer.setMapActivity(it) }
+            layer.setOnSitioSeleccionado { marcador ->
+                val act = (mapaActivityRef?.get() as Any?) as? android.app.Activity
+                if (act != null) {
+                    DialogosMapaTx.mostrarSitioInteres(act, marcador)
+                }
+            }
+            try {
+                mapView.addLayer(layer, Z_SITIOS)
+                sitiosLayer = layer
+            } catch (e: Exception) {
+                Log.w(ETIQUETA, "Error registrando SitiosInteresMapLayer: ${e.message}")
+            }
+        }
+
+        val marcadores = sitios.map { s ->
+            SitiosInteresMapLayer.SitioInteresMarcador(
+                id = s.id,
+                lat = s.latitude,
+                lon = s.longitude,
+                nombre = s.name,
+                categoria = s.category,
+                descripcion = s.description,
+                direccion = s.address,
+                telefono = s.phone,
+                imageUrl = s.imageUrl,
+                iconoDrawableName = s.iconDrawableName,
+                likesCount = s.likesCount,
+                dislikesCount = s.dislikesCount
+            )
+        }
+        sitiosLayer?.actualizarSitios(marcadores)
+        Log.d(ETIQUETA, "Sitios de interés sincronizados en mapa: ${marcadores.size}")
+    }
+
     fun liberar() {
         detener()
         alcance.cancel()
@@ -402,5 +452,6 @@ object GestorRadar {
         mapaLayer = null
         eventosLayer = null
         directorioLayer = null
+        sitiosLayer = null
     }
 }

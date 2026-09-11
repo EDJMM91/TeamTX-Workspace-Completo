@@ -2435,6 +2435,179 @@ object DialogosMapaTx {
         dialog.show()
     }
 
+    /**
+     * Muestra la tarjeta informativa in-map al tocar un Sitio de Interés / Destino Turístico en el Mapa TX.
+     */
+    @JvmStatic
+    fun mostrarSitioInteres(activity: Activity, sitio: SitiosInteresMapLayer.SitioInteresMarcador) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        val dialog = Dialog(activity)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val density = activity.resources.displayMetrics.density
+        val rootLayout = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadii = floatArrayOf(
+                    20 * density, 20 * density,
+                    20 * density, 20 * density,
+                    0f, 0f, 0f, 0f
+                )
+                setColor(Color.parseColor("#161616"))
+            }
+            setPadding((18 * density).toInt(), (12 * density).toInt(), (18 * density).toInt(), (20 * density).toInt())
+        }
+
+        // Handle superior
+        val handlePill = View(activity).apply {
+            layoutParams = LinearLayout.LayoutParams((44 * density).toInt(), (4 * density).toInt()).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = (12 * density).toInt()
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 4 * density
+                setColor(Color.parseColor("#555555"))
+            }
+        }
+        rootLayout.addView(handlePill)
+
+        // Header: Categoría y Botón Cerrar
+        val headerRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val tvCategory = TextView(activity).apply {
+            text = "🏕️ ${sitio.categoria.uppercase()}"
+            setTextColor(Color.parseColor("#00E5FF"))
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        headerRow.addView(tvCategory)
+
+        val btnCerrar = TextView(activity).apply {
+            text = "✕"
+            setTextColor(Color.parseColor("#AAAAAA"))
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding((8 * density).toInt(), (2 * density).toInt(), (8 * density).toInt(), (2 * density).toInt())
+            setOnClickListener { dialog.dismiss() }
+        }
+        headerRow.addView(btnCerrar)
+        rootLayout.addView(headerRow)
+
+        // Nombre del Sitio
+        val tvNombre = TextView(activity).apply {
+            text = sitio.nombre
+            setTextColor(Color.WHITE)
+            textSize = 17f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (6 * density).toInt()
+            }
+        }
+        rootLayout.addView(tvNombre)
+
+        // Descripción
+        if (sitio.descripcion.isNotBlank()) {
+            val tvDesc = TextView(activity).apply {
+                text = sitio.descripcion
+                setTextColor(Color.parseColor("#CCCCCC"))
+                textSize = 12.5f
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    bottomMargin = (10 * density).toInt()
+                }
+            }
+            rootLayout.addView(tvDesc)
+        }
+
+        // Fila de Botones: Navegar GPS
+        val btnNavegar = Button(activity).apply {
+            text = "🚀 Navegar con GPS por Voz"
+            setTextColor(Color.BLACK)
+            textSize = 13.5f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 10 * density
+                setColor(Color.parseColor("#FF9800"))
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (44 * density).toInt()).apply {
+                bottomMargin = (8 * density).toInt()
+            }
+            setOnClickListener {
+                dialog.dismiss()
+                com.example.rutas.GestorNavegacionOsmand.navegarADestino(activity, sitio.lat, sitio.lon, sitio.nombre)
+            }
+        }
+        rootLayout.addView(btnNavegar)
+
+        // Botones de Contacto: WhatsApp & Llamar
+        if (sitio.telefono.isNotBlank()) {
+            val commRow = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    bottomMargin = (8 * density).toInt()
+                }
+            }
+
+            val btnLlamar = Button(activity).apply {
+                text = "📞 Llamar"
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 8 * density
+                    setColor(Color.parseColor("#1565C0"))
+                }
+                layoutParams = LinearLayout.LayoutParams(0, (38 * density).toInt(), 1f).apply { marginEnd = (4 * density).toInt() }
+                setOnClickListener {
+                    try {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${sitio.telefono.replace(Regex("[^0-9+]"), "")}"))
+                        activity.startActivity(intent)
+                    } catch (_: Exception) {}
+                }
+            }
+            commRow.addView(btnLlamar)
+
+            val btnWa = Button(activity).apply {
+                text = "💬 WhatsApp"
+                setTextColor(Color.WHITE)
+                textSize = 12f
+                typeface = Typeface.DEFAULT_BOLD
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 8 * density
+                    setColor(Color.parseColor("#2E7D32"))
+                }
+                layoutParams = LinearLayout.LayoutParams(0, (38 * density).toInt(), 1f).apply { marginStart = (4 * density).toInt() }
+                setOnClickListener {
+                    try {
+                        val num = sitio.telefono.replace(Regex("[^0-9]"), "")
+                        val uri = Uri.parse("https://wa.me/$num")
+                        activity.startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW, uri), "Abrir WhatsApp"))
+                    } catch (_: Exception) {}
+                }
+            }
+            commRow.addView(btnWa)
+            rootLayout.addView(commRow)
+        }
+
+        dialog.setContentView(rootLayout)
+        dialog.window?.let { w ->
+            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            w.setGravity(Gravity.BOTTOM)
+            w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+        dialog.show()
+    }
+
     private fun obtenerColorRangoHex(rango: String): String {
         return when {
             rango.contains("Capitán", true) || rango.contains("Capitan", true) -> "#E53935"

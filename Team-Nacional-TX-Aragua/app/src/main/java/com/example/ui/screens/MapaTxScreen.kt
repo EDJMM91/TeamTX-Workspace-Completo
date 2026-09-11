@@ -151,6 +151,15 @@ fun TxMapLauncher(
                     android.util.Log.w("MAPA_TX", "Error sincronizando directorio: ${e.message}")
                 }
 
+                // Sincronizar sitios de interés y destinos turísticos en el mapa
+                try {
+                    val db = com.example.data.local.AppDatabase.getDatabase(context, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
+                    val spots = db.interestPointDao().getAllInterestPoints().first()
+                    com.example.radar.GestorRadar.sincronizarSitiosInteresEnMapa(spots, true)
+                } catch (e: Exception) {
+                    android.util.Log.w("MAPA_TX", "Error sincronizando sitios de interés: ${e.message}")
+                }
+
                 // Centrar en destino específico si viene desde la Guía de Servicios o Calendario
                 val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
                 val targetLat = prefs.getString("target_dest_lat", null)?.toDoubleOrNull()

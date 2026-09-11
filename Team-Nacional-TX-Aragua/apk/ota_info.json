@@ -1,18 +1,18 @@
 {
-  "versionCode": 39,
-  "versionName": "1.7.0-beta",
+  "versionCode": 42,
+  "versionName": "1.8.0-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Rediseño Nativo de Filas del Dashboard, Unificación de Perfil y Pestaña Táctica de Sidebar",
-  "notas": "🚀 Release v1.7.0-beta: Rediseño limpio de filas del catálogo sin recuadros pesados de fondo, unificación del avatar de perfil en Piloto Autenticado, botón de Ajustes ⚙️ arriba a la derecha y pestaña táctica minimalista de Sidebar.",
+  "titulo": "Capa de Mapa Táctico Sitios de Interés TX, Captura de Fotos, Navegación GPS por Voz y Moderación de Denuncias",
+  "notas": "🚀 Release v1.8.0-beta: Renderizado completo en tiempo real de sitios turísticos y paradores en el Mapa TX, captura de fotos por cámara/galería, inyección automática de rutas guiadas por voz en OsmAnd, acciones de WhatsApp/Llamar y moderación de denuncias en Directiva.",
   "novedades": [
-    "🎨 Rediseño Nativo de Filas: Filas limpias y elegantes en 'Todos los Módulos' sin marcos ni cajas pesadas de fondo, logrando un aspecto nativo y fluido.",
-    "🪪 Unificación de Foto de Perfil: Avatar circular integrado en la tarjeta de Piloto Autenticado, permitiendo abrir el Carnet TX directamente.",
-    "⚙️ Botón de Ajustes en Cabecera Superior: Reemplazo del botón duplicado por el icono de Engranaje de Ajustes y Configuración arriba a la derecha.",
-    "📑 Pestaña Táctica de Sidebar: La barra de Sidebar se pliega en una pestaña/píldora minimalista sin texto de bajo perfil.",
-    "🧹 Cero Módulos Repetidos: Depuración de accesos duplicados de Carnet TX y Ajustes en el catálogo inferior."
+    "🏕️ Capa de Mapa Sitios de Interés TX: Visualización de marcadores e iconos personalizados para miradores, playas, cascadas y paradores biker en el mapa con botón toggle.",
+    "📸 Captura de Foto con Cámara y Galería: Selector en el formulario para tomar fotos con la cámara o elegir de la galería con resguardo atómico en nube.",
+    "🚀 Navegación Nativa por Voz: Tocar 'Navegar con GPS' en cualquier ficha in-map inyecta el destino e inicia la ruta por voz automáticamente en OsmAnd.",
+    "💬 Acciones Tácticas Directas: Integración de botones directos de WhatsApp y Llamadas telefónicas en todas las fichas del mapa.",
+    "🚩 Moderación de Denuncias para Directiva: Tarjeta 10 en el Hub de Directiva para auditar reportes, editar o eliminar sitios en tiempo real."
   ],
   "correcciones": [
-    "Corregido: Aspecto de plantilla genérica con recuadros/marcos pesados detrás de cada módulo.",
-    "Corregido: Redundancia de fotos de perfil y accesos duplicados en el Dashboard."
+    "Corregido: Falta de renderizado directo de puntos de interés turístico en el mapa.",
+    "Corregido: Apertura fluida de fichas in-map al tocar marcadores turísticos."
   ]
 }

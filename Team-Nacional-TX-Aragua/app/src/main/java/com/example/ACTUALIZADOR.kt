@@ -104,6 +104,25 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 42,
+            versionName = "1.8.0-beta",
+            titulo = "Capa de Mapa Táctico Sitios de Interés TX, Captura de Fotos, Navegación GPS por Voz y Moderación de Denuncias",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Renderizado completo en tiempo real de sitios turísticos y paradores en el Mapa TX, captura de fotos por cámara/galería, inyección automática de rutas guiadas por voz en OsmAnd, acciones de WhatsApp/Llamar y moderación de denuncias en Directiva.",
+            novedades = listOf(
+                "🏕️ Capa de Mapa Sitios de Interés TX: Visualización de marcadores e iconos personalizados para miradores, playas, cascadas y paradores biker en el mapa con botón toggle.",
+                "📸 Captura de Foto con Cámara y Galería: Selector en el formulario para tomar fotos con la cámara o elegir de la galería con resguardo atómico en nube.",
+                "🚀 Navegación Nativa por Voz: Tocar 'Navegar con GPS' en cualquier ficha in-map inyecta el destino e inicia la ruta por voz automáticamente en OsmAnd.",
+                "💬 Acciones Tácticas Directas: Integración de botones directos de WhatsApp y Llamadas telefónicas en todas las fichas del mapa.",
+                "🚩 Moderación de Denuncias para Directiva: Tarjeta 10 en el Hub de Directiva para auditar reportes, editar o eliminar sitios en tiempo real."
+            ),
+            correcciones = listOf(
+                "Corregido: Falta de renderizado directo de puntos de interés turístico en el mapa.",
+                "Corregido: Apertura fluida de fichas in-map al tocar marcadores turísticos."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 41,
             versionName = "1.7.2-beta",
             titulo = "Módulo Unificado Directorio & Puntos TX, Tarjetas Colapsables y Botones sin Recortes",
@@ -119,7 +138,7 @@ object GestorActualizaciones {
                 "Corregido: Recorte de texto en botones de WhatsApp y Mapa TX en pantallas angostas.",
                 "Corregido: Consumo excesivo de espacio vertical en el catálogo de comercios."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 40,
