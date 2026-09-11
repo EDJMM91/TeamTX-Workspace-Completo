@@ -104,6 +104,22 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 45,
+            versionName = "1.8.3-beta",
+            titulo = "Tarjetas de Pilotos Minimizadas a Fila Única y Desplegables",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Rediseño compacto de las tarjetas de miembros en el directorio de pilotos, iniciando en una sola línea minimizada con avatar, ficha, apodo y rol, expandiéndose suavemente al tocar.",
+            novedades = listOf(
+                "🪪 Tarjetas Minimizadas de Pilotos: Fila compacta de una sola línea por piloto mostrando foto circular con LED online, número de ficha (TX-001), apodo y badge de rango.",
+                "📐 Expansión Suave Interactiva: Al tocar la tarjeta o pestaña de expansión, se despliega la ficha técnica completa con datos de la moto, tipo de sangre, solvencia y botones tácticos de WhatsApp, Llamada y Chat Privado.",
+                "📊 Optimización de Espacio en Pantalla: Permite visualizar múltiples pilotos de un vistazo rápido sin consumo excesivo de espacio vertical."
+            ),
+            correcciones = listOf(
+                "Corregido: Consumo excesivo de espacio en la lista del directorio de miembros/pilotos."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 44,
             versionName = "1.8.2-beta",
             titulo = "Unificación del Formulario DialogoCrearPuntoTX en Directorio Global y Mapeo Doble",
@@ -117,7 +133,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Unificación de formularios entre el Mapa TX y el módulo Directorio Global."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 43,

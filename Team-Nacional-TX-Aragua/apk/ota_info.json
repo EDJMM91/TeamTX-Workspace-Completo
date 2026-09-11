@@ -1,15 +1,15 @@
 {
-  "versionCode": 44,
-  "versionName": "1.8.2-beta",
+  "versionCode": 45,
+  "versionName": "1.8.3-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Unificación del Formulario DialogoCrearPuntoTX en Directorio Global y Mapeo Doble",
-  "notas": "🚀 Release v1.8.2-beta: Invocación unificada del formulario DialogoCrearPuntoTX tanto desde el Mapa TX como desde la pantalla del Directorio Global, con enrutamiento automático hacia comercios o sitios de interés.",
+  "titulo": "Tarjetas de Pilotos Minimizadas a Fila Única y Desplegables",
+  "notas": "🚀 Release v1.8.3-beta: Rediseño compacto de las tarjetas de miembros en el directorio de pilotos, iniciando en una sola línea minimizada con avatar, ficha, apodo y rol, expandiéndose suavemente al tocar.",
   "novedades": [
-    "➕ Formulario Unificado DialogoCrearPuntoTX: Presionar 'Registrar Punto / Comercio' en el Directorio Global abre exactamente el mismo formulario del mapa con cámara/galería, íconos tácticos, Cashea y categorías de ruta.",
-    "🗂️ Enrutamiento Inteligente Doble: Clasificación automática a 'workshops_directory' o 'sitios_interes' en Firestore y Room DB según la categoría seleccionada.",
-    "🌐 Coexistencia Total de Bases de Datos: Mantenimiento 100% libre de errores de los datos comerciales históricos y los nuevos destinos turísticos."
+    "🪪 Tarjetas Minimizadas de Pilotos: Fila compacta de una sola línea por piloto mostrando foto circular con LED online, número de ficha (TX-001), apodo y badge de rango.",
+    "📐 Expansión Suave Interactiva: Al tocar la tarjeta o pestaña de expansión, se despliega la ficha técnica completa con datos de la moto, tipo de sangre, solvencia y botones tácticos de WhatsApp, Llamada y Chat Privado.",
+    "📊 Optimización de Espacio en Pantalla: Permite visualizar múltiples pilotos de un vistazo rápido sin consumo excesivo de espacio vertical."
   ],
   "correcciones": [
-    "Corregido: Unificación de formularios entre el Mapa TX y el módulo Directorio Global."
+    "Corregido: Consumo excesivo de espacio en la lista del directorio de miembros/pilotos."
   ]
 }

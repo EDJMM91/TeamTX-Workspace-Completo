@@ -729,15 +729,15 @@ fun MemberCardItem(
     val rankColor = Color(member.role.badgeColorHex)
 
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (member.isSuspended) Color(0xFFFFF5F5) else if (isCurrentActive) Color(0xFFF0F4FF) else DashboardFondoConfig.ColorTarjetaClara
         ),
         border = BorderStroke(
-            if (member.isSuspended) 1.5.dp else if (isCurrentActive) 1.5.dp else 1.dp,
+            if (member.isSuspended) 1.2.dp else if (isCurrentActive) 1.2.dp else 1.dp,
             if (member.isSuspended) StatusError else if (isCurrentActive) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorBordeClaro
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp),
         modifier = modifier
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded }
@@ -746,47 +746,74 @@ fun MemberCardItem(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            // Top Bar: Role badge / Suspended alert, Chapter, Member ID
+            // Fila Compacta Minimizada (Una sola línea principal)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (member.isSuspended) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = StatusError.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, StatusError)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Icon(Icons.Default.Gavel, contentDescription = null, tint = StatusError, modifier = Modifier.size(11.dp))
-                            Text(
-                                text = "SUSPENDIDO (${member.suspensionDurationDays}d)",
-                                color = StatusError,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
-                } else {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = rankColor.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, rankColor)
-                    ) {
-                        Text(
-                            text = member.role.displayName.uppercase(),
-                            color = roleColorTextColor(rankColor),
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 10.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // Avatar compacto con LED de conexión
+                    Box(contentAlignment = Alignment.BottomEnd) {
+                        PilotAvatar(
+                            member = member,
+                            size = 38.dp,
+                            showRankGlow = true
                         )
+                        val isConnected = member.isOnline
+                        val ledColor = if (isConnected) Color(0xFF00E676) else Color(0xFF9E9E9E)
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(ledColor)
+                                .border(1.5.dp, Color.White, CircleShape)
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = member.fullName,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = DashboardFondoConfig.ColorTextoPrimario,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (isCurrentActive) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Surface(shape = RoundedCornerShape(4.dp), color = DashboardFondoConfig.ColorRojoCarrera) {
+                                    Text("TÚ", color = Color.White, fontWeight = FontWeight.Black, fontSize = 8.5.sp, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
+                                }
+                            }
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = member.memberNumber,
+                                color = if (member.isSuspended) StatusError else DashboardFondoConfig.ColorDoradoOro,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 10.5.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            if (!member.nickname.isNullOrBlank()) {
+                                Text(
+                                    text = "\"${member.nickname}\"",
+                                    color = DashboardFondoConfig.ColorRojoCarrera,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -794,123 +821,29 @@ fun MemberCardItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    if (isCurrentActive) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = DashboardFondoConfig.ColorRojoCarrera
-                        ) {
-                            Text(
-                                text = "TÚ",
-                                color = Color.White,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 9.sp,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                            )
-                        }
-                    }
-
+                    // Badge del Rango
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = Color(0xFFF1F5F9),
-                        border = BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
+                        color = rankColor.copy(alpha = 0.15f),
+                        border = BorderStroke(0.8.dp, rankColor)
                     ) {
                         Text(
-                            text = member.memberNumber,
-                            color = if (member.isSuspended) StatusError else DashboardFondoConfig.ColorDoradoOro,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-            }
-
-            // Suspension reason banner if suspended
-            if (member.isSuspended) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = StatusError.copy(alpha = 0.08f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.Warning, contentDescription = null, tint = StatusError, modifier = Modifier.size(13.dp))
-                        Text(
-                            text = "Motivo: ${member.suspensionReason.ifBlank { "Sanción directiva" }}",
-                            color = StatusError,
-                            fontSize = 10.sp,
+                            text = member.role.displayName,
+                            color = roleColorTextColor(rankColor),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 9.5.sp,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                         )
                     }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Pilot Core Info: Names + Chapter + Avatar with Connection LED
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = member.fullName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = DashboardFondoConfig.ColorTextoPrimario,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "Alias: \"${member.nickname}\"",
-                        color = if (member.isSuspended) StatusError else DashboardFondoConfig.ColorDoradoOro,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = DashboardFondoConfig.ColorRojoCarrera,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Text(
-                            text = member.chapterState,
-                            fontSize = 11.sp,
-                            color = DashboardFondoConfig.ColorTextoSecundario
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Avatar with Connection Status LED
-                Box(contentAlignment = Alignment.BottomEnd) {
-                    PilotAvatar(
-                        member = member,
-                        size = 56.dp,
-                        showRankGlow = true
-                    )
-                    // Connection Status LED
-                    val isConnected = member.isOnline
-                    val ledColor = if (isConnected) Color(0xFF00E676) else Color(0xFF9E9E9E)
-                    Box(
-                        modifier = Modifier
-                            .size(13.dp)
-                            .clip(CircleShape)
-                            .background(ledColor)
-                            .border(2.dp, Color.White, CircleShape)
+                    // Pestaña expansora
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = "Expandir ficha",
+                        tint = DashboardFondoConfig.ColorRojoCarrera,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
