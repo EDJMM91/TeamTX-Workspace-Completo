@@ -105,9 +105,14 @@ class SitiosInteresMapLayer(context: Context) : OsmandMapLayer(context), IContex
             canvas.drawCircle(x, y, radio, paintFondo)
             canvas.drawCircle(x, y, radio, paintBorde)
 
-            val bmpIcono = cargarDrawable(item.iconoDrawableName) ?: iconoTeam
+            val urlImg = item.imageUrl ?: ""
+            val customPhotoBmp = if (urlImg.length > 0) {
+                RadarFirebase.obtenerAvatar(item.id.toString(), urlImg, context)
+            } else null
+
+            val bmpIcono = customPhotoBmp ?: cargarDrawable(item.iconoDrawableName) ?: iconoTeam
             if (bmpIcono != null) {
-                rectTemporal.set(x - radio * 0.7f, y - radio * 0.7f, x + radio * 0.7f, y + radio * 0.7f)
+                rectTemporal.set(x - radio * 0.75f, y - radio * 0.75f, x + radio * 0.75f, y + radio * 0.75f)
                 canvas.drawBitmap(bmpIcono, null, rectTemporal, paintBitmap)
             }
 

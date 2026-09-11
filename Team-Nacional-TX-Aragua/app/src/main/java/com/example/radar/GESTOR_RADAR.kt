@@ -351,7 +351,9 @@ object GestorRadar {
                     plataformasCredito = w.creditPlatforms,
                     rating = w.rating,
                     notas = w.notes,
-                    googleMapsUrl = w.googleMapsUrl
+                    googleMapsUrl = w.googleMapsUrl,
+                    imageUrl = w.imageUrl,
+                    iconoDrawableName = w.iconDrawableName
                 )
             )
         }

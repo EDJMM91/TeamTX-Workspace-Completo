@@ -1,15 +1,15 @@
 {
-  "versionCode": 45,
-  "versionName": "1.8.3-beta",
+  "versionCode": 46,
+  "versionName": "1.8.4-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Tarjetas de Pilotos Minimizadas a Fila Única y Desplegables",
-  "notas": "🚀 Release v1.8.3-beta: Rediseño compacto de las tarjetas de miembros en el directorio de pilotos, iniciando en una sola línea minimizada con avatar, ficha, apodo y rol, expandiéndose suavemente al tocar.",
+  "titulo": "Botón Compartir Universal, Captura de Coordenadas Táctica y Enrutamiento Unificado",
+  "notas": "🚀 Release v1.8.4-beta: Inclusión del botón 'Compartir Universal' en tarjetas del directorio y discos in-map, extractor táctico de coordenadas GPS en formulario y enrutamiento en el Mapa TX.",
   "novedades": [
-    "🪪 Tarjetas Minimizadas de Pilotos: Fila compacta de una sola línea por piloto mostrando foto circular con LED online, número de ficha (TX-001), apodo y badge de rango.",
-    "📐 Expansión Suave Interactiva: Al tocar la tarjeta o pestaña de expansión, se despliega la ficha técnica completa con datos de la moto, tipo de sangre, solvencia y botones tácticos de WhatsApp, Llamada y Chat Privado.",
-    "📊 Optimización de Espacio en Pantalla: Permite visualizar múltiples pilotos de un vistazo rápido sin consumo excesivo de espacio vertical."
+    "📤 Botón Compartir Universal: Compartir instantáneo vía WhatsApp, Telegram o cualquier app instalada con la ficha formateada del sitio (Nombre, Dirección, Coordenadas y WhatsApp).",
+    "📍 Extractor Táctico de Coordenadas: Botón 'Seleccionar Coordenadas en Mapa TX' para tocar cualquier punto en el mapa y capturar su ubicación exacta de regreso al formulario.",
+    "🗺️ Enfoque e Inyección Directa en Mapa: Enrutamiento directo al tocar 'Mapa TX' enfocando las coordenadas e iniciando la navegación."
   ],
   "correcciones": [
-    "Corregido: Consumo excesivo de espacio en la lista del directorio de miembros/pilotos."
+    "Corregido: Falta de botón para compartir datos completos de puntos y comercios."
   ]
 }

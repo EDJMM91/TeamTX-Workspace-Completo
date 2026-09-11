@@ -38,7 +38,9 @@ class DirectorioMapLayer(context: Context) : OsmandMapLayer(context),
         val plataformasCredito: String,
         val rating: Double = 5.0,
         val notas: String,
-        val googleMapsUrl: String
+        val googleMapsUrl: String,
+        val imageUrl: String? = null,
+        val iconoDrawableName: String = "ic_action_repair"
     )
 
     private var directorios: List<DirectorioMarcador> = emptyList()

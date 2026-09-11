@@ -1883,6 +1883,27 @@ object DialogosMapaTx {
             rootLayout.addView(commRow)
         }
 
+        // Botón Navegar GPS por Voz
+        val btnNavegarGps = Button(activity).apply {
+            text = "🚀 Navegar con GPS por Voz"
+            setTextColor(Color.BLACK)
+            textSize = 13.5f
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#FF9800"))
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (42 * density).toInt()).apply {
+                bottomMargin = (8 * density).toInt()
+            }
+            setOnClickListener {
+                dialog.dismiss()
+                com.example.rutas.GestorNavegacionOsmand.navegarADestino(activity, item.lat, item.lon, item.nombre)
+            }
+        }
+        rootLayout.addView(btnNavegarGps)
+
         // Botón: Ir a Guía de Servicios y Repuestos
         val btnDirectorio = Button(activity).apply {
             text = "🏍️ Abrir en Guía de Servicios y Repuestos"

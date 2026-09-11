@@ -104,6 +104,22 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 46,
+            versionName = "1.8.4-beta",
+            titulo = "Botón Compartir Universal, Captura de Coordenadas Táctica y Enrutamiento Unificado",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Inclusión del botón 'Compartir Universal' en tarjetas del directorio y discos in-map, extractor táctico de coordenadas GPS en formulario y enrutamiento en el Mapa TX.",
+            novedades = listOf(
+                "📤 Botón Compartir Universal: Compartir instantáneo vía WhatsApp, Telegram o cualquier app instalada con la ficha formateada del sitio (Nombre, Dirección, Coordenadas y WhatsApp).",
+                "📍 Extractor Táctico de Coordenadas: Botón 'Seleccionar Coordenadas en Mapa TX' para tocar cualquier punto en el mapa y capturar su ubicación exacta de regreso al formulario.",
+                "🗺️ Enfoque e Inyección Directa en Mapa: Enrutamiento directo al tocar 'Mapa TX' enfocando las coordenadas e iniciando la navegación."
+            ),
+            correcciones = listOf(
+                "Corregido: Falta de botón para compartir datos completos de puntos y comercios."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 45,
             versionName = "1.8.3-beta",
             titulo = "Tarjetas de Pilotos Minimizadas a Fila Única y Desplegables",
@@ -117,7 +133,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Consumo excesivo de espacio en la lista del directorio de miembros/pilotos."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 44,

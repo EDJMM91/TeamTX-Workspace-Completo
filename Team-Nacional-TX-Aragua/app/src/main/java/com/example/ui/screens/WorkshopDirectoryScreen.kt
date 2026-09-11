@@ -827,6 +827,28 @@ fun CommercialServiceCard(
                             Text("Mapa TX", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
 
+                        // Botón Compartir Universal
+                        Button(
+                            onClick = {
+                                try {
+                                    val shareText = "${workshop.name}\n📍 Ubicación: ${workshop.address}, ${workshop.city}, ${workshop.state}\n🏷️ Tipo: ${workshop.type}\n📞 Teléfono: ${workshop.phone}\n💬 WhatsApp: https://wa.me/${workshop.whatsapp.replace(Regex("[^0-9]"), "")}\n🗺️ Coordenadas: ${workshop.latitude}, ${workshop.longitude}\n🔧 Notas: ${workshop.notes}"
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Compartir Punto TX"))
+                                } catch (_: Exception) {}
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64748B)),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f).height(32.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text("Compartir", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+
                         // Botón Edición / Borrado para Administradores
                         if (isAuthorizedAdmin) {
                             IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {

@@ -997,6 +997,8 @@ data class WorkshopDirectoryItem(
     var hasCredit: Boolean = false,
     var creditPlatforms: String = "", // Cashea, Rapikom, Convenio con el Dueño y el Team TX, etc.
     var googleMapsUrl: String = "",
+    var imageUrl: String? = null,
+    var iconDrawableName: String = "ic_action_repair",
     var timestamp: Long = System.currentTimeMillis()
 )
 
