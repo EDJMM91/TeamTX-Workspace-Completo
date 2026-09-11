@@ -4878,7 +4878,8 @@ _isAuthenticated.value = true
                 }
 
                 val current = currentMember.value
-                val isComercioServicio = category in listOf("Taller Mecánico", "Repuestos", "Autolavado", "Restaurante / Comida", "Posada / Hotel", "Estación de Servicio")
+                val isComercioServicio = category in listOf("Taller Mecánico", "Venta de Repuestos TX", "Repuestos", "Autolavado Biker", "Autolavado", "Restaurante / Comida", "Posada / Hotel", "Estación de Servicio")
+                val hasCasheaCredit = description.contains("[CASHEA]") || category.contains("Cashea", ignoreCase = true)
 
                 if (isComercioServicio) {
                     val workshop = WorkshopDirectoryItem(
@@ -4888,7 +4889,9 @@ _isAuthenticated.value = true
                         address = address,
                         phone = phone,
                         whatsapp = phone,
-                        notes = description,
+                        notes = description.replace("[CASHEA]", "").trim(),
+                        hasCredit = hasCasheaCredit,
+                        creditPlatforms = if (hasCasheaCredit) "Cashea" else "",
                         latitude = lat,
                         longitude = lon,
                         recommendedBy = current?.fullName ?: "Piloto TX",

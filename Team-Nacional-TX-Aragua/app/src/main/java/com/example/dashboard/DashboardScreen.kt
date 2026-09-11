@@ -107,7 +107,7 @@ fun DashboardScreen(
             item {
                 DashboardHeader(
                     currentMember = currentMember,
-                    onOpenCarnet = { onNavigateToTab(NavigationTab.PROFILE) }
+                    onOpenConfiguraciones = { onNavigateToTab(NavigationTab.CONFIGURACIONES) }
                 )
             }
 
@@ -595,32 +595,6 @@ fun DashboardScreen(
                     onClick = {
                         com.example.ui.preferences.PreferenciasApp.registrarUsoModulo("DIRECTIVA")
                         onNavigateToTab(NavigationTab.DIRECTIVA)
-                    }
-                )
-            }
-
-            item {
-                ModuleListRow(
-                    titulo = "Carnet TX Digital",
-                    descripcion = "Credencial oficial del piloto, solvencia y vinculación",
-                    icono = Icons.Default.Badge,
-                    colorIcono = DashboardFondoConfig.ColorRojoCarrera,
-                    onClick = {
-                        com.example.ui.preferences.PreferenciasApp.registrarUsoModulo("PROFILE")
-                        onNavigateToTab(NavigationTab.PROFILE)
-                    }
-                )
-            }
-
-            item {
-                ModuleListRow(
-                    titulo = "Ajustes y Configuración",
-                    descripcion = "Fondos del dashboard, sonidos, tema y gestión de cuenta",
-                    icono = Icons.Default.Settings,
-                    colorIcono = Color(0xFF546E7A),
-                    onClick = {
-                        com.example.ui.preferences.PreferenciasApp.registrarUsoModulo("CONFIGURACIONES")
-                        onNavigateToTab(NavigationTab.CONFIGURACIONES)
                     }
                 )
             }

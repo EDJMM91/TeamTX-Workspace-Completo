@@ -52,6 +52,17 @@ object GestorNavegacionOsmand {
     }
 
     /**
+     * Inicia inmediatamente la navegación GPS guiada paso a paso por voz en OsmAnd hacia el destino.
+     */
+    fun navegarADestino(context: Context, destinoLat: Double, destinoLon: Double, nombreDestino: String = "Destino Ruta TX") {
+        val app = context.applicationContext as? OsmandApplication
+        val loc = try { app?.locationProvider?.lastKnownLocation } catch (_: Exception) { null }
+        val origLat = loc?.latitude ?: 0.0
+        val origLon = loc?.longitude ?: 0.0
+        iniciarRutaGuiada(context, origLat, origLon, destinoLat, destinoLon)
+    }
+
+    /**
      * Llama al buscador nativo de OsmAnd (QuickSearch).
      */
     fun invocarBuscadorNativo(context: Context, query: String = "") {

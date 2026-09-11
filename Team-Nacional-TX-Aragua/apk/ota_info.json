@@ -1,16 +1,18 @@
 {
-  "versionCode": 37,
-  "versionName": "1.6.1-beta",
+  "versionCode": 39,
+  "versionName": "1.7.0-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Integración Directa de 'Agregar Punto TX' en Menú Contextual OsmAnd y Moderación en Directiva",
-  "notas": "🚀 Release v1.6.1-beta: Ubicación de '📍 Agregar Punto TX' con icono logoteam.png directamente dentro del menú principal contextual de long-press de OsmAnd (al lado de Agregar, Marcador, Compartir) y tarjeta 10 de Moderación en el Hub de Directiva.",
+  "titulo": "Rediseño Nativo de Filas del Dashboard, Unificación de Perfil y Pestaña Táctica de Sidebar",
+  "notas": "🚀 Release v1.7.0-beta: Rediseño limpio de filas del catálogo sin recuadros pesados de fondo, unificación del avatar de perfil en Piloto Autenticado, botón de Ajustes ⚙️ arriba a la derecha y pestaña táctica minimalista de Sidebar.",
   "novedades": [
-    "📍 Integración Directa en Menú OsmAnd: La opción '📍 Agregar Punto TX' con el logotipo oficial logoteam.png aparece justo al dejar presionado el mapa junto a 'Agregar', 'Marcador' y 'Compartir'.",
-    "💻 Tarjeta 10 en Hub de Directiva: Tarjeta interactiva '10. Moderación de Puntos & Denuncias TX' visible en el panel principal de Directiva para el Desarrollador Máster.",
-    "📡 Sincronización Inmediata Broadcast: Captura inmediata de coordenadas (lat, lon) enviadas por broadcast interno desde MapActivity hacia el ViewModel de la app."
+    "🎨 Rediseño Nativo de Filas: Filas limpias y elegantes en 'Todos los Módulos' sin marcos ni cajas pesadas de fondo, logrando un aspecto nativo y fluido.",
+    "🪪 Unificación de Foto de Perfil: Avatar circular integrado en la tarjeta de Piloto Autenticado, permitiendo abrir el Carnet TX directamente.",
+    "⚙️ Botón de Ajustes en Cabecera Superior: Reemplazo del botón duplicado por el icono de Engranaje de Ajustes y Configuración arriba a la derecha.",
+    "📑 Pestaña Táctica de Sidebar: La barra de Sidebar se pliega en una pestaña/píldora minimalista sin texto de bajo perfil.",
+    "🧹 Cero Módulos Repetidos: Depuración de accesos duplicados de Carnet TX y Ajustes en el catálogo inferior."
   ],
   "correcciones": [
-    "Corregido: Ubicación de la opción 'Agregar Punto TX' en el menú contextual de OsmAnd.",
-    "Corregido: Visibilidad de la tarjeta de moderación en el Hub de Directiva."
+    "Corregido: Aspecto de plantilla genérica con recuadros/marcos pesados detrás de cada módulo.",
+    "Corregido: Redundancia de fotos de perfil y accesos duplicados en el Dashboard."
   ]
 }

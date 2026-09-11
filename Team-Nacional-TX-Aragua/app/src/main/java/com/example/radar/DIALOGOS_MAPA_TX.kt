@@ -1870,7 +1870,8 @@ object DialogosMapaTx {
                     try {
                         val num = item.whatsapp.replace(Regex("[^0-9]"), "")
                         val uri = android.net.Uri.parse("https://wa.me/$num")
-                        activity.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                        val waIntent = Intent(Intent.ACTION_VIEW, uri)
+                        activity.startActivity(Intent.createChooser(waIntent, "Abrir WhatsApp"))
                     } catch (_: Exception) {
                         Toast.makeText(activity, "No se pudo abrir WhatsApp", Toast.LENGTH_SHORT).show()
                     }
@@ -2139,7 +2140,7 @@ object DialogosMapaTx {
         activity: Activity,
         lat: Double,
         lon: Double,
-        onCreatePunto: (name: String, category: String, description: String, address: String, lat: Double, lon: Double, imageUri: Uri?, phone: String) -> Unit
+        onCreatePunto: (name: String, category: String, description: String, address: String, lat: Double, lon: Double, imageUri: Uri?, phone: String, iconName: String) -> Unit
     ) {
         if (activity.isFinishing || activity.isDestroyed) return
         val dialog = Dialog(activity)
@@ -2221,11 +2222,14 @@ object DialogosMapaTx {
             "Mirador / Parador Biker",
             "Playa / Costa",
             "Montaña / Ruta",
-            "Camping / Descanso",
-            "Punto de Encuentro",
+            "Cascadas / Ríos / Pozos",
+            "Monumento / Sitio Histórico",
+            "Parque Nacional / Reserva Natural",
+            "Camping / Pernocta",
+            "Punto de Encuentro Caravana",
             "Taller Mecánico",
-            "Repuestos",
-            "Autolavado",
+            "Venta de Repuestos TX",
+            "Autolavado Biker",
             "Restaurante / Comida",
             "Posada / Hotel",
             "Estación de Servicio"
@@ -2245,6 +2249,43 @@ object DialogosMapaTx {
             }
         }
         formCol.addView(spinnerCat)
+
+        // Selector de Icono Táctico para el Mapa
+        val tvIconoLabel = TextView(activity).apply {
+            text = "Icono Táctico en Mapa:"
+            setTextColor(Color.parseColor("#00E5FF"))
+            textSize = 11f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, (4 * density).toInt())
+        }
+        formCol.addView(tvIconoLabel)
+
+        val opcionesIconos = arrayOf(
+            "Logo Team TX (logoteam)",
+            "Brújula (ic_menu_compass)",
+            "Bandera (ic_action_flag)",
+            "Gasolinera / Estación",
+            "Taller Mecánico",
+            "Restaurante / Comida",
+            "Posada / Hotel",
+            "Cascada / Río / Playa",
+            "Montaña / Mirador"
+        )
+
+        val spinnerIcono = Spinner(activity).apply {
+            adapter = ArrayAdapter(activity, android.R.layout.simple_spinner_dropdown_item, opcionesIconos)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#262626"))
+                setStroke((1 * density).toInt(), Color.parseColor("#00E5FF"))
+            }
+            setPadding((8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+        formCol.addView(spinnerIcono)
 
         // Campo Descripción
         val etDesc = EditText(activity).apply {
@@ -2305,6 +2346,18 @@ object DialogosMapaTx {
         }
         formCol.addView(etTel)
 
+        // Checkbox Convenio Cashea / Financiamiento
+        val cbCashea = CheckBox(activity).apply {
+            text = "💳 Acepta Financiamiento / Cashea"
+            setTextColor(Color.parseColor("#4ADE80"))
+            textSize = 12.5f
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+        formCol.addView(cbCashea)
+
         scrollView.addView(formCol)
         root.addView(scrollView)
 
@@ -2339,13 +2392,30 @@ object DialogosMapaTx {
             layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1.4f)
             setOnClickListener {
                 val nombre = etNombre.text.toString().trim()
-                val desc = etDesc.text.toString().trim()
+                var desc = etDesc.text.toString().trim()
                 val dir = etDireccion.text.toString().trim()
                 val tel = etTel.text.toString().trim()
                 val cat = spinnerCat.selectedItem.toString()
 
+                if (cbCashea.isChecked) {
+                    desc = if (desc.isNotBlank()) "[CASHEA] $desc" else "[CASHEA] Comercio con convenio de financiamiento Cashea"
+                }
+
+                val iconoSeleccionado = when (spinnerIcono.selectedItemPosition) {
+                    0 -> "logoteam"
+                    1 -> "ic_menu_compass"
+                    2 -> "ic_action_flag"
+                    3 -> "ic_action_gas_station"
+                    4 -> "ic_action_repair"
+                    5 -> "ic_action_food"
+                    6 -> "ic_action_hotel"
+                    7 -> "ic_action_water"
+                    8 -> "ic_action_mountain"
+                    else -> "logoteam"
+                }
+
                 if (nombre.isNotBlank()) {
-                    onCreatePunto(nombre, cat, desc, dir, lat, lon, null, tel)
+                    onCreatePunto(nombre, cat, desc, dir, lat, lon, null, tel, iconoSeleccionado)
                     dialog.dismiss()
                     Toast.makeText(activity, "✅ Punto '$nombre' registrado en $cat", Toast.LENGTH_LONG).show()
                 } else {

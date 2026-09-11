@@ -539,11 +539,12 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                     val lat = intent.getDoubleExtra("lat", 0.0)
                     val lon = intent.getDoubleExtra("lon", 0.0)
                     val phone = intent.getStringExtra("telefono") ?: ""
+                    val iconName = intent.getStringExtra("iconName") ?: "logoteam"
                     val imgUriStr = intent.getStringExtra("imageUri")
                     val imgUri = if (!imgUriStr.isNullOrBlank()) android.net.Uri.parse(imgUriStr) else null
 
                     if (name.isNotBlank()) {
-                        viewModel.createPuntoTX(name, cat, desc, addr, lat, lon, imgUri, phone)
+                        viewModel.createPuntoTX(name, cat, desc, addr, lat, lon, imgUri, phone, iconName)
                         Toast.makeText(appCtx, "✅ Punto '$name' agregado exitosamente", Toast.LENGTH_LONG).show()
                     }
                 }

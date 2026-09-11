@@ -37,12 +37,12 @@ import com.example.data.model.MemberProfile
 import com.example.data.model.MemberRole
 
 /**
- * Cabecera principal del Dashboard con logotipo oficial y acceso al Carnet TX.
+ * Cabecera principal del Dashboard con logotipo oficial y acceso directo a Ajustes ⚙️.
  */
 @Composable
 fun DashboardHeader(
     currentMember: MemberProfile?,
-    onOpenCarnet: () -> Unit,
+    onOpenConfiguraciones: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -87,57 +87,21 @@ fun DashboardHeader(
             }
         }
 
-        // Botón de Perfil / Carnet TX
+        // Botón de Ajustes y Configuración ⚙️
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(42.dp)
                 .clip(CircleShape)
                 .background(DashboardFondoConfig.ColorTarjetaClara)
                 .border(1.dp, DashboardFondoConfig.ColorBordeClaro, CircleShape)
-                .clickable(onClick = onOpenCarnet),
+                .clickable(onClick = onOpenConfiguraciones),
             contentAlignment = Alignment.Center
         ) {
-            var radarAvatar by remember { mutableStateOf("") }
-            LaunchedEffect(Unit) {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val sharedPrefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
-                    radarAvatar = sharedPrefs.getString("radar_avatar", "") ?: ""
-                }
-            }
-            val rawPhoto = currentMember?.profilePhotoUri?.takeIf { it.isNotBlank() }
-                ?: radarAvatar.takeIf { it.isNotBlank() }
-                ?: com.example.ui.preferences.PreferenciasApp.carnetFotoPerfil.takeIf { it.isNotBlank() }
-                ?: com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl?.takeIf { it.isNotBlank() }
-
-            val photoModel = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(rawPhoto)
-
-            if (photoModel != null) {
-                AsyncImage(
-                    model = photoModel,
-                    contentDescription = "Carnet TX",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Badge,
-                    contentDescription = "Carnet TX",
-                    tint = DashboardFondoConfig.ColorRojoCarrera,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            // Indicador de solvencia / estado activo
-            val colorEstado = if (currentMember?.solvencyStatus == true) Color(0xFF00E676) else Color(0xFFFF9100)
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .align(Alignment.BottomEnd)
-                    .clip(CircleShape)
-                    .background(colorEstado)
-                    .border(1.5.dp, Color.White, CircleShape)
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Ajustes y Configuración",
+                tint = DashboardFondoConfig.ColorTextoPrimario,
+                modifier = Modifier.size(22.dp)
             )
         }
     }
@@ -152,6 +116,7 @@ fun PilotStatusCard(
     onOpenCarnet: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val roleColor = when (currentMember?.role) {
         MemberRole.DESARROLLADOR -> Color(0xFF00E5FF)
         MemberRole.PRESIDENTE, MemberRole.VICEPRESIDENTE, MemberRole.DIRECTIVA -> DashboardFondoConfig.ColorDoradoOro
@@ -171,24 +136,78 @@ fun PilotStatusCard(
         border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 📸 Avatar Circular del Piloto Autenticado
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(DashboardFondoConfig.ColorContenedorClaro)
+                        .border(1.5.dp, roleColor, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    var radarAvatar by remember { mutableStateOf("") }
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            val sharedPrefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+                            radarAvatar = sharedPrefs.getString("radar_avatar", "") ?: ""
+                        }
+                    }
+                    val rawPhoto = currentMember?.profilePhotoUri?.takeIf { it.isNotBlank() }
+                        ?: radarAvatar.takeIf { it.isNotBlank() }
+                        ?: com.example.ui.preferences.PreferenciasApp.carnetFotoPerfil.takeIf { it.isNotBlank() }
+                        ?: com.example.ui.preferences.PreferenciasApp.carnetGooglePhotoUrl?.takeIf { it.isNotBlank() }
+
+                    val photoModel = com.example.util.SanitizadorImagenUrl.obtenerModelParaCoil(rawPhoto)
+
+                    if (photoModel != null) {
+                        AsyncImage(
+                            model = photoModel,
+                            contentDescription = "Carnet TX",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        Text(
+                            text = currentMember?.avatarInitials ?: "TX",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black,
+                            color = roleColor
+                        )
+                    }
+
+                    // Indicador de solvencia
+                    val colorEstado = if (currentMember?.solvencyStatus == true) Color(0xFF00E676) else Color(0xFFFF9100)
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .align(Alignment.BottomEnd)
+                            .clip(CircleShape)
+                            .background(colorEstado)
+                            .border(1.5.dp, Color.White, CircleShape)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "PILOTO AUTENTICADO",
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = DashboardFondoConfig.ColorTextoSecundario,
                         letterSpacing = 0.5.sp
                     )
                     Text(
                         text = currentMember?.fullName?.ifBlank { "Piloto Team TX" } ?: "Piloto Oficial",
-                        fontSize = 18.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = DashboardFondoConfig.ColorTextoPrimario,
                         maxLines = 1,
@@ -197,7 +216,7 @@ fun PilotStatusCard(
                     if (!currentMember?.nickname.isNullOrBlank()) {
                         Text(
                             text = "\"${currentMember?.nickname}\"",
-                            fontSize = 13.sp,
+                            fontSize = 12.5.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = DashboardFondoConfig.ColorRojoCarrera,
                             maxLines = 1,
@@ -206,13 +225,13 @@ fun PilotStatusCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = roleColor.copy(alpha = 0.15f),
                     border = androidx.compose.foundation.BorderStroke(1.dp, roleColor.copy(alpha = 0.5f)),
-                    modifier = Modifier.widthIn(max = 145.dp)
+                    modifier = Modifier.widthIn(max = 140.dp)
                 ) {
                     Text(
                         text = currentMember?.role?.displayName ?: "Aspirante",
@@ -293,42 +312,34 @@ fun DashboardSidebarBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Botón expansor estilo moderno
-        Button(
+        // Pestaña/Píldora táctica discreta sin texto para desplegar la Sidebar
+        Surface(
             onClick = { isExpanded = !isExpanded },
-            modifier = Modifier.fillMaxWidth().height(44.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = DashboardFondoConfig.ColorTarjetaClara,
-                contentColor = DashboardFondoConfig.ColorTextoPrimario
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+            color = DashboardFondoConfig.ColorTarjetaClara,
+            border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro),
+            shadowElevation = 1.dp,
+            modifier = Modifier.wrapContentWidth()
         ) {
             Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.MenuOpen,
-                        contentDescription = "Sidebar",
-                        tint = DashboardFondoConfig.ColorRojoCarrera,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isExpanded) "Cerrar Sidebar" else "Abrir Sidebar Módulos",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.MenuOpen,
+                    contentDescription = "Pestaña Sidebar",
+                    tint = DashboardFondoConfig.ColorRojoCarrera,
+                    modifier = Modifier.size(16.dp)
+                )
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = DashboardFondoConfig.ColorTextoSecundario
+                    tint = DashboardFondoConfig.ColorTextoSecundario,
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
@@ -622,20 +633,14 @@ fun ModuleListRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .shadow(elevation = 1.dp, shape = RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        color = DashboardFondoConfig.ColorTarjetaClara,
-        border = androidx.compose.foundation.BorderStroke(1.dp, DashboardFondoConfig.ColorBordeClaro)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 8.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -644,20 +649,12 @@ fun ModuleListRow(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(colorIcono.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icono,
-                        contentDescription = titulo,
-                        tint = colorIcono,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                Icon(
+                    imageVector = icono,
+                    contentDescription = titulo,
+                    tint = colorIcono,
+                    modifier = Modifier.size(22.dp)
+                )
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -670,7 +667,7 @@ fun ModuleListRow(
                     )
                     Text(
                         text = descripcion,
-                        fontSize = 12.sp,
+                        fontSize = 11.5.sp,
                         color = DashboardFondoConfig.ColorTextoSecundario,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -684,15 +681,15 @@ fun ModuleListRow(
             ) {
                 if (badgeCount > 0 || badgeAlerta) {
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = CircleShape,
                         color = DashboardFondoConfig.ColorRojoCarrera
                     ) {
                         Text(
                             text = if (badgeCount > 0) (if (badgeCount > 99) "99+" else "$badgeCount") else "!",
                             color = Color.White,
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -700,11 +697,13 @@ fun ModuleListRow(
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = "Abrir",
-                    tint = DashboardFondoConfig.ColorTextoSecundario.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
+                    tint = DashboardFondoConfig.ColorTextoSecundario.copy(alpha = 0.4f),
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro.copy(alpha = 0.35f), thickness = 0.8.dp)
     }
 }
 

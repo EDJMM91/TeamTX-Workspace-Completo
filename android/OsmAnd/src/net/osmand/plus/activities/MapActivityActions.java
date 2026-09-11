@@ -197,17 +197,17 @@ public class MapActivityActions extends MapActions {
 		ContextMenuItem addPuntoTxItem = new ContextMenuItem("map_context_menu_add_punto_tx")
 				.setTitle("📍 Agregar Punto TX (Interés / Comercio)")
 				.setIcon(resLogoteam)
-				.setOrder(15)
+				.setOrder(45)
 				.setListener((callback, view, item, isChecked) -> {
 					activity.runOnUiThread(() -> {
 						try {
 							Class<?> clazz = Class.forName("com.example.radar.DialogosMapaTx");
 							Object instance = clazz.getField("INSTANCE").get(null);
 							java.lang.reflect.Method method = clazz.getMethod("mostrarFormularioCrearPuntoTX",
-									android.app.Activity.class, double.class, double.class, kotlin.jvm.functions.Function8.class);
+									android.app.Activity.class, double.class, double.class, kotlin.jvm.functions.Function9.class);
 							method.invoke(instance, activity, latitude, longitude,
-									(kotlin.jvm.functions.Function8<Object, Object, Object, Object, Object, Object, Object, Object, kotlin.Unit>)
-									(name, cat, desc, addr, lat, lon, imageUri, phone) -> {
+									(kotlin.jvm.functions.Function9<Object, Object, Object, Object, Object, Object, Object, Object, Object, kotlin.Unit>)
+									(name, cat, desc, addr, lat, lon, imageUri, phone, iconName) -> {
 										Intent intentPunto = new Intent("com.example.ACTION_CREAR_PUNTO_TX");
 										intentPunto.putExtra("nombre", String.valueOf(name));
 										intentPunto.putExtra("categoria", String.valueOf(cat));
@@ -216,6 +216,7 @@ public class MapActivityActions extends MapActions {
 										intentPunto.putExtra("lat", Double.parseDouble(String.valueOf(lat)));
 										intentPunto.putExtra("lon", Double.parseDouble(String.valueOf(lon)));
 										intentPunto.putExtra("telefono", String.valueOf(phone));
+										intentPunto.putExtra("iconName", String.valueOf(iconName));
 										if (imageUri != null) intentPunto.putExtra("imageUri", imageUri.toString());
 										activity.sendBroadcast(intentPunto);
 										return kotlin.Unit.INSTANCE;

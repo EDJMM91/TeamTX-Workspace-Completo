@@ -104,6 +104,43 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 39,
+            versionName = "1.7.0-beta",
+            titulo = "Rediseño Nativo de Filas del Dashboard, Unificación de Perfil y Pestaña Táctica de Sidebar",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Rediseño limpio de filas del catálogo sin recuadros pesados de fondo, unificación del avatar de perfil en Piloto Autenticado, botón de Ajustes ⚙️ arriba a la derecha y pestaña táctica minimalista de Sidebar.",
+            novedades = listOf(
+                "🎨 Rediseño Nativo de Filas: Filas limpias y elegantes en 'Todos los Módulos' sin marcos ni cajas pesadas de fondo, logrando un aspecto nativo y fluido.",
+                "🪪 Unificación de Foto de Perfil: Avatar circular integrado en la tarjeta de Piloto Autenticado, permitiendo abrir el Carnet TX directamente.",
+                "⚙️ Botón de Ajustes en Cabecera Superior: Reemplazo del botón duplicado por el icono de Engranaje de Ajustes y Configuración arriba a la derecha.",
+                "📑 Pestaña Táctica de Sidebar: La barra de Sidebar se pliega en una pestaña/píldora minimalista sin texto de bajo perfil.",
+                "🧹 Cero Módulos Repetidos: Depuración de accesos duplicados de Carnet TX y Ajustes en el catálogo inferior."
+            ),
+            correcciones = listOf(
+                "Corregido: Aspecto de plantilla genérica con recuadros/marcos pesados detrás de cada módulo.",
+                "Corregido: Redundancia de fotos de perfil y accesos duplicados en el Dashboard."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
+            versionCode = 38,
+            versionName = "1.6.2-beta",
+            titulo = "Navegación GPS Guiada Nativa por Voz, Selector de Iconos Sincronizado a Nube y Financiación Cashea",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Inyección directa de rutas guiadas por voz en el motor OsmAnd al tocar 'Navegar GPS' en cualquier sitio, selector desplegable de iconos tácticos sincronizado con la nube y dibujado automático de la insignia Cashea con línea flotante en el mapa.",
+            novedades = listOf(
+                "🚀 Navegación Guiada Nativa por Voz: Tocar 'Navegar GPS' en cualquier tarjeta o disco informativo del mapa inyecta el destino en OsmAnd, dibuja la línea oficial e inicia la navegación por voz paso a paso.",
+                "🎨 Selector de Iconos Tácticos Sincronizado: Desplegable en el formulario para seleccionar el icono del mapa (`logoteam`, `ic_menu_compass`, `ic_action_flag`, `ic_action_gas_station`, `ic_action_repair`, `ic_action_food`, `ic_action_hotel`, `ic_action_water`, `ic_action_mountain`), sincronizado con la nube para toda la flota.",
+                "💳 Insignia Cashea Flotante en Mapa: Al marcar financiación Cashea en un comercio, el mapa dibuja automáticamente el logotipo `cashea.png` unida mediante una línea al disco del negocio.",
+                "💬 Acciones Tácticas Directas: Botones de WhatsApp (`wa.me`) y Llamada Telefónica (`tel:`) integrados en las fichas del mapa y listas del módulo."
+            ),
+            correcciones = listOf(
+                "Corregido: Falta de inicio automático de navegación guiada al seleccionar destino en el mapa.",
+                "Corregido: Sincronización del icono táctico personalizado entre dispositivos."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
             versionCode = 37,
             versionName = "1.6.1-beta",
             titulo = "Integración Directa de 'Agregar Punto TX' en Menú Contextual OsmAnd y Moderación en Directiva",
@@ -118,7 +155,7 @@ object GestorActualizaciones {
                 "Corregido: Ubicación de la opción 'Agregar Punto TX' en el menú contextual de OsmAnd.",
                 "Corregido: Visibilidad de la tarjeta de moderación en el Hub de Directiva."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 36,
