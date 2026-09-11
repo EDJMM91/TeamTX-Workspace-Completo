@@ -1,16 +1,15 @@
 {
-  "versionCode": 43,
-  "versionName": "1.8.1-beta",
+  "versionCode": 44,
+  "versionName": "1.8.2-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Directorio Global TX Unificado con Icono Explícito de Mapa y Puntos Turísticos",
-  "notas": "🚀 Release v1.8.1-beta: Unificación oficial del módulo bajo el nombre 'Directorio Global TX', icono alusivo a mapa/exploración (Icons.Default.Explore) en el Dashboard y registro de puntos unificado desde la app o mapa.",
+  "titulo": "Unificación del Formulario DialogoCrearPuntoTX en Directorio Global y Mapeo Doble",
+  "notas": "🚀 Release v1.8.2-beta: Invocación unificada del formulario DialogoCrearPuntoTX tanto desde el Mapa TX como desde la pantalla del Directorio Global, con enrutamiento automático hacia comercios o sitios de interés.",
   "novedades": [
-    "🌐 Directorio Global TX Unificado: Módulo oficial renombrado a 'Directorio Global TX' en la barra superior, Bento Grid y catálogo general del Dashboard.",
-    "🧭 Icono Alusivo a Mapa y Directorio: Iconografía oficial de exploración/mapa (`Icons.Default.Explore`) en todas las tarjetas del Dashboard.",
-    "➕ Registro Unificado de Puntos y Comercios: Formulario 'Registrar Punto de Interés / Comercio' unificado para la base de datos de la plataforma."
+    "➕ Formulario Unificado DialogoCrearPuntoTX: Presionar 'Registrar Punto / Comercio' en el Directorio Global abre exactamente el mismo formulario del mapa con cámara/galería, íconos tácticos, Cashea y categorías de ruta.",
+    "🗂️ Enrutamiento Inteligente Doble: Clasificación automática a 'workshops_directory' o 'sitios_interes' en Firestore y Room DB según la categoría seleccionada.",
+    "🌐 Coexistencia Total de Bases de Datos: Mantenimiento 100% libre de errores de los datos comerciales históricos y los nuevos destinos turísticos."
   ],
   "correcciones": [
-    "Corregido: Eliminación de botones duplicados en la barra superior del módulo.",
-    "Corregido: Nomenclatura del módulo en la navegación principal."
+    "Corregido: Unificación de formularios entre el Mapa TX y el módulo Directorio Global."
   ]
 }

@@ -428,15 +428,29 @@ fun WorkshopDirectoryScreen(
         }
     }
 
-    // Modal para Registrar Negocio
+    // Modal para Registrar Punto / Comercio TX (Formulario Unificado con el Mapa)
     if (showCreateDialog) {
-        CreateCommercialServiceDialog(
-            onDismiss = { showCreateDialog = false },
-            onConfirm = { name, type, state, city, addr, ph, wa, rat, notes, lat, lng, hasCredit, creditPlatforms, gMapsUrl ->
-                onCreateWorkshop(name, type, state, city, addr, ph, wa, rat, notes, lat, lng, hasCredit, creditPlatforms, gMapsUrl)
+        LaunchedEffect(Unit) {
+            val act = (context as? android.app.Activity)
+            if (act != null) {
+                val app = act.applicationContext as? net.osmand.plus.OsmandApplication
+                val loc = try { app?.locationProvider?.lastKnownLocation } catch (_: Exception) { null }
+                val itemLat = loc?.latitude ?: 10.3541
+                val itemLon = loc?.longitude ?: -67.6102
+
+                com.example.radar.DialogosMapaTx.mostrarFormularioCrearPuntoTX(
+                    act, itemLat, itemLon
+                ) { name, cat, desc, addr, latVal, lonVal, imageUri, phone, iconName ->
+                    val hasCasheaCredit = desc.contains("[CASHEA]") || cat.contains("Cashea", ignoreCase = true)
+                    onCreateWorkshop(
+                        name, cat, "Aragua", "Maracay", addr, phone, phone, 5.0, desc, latVal, lonVal, hasCasheaCredit, if (hasCasheaCredit) "Cashea" else "", ""
+                    )
+                    showCreateDialog = false
+                }
+            } else {
                 showCreateDialog = false
             }
-        )
+        }
     }
 
     // Modal para Editar Negocio

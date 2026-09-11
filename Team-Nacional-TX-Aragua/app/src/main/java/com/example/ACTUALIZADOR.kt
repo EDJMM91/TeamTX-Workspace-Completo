@@ -104,6 +104,22 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 44,
+            versionName = "1.8.2-beta",
+            titulo = "Unificación del Formulario DialogoCrearPuntoTX en Directorio Global y Mapeo Doble",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Invocación unificada del formulario DialogoCrearPuntoTX tanto desde el Mapa TX como desde la pantalla del Directorio Global, con enrutamiento automático hacia comercios o sitios de interés.",
+            novedades = listOf(
+                "➕ Formulario Unificado DialogoCrearPuntoTX: Presionar 'Registrar Punto / Comercio' en el Directorio Global abre exactamente el mismo formulario del mapa con cámara/galería, íconos tácticos, Cashea y categorías de ruta.",
+                "🗂️ Enrutamiento Inteligente Doble: Clasificación automática a 'workshops_directory' o 'sitios_interes' en Firestore y Room DB según la categoría seleccionada.",
+                "🌐 Coexistencia Total de Bases de Datos: Mantenimiento 100% libre de errores de los datos comerciales históricos y los nuevos destinos turísticos."
+            ),
+            correcciones = listOf(
+                "Corregido: Unificación de formularios entre el Mapa TX y el módulo Directorio Global."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 43,
             versionName = "1.8.1-beta",
             titulo = "Directorio Global TX Unificado con Icono Explícito de Mapa y Puntos Turísticos",
@@ -118,7 +134,7 @@ object GestorActualizaciones {
                 "Corregido: Eliminación de botones duplicados en la barra superior del módulo.",
                 "Corregido: Nomenclatura del módulo en la navegación principal."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 42,
