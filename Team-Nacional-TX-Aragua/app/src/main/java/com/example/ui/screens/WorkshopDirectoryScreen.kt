@@ -192,6 +192,43 @@ fun WorkshopDirectoryScreen(
         }
     }
 
+    fun abrirFormularioUnificado(itemExistente: WorkshopDirectoryItem? = null) {
+        val act = (context as? android.app.Activity) ?: return
+        val app = act.applicationContext as? net.osmand.plus.OsmandApplication
+        val loc = try { app?.locationProvider?.lastKnownLocation } catch (_: Exception) { null }
+        val defaultLat = itemExistente?.latitude ?: loc?.latitude ?: 10.3541
+        val defaultLon = itemExistente?.longitude ?: loc?.longitude ?: -67.6102
+
+        com.example.radar.DialogosMapaTx.mostrarFormularioCrearPuntoTX(
+            act, defaultLat, defaultLon
+        ) { name, cat, desc, addr, latVal, lonVal, imageUri, phone, iconName ->
+            val hasCasheaCredit = desc.contains("[CASHEA]") || cat.contains("Cashea", ignoreCase = true)
+            if (itemExistente != null) {
+                val updated = itemExistente.copy(
+                    name = name,
+                    type = cat,
+                    address = addr,
+                    phone = phone,
+                    whatsapp = phone,
+                    notes = desc.replace("[CASHEA]", "").trim(),
+                    hasCredit = hasCasheaCredit,
+                    creditPlatforms = if (hasCasheaCredit) "Cashea" else "",
+                    latitude = latVal,
+                    longitude = lonVal,
+                    iconDrawableName = iconName,
+                    timestamp = System.currentTimeMillis()
+                )
+                onUpdateWorkshop(updated)
+                Toast.makeText(context, "Establecimiento '$name' actualizado ✓", Toast.LENGTH_SHORT).show()
+            } else {
+                onCreateWorkshop(
+                    name, cat, "Aragua", "Maracay", addr, phone, phone, 5.0, desc, latVal, lonVal, hasCasheaCredit, if (hasCasheaCredit) "Cashea" else "", ""
+                )
+                Toast.makeText(context, "Nuevo punto '$name' registrado ✓", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -220,7 +257,7 @@ fun WorkshopDirectoryScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showCreateDialog = true }) {
+                    IconButton(onClick = { abrirFormularioUnificado() }) {
                         Icon(Icons.Default.AddLocationAlt, contentDescription = "Registrar Punto de Interés o Comercio", tint = MotoOrangePrimary)
                     }
                 },
@@ -229,7 +266,7 @@ fun WorkshopDirectoryScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { showCreateDialog = true },
+                onClick = { abrirFormularioUnificado() },
                 containerColor = TxFlameRed,
                 contentColor = Color.White,
                 icon = { Icon(Icons.Default.AddLocationAlt, contentDescription = null) },
@@ -457,7 +494,7 @@ fun WorkshopDirectoryScreen(
                         CommercialServiceCard(
                             workshop = workshop,
                             isAuthorizedAdmin = isAuthorizedAdmin,
-                            onEdit = { workshopToEdit = workshop },
+                            onEdit = { abrirFormularioUnificado(workshop) },
                             onDelete = { workshopToDelete = workshop },
                             onShowCreditInfo = { workshopForCreditInfo = workshop },
                             onRate = { workshopToRate = workshop },
@@ -468,44 +505,6 @@ fun WorkshopDirectoryScreen(
                 }
             }
         }
-    }
-
-    // Modal para Registrar Punto / Comercio TX (Formulario Unificado con el Mapa)
-    if (showCreateDialog) {
-        LaunchedEffect(Unit) {
-            val act = (context as? android.app.Activity)
-            if (act != null) {
-                val app = act.applicationContext as? net.osmand.plus.OsmandApplication
-                val loc = try { app?.locationProvider?.lastKnownLocation } catch (_: Exception) { null }
-                val itemLat = loc?.latitude ?: 10.3541
-                val itemLon = loc?.longitude ?: -67.6102
-
-                com.example.radar.DialogosMapaTx.mostrarFormularioCrearPuntoTX(
-                    act, itemLat, itemLon
-                ) { name, cat, desc, addr, latVal, lonVal, imageUri, phone, iconName ->
-                    val hasCasheaCredit = desc.contains("[CASHEA]") || cat.contains("Cashea", ignoreCase = true)
-                    onCreateWorkshop(
-                        name, cat, "Aragua", "Maracay", addr, phone, phone, 5.0, desc, latVal, lonVal, hasCasheaCredit, if (hasCasheaCredit) "Cashea" else "", ""
-                    )
-                    showCreateDialog = false
-                }
-            } else {
-                showCreateDialog = false
-            }
-        }
-    }
-
-    // Modal para Editar Negocio
-    workshopToEdit?.let { item ->
-        EditCommercialServiceDialog(
-            item = item,
-            onDismiss = { workshopToEdit = null },
-            onConfirm = { updated ->
-                onUpdateWorkshop(updated)
-                workshopToEdit = null
-                Toast.makeText(context, "Establecimiento actualizado ✓", Toast.LENGTH_SHORT).show()
-            }
-        )
     }
 
     // Modal para Calificar Establecimiento

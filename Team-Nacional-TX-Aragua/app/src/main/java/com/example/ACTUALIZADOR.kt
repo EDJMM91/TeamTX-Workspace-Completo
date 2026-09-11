@@ -104,6 +104,22 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 52,
+            versionName = "1.9.0-beta",
+            titulo = "Solución Definitiva de Invocación Directa en onClick sin Lag de Estado",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Invocación directa instantánea de DialogosMapaTx.mostrarFormularioCrearPuntoTX al hacer clic en el botón flotante rojo, en la barra superior o en Editar Comercio.",
+            novedades = listOf(
+                "⚡ Apertura Directa Instantánea: Eliminación de intermediarios LaunchedEffect para que el diálogo maestro unificado aparezca de inmediato al tocar cualquier botón de registro o edición.",
+                "🎛️ Selector Maestro Funcional: Acceso inmediato al selector 'Comercio / Taller' vs 'Punto de Ruta / Mirador' con todos sus 13 campos unificados.",
+                "📍 Trilogía GPS en Vivo: Acceso directo a '🗺️ Mapa TX', '📋 Pegar GPS' y '📍 Mi GPS' en cada intento de registro o edición."
+            ),
+            correcciones = listOf(
+                "Corregido: Cierre prematuro del diálogo por ejecución sincrónica de LaunchedEffect."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 51,
             versionName = "1.8.9-beta",
             titulo = "Selector Maestro de Registro Táctico (Comercios vs Puntos de Ruta) y Unificación Total",
@@ -118,7 +134,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Unificación absoluta entre la creación y edición de comercios y sitios de interés."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 50,
