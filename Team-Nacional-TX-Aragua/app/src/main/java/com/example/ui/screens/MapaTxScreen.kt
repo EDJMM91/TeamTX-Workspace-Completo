@@ -155,7 +155,9 @@ fun TxMapLauncher(
                 try {
                     val db = com.example.data.local.AppDatabase.getDatabase(context, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
                     val spots = db.interestPointDao().getAllInterestPoints().first()
-                    com.example.radar.GestorRadar.sincronizarSitiosInteresEnMapa(spots, true)
+                    val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+                    val mostrarSitios = prefs.getBoolean("mostrar_sitios_en_mapa", true)
+                    com.example.radar.GestorRadar.sincronizarSitiosInteresEnMapa(spots, mostrarSitios)
                 } catch (e: Exception) {
                     android.util.Log.w("MAPA_TX", "Error sincronizando sitios de interés: ${e.message}")
                 }

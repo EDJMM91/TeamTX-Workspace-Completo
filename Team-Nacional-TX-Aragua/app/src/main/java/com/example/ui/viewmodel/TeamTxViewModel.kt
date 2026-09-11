@@ -4916,6 +4916,40 @@ _isAuthenticated.value = true
                     )
                     repository.insertInterestPoint(spot)
                 }
+
+                // 📢 Auto-Aviso Oficial en el Muro de Noticias (MODULOS_GESTOR.md Rule)
+                try {
+                    val noticeContent = buildString {
+                        appendLine("📍 ¡Atención Pilotos! Se ha registrado un nuevo punto en la plataforma:")
+                        appendLine()
+                        appendLine("🏷️ Nombre: $name")
+                        appendLine("🗺️ Categoría: $category")
+                        if (address.isNotBlank()) appendLine("📍 Ubicación: $address")
+                        if (phone.isNotBlank()) appendLine("📞 Teléfono / WhatsApp: $phone")
+                        if (description.isNotBlank()) appendLine("🔧 Notas: ${description.replace("[CASHEA]", "").trim()}")
+                        appendLine()
+                        appendLine("¡Consúltalo ya en el Directorio Global TX y en el Mapa TX!")
+                    }
+
+                    val pub = Publication(
+                        id = System.currentTimeMillis() + 1,
+                        title = "📍 NUEVO PUNTO REGISTRADO: $name ($category)",
+                        content = noticeContent,
+                        category = NoticeCategory.AVISO_OFICIAL,
+                        priority = NoticePriority.NORMAL,
+                        isPinned = false,
+                        imageUrl = uploadedUrl,
+                        authorName = current?.fullName ?: "Directiva Nacional TX",
+                        authorRole = current?.role?.displayName ?: MemberRole.DIRECTIVA.displayName,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    repository.insertPublication(pub)
+
+                    com.example.GestorNotificacionesApp.notificarNuevoComercio(name, category)
+                } catch (eNotice: Exception) {
+                    Log.w("TeamTxViewModel", "Aviso en auto-notificación de punto: ${eNotice.message}")
+                }
+
                 onComplete(true)
             } catch (e: Exception) {
                 Log.e("TeamTxViewModel", "Error creando punto TX: ${e.message}", e)

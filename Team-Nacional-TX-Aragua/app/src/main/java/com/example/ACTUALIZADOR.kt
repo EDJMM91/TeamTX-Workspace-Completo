@@ -104,6 +104,23 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 49,
+            versionName = "1.8.7-beta",
+            titulo = "Switch Toggle en Mapa TX y Auto-Avisos Intermodulares con Notificaciones Push",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Incorporación del switch toggle para mostrar/ocultar sitios turísticos en el mapa y generación automática de avisos oficiales con notificaciones push al registrar cada nuevo punto o comercio.",
+            novedades = listOf(
+                "🏕️ Switch Toggle de Visibilidad en Mapa TX: Control interactivo en la barra del mapa para mostrar u ocultar en tiempo real todos los sitios de interés turísticos.",
+                "📢 Auto-Avisos Intermodulares (MODULOS_GESTOR.md): Cada registro genera automáticamente una publicación oficial en el Muro de Noticias con foto y ficha completa.",
+                "🔔 Notificaciones Push In-App: Alerta inmediata enviada a toda la flota al descubrirse un nuevo punto o comercio en la plataforma.",
+                "💳 Insignia Cashea Flotante: Dibujado automático del logo `cashea.png` con línea trazada en comercios afiliados."
+            ),
+            correcciones = listOf(
+                "Corregido: Falta de generación automática de avisos oficiales al agregar puntos nuevos desde el mapa o módulo."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 48,
             versionName = "1.8.6-beta",
             titulo = "Unificación Total de Formulario de Registro y Edición de Comercios/Sitios TX",
@@ -118,7 +135,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Separación previa entre formularios de creación y edición de comercios."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 47,
