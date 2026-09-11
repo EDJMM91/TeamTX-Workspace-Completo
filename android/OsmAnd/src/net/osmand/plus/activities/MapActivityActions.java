@@ -191,6 +191,43 @@ public class MapActivityActions extends MapActions {
 
 		PluginsHelper.registerMapContextMenu(activity, latitude, longitude, adapter, object, configureMenu);
 
+		int resLogoteam = activity.getResources().getIdentifier("logoteam", "drawable", activity.getPackageName());
+		if (resLogoteam == 0) resLogoteam = R.drawable.ic_action_marker_dark;
+
+		ContextMenuItem addPuntoTxItem = new ContextMenuItem("map_context_menu_add_punto_tx")
+				.setTitle("📍 Agregar Punto TX (Interés / Comercio)")
+				.setIcon(resLogoteam)
+				.setOrder(15)
+				.setListener((callback, view, item, isChecked) -> {
+					activity.runOnUiThread(() -> {
+						try {
+							Class<?> clazz = Class.forName("com.example.radar.DialogosMapaTx");
+							Object instance = clazz.getField("INSTANCE").get(null);
+							java.lang.reflect.Method method = clazz.getMethod("mostrarFormularioCrearPuntoTX",
+									android.app.Activity.class, double.class, double.class, kotlin.jvm.functions.Function8.class);
+							method.invoke(instance, activity, latitude, longitude,
+									(kotlin.jvm.functions.Function8<Object, Object, Object, Object, Object, Object, Object, Object, kotlin.Unit>)
+									(name, cat, desc, addr, lat, lon, imageUri, phone) -> {
+										Intent intentPunto = new Intent("com.example.ACTION_CREAR_PUNTO_TX");
+										intentPunto.putExtra("nombre", String.valueOf(name));
+										intentPunto.putExtra("categoria", String.valueOf(cat));
+										intentPunto.putExtra("descripcion", String.valueOf(desc));
+										intentPunto.putExtra("direccion", String.valueOf(addr));
+										intentPunto.putExtra("lat", Double.parseDouble(String.valueOf(lat)));
+										intentPunto.putExtra("lon", Double.parseDouble(String.valueOf(lon)));
+										intentPunto.putExtra("telefono", String.valueOf(phone));
+										if (imageUri != null) intentPunto.putExtra("imageUri", imageUri.toString());
+										activity.sendBroadcast(intentPunto);
+										return kotlin.Unit.INSTANCE;
+									});
+						} catch (Exception e) {
+							android.util.Log.e("MapActivityActions", "Error abriendo formulario Punto TX: " + e.getMessage(), e);
+						}
+					});
+					return true;
+				});
+		adapter.addItem(addPuntoTxItem);
+
 		ItemClickListener listener = (callback, view, item, isChecked) -> {
 			int resId = item.getTitleId();
 			if (resId == R.string.context_menu_item_add_waypoint) {

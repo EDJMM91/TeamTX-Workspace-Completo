@@ -104,6 +104,23 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 37,
+            versionName = "1.6.1-beta",
+            titulo = "Integración Directa de 'Agregar Punto TX' en Menú Contextual OsmAnd y Moderación en Directiva",
+            fecha = "10 sep 2026",
+            descripcionCorta = "Ubicación de '📍 Agregar Punto TX' con icono logoteam.png directamente dentro del menú principal contextual de long-press de OsmAnd (al lado de Agregar, Marcador, Compartir) y tarjeta 10 de Moderación en el Hub de Directiva.",
+            novedades = listOf(
+                "📍 Integración Directa en Menú OsmAnd: La opción '📍 Agregar Punto TX' con el logotipo oficial logoteam.png aparece justo al dejar presionado el mapa junto a 'Agregar', 'Marcador' y 'Compartir'.",
+                "💻 Tarjeta 10 en Hub de Directiva: Tarjeta interactiva '10. Moderación de Puntos & Denuncias TX' visible en el panel principal de Directiva para el Desarrollador Máster.",
+                "📡 Sincronización Inmediata Broadcast: Captura inmediata de coordenadas (lat, lon) enviadas por broadcast interno desde MapActivity hacia el ViewModel de la app."
+            ),
+            correcciones = listOf(
+                "Corregido: Ubicación de la opción 'Agregar Punto TX' en el menú contextual de OsmAnd.",
+                "Corregido: Visibilidad de la tarjeta de moderación en el Hub de Directiva."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 36,
             versionName = "1.6.0-beta",
             titulo = "Nuevo Módulo 'Sitios de Interés TX', Menú Contextual OsmAnd (logoteam.png), Denuncias, Likes/Dislikes y Moderación Desarrollador",
@@ -119,7 +136,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Falta de integración de puntos de interés turístico en el mapa con persistencia local y nube."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 35,

@@ -1,18 +1,16 @@
 {
-  "versionCode": 33,
-  "versionName": "1.5.2-beta",
+  "versionCode": 37,
+  "versionName": "1.6.1-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Rol Desarrollador Inmutable, Eliminación Definitiva, Sincronización de Radar y Fix Mapa",
-  "notas": "🚀 Release v1.5.2-beta: Asignación inmutable del cargo Desarrollador Máster, designación exclusiva del cargo de Presidente por el Desarrollador, opción 'Eliminar Definitivo' en Directiva, enrutamiento directo de cuentas aprobadas, sincronización bidireccional de 'Mostrarme en el Mapa' y prevención de cierres en el Mapa TX.",
+  "titulo": "Integración Directa de 'Agregar Punto TX' en Menú Contextual OsmAnd y Moderación en Directiva",
+  "notas": "🚀 Release v1.6.1-beta: Ubicación de '📍 Agregar Punto TX' con icono logoteam.png directamente dentro del menú principal contextual de long-press de OsmAnd (al lado de Agregar, Marcador, Compartir) y tarjeta 10 de Moderación en el Hub de Directiva.",
   "novedades": [
-    "💻 Rol Inmutable Desarrollador Máster: Fijación del rol `DESARROLLADOR` para eduardo.androide.em@gmail.com con jerarquía suprema y asignación exclusiva del cargo de Presidente.",
-    "🗑️ Opción 'Eliminar Definitivo': Purga atómica del usuario de todas las colecciones de Firestore (`usuarios`, `users`, `members`, `vinculos_google`) y Room local.",
-    "🚀 Enrutamiento Directo sin Bucles: Las cuentas aprobadas ingresan directo a `MainAppScreen` sin caer en la pantalla de 'Cuenta en evaluación'.",
-    "🛰️ Radar GPS Continuo y Sincronizado: Sincronización bidireccional del interruptor de ubicación entre Ajustes y Mapa TX, con umbral de tolerancia ampliado a 12h.",
-    "📍 Estabilidad en Mapa TX: Prevención de cierres del mapa al tocar marcadores de pilotos y soporte de avatares Base64 en el radar."
+    "📍 Integración Directa en Menú OsmAnd: La opción '📍 Agregar Punto TX' con el logotipo oficial logoteam.png aparece justo al dejar presionado el mapa junto a 'Agregar', 'Marcador' y 'Compartir'.",
+    "💻 Tarjeta 10 en Hub de Directiva: Tarjeta interactiva '10. Moderación de Puntos & Denuncias TX' visible en el panel principal de Directiva para el Desarrollador Máster.",
+    "📡 Sincronización Inmediata Broadcast: Captura inmediata de coordenadas (lat, lon) enviadas por broadcast interno desde MapActivity hacia el ViewModel de la app."
   ],
   "correcciones": [
-    "Corregido: Cierre/crash del mapa al tocar la ficha de un piloto en el Radar GPS.",
-    "Corregido: Sobreescritura del rol del Desarrollador a Presidente durante la vinculación de Google OAuth."
+    "Corregido: Ubicación de la opción 'Agregar Punto TX' en el menú contextual de OsmAnd.",
+    "Corregido: Visibilidad de la tarjeta de moderación en el Hub de Directiva."
   ]
 }

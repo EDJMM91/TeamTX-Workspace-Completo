@@ -528,6 +528,35 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
 
     val appCtx = LocalContext.current
 
+    DisposableEffect(Unit) {
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: android.content.Intent?) {
+                if (intent?.action == "com.example.ACTION_CREAR_PUNTO_TX") {
+                    val name = intent.getStringExtra("nombre") ?: ""
+                    val cat = intent.getStringExtra("categoria") ?: "Mirador / Parador Biker"
+                    val desc = intent.getStringExtra("descripcion") ?: ""
+                    val addr = intent.getStringExtra("direccion") ?: ""
+                    val lat = intent.getDoubleExtra("lat", 0.0)
+                    val lon = intent.getDoubleExtra("lon", 0.0)
+                    val phone = intent.getStringExtra("telefono") ?: ""
+                    val imgUriStr = intent.getStringExtra("imageUri")
+                    val imgUri = if (!imgUriStr.isNullOrBlank()) android.net.Uri.parse(imgUriStr) else null
+
+                    if (name.isNotBlank()) {
+                        viewModel.createPuntoTX(name, cat, desc, addr, lat, lon, imgUri, phone)
+                        Toast.makeText(appCtx, "✅ Punto '$name' agregado exitosamente", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+        val filter = android.content.IntentFilter("com.example.ACTION_CREAR_PUNTO_TX")
+        androidx.core.content.ContextCompat.registerReceiver(appCtx, receiver, filter, androidx.core.content.ContextCompat.RECEIVER_EXPORTED)
+
+        onDispose {
+            try { appCtx.unregisterReceiver(receiver) } catch (_: Exception) {}
+        }
+    }
+
     LaunchedEffect(currentMember) {
         val androidId = try {
             android.provider.Settings.Secure.getString(appCtx.contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: android.os.Build.MODEL
