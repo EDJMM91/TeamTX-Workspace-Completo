@@ -50,6 +50,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun WorkshopDirectoryScreen(
     workshops: List<WorkshopDirectoryItem>,
+    interestPoints: List<com.example.data.model.BikerInterestPoint> = emptyList(),
     currentMember: MemberProfile?,
     onCreateWorkshop: (
         name: String,
@@ -69,6 +70,9 @@ fun WorkshopDirectoryScreen(
     ) -> Unit,
     onUpdateWorkshop: (item: WorkshopDirectoryItem) -> Unit,
     onDeleteWorkshop: (id: Long) -> Unit,
+    onLikeSpot: (com.example.data.model.BikerInterestPoint) -> Unit = {},
+    onDislikeSpot: (com.example.data.model.BikerInterestPoint) -> Unit = {},
+    onSubmitReport: (spotId: Long, spotName: String, spotType: String, reason: String) -> Unit = { _, _, _, _ -> },
     onNavigateToMap: ((latitude: Double, longitude: Double, title: String) -> Unit)? = null,
     onBack: () -> Unit = {}
 ) {
@@ -97,11 +101,33 @@ fun WorkshopDirectoryScreen(
         }
     }
 
-    // Combinar siempre la lista inicial oficial de Excel con cualquier taller añadido manualmente por el usuario
-    val combinedWorkshops = remember(workshops) {
+    // Combinar siempre la lista inicial oficial con talleres y sitios turísticos
+    val combinedWorkshops = remember(workshops, interestPoints) {
         val map = AppDatabase.INITIAL_WORKSHOPS.associateBy { it.id }.toMutableMap()
         for (w in workshops) {
             map[w.id] = w
+        }
+        for (spot in interestPoints) {
+            map[spot.id] = WorkshopDirectoryItem(
+                id = spot.id,
+                name = spot.name,
+                type = spot.category,
+                state = "Aragua",
+                city = spot.address,
+                address = spot.address,
+                phone = spot.phone,
+                whatsapp = spot.phone,
+                rating = 5.0,
+                recommendedBy = spot.addedBy,
+                notes = spot.description,
+                latitude = spot.latitude,
+                longitude = spot.longitude,
+                hasCredit = spot.description.contains("[CASHEA]") || spot.category.contains("Cashea", ignoreCase = true),
+                creditPlatforms = if (spot.description.contains("[CASHEA]")) "Cashea" else "",
+                imageUrl = spot.imageUrl,
+                iconDrawableName = spot.iconDrawableName,
+                timestamp = spot.timestamp
+            )
         }
         map.values.toList().sortedBy { it.id }
     }
@@ -124,6 +150,16 @@ fun WorkshopDirectoryScreen(
     )
     val types = listOf(
         "TODOS",
+        "🏬 Comercios & Servicios",
+        "🏕️ Sitios Turísticos & Ruta",
+        "Mirador / Parador Biker",
+        "Playa / Costa",
+        "Montaña / Ruta",
+        "Cascadas / Ríos / Pozos",
+        "Monumento / Sitio Histórico",
+        "Parque Nacional / Reserva Natural",
+        "Camping / Pernocta",
+        "Punto de Encuentro Caravana",
         "Venta de Repuestos TX",
         "Taller Mecánico",
         "Tienda de Accesorios",
@@ -136,8 +172,14 @@ fun WorkshopDirectoryScreen(
 
     val filteredWorkshops = remember(combinedWorkshops, selectedState, selectedType, onlyCreditFilter, searchQuery) {
         combinedWorkshops.filter { w ->
+            val isComercioGroup = w.type in listOf("Venta de Repuestos TX", "Taller Mecánico", "Tienda de Accesorios", "Cauchera & Vulcanizadora", "Autolavado Motero", "Electricidad & Baterías", "Tornería & Soldadura", "Auxilio Vial 24H", "Taller", "Repuestos", "Autolavado", "Restaurante / Comida", "Posada / Hotel", "Estación de Servicio")
             val matchState = selectedState == "TODOS" || w.state.equals(selectedState, ignoreCase = true)
-            val matchType = selectedType == "TODOS" || w.type.equals(selectedType, ignoreCase = true)
+            val matchType = when (selectedType) {
+                "TODOS" -> true
+                "🏬 Comercios & Servicios" -> isComercioGroup
+                "🏕️ Sitios Turísticos & Ruta" -> !isComercioGroup
+                else -> w.type.equals(selectedType, ignoreCase = true)
+            }
             val matchCredit = !onlyCreditFilter || (w.hasCredit || w.creditPlatforms.isNotBlank())
             val matchQuery = searchQuery.isBlank() ||
                     w.name.contains(searchQuery, ignoreCase = true) ||

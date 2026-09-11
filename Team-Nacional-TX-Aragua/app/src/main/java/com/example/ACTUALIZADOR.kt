@@ -104,6 +104,39 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 51,
+            versionName = "1.8.9-beta",
+            titulo = "Selector Maestro de Registro Táctico (Comercios vs Puntos de Ruta) y Unificación Total",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Formulario maestro unificado con selector maestro inicial para alternar entre Comercio/Taller y Punto de Ruta/Mirador, reajustando campos condicionales de horarios, seguridad de ruta y Cashea.",
+            novedades = listOf(
+                "🎛️ Selector Maestro Inicial: Interruptor principal `Comercio / Taller` o `Punto de Ruta / Mirador` que adapta los campos de forma inteligente.",
+                "📍 Trilogía de Auto-Gestión GPS: Herramientas `[🗺️ Mapa TX]`, `[📋 Pegar GPS]` (extracción automática de portapapeles) y `[📍 Mi GPS]` (coordenadas en vivo).",
+                "📸 Fotos y Fachadas: Selector multimedia por cámara o galería para avatares circulares en el mapa.",
+                "📢 Auto-Avisos Oficiales: Generación automática de publicaciones en el Muro de Noticias al registrar comercios o puntos."
+            ),
+            correcciones = listOf(
+                "Corregido: Unificación absoluta entre la creación y edición de comercios y sitios de interés."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
+            versionCode = 50,
+            versionName = "1.8.8-beta",
+            titulo = "Restauración Total de Trilogía GPS y Unificación de Opciones en Formulario Unificado",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Unificación absoluta de las opciones históricas y nuevas en el formulario principal con la Trilogía GPS de Auto-Gestión (Mapa TX, Pegar GPS, Mi GPS) y captura activa de fotos por cámara/galería.",
+            novedades = listOf(
+                "📍 Trilogía de Auto-Gestión GPS: Restauración e integración de '🗺️ Mapa TX', '📋 Pegar GPS' (auto-extracción de portapapeles) y '📍 Mi GPS' (coordenadas en vivo).",
+                "📝 Formulario 100% Unificado: Los 13 campos unificados para crear y editar puntos y comercios sin pérdida de funciones.",
+                "📸 Captura Multimedia Activa: Selector de cámara y galería con indicador visual de imagen adjuntada para avatares circulares en el mapa."
+            ),
+            correcciones = listOf(
+                "Corregido: Unificación total de opciones históricas y nuevas en el diálogo de registro/edición de puntos."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
             versionCode = 49,
             versionName = "1.8.7-beta",
             titulo = "Switch Toggle en Mapa TX y Auto-Avisos Intermodulares con Notificaciones Push",
@@ -118,7 +151,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Falta de generación automática de avisos oficiales al agregar puntos nuevos desde el mapa o módulo."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 48,

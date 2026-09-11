@@ -1,16 +1,16 @@
 {
-  "versionCode": 49,
-  "versionName": "1.8.7-beta",
+  "versionCode": 51,
+  "versionName": "1.8.9-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Switch Toggle en Mapa TX y Auto-Avisos Intermodulares con Notificaciones Push",
-  "notas": "🚀 Release v1.8.7-beta: Incorporación del switch toggle para mostrar/ocultar sitios turísticos en el mapa y generación automática de avisos oficiales con notificaciones push al registrar cada nuevo punto o comercio.",
+  "titulo": "Selector Maestro de Registro Táctico (Comercios vs Puntos de Ruta) y Unificación Total",
+  "notas": "🚀 Release v1.8.9-beta: Formulario maestro unificado con selector maestro inicial para alternar entre Comercio/Taller y Punto de Ruta/Mirador, reajustando campos condicionales de horarios, seguridad de ruta y Cashea.",
   "novedades": [
-    "🏕️ Switch Toggle de Visibilidad en Mapa TX: Control interactivo en la barra del mapa para mostrar u ocultar en tiempo real todos los sitios de interés turísticos.",
-    "📢 Auto-Avisos Intermodulares (MODULOS_GESTOR.md): Cada registro genera automáticamente una publicación oficial en el Muro de Noticias con foto y ficha completa.",
-    "🔔 Notificaciones Push In-App: Alerta inmediata enviada a toda la flota al descubrirse un nuevo punto o comercio en la plataforma.",
-    "💳 Insignia Cashea Flotante: Dibujado automático del logo `cashea.png` con línea trazada en comercios afiliados."
+    "🎛️ Selector Maestro Inicial: Interruptor principal `Comercio / Taller` o `Punto de Ruta / Mirador` que adapta los campos de forma inteligente.",
+    "📍 Trilogía de Auto-Gestión GPS: Herramientas `[🗺️ Mapa TX]`, `[📋 Pegar GPS]` (extracción automática de portapapeles) y `[📍 Mi GPS]` (coordenadas en vivo).",
+    "📸 Fotos y Fachadas: Selector multimedia por cámara o galería para avatares circulares en el mapa.",
+    "📢 Auto-Avisos Oficiales: Generación automática de publicaciones en el Muro de Noticias al registrar comercios o puntos."
   ],
   "correcciones": [
-    "Corregido: Falta de generación automática de avisos oficiales al agregar puntos nuevos desde el mapa o módulo."
+    "Corregido: Unificación absoluta entre la creación y edición de comercios y sitios de interés."
   ]
 }

@@ -1088,6 +1088,7 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                 NavigationTab.DIRECTORIO -> {
                     WorkshopDirectoryScreen(
                         workshops = allWorkshops,
+                        interestPoints = viewModel.allInterestPoints.collectAsStateWithLifecycle().value ?: emptyList(),
                         currentMember = currentMember,
                         onCreateWorkshop = { name, type, state, city, addr, ph, wa, rat, notes, lat, lng, hasCredit, creditPlatforms, gMapsUrl ->
                             viewModel.createWorkshop(name, type, state, city, addr, ph, wa, rat, notes, lat, lng, hasCredit, creditPlatforms, gMapsUrl)
@@ -1096,6 +1097,11 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                             viewModel.updateWorkshop(updatedItem)
                         },
                         onDeleteWorkshop = { viewModel.deleteWorkshop(it) },
+                        onLikeSpot = { spot -> viewModel.likeSpot(spot) },
+                        onDislikeSpot = { spot -> viewModel.dislikeSpot(spot) },
+                        onSubmitReport = { spotId, spotName, spotType, reason ->
+                            viewModel.submitSpotReport(spotId, spotName, spotType, reason)
+                        },
                         onNavigateToMap = { lat, lng, title ->
                             val prefs = context.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
                             prefs.edit()

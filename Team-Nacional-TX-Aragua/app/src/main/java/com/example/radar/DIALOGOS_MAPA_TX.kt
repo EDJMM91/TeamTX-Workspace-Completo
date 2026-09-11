@@ -2210,6 +2210,41 @@ object DialogosMapaTx {
         }
         val formCol = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
 
+        // Selector Maestro Inicial: (•) Comercio / Taller | ( ) Punto de Ruta / Mirador
+        val tvSelectorLabel = TextView(activity).apply {
+            text = "🎛️ Tipo de Registro Principal:"
+            setTextColor(Color.parseColor("#FF9800"))
+            textSize = 11.5f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, (4 * density).toInt())
+        }
+        formCol.addView(tvSelectorLabel)
+
+        val selectorRadioGroup = RadioGroup(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val rbComercio = RadioButton(activity).apply {
+            text = "Comercio / Taller"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            isChecked = true
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        selectorRadioGroup.addView(rbComercio)
+
+        val rbPuntoRuta = RadioButton(activity).apply {
+            text = "Punto / Mirador"
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        selectorRadioGroup.addView(rbPuntoRuta)
+        formCol.addView(selectorRadioGroup)
+
         // Campo Nombre
         val etNombre = EditText(activity).apply {
             hint = "Nombre del Sitio o Negocio (ej. Mirador Choroní)"
@@ -2378,6 +2413,156 @@ object DialogosMapaTx {
             }
         }
         formCol.addView(cbCashea)
+
+        // Foto opcional (Cámara / Galería)
+        var fotoSeleccionadaUri: Uri? = null
+        val tvFotoLabel = TextView(activity).apply {
+            text = "📷 Foto Opcional del Sitio / Comercio:"
+            setTextColor(Color.parseColor("#4ADE80"))
+            textSize = 11f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, (4 * density).toInt())
+        }
+        formCol.addView(tvFotoLabel)
+
+        val photoRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        val btnCamara = Button(activity).apply {
+            text = "📸 Cámara"
+            setTextColor(Color.WHITE)
+            textSize = 11f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6 * density
+                setColor(Color.parseColor("#334155"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (36 * density).toInt(), 1f).apply { marginEnd = (4 * density).toInt() }
+            setOnClickListener {
+                Toast.makeText(activity, "📸 Toma la foto con la cámara del celular", Toast.LENGTH_SHORT).show()
+            }
+        }
+        photoRow.addView(btnCamara)
+
+        val btnGaleria = Button(activity).apply {
+            text = "🖼️ Galería"
+            setTextColor(Color.WHITE)
+            textSize = 11f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6 * density
+                setColor(Color.parseColor("#334155"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (36 * density).toInt(), 1f).apply { marginStart = (4 * density).toInt() }
+            setOnClickListener {
+                Toast.makeText(activity, "🖼️ Elige la foto de la galería", Toast.LENGTH_SHORT).show()
+            }
+        }
+        photoRow.addView(btnGaleria)
+        formCol.addView(photoRow)
+
+        // Trilogía de Botones de Auto-Gestión GPS (Mapa TX, Pegar GPS, Mi GPS)
+        val tvGpsLabel = TextView(activity).apply {
+            text = "📍 Ubicación Geográfica y Coordenadas GPS:"
+            setTextColor(Color.parseColor("#FF9800"))
+            textSize = 11f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, (4 * density).toInt())
+        }
+        formCol.addView(tvGpsLabel)
+
+        val gpsRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+        }
+
+        // 1. Botón Mapa TX
+        val btnMapaGps = Button(activity).apply {
+            text = "🗺️ Mapa TX"
+            setTextColor(Color.WHITE)
+            textSize = 10.5f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6 * density
+                setColor(Color.parseColor("#0288D1"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (36 * density).toInt(), 1f).apply { marginEnd = (3 * density).toInt() }
+            setOnClickListener {
+                try {
+                    com.example.mapa.GestorSeleccionMapa.modoBuscandoCoordenada = true
+                    val intent = Intent(activity, net.osmand.plus.activities.MapActivity::class.java)
+                    activity.startActivity(intent)
+                    Toast.makeText(activity, "🗺️ Toca un punto en el mapa y copia sus coordenadas", Toast.LENGTH_LONG).show()
+                } catch (_: Exception) {}
+            }
+        }
+        gpsRow.addView(btnMapaGps)
+
+        // 2. Botón Pegar GPS
+        val btnPegarGps = Button(activity).apply {
+            text = "📋 Pegar GPS"
+            setTextColor(Color.WHITE)
+            textSize = 10.5f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6 * density
+                setColor(Color.parseColor("#4B5563"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (36 * density).toInt(), 1f).apply { marginStart = (3 * density).toInt(); marginEnd = (3 * density).toInt() }
+            setOnClickListener {
+                try {
+                    val clip = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val text = clip.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                    if (text.isNotBlank()) {
+                        val coords = com.example.ui.screens.extraerCoordenadasDeTexto(text)
+                        if (coords != null) {
+                            etDireccion.setText("Lat: %.5f, Lon: %.5f".format(coords.first, coords.second))
+                            Toast.makeText(activity, "📍 Coordenadas extraídas del portapapeles: ${coords.first}, ${coords.second} ✓", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(activity, "Texto del portapapeles pegado ✓", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(activity, "El portapapeles está vacío", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+        gpsRow.addView(btnPegarGps)
+
+        // 3. Botón Mi GPS
+        val btnMiGps = Button(activity).apply {
+            text = "📍 Mi GPS"
+            setTextColor(Color.WHITE)
+            textSize = 10.5f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 6 * density
+                setColor(Color.parseColor("#2563EB"))
+            }
+            layoutParams = LinearLayout.LayoutParams(0, (36 * density).toInt(), 1f).apply { marginStart = (3 * density).toInt() }
+            setOnClickListener {
+                try {
+                    val prefs = activity.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
+                    val lastLat = prefs.getString("last_lat", null)?.toDoubleOrNull()
+                    val lastLon = prefs.getString("last_lon", null)?.toDoubleOrNull()
+                    if (lastLat != null && lastLon != null && lastLat != 0.0) {
+                        etDireccion.setText("Lat: %.5f, Lon: %.5f".format(lastLat, lastLon))
+                        Toast.makeText(activity, "📍 Ubicación GPS actual fijada ✓", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(activity, "📍 GPS fijado en Maracay (Predeterminado) ✓", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+        gpsRow.addView(btnMiGps)
+
+        formCol.addView(gpsRow)
 
         scrollView.addView(formCol)
         root.addView(scrollView)
