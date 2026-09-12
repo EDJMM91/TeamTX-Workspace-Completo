@@ -146,7 +146,7 @@ fun WorkshopDirectoryScreen(
 
     val states = listOf(
         "TODOS", "Aragua", "Carabobo", "Distrito Capital", "Miranda", "Lara", "Falcón",
-        "Zulia", "Táchira", "Mérida", "Guárico", "Anzoátegui", "Bolívar", "Yaracuy", "Portuguesa", "Barinas"
+        "Zulia", "Táchira", "Mérida", "Trujillo", "Guárico", "Anzoátegui", "Bolívar", "Yaracuy", "Portuguesa", "Barinas"
     )
     val types = listOf(
         "TODOS",

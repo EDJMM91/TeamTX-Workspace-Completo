@@ -38,10 +38,10 @@ class WorkshopDirectorySync(
     private suspend fun verificarYSembrarDirectorio() {
         try {
             val prefs = com.example.TeamTxApplication.instance?.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
-            val yaSembrado = prefs?.getBoolean("workshops_sembrados_v2", false) ?: false
+            val yaSembrado = prefs?.getBoolean("workshops_sembrados_v3", false) ?: false
 
             if (!yaSembrado) {
-                // 1. Siembra inicial única en Room localmente
+                // 1. Siembra o actualización en Room localmente
                 database.workshopDirectoryDao().upsertWorkshops(AppDatabase.INITIAL_WORKSHOPS)
 
                 // 2. Sembrar en Firestore si no existen
@@ -54,10 +54,10 @@ class WorkshopDirectorySync(
                 }
                 prefs?.let { p ->
                     val editor = p.edit()
-                    editor.putBoolean("workshops_sembrados_v2", true)
+                    editor.putBoolean("workshops_sembrados_v3", true)
                     editor.apply()
                 }
-                Log.d("FIREBASE_SYNC", "🌱 Siembra inicial de comercios completada exitosamente.")
+                Log.d("FIREBASE_SYNC", "🌱 Siembra de directorio v3 completada exitosamente con ${AppDatabase.INITIAL_WORKSHOPS.size} registros.")
             } else {
                 // Si ya fue sembrado, descargar actualizaciones remotas sin forzar re-inserción de borrados
                 val snapshot = db.collection(collectionName).get().await()

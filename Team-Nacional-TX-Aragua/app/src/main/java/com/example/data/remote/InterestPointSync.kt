@@ -102,12 +102,96 @@ class InterestPointSync(
                 addedBy = "Directiva Nacional TX Aragua",
                 likesCount = 30,
                 dislikesCount = 0
+            ),
+            BikerInterestPoint(
+                id = 9005L,
+                name = "Bahía de Cata",
+                category = "Playa / Costa",
+                description = "Hermosa ensenada de arenas blancas y cocoteros en la costa aragüeña. Parada obligada para moteros.",
+                address = "Bahía de Cata, Ocumare de la Costa, Aragua",
+                latitude = 10.4917,
+                longitude = -67.7389,
+                iconDrawableName = "ic_menu_compass",
+                phone = "+58 412 4444444",
+                addedBy = "Team TX Aragua",
+                likesCount = 52,
+                dislikesCount = 0
+            ),
+            BikerInterestPoint(
+                id = 9006L,
+                name = "Playa Cuyagua",
+                category = "Playa / Costa",
+                description = "Playa salvaje, olas de surf y desembocadura de río. Destino predilecto para acampar y rodar en dos ruedas.",
+                address = "Cuyagua, Municipio Costa de Oro, Aragua",
+                latitude = 10.4903,
+                longitude = -67.6744,
+                iconDrawableName = "ic_menu_compass",
+                phone = "+58 412 5555555",
+                addedBy = "Team TX Aragua",
+                likesCount = 47,
+                dislikesCount = 0
+            ),
+            BikerInterestPoint(
+                id = 9007L,
+                name = "Mirador de Portachuelo (Henri Pittier)",
+                category = "Mirador / Parador Biker",
+                description = "Abra de montaña a 1.128 msnm entre la selva nublada. Vista privilegiada y clima fresco en la ruta costera.",
+                address = "Carretera Maracay - Ocumare de la Costa, Aragua",
+                latitude = 10.3541,
+                longitude = -67.6833,
+                iconDrawableName = "ic_menu_compass",
+                phone = "+58 412 6666666",
+                addedBy = "Team TX Aragua",
+                likesCount = 60,
+                dislikesCount = 0
+            ),
+            BikerInterestPoint(
+                id = 9008L,
+                name = "Hacienda Santa Teresa (Ruta del Ron)",
+                category = "Monumento / Sitio Histórico",
+                description = "Hacienda bicentenaria (1796), cuna del ron premium venezolano con su mítico callejón de chaguaramos centenarios.",
+                address = "Carretera Panamericana, El Consejo, Aragua",
+                latitude = 10.2375,
+                longitude = -67.2889,
+                iconDrawableName = "ic_menu_compass",
+                phone = "+58 244 4002600",
+                addedBy = "Team TX Aragua",
+                likesCount = 65,
+                dislikesCount = 0
+            ),
+            BikerInterestPoint(
+                id = 9009L,
+                name = "Monumento Histórico Campo de Carabobo",
+                category = "Monumento / Sitio Histórico",
+                description = "Santuario patriótico nacional, monumento del Arco de Triunfo y explanada de homenaje a los libertadores.",
+                address = "Autopista del Sur, Campo Carabobo, Carabobo",
+                latitude = 10.0069,
+                longitude = -68.1636,
+                iconDrawableName = "ic_menu_compass",
+                phone = "+58 241 0000001",
+                addedBy = "Directiva Nacional TX",
+                likesCount = 58,
+                dislikesCount = 0
+            ),
+            BikerInterestPoint(
+                id = 9010L,
+                name = "Redoma del Avión (Punto Clave Caravana)",
+                category = "Punto de Encuentro Caravana",
+                description = "Punto de reunión histórico y oficial del Team TX Aragua antes de iniciar rodadas interurbanas.",
+                address = "Salida ARC con Av. Maracay, Maracay, Aragua",
+                latitude = 10.2222,
+                longitude = -67.5756,
+                iconDrawableName = "ic_menu_compass",
+                phone = "+58 412 7777777",
+                addedBy = "Presidente Nacional TX",
+                likesCount = 80,
+                dislikesCount = 0
             )
         )
 
         try {
             val prefs = com.example.TeamTxApplication.instance?.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
-            val yaSembrado = prefs?.getBoolean("sitios_interes_sembrados_v2", false) ?: false
+            val yaSembrado = prefs?.getBoolean("sitios_interes_sembrados_v3", false) ?: false
 
             if (!yaSembrado) {
                 database.interestPointDao().upsertInterestPoints(sitiosIniciales)
@@ -121,10 +205,10 @@ class InterestPointSync(
                 }
                 prefs?.let { p ->
                     val editor = p.edit()
-                    editor.putBoolean("sitios_interes_sembrados_v2", true)
+                    editor.putBoolean("sitios_interes_sembrados_v3", true)
                     editor.apply()
                 }
-                Log.d("FIREBASE_SYNC", "🌱 Siembra inicial de sitios de interés completada.")
+                Log.d("FIREBASE_SYNC", "🌱 Siembra v3 de sitios de interés completada con ${sitiosIniciales.size} destinos.")
             } else {
                 val snapshot = db.collection(collectionName).get().await()
                 val remotos = snapshot.documents.mapNotNull { doc ->
