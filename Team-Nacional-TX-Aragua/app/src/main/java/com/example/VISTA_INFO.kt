@@ -162,6 +162,28 @@ fun VistaInfoScreen(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Text("Versión Instalada: ${BuildConfig.VERSION_NAME}", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 Text("Código de Compilación: ${BuildConfig.VERSION_CODE}", fontSize = 13.sp, color = Color.Gray)
+                if (infoOta != null && infoOta!!.versionCode > BuildConfig.VERSION_CODE) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        color = Color(0xFF16A34A).copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(1.dp, Color(0xFF16A34A))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null, tint = Color(0xFF16A34A), modifier = Modifier.size(14.dp))
+                            Text(
+                                "Nueva versión disponible: v${infoOta!!.versionName} (Build ${infoOta!!.versionCode})",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF16A34A)
+                            )
+                        }
+                    }
+                }
             }
         }
         
@@ -242,26 +264,43 @@ fun VistaInfoScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        val tieneNuevaActualizacion = infoOta != null && infoOta!!.versionCode > BuildConfig.VERSION_CODE
+
         Button(
             onClick = {
-                buscando = true
-                coroutineScope.launch {
-                    val ota = GestorActualizaciones.verificarActualizacion()
-                    buscando = false
-                    if (ota != null) {
-                        infoOta = ota
-                        mostrarDialogo = true
-                        if (ota.versionCode > BuildConfig.VERSION_CODE) {
-                            // Sincronización automática con Avisos
-                            viewModel?.sincronizarAvisoActualizacionOta(ota)
+                val otaDisponible = infoOta
+                if (otaDisponible != null && otaDisponible.versionCode > BuildConfig.VERSION_CODE) {
+                    mostrarDialogoDescarga = true
+                    viewModel?.sincronizarAvisoActualizacionOta(otaDisponible)
+                } else {
+                    buscando = true
+                    coroutineScope.launch {
+                        try {
+                            val ota = GestorActualizaciones.verificarActualizacion()
+                            buscando = false
+                            if (ota != null) {
+                                infoOta = ota
+                                urlDescargaDirecta = ota.urlDescarga
+                                if (ota.versionCode > BuildConfig.VERSION_CODE) {
+                                    mostrarDialogoDescarga = true
+                                    viewModel?.sincronizarAvisoActualizacionOta(ota)
+                                } else {
+                                    mostrarDialogo = true
+                                }
+                            } else {
+                                Toast.makeText(context, "Error al buscar actualizaciones o no hay conexión.", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            buscando = false
+                            Toast.makeText(context, "Error al verificar actualización: ${e.localizedMessage ?: "Error"}", Toast.LENGTH_SHORT).show()
                         }
-                    } else {
-                        Toast.makeText(context, "Error al buscar actualizaciones o no hay conexión.", Toast.LENGTH_SHORT).show()
                     }
                 }
             },
             enabled = !buscando,
-            colors = ButtonDefaults.buttonColors(containerColor = MotoOrangePrimary),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (tieneNuevaActualizacion) Color(0xFF16A34A) else MotoOrangePrimary
+            ),
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.fillMaxWidth(0.9f).height(48.dp)
         ) {
@@ -269,6 +308,10 @@ fun VistaInfoScreen(
                 CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
                 Spacer(modifier = Modifier.width(10.dp))
                 Text("Buscando...", fontSize = 14.sp)
+            } else if (tieneNuevaActualizacion && infoOta != null) {
+                Icon(Icons.Default.Download, contentDescription = "Actualizar", tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("¡ACTUALIZAR A v${infoOta!!.versionName}!", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White)
             } else {
                 Icon(Icons.Default.Update, contentDescription = "Update")
                 Spacer(modifier = Modifier.width(8.dp))

@@ -930,82 +930,33 @@ object GestorActualizaciones {
     suspend fun obtenerListaVersionesStorage(): List<StorageApkVersion> = withContext(Dispatchers.IO) {
         val fallbackUrl = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk"
         try {
-            val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
-            val updatesRef = storage.reference.child("updates")
-            val listResult = updatesRef.listAll().await()
+            // Se consulta directamente Firestore evitando demoras o errores HTTP 402 de facturación en Firebase Storage
+            val otaList = obtenerListaVersionesFirestore()
+            val maxCode = otaList.maxOfOrNull { it.versionCode } ?: 54
+            val versions = otaList.map { ota ->
+                val isBeta = ota.versionName.contains("beta", ignoreCase = true)
+                val isLatest = (ota.versionCode == maxCode)
+                val isStable = !isBeta || ota.versionName.contains("estable", ignoreCase = true)
+                StorageApkVersion(
+                    fileName = if (isLatest) "TeamTX-latest.apk" else "TeamTX-${ota.versionName}.apk",
+                    downloadUrl = if (ota.urlDescarga.isNotBlank() && !ota.urlDescarga.contains("firebasestorage.googleapis.com")) ota.urlDescarga else fallbackUrl,
+                    sizeBytes = 399977015L,
+                    formattedSize = "381.4 MB",
+                    updatedTimestamp = ota.versionCode * 1000000L,
+                    formattedDate = ota.fechaPublicacion,
+                    versionName = if (ota.versionName.startsWith("v")) ota.versionName else "v${ota.versionName}",
+                    versionCode = ota.versionCode,
+                    titulo = ota.titulo,
+                    notas = ota.notas,
+                    novedades = ota.novedades,
+                    correcciones = ota.correcciones,
+                    isStable = isStable,
+                    isBeta = isBeta,
+                    isRecommendedLatest = isLatest
+                )
+            }.toMutableList()
 
-            val versions = mutableListOf<StorageApkVersion>()
-
-            for (item in listResult.items) {
-                if (item.name.endsWith(".apk", ignoreCase = true)) {
-                    try {
-                        val metadata = item.metadata.await()
-                        val rawDownloadUrl = try { item.downloadUrl.await().toString() } catch (_: Exception) { fallbackUrl }
-                        val downloadUrl = if (rawDownloadUrl.isNotBlank() && !rawDownloadUrl.contains("firebasestorage.googleapis.com")) rawDownloadUrl else fallbackUrl
-                        val sizeBytes = metadata.sizeBytes
-                        val updatedTime = metadata.updatedTimeMillis
-
-                        val sizeMb = if (sizeBytes > 0) String.format(java.util.Locale.US, "%.1f MB", sizeBytes / (1024f * 1024f)) else "381.4 MB"
-                        val dateStr = if (updatedTime > 0) {
-                            java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale.getDefault()).format(java.util.Date(updatedTime))
-                        } else "12 sep 2026"
-
-                        val isBeta = item.name.contains("beta", ignoreCase = true)
-                        val isStable = !isBeta || item.name.contains("estable", ignoreCase = true) || item.name.contains("latest", ignoreCase = true)
-                        val isLatest = item.name.equals("TeamTX-latest.apk", ignoreCase = true)
-
-                        val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
-
-                        val vName = when {
-                            item.name.contains("v", ignoreCase = true) -> {
-                                val match = Regex("""v\d+(\.\d+)*(-[a-zA-Z0-9]+)?""").find(item.name)
-                                match?.value ?: item.name.removeSuffix(".apk")
-                            }
-                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v${latestTop.versionName}"
-                            else -> item.name.removeSuffix(".apk")
-                        }
-
-                        val estimatedCode = when {
-                            isLatest -> latestTop.versionCode
-                            item.name.contains("1.9.2") -> 54
-                            item.name.contains("1.9.1") -> 53
-                            item.name.contains("1.9.0") -> 52
-                            item.name.contains("1.8") -> 46
-                            item.name.contains("1.7") -> 39
-                            item.name.contains("1.6") -> 36
-                            item.name.contains("1.5") -> 31
-                            item.name.contains("1.3.8") -> 19
-                            else -> 10
-                        }
-
-                        val detalle = obtenerDetalleVersion(estimatedCode, vName)
-
-                        versions.add(
-                            StorageApkVersion(
-                                fileName = item.name,
-                                downloadUrl = downloadUrl,
-                                sizeBytes = sizeBytes,
-                                formattedSize = sizeMb,
-                                updatedTimestamp = updatedTime,
-                                formattedDate = dateStr,
-                                versionName = vName,
-                                versionCode = estimatedCode,
-                                titulo = detalle.titulo,
-                                notas = detalle.descripcionCorta,
-                                novedades = detalle.novedades,
-                                correcciones = detalle.correcciones,
-                                isStable = isStable,
-                                isBeta = isBeta,
-                                isRecommendedLatest = isLatest
-                            )
-                        )
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error procesando item ${item.name}: ${e.message}")
-                    }
-                }
-            }
-
-            versions.sortWith(compareByDescending<StorageApkVersion> { it.isRecommendedLatest }.thenByDescending { it.updatedTimestamp })
+            versions.sortWith(compareByDescending<StorageApkVersion> { it.isRecommendedLatest }.thenByDescending { it.versionCode })
 
             if (versions.isEmpty()) {
                 val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
@@ -1032,7 +983,7 @@ object GestorActualizaciones {
 
             versions
         } catch (e: Exception) {
-            Log.e(TAG, "Error en listAll de Firebase Storage: ${e.message}. Usando historial oficial...")
+            Log.e(TAG, "Error obteniendo lista de versiones: ${e.message}. Usando historial oficial...")
             val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
             listOf(
                 StorageApkVersion(

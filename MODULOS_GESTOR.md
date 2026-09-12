@@ -187,3 +187,17 @@ Reporte y Acción Estricta: Entregame un reporte detallado con tus hallazgos. Si
 >    gcloud storage cp Team-Nacional-TX-Aragua\apk\TeamTX-vX.Y.Z-beta.apk gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-vX.Y.Z-beta.apk --custom-metadata=firebaseStorageDownloadTokens=603836bb-71a4-4e90-99b3-866242f10257
 >    gcloud storage cp Team-Nacional-TX-Aragua\apk\TeamTX-latest.apk gs://teamnacionaltx.firebasestorage.app/updates/TeamTX-latest.apk --custom-metadata=firebaseStorageDownloadTokens=603836bb-71a4-4e90-99b3-866242f10257
 >    ```
+
+---
+
+## 🚀 Regla de Actualizaciones OTA: Conexión Simultánea de Versiones al Botón Principal Rojo y Rollback
+
+> **REGLA OBLIGATORIA INMUTABLE PARA TODOS LOS AGENTES:**
+> 1. **Conexión Directa al Botón Principal Rojo ("Buscar Actualizaciones" / "Actualizar"):**
+>    - Toda versión nueva generada debe conectarse de forma inmediata, reactiva y directa al botón principal rojo de la pantalla de información (`VISTA_INFO.kt`).
+>    - Si existe una versión en la nube más reciente que la instalada (`versionCode > BuildConfig.VERSION_CODE`), el botón principal rojo debe reflejarlo de inmediato visualmente (ej. "¡ACTUALIZAR A vX.Y.Z!") y al pulsarlo debe abrir directamente la descarga/instalación del APK oficial sin trabas ni bloqueos.
+> 2. **Paridad Total entre Botón Principal y Panel de Rollback:**
+>    - Tanto el botón principal rojo como el panel de "Historial de Versiones y Rollback" (`StorageVersionsHistoryDialog`) deben consultar **exactamente las mismas fuentes vivas** (la colección `updates` y `configuracion/OTA` en Firestore y el archivo `ota_info.json` en GitHub).
+>    - Queda estrictamente prohibido que el flujo del botón principal dependa de llamadas bloqueantes a Firebase Storage (`listAll().await()`) que puedan colgarse por facturación o latencia de red.
+>    - Toda nueva versión que aparezca en el panel de Rollback DEBE estar conectada y disponible para descarga simultáneamente desde el botón principal rojo de actualización.
+*(Hasta aquí son reglas nuevas agregadas según instrucción del usuario).*
