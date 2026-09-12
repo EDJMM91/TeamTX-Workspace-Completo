@@ -104,6 +104,26 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 55,
+            versionName = "1.9.3-beta",
+            titulo = "Directorio Biker 2026: Sitios Turísticos, Caucheras 24H, Talleres y Concesionarios Oficiales",
+            fecha = "12 sep 2026",
+            descripcionCorta = "Gran expansión de la base de datos nacional a 87 registros oficiales con sitios turísticos, playas, miradores, caucheras 24H, talleres especializados y concesionarios de motos oficiales (Empire Keeway, Bera, Bajaj, Toro, Suzuki, Yamaha) con financiamiento Cashea.",
+            novedades = listOf(
+                "🏍️ Concesionarios Oficiales en Venezuela: 22 agencias verificadas (Empire Keeway, Bera, Bajaj, Toro, Suzuki, Yamaha y Multimarcas) con financiamiento Cashea y compra a crédito.",
+                "🏖️ Destinos Turísticos y Playas Biker: Bahía de Cata, Cuyagua, Choroní, Bahía de Patanemo, Morrocoy (Cayo Sal), Mirador Portachuelo, Arco Colonia Tovar y El Jarillo.",
+                "🛞 Caucheras 24 Horas y Talleres: Cobertura 24H en Maracay, La Encrucijada, Valencia, ARC y Caracas con auxilio vial y mecánica pesada para moteros.",
+                "🏛️ Puntos de Ruta y Monumentos: Manto de María, Virgen de la Paz (Trujillo), Campo Carabobo, Hacienda Santa Teresa y puntos de reunión para caravanas biker.",
+                "🔍 Nueva Categoría y Filtros: Categoría 'Concesionario de Motos' y estado 'Trujillo' integrados al buscador y filtros del Directorio Global."
+            ),
+            correcciones = listOf(
+                "Corregido: Actualización de la semilla de base de datos a v4 con Room SQLite y sincronización bidireccional inmediata hacia Firestore.",
+                "Corregido: Detección y enlace reactivo del botón principal de actualización hacia la versión más reciente en la nube.",
+                "Corregido: Eliminación definitiva de llamadas bloqueantes a Firebase Storage en el ciclo de verificación OTA."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 54,
             versionName = "1.9.2-beta",
             titulo = "Directorio de Pilotos Compacto, Inicio Silencioso y Control de Radar",
@@ -120,7 +140,7 @@ object GestorActualizaciones {
                 "Corregido: Sincronización en tiempo real de sanciones y reactivaciones hacia Firestore.",
                 "Corregido: Cancelación de descargas de avatares y liberación de buffer de radar al desactivar ubicación."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 53,
@@ -1267,6 +1287,7 @@ object GestorActualizaciones {
             )
             db.collection("configuracion").document("OTA").set(datosSincronizados, com.google.firebase.firestore.SetOptions.merge())
             db.collection("Configuracion").document("OTA").set(datosSincronizados, com.google.firebase.firestore.SetOptions.merge())
+            db.collection("updates").document("build_${resultadoFinal.versionCode}").set(datosSincronizados, com.google.firebase.firestore.SetOptions.merge())
         } catch (_: Exception) {}
 
         Log.i(TAG, "✅ OTA sincronizado: Build ${resultadoFinal.versionCode} (${resultadoFinal.versionName})")

@@ -1,18 +1,19 @@
 {
-  "versionCode": 54,
-  "versionName": "1.9.2-beta",
+  "versionCode": 55,
+  "versionName": "1.9.3-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Directorio de Pilotos Compacto, Inicio Silencioso y Control de Radar",
-  "notas": "🚀 Release v1.9.2-beta: Directorio de miembros ultra-compacto estilo lista de contactos con ficha expandible, inicio silencioso detrás de la SplashScreen sin parpadeos de verificación y control absoluto de visibilidad de radar en mapa.",
+  "titulo": "Directorio Biker 2026: Sitios Turísticos, Caucheras 24H, Talleres y Concesionarios Oficiales",
+  "notas": "🚀 Release v1.9.3-beta: Gran expansión de la base de datos nacional a 87 registros oficiales con sitios turísticos, playas, miradores, caucheras 24H, talleres especializados y concesionarios de motos oficiales (Empire Keeway, Bera, Bajaj, Toro, Suzuki, Yamaha) con financiamiento Cashea.",
   "novedades": [
-    "🏍️ Directorio de Pilotos Ultra-Compacto: Vista moderna y esbelta con avatar con halo de rango, LED de conexión en vivo, código TX monoespaciado y botones directos de WhatsApp y llamada.",
-    "📑 Tarjeta Completa Desplegable: Botón dedicado para expandir ficha técnica de la moto, tipo de sangre 🩸, notas de emergencia, solvencia y ficha/dossier oficial.",
-    "⚡ Inicio Silencioso: Verificación de sesión en segundo plano tras la Splash sin pantallas de bienvenida ni cuenta en verificación para usuarios activos.",
-    "📡 Control Estricto de Radar en Mapa: Ocultamiento total garantizado de pilotos en mapa cuando el radar está apagado."
+    "🏍️ Concesionarios Oficiales en Venezuela: 22 agencias verificadas (Empire Keeway, Bera, Bajaj, Toro, Suzuki, Yamaha y Multimarcas) con financiamiento Cashea y compra a crédito.",
+    "🏖️ Destinos Turísticos y Playas Biker: Bahía de Cata, Cuyagua, Choroní, Bahía de Patanemo, Morrocoy (Cayo Sal), Mirador Portachuelo, Arco Colonia Tovar y El Jarillo.",
+    "🛞 Caucheras 24 Horas y Talleres: Cobertura 24H en Maracay, La Encrucijada, Valencia, ARC y Caracas con auxilio vial y mecánica pesada para moteros.",
+    "🏛️ Puntos de Ruta y Monumentos: Manto de María, Virgen de la Paz (Trujillo), Campo Carabobo, Hacienda Santa Teresa y puntos de reunión para caravanas biker.",
+    "🔍 Nueva Categoría y Filtros: Categoría 'Concesionario de Motos' y estado 'Trujillo' integrados al buscador y filtros del Directorio Global."
   ],
   "correcciones": [
-    "Corregido: Estado de tarjetas de pilotos aislado con clave única remember(member.id) para evitar desfasajes al buscar o filtrar.",
-    "Corregido: Sincronización en tiempo real de sanciones y reactivaciones hacia Firestore.",
-    "Corregido: Cancelación de descargas de avatares y liberación de buffer de radar al desactivar ubicación."
+    "Corregido: Actualización de la semilla de base de datos a v4 con Room SQLite y sincronización bidireccional inmediata hacia Firestore.",
+    "Corregido: Detección y enlace reactivo del botón principal de actualización hacia la versión más reciente en la nube.",
+    "Corregido: Eliminación definitiva de llamadas bloqueantes a Firebase Storage en el ciclo de verificación OTA."
   ]
 }
