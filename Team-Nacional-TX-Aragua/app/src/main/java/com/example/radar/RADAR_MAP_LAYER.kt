@@ -117,6 +117,8 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         }
     }
 
+    var radarHabilitado: Boolean = true
+
     private var pilotos: List<PilotoRadar> = emptyList()
     private var pilotoSeleccionado: ((PilotoRadar) -> Unit)? = null
     private var miUserId: String = ""
@@ -183,6 +185,11 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
     }
 
     fun actualizarPilotos(nuevosPilotos: List<PilotoRadar>) {
+        if (!radarHabilitado) {
+            pilotos = emptyList()
+            getTileView()?.refreshMap()
+            return
+        }
         pilotos = nuevosPilotos
         getTileView()?.refreshMap()
     }
@@ -299,7 +306,7 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         settings: DrawSettings?
     ) {
         super.onPrepareBufferImage(canvas, tileBox, settings)
-        if (tileBox.zoom < ZOOM_MINIMO || pilotos.isEmpty()) return
+        if (!radarHabilitado || tileBox.zoom < ZOOM_MINIMO || pilotos.isEmpty()) return
 
         val density = tileBox.density
         val radio = (RADIO_ICONO_PX * density).toInt()
@@ -483,6 +490,7 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         result: MapSelectionResult,
         rules: MapSelectionRules
     ) {
+        if (!radarHabilitado || pilotos.isEmpty()) return
         val app = application ?: return
         val point = result.point
         val tileBox = result.tileBox

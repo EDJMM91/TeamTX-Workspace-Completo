@@ -195,6 +195,11 @@ abstract class BaseFirestoreSync<T : Any>(
 
     open suspend fun deleteById(id: Long) = withContext(Dispatchers.IO) {
         try {
+            dbDeleteById(id)
+        } catch (e: Exception) {
+            Log.w("FIREBASE_SYNC", "Aviso borrando localmente $collectionName ($id): ${e.message}")
+        }
+        try {
             Log.i("FIREBASE_SYNC", "🗑️ Eliminando de Firestore $collectionName: ID=$id")
             db.collection(collectionName).document(id.toString()).delete().await()
             val querySnapshot = db.collection(collectionName).whereEqualTo("id", id).get().await()

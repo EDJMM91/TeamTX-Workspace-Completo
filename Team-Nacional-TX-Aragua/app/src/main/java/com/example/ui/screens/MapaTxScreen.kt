@@ -102,7 +102,8 @@ fun TxMapLauncher(
                     val avatar = perfil?.profilePhotoUri ?: ""
                     val esDirectivo = perfil?.isDirectiva == true || perfil?.role?.canManageApp == true || 
                                      perfil?.role == com.example.data.model.MemberRole.PRESIDENTE || 
-                                     perfil?.role == com.example.data.model.MemberRole.DIRECTIVA
+                                     perfil?.role == com.example.data.model.MemberRole.DIRECTIVA ||
+                                     perfil?.role == com.example.data.model.MemberRole.DESARROLLADOR
 
                     val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
                     prefs.edit()
@@ -117,13 +118,18 @@ fun TxMapLauncher(
                         com.example.radar.RadarFirebase.actualizarAvatarLocalDesdeUri(context, avatar)
                     }
 
-                    if (com.example.radar.TelemetriaGps.estaActivo(context) || com.example.ui.preferences.PreferenciasApp.radarActivo) {
+                    val radarEstaActivo = com.example.radar.TelemetriaGps.estaActivo(context) || com.example.ui.preferences.PreferenciasApp.radarActivo
+                    if (radarEstaActivo) {
                         com.example.radar.TelemetriaGps.activar(context, uid, nombre, rango, avatar)
-                    }
-
-                    if (app != null) {
+                        if (app != null) {
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                com.example.radar.GestorRadar.iniciar(app, uid, nombre, rango, avatar)
+                            }
+                        }
+                    } else {
+                        com.example.radar.TelemetriaGps.desactivar(context)
                         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            com.example.radar.GestorRadar.iniciar(app, uid, nombre, rango, avatar)
+                            com.example.radar.GestorRadar.detener()
                         }
                     }
                 }

@@ -156,7 +156,9 @@ class SitiosInteresMapLayer(context: Context) : OsmandMapLayer(context), IContex
 
     override fun runExclusiveAction(o: Any?, unknownLocation: Boolean): Boolean {
         if (o is SitioInteresMarcador) {
-            val act = mapActivity as? android.app.Activity
+            val act = (mapActivity as? android.app.Activity)
+                ?: (GestorRadar.obtenerMapActivity() as? android.app.Activity)
+                ?: (context as? android.app.Activity)
             if (act != null) {
                 act.runOnUiThread {
                     sitioSeleccionado?.invoke(o)

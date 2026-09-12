@@ -41,6 +41,7 @@ import com.google.android.material.transition.MaterialContainerTransform;
 
 import net.osmand.PlatformUtil;
 import net.osmand.plus.R;
+import net.osmand.plus.utils.AndroidUtils;
 import net.osmand.plus.utils.InsetsUtils;
 import net.osmand.util.Algorithms;
 
@@ -192,17 +193,32 @@ public class AndroidUiHelper {
 	@ColorInt
 	public static int setStatusBarColor(@NonNull Window window, @ColorInt int color) {
 		int previousColor = -1;
+		Context ctx = window.getContext();
+		boolean isFullscreen = false;
+		if (ctx instanceof Activity) {
+			isFullscreen = AndroidUtils.isInFullScreenMode((Activity) ctx);
+		}
 		if (InsetsUtils.isEdgeToEdgeSupported()) {
 			View scrim = getOrCreateScrim(window, R.id.status_bar_scrim, R.layout.status_bar_scrim);
 			if (scrim != null) {
 				if (scrim.getBackground() instanceof ColorDrawable drawable) {
 					previousColor = drawable.getColor();
 				}
-				scrim.setBackgroundColor(color);
+				if (isFullscreen) {
+					scrim.setBackgroundColor(Color.TRANSPARENT);
+					scrim.setVisibility(View.GONE);
+				} else {
+					scrim.setBackgroundColor(color);
+					scrim.setVisibility(View.VISIBLE);
+				}
 			}
 		} else {
 			previousColor = window.getStatusBarColor();
-			window.setStatusBarColor(color);
+			if (isFullscreen) {
+				window.setStatusBarColor(Color.TRANSPARENT);
+			} else {
+				window.setStatusBarColor(color);
+			}
 		}
 		return previousColor;
 	}
@@ -259,38 +275,65 @@ public class AndroidUiHelper {
 	}
 
 	public static void processSystemBarScrims(@NonNull WindowInsetsCompat insets, @NonNull View view) {
+		Context ctx = view.getContext();
+		boolean isFullscreen = false;
+		if (ctx instanceof Activity) {
+			isFullscreen = AndroidUtils.isInFullScreenMode((Activity) ctx);
+		}
+
 		View statusBarScrim = view.findViewById(R.id.status_bar_scrim);
 		if (statusBarScrim != null) {
-			Insets statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars()
-					| WindowInsetsCompat.Type.displayCutout()
-			);
-			ViewGroup.LayoutParams params = statusBarScrim.getLayoutParams();
-			if (params.height != statusBarInsets.top) {
-				params.height = statusBarInsets.top;
-				statusBarScrim.setLayoutParams(params);
+			if (isFullscreen) {
+				statusBarScrim.setVisibility(View.GONE);
+				ViewGroup.LayoutParams params = statusBarScrim.getLayoutParams();
+				if (params != null && params.height != 0) {
+					params.height = 0;
+					statusBarScrim.setLayoutParams(params);
+				}
+			} else {
+				statusBarScrim.setVisibility(View.VISIBLE);
+				Insets statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars()
+						| WindowInsetsCompat.Type.displayCutout()
+				);
+				ViewGroup.LayoutParams params = statusBarScrim.getLayoutParams();
+				if (params.height != statusBarInsets.top) {
+					params.height = statusBarInsets.top;
+					statusBarScrim.setLayoutParams(params);
+				}
 			}
 		}
 		View navBarScrim = view.findViewById(R.id.navigation_bar_scrim);
 		if (navBarScrim != null) {
-			Insets navBarInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
-			FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) navBarScrim.getLayoutParams();
-			if (navBarInsets.bottom > 0) {
-				params.height = navBarInsets.bottom;
-				params.width = ViewGroup.LayoutParams.MATCH_PARENT;
-				params.gravity = Gravity.BOTTOM;
-			} else if (navBarInsets.left > 0) {
-				params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-				params.width = navBarInsets.left;
-				params.gravity = Gravity.START;
-			} else if (navBarInsets.right > 0) {
-				params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-				params.width = navBarInsets.right;
-				params.gravity = Gravity.END;
+			if (isFullscreen) {
+				navBarScrim.setVisibility(View.GONE);
+				FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) navBarScrim.getLayoutParams();
+				if (params != null && (params.height != 0 || params.width != 0)) {
+					params.height = 0;
+					params.width = 0;
+					navBarScrim.setLayoutParams(params);
+				}
 			} else {
-				params.height = 0;
-				params.width = 0;
+				navBarScrim.setVisibility(View.VISIBLE);
+				Insets navBarInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
+				FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) navBarScrim.getLayoutParams();
+				if (navBarInsets.bottom > 0) {
+					params.height = navBarInsets.bottom;
+					params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+					params.gravity = Gravity.BOTTOM;
+				} else if (navBarInsets.left > 0) {
+					params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+					params.width = navBarInsets.left;
+					params.gravity = Gravity.START;
+				} else if (navBarInsets.right > 0) {
+					params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+					params.width = navBarInsets.right;
+					params.gravity = Gravity.END;
+				} else {
+					params.height = 0;
+					params.width = 0;
+				}
+				navBarScrim.setLayoutParams(params);
 			}
-			navBarScrim.setLayoutParams(params);
 		}
 	}
 

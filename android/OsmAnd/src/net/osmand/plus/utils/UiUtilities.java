@@ -806,14 +806,18 @@ public class UiUtilities {
 			color = toolbarController.getStatusBarColor(activity, nightMode);
 		}
 		if (color == NO_COLOR) {
-			ApplicationMode appMode = settings.getApplicationMode();
-			int defaultColorId = nightMode ? R.color.status_bar_transparent_dark : R.color.status_bar_transparent_light;
-			int colorIdForTopWidget = getStatusBarWidgetColor(activity, appMode, nightMode);
-			if (colorIdForTopWidget != -1) {
-				nightModeForContent = getStatusBarContentNightMode(activity, appMode, nightMode);
+			if (AndroidUtils.isInFullScreenMode(activity)) {
+				color = Color.TRANSPARENT;
+			} else {
+				ApplicationMode appMode = settings.getApplicationMode();
+				int defaultColorId = nightMode ? R.color.status_bar_transparent_dark : R.color.status_bar_transparent_light;
+				int colorIdForTopWidget = getStatusBarWidgetColor(activity, appMode, nightMode);
+				if (colorIdForTopWidget != -1) {
+					nightModeForContent = getStatusBarContentNightMode(activity, appMode, nightMode);
+				}
+				statusBarColorId = mapControlsVisible && colorIdForTopWidget != -1 ? colorIdForTopWidget : defaultColorId;
+				color = ContextCompat.getColor(activity, statusBarColorId);
 			}
-			statusBarColorId = mapControlsVisible && colorIdForTopWidget != -1 ? colorIdForTopWidget : defaultColorId;
-			color = ContextCompat.getColor(activity, statusBarColorId);
 		}
 		AndroidUiHelper.setStatusBarColor(activity, color);
 		AndroidUiHelper.setStatusBarContentColor(activity.getWindow().getDecorView(), nightModeForContent);

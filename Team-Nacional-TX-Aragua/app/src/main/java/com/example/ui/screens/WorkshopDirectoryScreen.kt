@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -91,22 +92,19 @@ fun WorkshopDirectoryScreen(
     var workshopForCreditInfo by remember { mutableStateOf<WorkshopDirectoryItem?>(null) }
     var workshopToRate by remember { mutableStateOf<WorkshopDirectoryItem?>(null) }
 
-    // Auto-sembrado y sincronización local inmediata en Room
+    // Sincronización local respetando eliminaciones permanentes
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             try {
-                val db = AppDatabase.getDatabase(context, kotlinx.coroutines.CoroutineScope(Dispatchers.IO))
-                db.workshopDirectoryDao().upsertWorkshops(AppDatabase.INITIAL_WORKSHOPS)
+                // Seeding inicial manejado de forma única y persistente en WorkshopDirectorySync
+                Log.d("TAG_COMERCIOS_TX", "Directorio cargado con ${workshops.size} talleres y ${interestPoints.size} sitios")
             } catch (_: Exception) {}
         }
     }
 
-    // Combinar siempre la lista inicial oficial con talleres y sitios turísticos
+    // Combinar los talleres y sitios turísticos existentes en base de datos sin resucitar eliminados
     val combinedWorkshops = remember(workshops, interestPoints) {
-        val map = AppDatabase.INITIAL_WORKSHOPS.associateBy { it.id }.toMutableMap()
-        for (w in workshops) {
-            map[w.id] = w
-        }
+        val map = workshops.associateBy { it.id }.toMutableMap()
         for (spot in interestPoints) {
             map[spot.id] = WorkshopDirectoryItem(
                 id = spot.id,
@@ -141,8 +139,10 @@ fun WorkshopDirectoryScreen(
             currentMember?.role?.canManageApp == true ||
             currentMember?.role == MemberRole.PRESIDENTE ||
             currentMember?.role == MemberRole.DIRECTIVA ||
+            currentMember?.role == MemberRole.DESARROLLADOR ||
             (currentMember?.role?.displayName?.contains("Admin", ignoreCase = true) == true) ||
-            (currentMember?.role?.displayName?.contains("Directiv", ignoreCase = true) == true)
+            (currentMember?.role?.displayName?.contains("Directiv", ignoreCase = true) == true) ||
+            (currentMember?.role?.displayName?.contains("Desarrollador", ignoreCase = true) == true)
 
     val states = listOf(
         "TODOS", "Aragua", "Carabobo", "Distrito Capital", "Miranda", "Lara", "Falcón",
@@ -199,8 +199,27 @@ fun WorkshopDirectoryScreen(
         val defaultLat = itemExistente?.latitude ?: loc?.latitude ?: 10.3541
         val defaultLon = itemExistente?.longitude ?: loc?.longitude ?: -67.6102
 
-        com.example.radar.DialogosMapaTx.mostrarFormularioCrearPuntoTX(
-            act, defaultLat, defaultLon
+        val datos = if (itemExistente != null) {
+            com.example.radar.DialogosMapaTx.DatosEdicionPunto(
+                id = itemExistente.id,
+                esEdicion = true,
+                esComercio = true,
+                nombre = itemExistente.name,
+                categoria = itemExistente.type,
+                descripcion = itemExistente.notes,
+                direccion = itemExistente.address,
+                telefono = itemExistente.phone.ifBlank { itemExistente.whatsapp },
+                tieneCashea = itemExistente.hasCredit,
+                imageUrl = itemExistente.imageUrl,
+                iconoNombre = itemExistente.iconDrawableName
+            )
+        } else null
+
+        com.example.radar.DialogosMapaTx.mostrarFormularioPuntoTX(
+            activity = act,
+            lat = defaultLat,
+            lon = defaultLon,
+            datosIniciales = datos
         ) { name, cat, desc, addr, latVal, lonVal, imageUri, phone, iconName ->
             val hasCasheaCredit = desc.contains("[CASHEA]") || cat.contains("Cashea", ignoreCase = true)
             if (itemExistente != null) {
@@ -215,6 +234,7 @@ fun WorkshopDirectoryScreen(
                     creditPlatforms = if (hasCasheaCredit) "Cashea" else "",
                     latitude = latVal,
                     longitude = lonVal,
+                    imageUrl = imageUri?.toString() ?: itemExistente.imageUrl,
                     iconDrawableName = iconName,
                     timestamp = System.currentTimeMillis()
                 )
@@ -1492,8 +1512,24 @@ fun EditCommercialServiceDialog(
     LaunchedEffect(Unit) {
         val act = (context as? android.app.Activity)
         if (act != null) {
-            com.example.radar.DialogosMapaTx.mostrarFormularioCrearPuntoTX(
-                act, item.latitude, item.longitude
+            val datos = com.example.radar.DialogosMapaTx.DatosEdicionPunto(
+                id = item.id,
+                esEdicion = true,
+                esComercio = true,
+                nombre = item.name,
+                categoria = item.type,
+                descripcion = item.notes,
+                direccion = item.address,
+                telefono = item.phone.ifBlank { item.whatsapp },
+                tieneCashea = item.hasCredit,
+                imageUrl = item.imageUrl,
+                iconoNombre = item.iconDrawableName
+            )
+            com.example.radar.DialogosMapaTx.mostrarFormularioPuntoTX(
+                activity = act,
+                lat = item.latitude,
+                lon = item.longitude,
+                datosIniciales = datos
             ) { name, cat, desc, addr, latVal, lonVal, imageUri, phone, iconName ->
                 val hasCasheaCredit = desc.contains("[CASHEA]") || cat.contains("Cashea", ignoreCase = true)
                 val updated = item.copy(
@@ -1507,6 +1543,7 @@ fun EditCommercialServiceDialog(
                     creditPlatforms = if (hasCasheaCredit) "Cashea" else "",
                     latitude = latVal,
                     longitude = lonVal,
+                    imageUrl = imageUri?.toString() ?: item.imageUrl,
                     iconDrawableName = iconName,
                     timestamp = System.currentTimeMillis()
                 )

@@ -30,6 +30,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
+    isReadyToDismiss: Boolean = true,
     onComplete: () -> Unit
 ) {
     var startAnimation by remember { mutableStateOf(false) }
@@ -54,13 +55,22 @@ fun SplashScreen(
 
     val progressValue by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(durationMillis = 2600, delayMillis = 300, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 2000, delayMillis = 200, easing = FastOutSlowInEasing),
         label = "progress"
     )
 
     LaunchedEffect(Unit) {
         startAnimation = true
-        delay(3200)
+    }
+
+    LaunchedEffect(isReadyToDismiss) {
+        // Tiempo base mínimo para animación estética del logo (1800 ms)
+        delay(1800)
+        // Esperar si la sesión sigue restaurándose en segundo plano (máximo 1700ms adicionales de gracia)
+        val inicio = System.currentTimeMillis()
+        while (!isReadyToDismiss && (System.currentTimeMillis() - inicio) < 1700) {
+            delay(80)
+        }
         onComplete()
     }
 

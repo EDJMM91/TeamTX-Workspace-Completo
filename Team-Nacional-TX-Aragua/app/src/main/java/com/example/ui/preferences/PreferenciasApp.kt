@@ -301,14 +301,17 @@ object PreferenciasApp {
     fun haAceptadoCompromisoBiker(memberId: Long): Boolean {
         if (!::prefs.isInitialized) return false
         val clave = if (memberId > 0) "compromiso_biker_aceptado_$memberId" else "compromiso_biker_aceptado_global"
-        return prefs.getBoolean(clave, false)
+        return prefs.getBoolean(clave, false) || prefs.getBoolean("compromiso_biker_aceptado_global", false)
     }
 
     /** Marca como aceptado el compromiso de honor biker */
     fun setCompromisoBikerAceptado(memberId: Long, aceptado: Boolean) {
         if (!::prefs.isInitialized) return
         val clave = if (memberId > 0) "compromiso_biker_aceptado_$memberId" else "compromiso_biker_aceptado_global"
-        prefs.edit().putBoolean(clave, aceptado).apply()
+        prefs.edit()
+            .putBoolean(clave, aceptado)
+            .putBoolean("compromiso_biker_aceptado_global", aceptado)
+            .apply()
     }
 
     // ─── CONTROL DE SESIÓN Y DISPOSITIVO ÚNICO (ANTI-TRAMPAS) ───────────────────

@@ -37,11 +37,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
 import com.example.dashboard.DashboardFondoConfig
 import com.example.data.model.MemberProfile
 import com.example.data.model.MemberRole
 import com.example.ui.components.*
 import com.example.ui.theme.*
+
+private const val TAG_LOGCAT = "TEAM_TX_PILOTOS"
 
 enum class MemberStatusFilter(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     TODOS("Todos", Icons.Default.Groups),
@@ -725,7 +728,7 @@ fun MemberCardItem(
     onOpenPrivateChat: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
+    var isExpanded by remember(member.id) { mutableStateOf(false) }
     val rankColor = Color(member.role.badgeColorHex)
 
     Card(
@@ -737,29 +740,31 @@ fun MemberCardItem(
             if (member.isSuspended) 1.2.dp else if (isCurrentActive) 1.2.dp else 1.dp,
             if (member.isSuspended) StatusError else if (isCurrentActive) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorBordeClaro
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.5.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = modifier
             .fillMaxWidth()
-            .clickable { isExpanded = !isExpanded }
             .testTag("member_card_${member.memberNumber.lowercase()}")
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
-            // Fila Compacta Minimizada (Una sola línea principal)
+            // Fila Principal Estilo Lista de Contactos (Ultra Compacta)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Avatar con halo de rango y LED de conexión
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    // Avatar compacto con LED de conexión
                     Box(contentAlignment = Alignment.BottomEnd) {
                         PilotAvatar(
                             member = member,
@@ -770,7 +775,7 @@ fun MemberCardItem(
                         val ledColor = if (isConnected) Color(0xFF00E676) else Color(0xFF9E9E9E)
                         Box(
                             modifier = Modifier
-                                .size(10.dp)
+                                .size(9.dp)
                                 .clip(CircleShape)
                                 .background(ledColor)
                                 .border(1.5.dp, Color.White, CircleShape)
@@ -778,83 +783,179 @@ fun MemberCardItem(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val primaryName = if (!member.nickname.isNullOrBlank()) member.nickname else member.fullName
                             Text(
-                                text = member.fullName,
+                                text = primaryName,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
+                                fontSize = 13.5.sp,
                                 color = DashboardFondoConfig.ColorTextoPrimario,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+
                             if (isCurrentActive) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Surface(shape = RoundedCornerShape(4.dp), color = DashboardFondoConfig.ColorRojoCarrera) {
-                                    Text("TÚ", color = Color.White, fontWeight = FontWeight.Black, fontSize = 8.5.sp, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(3.dp),
+                                    color = DashboardFondoConfig.ColorRojoCarrera
+                                ) {
+                                    Text(
+                                        text = "TÚ",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 8.sp,
+                                        modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+
+                            if (member.isSuspended) {
+                                Surface(
+                                    shape = RoundedCornerShape(3.dp),
+                                    color = StatusError.copy(alpha = 0.15f),
+                                    border = BorderStroke(0.6.dp, StatusError)
+                                ) {
+                                    Text(
+                                        text = "SUSPENDIDO",
+                                        color = StatusError,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 7.5.sp,
+                                        modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                    )
                                 }
                             }
                         }
 
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             Text(
                                 text = member.memberNumber,
                                 color = if (member.isSuspended) StatusError else DashboardFondoConfig.ColorDoradoOro,
                                 fontWeight = FontWeight.Black,
-                                fontSize = 10.5.sp,
+                                fontSize = 10.sp,
                                 fontFamily = FontFamily.Monospace
                             )
-                            if (!member.nickname.isNullOrBlank()) {
+
+                            Text("•", color = DashboardFondoConfig.ColorTextoSecundario, fontSize = 8.sp)
+
+                            Text(
+                                text = member.chapterState.split(" ")[0],
+                                color = DashboardFondoConfig.ColorTextoSecundario,
+                                fontSize = 10.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Text("•", color = DashboardFondoConfig.ColorTextoSecundario, fontSize = 8.sp)
+
+                            Surface(
+                                shape = RoundedCornerShape(3.dp),
+                                color = rankColor.copy(alpha = 0.15f),
+                                border = BorderStroke(0.6.dp, rankColor)
+                            ) {
                                 Text(
-                                    text = "\"${member.nickname}\"",
-                                    color = DashboardFondoConfig.ColorRojoCarrera,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    text = member.role.displayName,
+                                    color = roleColorTextColor(rankColor),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 8.5.sp,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                 )
                             }
                         }
                     }
                 }
 
+                // Acciones Rápidas Directas (WhatsApp, Llamar) + Botón Expandir Ficha Completa
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Badge del Rango
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = rankColor.copy(alpha = 0.15f),
-                        border = BorderStroke(0.8.dp, rankColor)
+                    IconButton(
+                        onClick = onDirectWhatsApp,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(WhatsAppGreen.copy(alpha = 0.12f))
                     ) {
-                        Text(
-                            text = member.role.displayName,
-                            color = roleColorTextColor(rankColor),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 9.5.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        Icon(
+                            imageVector = Icons.Default.Chat,
+                            contentDescription = "WhatsApp rápido",
+                            tint = WhatsAppGreen,
+                            modifier = Modifier.size(15.dp)
                         )
                     }
 
-                    // Pestaña expansora
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = "Expandir ficha",
-                        tint = DashboardFondoConfig.ColorRojoCarrera,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    IconButton(
+                        onClick = onDirectCall,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE0F2FE))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = "Llamada rápida",
+                            tint = Color(0xFF0284C7),
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+
+                    // Botón dedicado para expandir o contraer la tarjeta completa
+                    IconButton(
+                        onClick = {
+                            isExpanded = !isExpanded
+                            Log.d(TAG_LOGCAT, "Piloto ${member.memberNumber} ${if (isExpanded) "expandido" else "contraído"}")
+                        },
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(if (isExpanded) DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.15f) else Color(0xFFF1F5F9))
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isExpanded) "Contraer tarjeta" else "Expandir tarjeta completa",
+                            tint = if (isExpanded) DashboardFondoConfig.ColorRojoCarrera else DashboardFondoConfig.ColorTextoSecundario,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
 
+            // Despliegue de la Tarjeta Completa del Piloto
             AnimatedVisibility(visible = isExpanded) {
                 Column {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     HorizontalDivider(color = DashboardFondoConfig.ColorBordeClaro)
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Motorcycle Specs Card inside member card
+                    if (!member.nickname.isNullOrBlank() && member.fullName != member.nickname) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Nombre completo:",
+                                fontSize = 10.5.sp,
+                                color = DashboardFondoConfig.ColorTextoSecundario
+                            )
+                            Text(
+                                text = member.fullName,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DashboardFondoConfig.ColorTextoPrimario
+                            )
+                        }
+                    }
+
+                    // Ficha Técnica de la Moto
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(0xFFF8FAFC),
@@ -906,7 +1007,7 @@ fun MemberCardItem(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // Specs Row: Blood Type, Solvency, Phone preview
+                    // Datos Médicos, Solvencia y Teléfono
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -955,7 +1056,7 @@ fun MemberCardItem(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Action Buttons: WhatsApp, Chat Privado In-App, Llamar, Ver Ficha
+                    // Botonera Completa: WhatsApp, Chat App, Llamar, Ver Ficha Dossier
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1162,8 +1263,8 @@ fun MemberDetailDossierDialog(
                     item {
                         Card(
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1F2C)),
-                            border = BorderStroke(1.dp, DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.6f)),
+                            colors = CardDefaults.cardColors(containerColor = DashboardFondoConfig.ColorTarjetaClara),
+                            border = BorderStroke(1.dp, DashboardFondoConfig.ColorRojoCarrera.copy(alpha = 0.4f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
@@ -1186,7 +1287,7 @@ fun MemberDetailDossierDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Estado de Solvencia:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                                    Text("Estado de Solvencia:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DashboardFondoConfig.ColorTextoPrimario)
                                     Button(
                                         onClick = onToggleSolvency,
                                         colors = ButtonDefaults.buttonColors(
@@ -1206,8 +1307,8 @@ fun MemberDetailDossierDialog(
                                 if (member.isSuspended) {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
-                                        color = StatusError.copy(alpha = 0.15f),
-                                        border = BorderStroke(1.dp, StatusError),
+                                        color = StatusError.copy(alpha = 0.1f),
+                                        border = BorderStroke(1.dp, StatusError.copy(alpha = 0.5f)),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Column(
@@ -1223,7 +1324,7 @@ fun MemberDetailDossierDialog(
                                             }
                                             Text(
                                                 text = "Motivo: ${member.suspensionReason.ifBlank { "Infracción de normas" }}",
-                                                color = Color.White,
+                                                color = DashboardFondoConfig.ColorTextoPrimario,
                                                 fontSize = 11.sp
                                             )
                                             Text(
@@ -1250,7 +1351,7 @@ fun MemberDetailDossierDialog(
                                                     onClick = onOpenSuspendDialog,
                                                     modifier = Modifier.weight(1f)
                                                 ) {
-                                                    Text("Modificar", fontSize = 11.sp, color = Color.White)
+                                                    Text("Modificar", fontSize = 11.sp, color = DashboardFondoConfig.ColorTextoPrimario)
                                                 }
                                             }
                                         }
@@ -1275,7 +1376,7 @@ fun MemberDetailDossierDialog(
                                     ) {
                                         Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = DashboardFondoConfig.ColorDoradoOro)
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Cambiar Rango: ${member.role.displayName}", fontSize = 12.sp, color = Color.White)
+                                        Text("Cambiar Rango: ${member.role.displayName}", fontSize = 12.sp, color = DashboardFondoConfig.ColorTextoPrimario)
                                     }
 
                                     DropdownMenu(

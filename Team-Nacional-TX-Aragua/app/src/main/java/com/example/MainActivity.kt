@@ -337,6 +337,7 @@ fun AppEntryPoint(
     viewModel: TeamTxViewModel = viewModel()
 ) {
     val isAuthenticated by viewModel.isAuthenticated.collectAsStateWithLifecycle()
+    val isSessionRestored by viewModel.isSessionRestored.collectAsStateWithLifecycle()
     val attemptsLeft by viewModel.requestAttemptsLeft.collectAsStateWithLifecycle()
     
     // 🛡️ Usamos rememberSaveable para que el Splash no se repita al girar o recrear la actividad
@@ -348,7 +349,10 @@ fun AppEntryPoint(
     SolicitadorNotificaciones()
     
     if (showSplash) {
-        SplashScreen(onComplete = { showSplash = false })
+        SplashScreen(
+            isReadyToDismiss = isSessionRestored,
+            onComplete = { showSplash = false }
+        )
     } else if (!permissionsGranted) {
         PermissionHandler(onAllPermissionsGranted = { permissionsGranted = true }, scope = scope)
     } else if (!isAuthenticated) {
@@ -1096,7 +1100,10 @@ fun MainAppScreen(viewModel: TeamTxViewModel) {
                         onUpdateWorkshop = { updatedItem ->
                             viewModel.updateWorkshop(updatedItem)
                         },
-                        onDeleteWorkshop = { viewModel.deleteWorkshop(it) },
+                        onDeleteWorkshop = { id ->
+                            viewModel.deleteWorkshop(id)
+                            viewModel.deleteInterestPoint(id)
+                        },
                         onLikeSpot = { spot -> viewModel.likeSpot(spot) },
                         onDislikeSpot = { spot -> viewModel.dislikeSpot(spot) },
                         onSubmitReport = { spotId, spotName, spotType, reason ->

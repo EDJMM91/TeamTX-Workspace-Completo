@@ -23,11 +23,232 @@ import com.example.data.model.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import net.osmand.plus.OsmandApplication
+import android.app.AlertDialog
+import android.util.Log
+import com.example.util.GestorSelectorFoto
+import kotlinx.coroutines.tasks.await
 import java.io.File
 
 object DialogosMapaTx {
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
+    data class DatosEdicionPunto(
+        val id: Long = 0L,
+        val esEdicion: Boolean = false,
+        val esComercio: Boolean = true,
+        val nombre: String = "",
+        val categoria: String = "",
+        val descripcion: String = "",
+        val direccion: String = "",
+        val telefono: String = "",
+        val tieneCashea: Boolean = false,
+        val imageUrl: String? = null,
+        val iconoNombre: String = "logoteam"
+    )
+
+    @JvmStatic
+    fun esUsuarioAutorizado(context: Context): Boolean {
+        try {
+            val prefs = context.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE)
+            if (prefs.getBoolean("es_directivo_o_admin", false)) return true
+            val rango = prefs.getString("radar_rango", "") ?: ""
+            if (rango.contains("Directiv", ignoreCase = true) ||
+                rango.contains("Presidente", ignoreCase = true) ||
+                rango.contains("Desarrollador", ignoreCase = true) ||
+                rango.contains("Admin", ignoreCase = true)) {
+                return true
+            }
+            val devPrefs = context.getSharedPreferences("dev_settings", Context.MODE_PRIVATE)
+            if (devPrefs.getBoolean("developer_mode", false)) return true
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            val email = auth.currentUser?.email?.lowercase() ?: ""
+            if (email == "eduardo.androide.em@gmail.com") return true
+        } catch (_: Exception) {}
+        return false
+    }
+
+    @JvmStatic
+    fun guardarEdicionDirectorio(
+        activity: Activity,
+        id: Long,
+        name: String,
+        category: String,
+        description: String,
+        address: String,
+        lat: Double,
+        lon: Double,
+        imageUri: Uri?,
+        phone: String,
+        iconName: String
+    ) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val db = AppDatabase.getDatabase(activity, scope)
+                var uploadedUrl: String? = null
+                if (imageUri != null) {
+                    try {
+                        com.aistudio.teamtxvzla.nube.AutenticacionNube.garantizarSesionActiva()
+                        val res = com.aistudio.teamtxvzla.nube.NubeMultimedia.subirImagenAvisoAsync(
+                            activity.application, imageUri, "puntos_tx"
+                        )
+                        uploadedUrl = res.url
+                    } catch (e: Exception) {
+                        Log.w("TAG_COMERCIOS_TX", "Error subiendo imagen en edición directorio: ${e.message}")
+                    }
+                }
+
+                val hasCashea = description.contains("[CASHEA]") || category.contains("Cashea", ignoreCase = true)
+                val workshop = WorkshopDirectoryItem(
+                    id = id,
+                    name = name,
+                    type = category,
+                    address = address,
+                    phone = phone,
+                    whatsapp = phone,
+                    notes = description.replace("[CASHEA]", "").trim(),
+                    hasCredit = hasCashea,
+                    creditPlatforms = if (hasCashea) "Cashea" else "",
+                    latitude = lat,
+                    longitude = lon,
+                    imageUrl = uploadedUrl,
+                    iconDrawableName = iconName,
+                    timestamp = System.currentTimeMillis()
+                )
+
+                val sync = com.example.data.remote.WorkshopDirectorySync(db, scope)
+                sync.insertOrUpdate(workshop)
+
+                val allWorkshops = db.workshopDirectoryDao().getAllWorkshops().first()
+                withContext(Dispatchers.Main) {
+                    GestorRadar.sincronizarDirectorioEnMapa(allWorkshops, true)
+                    Toast.makeText(activity, "✅ Comercio '$name' actualizado ✓", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("TAG_COMERCIOS_TX", "Error al actualizar directorio: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(activity, "❌ Error al actualizar comercio", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    @JvmStatic
+    fun eliminarDirectorio(activity: Activity, id: Long, nombre: String) {
+        AlertDialog.Builder(activity)
+            .setTitle("🗑️ Eliminar Comercio")
+            .setMessage("¿Estás seguro de eliminar permanentemente '$nombre' del mapa y del sistema? Esta acción no se puede deshacer.")
+            .setPositiveButton("Eliminar") { _, _ ->
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val db = AppDatabase.getDatabase(activity, scope)
+                        val sync = com.example.data.remote.WorkshopDirectorySync(db, scope)
+                        sync.deleteById(id)
+                        val allWorkshops = db.workshopDirectoryDao().getAllWorkshops().first()
+                        withContext(Dispatchers.Main) {
+                            GestorRadar.sincronizarDirectorioEnMapa(allWorkshops, true)
+                            Toast.makeText(activity, "🗑️ Comercio eliminado permanentemente ✓", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("TAG_COMERCIOS_TX", "Error eliminando comercio: ${e.message}", e)
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(activity, "❌ Error al eliminar comercio", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    @JvmStatic
+    fun guardarEdicionSitioInteres(
+        activity: Activity,
+        id: Long,
+        name: String,
+        category: String,
+        description: String,
+        address: String,
+        lat: Double,
+        lon: Double,
+        imageUri: Uri?,
+        phone: String,
+        iconName: String
+    ) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val db = AppDatabase.getDatabase(activity, scope)
+                var uploadedUrl: String? = null
+                if (imageUri != null) {
+                    try {
+                        com.aistudio.teamtxvzla.nube.AutenticacionNube.garantizarSesionActiva()
+                        val res = com.aistudio.teamtxvzla.nube.NubeMultimedia.subirImagenAvisoAsync(
+                            activity.application, imageUri, "puntos_tx"
+                        )
+                        uploadedUrl = res.url
+                    } catch (e: Exception) {
+                        Log.w("TAG_COMERCIOS_TX", "Error subiendo imagen en sitio turismo: ${e.message}")
+                    }
+                }
+
+                val spot = BikerInterestPoint(
+                    id = id,
+                    name = name,
+                    category = category,
+                    description = description,
+                    address = address,
+                    latitude = lat,
+                    longitude = lon,
+                    imageUrl = uploadedUrl,
+                    iconDrawableName = iconName,
+                    phone = phone,
+                    timestamp = System.currentTimeMillis()
+                )
+
+                val sync = com.example.data.remote.InterestPointSync(db, scope)
+                sync.insertOrUpdate(spot)
+
+                val allSpots = db.interestPointDao().getAllInterestPoints().first()
+                withContext(Dispatchers.Main) {
+                    GestorRadar.sincronizarSitiosInteresEnMapa(allSpots, true)
+                    Toast.makeText(activity, "✅ Sitio '$name' actualizado ✓", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e("TAG_COMERCIOS_TX", "Error al actualizar sitio turístico: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(activity, "❌ Error al actualizar punto turístico", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    @JvmStatic
+    fun eliminarSitioInteres(activity: Activity, id: Long, nombre: String) {
+        AlertDialog.Builder(activity)
+            .setTitle("🗑️ Eliminar Punto Turístico")
+            .setMessage("¿Estás seguro de eliminar permanentemente '$nombre' del mapa y del sistema? Esta acción no se puede deshacer.")
+            .setPositiveButton("Eliminar") { _, _ ->
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val db = AppDatabase.getDatabase(activity, scope)
+                        val sync = com.example.data.remote.InterestPointSync(db, scope)
+                        sync.deleteById(id)
+                        val allSpots = db.interestPointDao().getAllInterestPoints().first()
+                        withContext(Dispatchers.Main) {
+                            GestorRadar.sincronizarSitiosInteresEnMapa(allSpots, true)
+                            Toast.makeText(activity, "🗑️ Punto turístico eliminado permanentemente ✓", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("TAG_COMERCIOS_TX", "Error eliminando sitio turístico: ${e.message}", e)
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(activity, "❌ Error al eliminar punto turístico", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
 
     /**
      * Muestra el detalle interactivo al tocar cualquier disco de avatar o icono de emergencia en el mapa.
@@ -1927,6 +2148,78 @@ object DialogosMapaTx {
         }
         rootLayout.addView(btnDirectorio)
 
+        // Opciones exclusivas para Directivos y Desarrolladores: Editar y Eliminar
+        if (esUsuarioAutorizado(activity)) {
+            val adminRow = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    bottomMargin = (8 * density).toInt()
+                }
+            }
+
+            val btnEditar = Button(activity).apply {
+                text = "✏️ Editar Comercio"
+                setTextColor(Color.BLACK)
+                textSize = 12.5f
+                typeface = Typeface.DEFAULT_BOLD
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 8 * density
+                    setColor(Color.parseColor("#00E5FF"))
+                }
+                layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                    marginEnd = (4 * density).toInt()
+                }
+                setOnClickListener {
+                    dialog.dismiss()
+                    val datos = DatosEdicionPunto(
+                        id = item.id,
+                        esEdicion = true,
+                        esComercio = true,
+                        nombre = item.nombre,
+                        categoria = item.tipo,
+                        descripcion = item.notas,
+                        direccion = item.direccion,
+                        telefono = item.telefono.ifBlank { item.whatsapp },
+                        tieneCashea = item.tieneCashea,
+                        imageUrl = item.imageUrl,
+                        iconoNombre = item.iconoDrawableName
+                    )
+                    mostrarFormularioPuntoTX(
+                        activity = activity,
+                        lat = item.lat,
+                        lon = item.lon,
+                        datosIniciales = datos,
+                        onGuardar = { name, category, description, address, lat, lon, imageUri, phone, iconName ->
+                            guardarEdicionDirectorio(activity, item.id, name, category, description, address, lat, lon, imageUri, phone, iconName)
+                        }
+                    )
+                }
+            }
+            adminRow.addView(btnEditar)
+
+            val btnEliminar = Button(activity).apply {
+                text = "🗑️ Eliminar"
+                setTextColor(Color.WHITE)
+                textSize = 12.5f
+                typeface = Typeface.DEFAULT_BOLD
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 8 * density
+                    setColor(Color.parseColor("#D32F2F"))
+                }
+                layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                    marginStart = (4 * density).toInt()
+                }
+                setOnClickListener {
+                    dialog.dismiss()
+                    eliminarDirectorio(activity, item.id, item.nombre)
+                }
+            }
+            adminRow.addView(btnEliminar)
+            rootLayout.addView(adminRow)
+        }
+
         dialog.setContentView(rootLayout)
         dialog.window?.let { w ->
             w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -2154,14 +2447,17 @@ object DialogosMapaTx {
     }
 
     /**
-     * Formulario flotante para crear un Punto TX (Interés o Comercio) desde el menú contextual del mapa.
+     * Formulario interactivo unificado para crear o editar un Punto TX (Comercio o Destino Turístico).
+     * Incluye selección de fotos (Cámara/Galería), visualización previa de imagen,
+     * gestión GPS avanzada y soporte para roles de Directiva y Desarrollador.
      */
     @JvmStatic
-    fun mostrarFormularioCrearPuntoTX(
+    fun mostrarFormularioPuntoTX(
         activity: Activity,
         lat: Double,
         lon: Double,
-        onCreatePunto: (name: String, category: String, description: String, address: String, lat: Double, lon: Double, imageUri: Uri?, phone: String, iconName: String) -> Unit
+        datosIniciales: DatosEdicionPunto? = null,
+        onGuardar: ((name: String, category: String, description: String, address: String, lat: Double, lon: Double, imageUri: Uri?, phone: String, iconName: String) -> Unit)? = null
     ) {
         if (activity.isFinishing || activity.isDestroyed) return
         val dialog = Dialog(activity)
@@ -2194,8 +2490,9 @@ object DialogosMapaTx {
         }
         headerRow.addView(logoImg)
 
+        val esModoEdicion = datosIniciales?.esEdicion == true
         val tvTitle = TextView(activity).apply {
-            text = "📍 AGREGAR PUNTO TX / COMERCIO"
+            text = if (esModoEdicion) "✏️ EDITAR PUNTO TX / COMERCIO" else "📍 AGREGAR PUNTO TX / COMERCIO"
             setTextColor(Color.WHITE)
             textSize = 14f
             typeface = Typeface.DEFAULT_BOLD
@@ -2210,7 +2507,7 @@ object DialogosMapaTx {
         }
         val formCol = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
 
-        // Selector Maestro Inicial: (•) Comercio / Taller | ( ) Punto de Ruta / Mirador
+        // Selector Maestro Inicial: (•) Comercio / Taller | ( ) Punto / Turístico
         val tvSelectorLabel = TextView(activity).apply {
             text = "🎛️ Tipo de Registro Principal:"
             setTextColor(Color.parseColor("#FF9800"))
@@ -2231,15 +2528,16 @@ object DialogosMapaTx {
             text = "Comercio / Taller"
             setTextColor(Color.WHITE)
             textSize = 12f
-            isChecked = true
+            isChecked = datosIniciales?.esComercio ?: true
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         selectorRadioGroup.addView(rbComercio)
 
         val rbPuntoRuta = RadioButton(activity).apply {
-            text = "Punto / Mirador"
+            text = "Punto / Turístico"
             setTextColor(Color.WHITE)
             textSize = 12f
+            isChecked = if (datosIniciales != null) !datosIniciales.esComercio else false
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         selectorRadioGroup.addView(rbPuntoRuta)
@@ -2251,6 +2549,9 @@ object DialogosMapaTx {
             setHintTextColor(Color.parseColor("#888888"))
             setTextColor(Color.WHITE)
             textSize = 13f
+            if (!datosIniciales?.nombre.isNullOrBlank()) {
+                setText(datosIniciales!!.nombre)
+            }
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 8 * density
@@ -2275,6 +2576,17 @@ object DialogosMapaTx {
         formCol.addView(tvCatLabel)
 
         val categorias = arrayOf(
+            "Taller Mecánico",
+            "Venta de Repuestos TX",
+            "Tienda de Accesorios",
+            "Cauchera & Vulcanizadora",
+            "Autolavado Biker",
+            "Electricidad & Baterías",
+            "Tornería & Soldadura",
+            "Auxilio Vial 24H",
+            "Restaurante / Comida",
+            "Posada / Hotel",
+            "Estación de Servicio",
             "Mirador / Parador Biker",
             "Playa / Costa",
             "Montaña / Ruta",
@@ -2282,13 +2594,7 @@ object DialogosMapaTx {
             "Monumento / Sitio Histórico",
             "Parque Nacional / Reserva Natural",
             "Camping / Pernocta",
-            "Punto de Encuentro Caravana",
-            "Taller Mecánico",
-            "Venta de Repuestos TX",
-            "Autolavado Biker",
-            "Restaurante / Comida",
-            "Posada / Hotel",
-            "Estación de Servicio"
+            "Punto de Encuentro Caravana"
         )
 
         val spinnerCat = Spinner(activity).apply {
@@ -2303,6 +2609,10 @@ object DialogosMapaTx {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 bottomMargin = (10 * density).toInt()
             }
+        }
+        if (!datosIniciales?.categoria.isNullOrBlank()) {
+            val catIdx = categorias.indexOfFirst { it.equals(datosIniciales!!.categoria, ignoreCase = true) }
+            if (catIdx >= 0) spinnerCat.setSelection(catIdx)
         }
         formCol.addView(spinnerCat)
 
@@ -2341,6 +2651,21 @@ object DialogosMapaTx {
                 bottomMargin = (10 * density).toInt()
             }
         }
+        if (!datosIniciales?.iconoNombre.isNullOrBlank()) {
+            val iconoIdx = when (datosIniciales!!.iconoNombre) {
+                "logoteam" -> 0
+                "ic_menu_compass" -> 1
+                "ic_action_flag" -> 2
+                "ic_action_gas_station" -> 3
+                "ic_action_repair" -> 4
+                "ic_action_food" -> 5
+                "ic_action_hotel" -> 6
+                "ic_action_water" -> 7
+                "ic_action_mountain" -> 8
+                else -> 0
+            }
+            spinnerIcono.setSelection(iconoIdx)
+        }
         formCol.addView(spinnerIcono)
 
         // Campo Descripción
@@ -2350,6 +2675,9 @@ object DialogosMapaTx {
             setTextColor(Color.WHITE)
             textSize = 13f
             minLines = 2
+            if (!datosIniciales?.descripcion.isNullOrBlank()) {
+                setText(datosIniciales!!.descripcion)
+            }
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 8 * density
@@ -2369,7 +2697,8 @@ object DialogosMapaTx {
             setHintTextColor(Color.parseColor("#888888"))
             setTextColor(Color.WHITE)
             textSize = 13f
-            setText("Lat: %.4f, Lon: %.4f".format(lat, lon))
+            val defaultAddr = if (!datosIniciales?.direccion.isNullOrBlank()) datosIniciales!!.direccion else "Lat: %.5f, Lon: %.5f".format(lat, lon)
+            setText(defaultAddr)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 8 * density
@@ -2389,6 +2718,9 @@ object DialogosMapaTx {
             setHintTextColor(Color.parseColor("#888888"))
             setTextColor(Color.WHITE)
             textSize = 13f
+            if (!datosIniciales?.telefono.isNullOrBlank()) {
+                setText(datosIniciales!!.telefono)
+            }
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 8 * density
@@ -2408,22 +2740,50 @@ object DialogosMapaTx {
             setTextColor(Color.parseColor("#4ADE80"))
             textSize = 12.5f
             typeface = Typeface.DEFAULT_BOLD
+            isChecked = datosIniciales?.tieneCashea ?: false
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 bottomMargin = (10 * density).toInt()
             }
         }
         formCol.addView(cbCashea)
 
-        // Foto opcional (Cámara / Galería)
+        // Foto interactiva (Cámara / Galería) con Vista Previa
         var fotoSeleccionadaUri: Uri? = null
         val tvFotoLabel = TextView(activity).apply {
-            text = "📷 Foto Opcional del Sitio / Comercio:"
+            text = "📷 Foto del Sitio / Comercio:"
             setTextColor(Color.parseColor("#4ADE80"))
             textSize = 11f
             typeface = Typeface.DEFAULT_BOLD
             setPadding(0, 0, 0, (4 * density).toInt())
         }
         formCol.addView(tvFotoLabel)
+
+        val ivFotoPreview = ImageView(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (120 * density).toInt()).apply {
+                bottomMargin = (8 * density).toInt()
+            }
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            visibility = View.GONE
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 8 * density
+                setColor(Color.parseColor("#1F2937"))
+                setStroke((1 * density).toInt(), Color.parseColor("#374151"))
+            }
+        }
+        formCol.addView(ivFotoPreview)
+
+        // Mostrar foto existente si está en modo edición
+        if (!datosIniciales?.imageUrl.isNullOrBlank()) {
+            try {
+                val uri = Uri.parse(datosIniciales!!.imageUrl)
+                val bmp = GestorSelectorFoto.cargarBitmapOptimizado(activity, uri, 512)
+                if (bmp != null) {
+                    ivFotoPreview.setImageBitmap(bmp)
+                    ivFotoPreview.visibility = View.VISIBLE
+                }
+            } catch (_: Exception) {}
+        }
 
         val photoRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -2443,7 +2803,17 @@ object DialogosMapaTx {
             }
             layoutParams = LinearLayout.LayoutParams(0, (36 * density).toInt(), 1f).apply { marginEnd = (4 * density).toInt() }
             setOnClickListener {
-                Toast.makeText(activity, "📸 Toma la foto con la cámara del celular", Toast.LENGTH_SHORT).show()
+                GestorSelectorFoto.tomarFotoCamara(activity) { uri ->
+                    if (uri != null) {
+                        fotoSeleccionadaUri = uri
+                        val bmp = GestorSelectorFoto.cargarBitmapOptimizado(activity, uri, 512)
+                        if (bmp != null) {
+                            ivFotoPreview.setImageBitmap(bmp)
+                            ivFotoPreview.visibility = View.VISIBLE
+                        }
+                        Toast.makeText(activity, "📸 Foto capturada correctamente ✓", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
         photoRow.addView(btnCamara)
@@ -2459,7 +2829,17 @@ object DialogosMapaTx {
             }
             layoutParams = LinearLayout.LayoutParams(0, (36 * density).toInt(), 1f).apply { marginStart = (4 * density).toInt() }
             setOnClickListener {
-                Toast.makeText(activity, "🖼️ Elige la foto de la galería", Toast.LENGTH_SHORT).show()
+                GestorSelectorFoto.seleccionarDeGaleria(activity) { uri ->
+                    if (uri != null) {
+                        fotoSeleccionadaUri = uri
+                        val bmp = GestorSelectorFoto.cargarBitmapOptimizado(activity, uri, 512)
+                        if (bmp != null) {
+                            ivFotoPreview.setImageBitmap(bmp)
+                            ivFotoPreview.visibility = View.VISIBLE
+                        }
+                        Toast.makeText(activity, "🖼️ Foto seleccionada correctamente ✓", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
         photoRow.addView(btnGaleria)
@@ -2587,7 +2967,7 @@ object DialogosMapaTx {
         btnRow.addView(btnCancelar)
 
         val btnGuardar = Button(activity).apply {
-            text = "Guardar Punto TX"
+            text = if (esModoEdicion) "Guardar Cambios" else "Guardar Punto TX"
             setTextColor(Color.BLACK)
             typeface = Typeface.DEFAULT_BOLD
             background = GradientDrawable().apply {
@@ -2604,7 +2984,9 @@ object DialogosMapaTx {
                 val cat = spinnerCat.selectedItem.toString()
 
                 if (cbCashea.isChecked) {
-                    desc = if (desc.isNotBlank()) "[CASHEA] $desc" else "[CASHEA] Comercio con convenio de financiamiento Cashea"
+                    desc = if (desc.isNotBlank()) {
+                        if (!desc.contains("[CASHEA]")) "[CASHEA] $desc" else desc
+                    } else "[CASHEA] Comercio con convenio de financiamiento Cashea"
                 }
 
                 val iconoSeleccionado = when (spinnerIcono.selectedItemPosition) {
@@ -2621,9 +3003,41 @@ object DialogosMapaTx {
                 }
 
                 if (nombre.isNotBlank()) {
-                    onCreatePunto(nombre, cat, desc, dir, lat, lon, null, tel, iconoSeleccionado)
                     dialog.dismiss()
-                    Toast.makeText(activity, "✅ Punto '$nombre' registrado en $cat", Toast.LENGTH_LONG).show()
+                    if (onGuardar != null) {
+                        onGuardar(nombre, cat, desc, dir, lat, lon, fotoSeleccionadaUri, tel, iconoSeleccionado)
+                    } else {
+                        val targetId = if (datosIniciales != null && datosIniciales.id != 0L) datosIniciales.id else System.currentTimeMillis()
+                        if (rbComercio.isChecked) {
+                            guardarEdicionDirectorio(
+                                activity = activity,
+                                id = targetId,
+                                name = nombre,
+                                category = cat,
+                                description = desc,
+                                address = dir,
+                                lat = lat,
+                                lon = lon,
+                                imageUri = fotoSeleccionadaUri,
+                                phone = tel,
+                                iconName = iconoSeleccionado
+                            )
+                        } else {
+                            guardarEdicionSitioInteres(
+                                activity = activity,
+                                id = targetId,
+                                name = nombre,
+                                category = cat,
+                                description = desc,
+                                address = dir,
+                                lat = lat,
+                                lon = lon,
+                                imageUri = fotoSeleccionadaUri,
+                                phone = tel,
+                                iconName = iconoSeleccionado
+                            )
+                        }
+                    }
                 } else {
                     Toast.makeText(activity, "Ingresa el nombre del sitio o negocio", Toast.LENGTH_SHORT).show()
                 }
@@ -2639,6 +3053,19 @@ object DialogosMapaTx {
             w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
         dialog.show()
+    }
+
+    /**
+     * Sobrecarga de compatibilidad para creación directa de puntos desde el menú contextual.
+     */
+    @JvmStatic
+    fun mostrarFormularioCrearPuntoTX(
+        activity: Activity,
+        lat: Double,
+        lon: Double,
+        onCreatePunto: (name: String, category: String, description: String, address: String, lat: Double, lon: Double, imageUri: Uri?, phone: String, iconName: String) -> Unit
+    ) {
+        mostrarFormularioPuntoTX(activity, lat, lon, null, onCreatePunto)
     }
 
     /**
@@ -2803,6 +3230,78 @@ object DialogosMapaTx {
             }
             commRow.addView(btnWa)
             rootLayout.addView(commRow)
+        }
+
+        // Opciones exclusivas para Directivos y Desarrolladores: Editar y Eliminar
+        if (esUsuarioAutorizado(activity)) {
+            val adminRow = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    topMargin = (6 * density).toInt()
+                    bottomMargin = (4 * density).toInt()
+                }
+            }
+
+            val btnEditar = Button(activity).apply {
+                text = "✏️ Editar Punto Turístico"
+                setTextColor(Color.BLACK)
+                textSize = 12.5f
+                typeface = Typeface.DEFAULT_BOLD
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 8 * density
+                    setColor(Color.parseColor("#00E5FF"))
+                }
+                layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                    marginEnd = (4 * density).toInt()
+                }
+                setOnClickListener {
+                    dialog.dismiss()
+                    val datos = DatosEdicionPunto(
+                        id = sitio.id,
+                        esEdicion = true,
+                        esComercio = false,
+                        nombre = sitio.nombre,
+                        categoria = sitio.categoria,
+                        descripcion = sitio.descripcion,
+                        direccion = sitio.direccion,
+                        telefono = sitio.telefono,
+                        imageUrl = sitio.imageUrl,
+                        iconoNombre = sitio.iconoDrawableName
+                    )
+                    mostrarFormularioPuntoTX(
+                        activity = activity,
+                        lat = sitio.lat,
+                        lon = sitio.lon,
+                        datosIniciales = datos,
+                        onGuardar = { name, category, description, address, lat, lon, imageUri, phone, iconName ->
+                            guardarEdicionSitioInteres(activity, sitio.id, name, category, description, address, lat, lon, imageUri, phone, iconName)
+                        }
+                    )
+                }
+            }
+            adminRow.addView(btnEditar)
+
+            val btnEliminar = Button(activity).apply {
+                text = "🗑️ Eliminar"
+                setTextColor(Color.WHITE)
+                textSize = 12.5f
+                typeface = Typeface.DEFAULT_BOLD
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 8 * density
+                    setColor(Color.parseColor("#D32F2F"))
+                }
+                layoutParams = LinearLayout.LayoutParams(0, (40 * density).toInt(), 1f).apply {
+                    marginStart = (4 * density).toInt()
+                }
+                setOnClickListener {
+                    dialog.dismiss()
+                    eliminarSitioInteres(activity, sitio.id, sitio.nombre)
+                }
+            }
+            adminRow.addView(btnEliminar)
+            rootLayout.addView(adminRow)
         }
 
         dialog.setContentView(rootLayout)

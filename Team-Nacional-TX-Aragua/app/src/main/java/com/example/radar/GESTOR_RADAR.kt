@@ -29,6 +29,8 @@ object GestorRadar {
     private var clipListener: ClipboardManager.OnPrimaryClipChangedListener? = null
     private val alcance = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var escuchando = false
+    var radarHabilitado: Boolean = false
+        private set
     private var miUserId: String = ""
     private var miNombre: String = ""
     private var miRango: String = ""
@@ -50,7 +52,12 @@ object GestorRadar {
         mapaLayer?.setMapActivity(activity)
         eventosLayer?.setMapActivity(activity)
         directorioLayer?.setMapActivity(activity)
+        sitiosLayer?.setMapActivity(activity)
         Log.d(ETIQUETA, "MapActivity registrada en GestorRadar: ${activity != null}")
+
+        if (currentActivity != null) {
+            aplicarInmersionTotal(currentActivity)
+        }
 
         // Si el usuario está buscando una dirección para un aviso o evento, escuchar copias de coordenadas
         if (currentActivity != null) {
@@ -76,6 +83,74 @@ object GestorRadar {
     @JvmStatic
     fun obtenerMapActivity(): net.osmand.plus.activities.MapActivity? {
         return mapaActivityRef?.get()
+    }
+
+    @JvmStatic
+    fun aplicarInmersionTotal(activity: android.app.Activity?) {
+        if (activity == null || activity.isFinishing) return
+        activity.runOnUiThread {
+            try {
+                val window = activity.window ?: return@runOnUiThread
+                // 1. Cutout corto para extender mapa debajo de notches / camara frontal
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    val lp = window.attributes
+                    lp.layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    window.attributes = lp
+                }
+
+                // 2. Controladores de Insets modernos (API 30+)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    val insetsController = window.insetsController
+                    if (insetsController != null) {
+                        insetsController.hide(
+                            android.view.WindowInsets.Type.statusBars() or
+                            android.view.WindowInsets.Type.navigationBars()
+                        )
+                        insetsController.systemBarsBehavior =
+                            android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    }
+                }
+
+                // 3. Flags clasicos e Immersive Sticky (compatibilidad total)
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = (
+                    android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                )
+
+                window.statusBarColor = android.graphics.Color.TRANSPARENT
+                window.navigationBarColor = android.graphics.Color.TRANSPARENT
+
+                // 4. Asegurar que la barra/scrim superior quede totalmente invisible
+                val idScrim = activity.resources.getIdentifier("status_bar_scrim", "id", activity.packageName)
+                if (idScrim != 0) {
+                    val scrim = window.decorView.findViewById<android.view.View>(idScrim)
+                    if (scrim != null) {
+                        scrim.visibility = android.view.View.GONE
+                        scrim.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                        val params = scrim.layoutParams
+                        if (params != null && params.height != 0) {
+                            params.height = 0
+                            scrim.layoutParams = params
+                        }
+                    }
+                }
+
+                val idNavScrim = activity.resources.getIdentifier("navigation_bar_scrim", "id", activity.packageName)
+                if (idNavScrim != 0) {
+                    val navScrim = window.decorView.findViewById<android.view.View>(idNavScrim)
+                    if (navScrim != null) {
+                        navScrim.visibility = android.view.View.GONE
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(ETIQUETA, "Error aplicando inmersion total: ${e.message}")
+            }
+        }
     }
 
     var pilotoSeleccionadoPerfil: MemberProfile? = null
@@ -108,7 +183,9 @@ object GestorRadar {
             }
         }
 
+        radarHabilitado = true
         val layer = RadarMapLayer(app)
+        layer.radarHabilitado = true
         mapaActivityRef?.get()?.let { layer.setMapActivity(it) }
         mapaLayer = layer
         layer.setMiUserId(miUserId)
@@ -139,6 +216,11 @@ object GestorRadar {
         }
 
         RadarFirebase.escucharPilotos { pilotos ->
+            if (!radarHabilitado) {
+                mapaLayer?.limpiarPilotos()
+                return@escucharPilotos
+            }
+
             val todosLosPilotos = mutableListOf<PilotoRadar>()
 
             if (miUserId.isNotBlank() && miNombre.isNotBlank()) {
@@ -162,13 +244,15 @@ object GestorRadar {
             }
 
             todosLosPilotos.addAll(pilotos.filter { it.id != miUserId })
-            mapaLayer?.actualizarPilotos(todosLosPilotos)
+            if (radarHabilitado) {
+                mapaLayer?.actualizarPilotos(todosLosPilotos)
+            }
 
             todosLosPilotos.forEach { piloto ->
                 if (RadarFirebase.obtenerAvatarCacheado(piloto.avatarUrl) == null && piloto.avatarUrl.isNotBlank()) {
                     alcance.launch {
                         val bitmap = RadarFirebase.descargarAvatar(piloto.avatarUrl, app)
-                        if (bitmap != null) {
+                        if (bitmap != null && radarHabilitado) {
                             mapaLayer?.cachearAvatar(piloto.avatarUrl, bitmap)
                             mapaLayer?.actualizarPilotos(todosLosPilotos)
                         }
@@ -183,6 +267,7 @@ object GestorRadar {
     fun intentarRegistrarCapa() {
         val app = application ?: return
         val layer = mapaLayer ?: return
+        if (!radarHabilitado) return
         try {
             val mapView = app.osmandMap.mapView ?: return
             mapView.addLayer(layer, Z_RADAR)
@@ -211,11 +296,23 @@ object GestorRadar {
     }
 
     fun detener() {
-        RadarFirebase.detenerEscucha()
-        mapaLayer?.limpiarPilotos()
+        radarHabilitado = false
         escuchando = false
-        Log.d(ETIQUETA, "Radar desactivado")
+        RadarFirebase.detenerEscucha()
+        mapaLayer?.radarHabilitado = false
+        mapaLayer?.limpiarPilotos()
+        try {
+            val app = application
+            val layer = mapaLayer
+            if (app != null && layer != null) {
+                app.osmandMap?.mapView?.removeLayer(layer)
+            }
+        } catch (_: Exception) {}
+        Log.d(ETIQUETA, "Radar desactivado por completo y pilotos limpiados del mapa")
     }
+
+    @JvmStatic
+    fun estaRadarActivo(): Boolean = radarHabilitado
 
     fun sincronizarEventosEnMapa(
         publications: List<Publication>,

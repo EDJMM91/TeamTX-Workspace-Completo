@@ -66,6 +66,9 @@ import androidx.core.content.FileProvider;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.text.TextUtilsCompat;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
@@ -971,18 +974,95 @@ public class AndroidUtils {
 
 	public static void enterToFullScreen(Activity activity, View view) {
 		requestLayout(view);
-		activity.getWindow().getDecorView().setSystemUiVisibility(
-				View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+		if (activity == null || activity.isFinishing()) {
+			return;
+		}
+		Window window = activity.getWindow();
+		if (window == null) {
+			return;
+		}
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+			WindowManager.LayoutParams lp = window.getAttributes();
+			lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+			window.setAttributes(lp);
+		}
+
+		View decorView = window.getDecorView();
+		WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, decorView);
+		if (controller != null) {
+			controller.hide(WindowInsetsCompat.Type.systemBars());
+			controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+		}
+
+		decorView.setSystemUiVisibility(
+				View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+				| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+				| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+				| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+				| View.SYSTEM_UI_FLAG_FULLSCREEN
+				| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+		);
+
+		window.setStatusBarColor(Color.TRANSPARENT);
+		window.setNavigationBarColor(Color.TRANSPARENT);
+
+		View statusBarScrim = decorView.findViewById(R.id.status_bar_scrim);
+		if (statusBarScrim != null) {
+			statusBarScrim.setVisibility(View.GONE);
+			statusBarScrim.setBackgroundColor(Color.TRANSPARENT);
+			ViewGroup.LayoutParams params = statusBarScrim.getLayoutParams();
+			if (params != null && params.height != 0) {
+				params.height = 0;
+				statusBarScrim.setLayoutParams(params);
+			}
+		}
+
+		View navBarScrim = decorView.findViewById(R.id.navigation_bar_scrim);
+		if (navBarScrim != null) {
+			navBarScrim.setVisibility(View.GONE);
+			FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) navBarScrim.getLayoutParams();
+			if (params != null && (params.height != 0 || params.width != 0)) {
+				params.height = 0;
+				params.width = 0;
+				navBarScrim.setLayoutParams(params);
+			}
+		}
 	}
 
 	public static void exitFromFullScreen(Activity activity, View view) {
 		requestLayout(view);
-		activity.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+		if (activity == null || activity.isFinishing()) {
+			return;
+		}
+		Window window = activity.getWindow();
+		if (window == null) {
+			return;
+		}
+		View decorView = window.getDecorView();
+		WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, decorView);
+		if (controller != null) {
+			controller.show(WindowInsetsCompat.Type.systemBars());
+		}
+		decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+
+		View statusBarScrim = decorView.findViewById(R.id.status_bar_scrim);
+		if (statusBarScrim != null) {
+			statusBarScrim.setVisibility(View.VISIBLE);
+		}
+
+		View navBarScrim = decorView.findViewById(R.id.navigation_bar_scrim);
+		if (navBarScrim != null) {
+			navBarScrim.setVisibility(View.VISIBLE);
+		}
 	}
 
 	public static boolean isInFullScreenMode(Activity activity) {
+		if (activity == null) {
+			return false;
+		}
 		int uiMode = activity.getWindow().getDecorView().getSystemUiVisibility();
-		return (uiMode & View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN) != 0;
+		return (uiMode & View.SYSTEM_UI_FLAG_FULLSCREEN) != 0 || (uiMode & View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN) != 0;
 	}
 
 	private static void requestLayout(View view) {

@@ -13,8 +13,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class TeamTxApplication : OsmandApplication() {
+    companion object {
+        var instance: TeamTxApplication? = null
+            private set
+    }
+
     override fun onCreate() {
         super.onCreate()
+        instance = this
         // 🛡️ Registro preventivo de excepciones para diagnóstico de mapa y navegación
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->

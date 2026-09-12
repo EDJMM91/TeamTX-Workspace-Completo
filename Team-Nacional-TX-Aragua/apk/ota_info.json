@@ -1,15 +1,18 @@
 {
-  "versionCode": 52,
-  "versionName": "1.9.0-beta",
+  "versionCode": 54,
+  "versionName": "1.9.2-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Solución Definitiva de Invocación Directa en onClick sin Lag de Estado",
-  "notas": "🚀 Release v1.9.0-beta: Invocación directa instantánea de DialogosMapaTx.mostrarFormularioCrearPuntoTX al hacer clic en el botón flotante rojo, en la barra superior o en Editar Comercio.",
+  "titulo": "Directorio de Pilotos Compacto, Inicio Silencioso y Control de Radar",
+  "notas": "🚀 Release v1.9.2-beta: Directorio de miembros ultra-compacto estilo lista de contactos con ficha expandible, inicio silencioso detrás de la SplashScreen sin parpadeos de verificación y control absoluto de visibilidad de radar en mapa.",
   "novedades": [
-    "⚡ Apertura Directa Instantánea: Eliminación de intermediarios LaunchedEffect para que el diálogo maestro unificado aparezca de inmediato al tocar cualquier botón de registro o edición.",
-    "🎛️ Selector Maestro Funcional: Acceso inmediato al selector 'Comercio / Taller' vs 'Punto de Ruta / Mirador' con todos sus 13 campos unificados.",
-    "📍 Trilogía GPS en Vivo: Acceso directo a '🗺️ Mapa TX', '📋 Pegar GPS' y '📍 Mi GPS' en cada intento de registro o edición."
+    "🏍️ Directorio de Pilotos Ultra-Compacto: Vista moderna y esbelta con avatar con halo de rango, LED de conexión en vivo, código TX monoespaciado y botones directos de WhatsApp y llamada.",
+    "📑 Tarjeta Completa Desplegable: Botón dedicado para expandir ficha técnica de la moto, tipo de sangre 🩸, notas de emergencia, solvencia y ficha/dossier oficial.",
+    "⚡ Inicio Silencioso: Verificación de sesión en segundo plano tras la Splash sin pantallas de bienvenida ni cuenta en verificación para usuarios activos.",
+    "📡 Control Estricto de Radar en Mapa: Ocultamiento total garantizado de pilotos en mapa cuando el radar está apagado."
   ],
   "correcciones": [
-    "Corregido: Cierre prematuro del diálogo por ejecución sincrónica de LaunchedEffect."
+    "Corregido: Estado de tarjetas de pilotos aislado con clave única remember(member.id) para evitar desfasajes al buscar o filtrar.",
+    "Corregido: Sincronización en tiempo real de sanciones y reactivaciones hacia Firestore.",
+    "Corregido: Cancelación de descargas de avatares y liberación de buffer de radar al desactivar ubicación."
   ]
 }

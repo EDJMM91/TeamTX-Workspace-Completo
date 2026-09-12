@@ -106,26 +106,36 @@ class InterestPointSync(
         )
 
         try {
-            database.interestPointDao().upsertInterestPoints(sitiosIniciales)
+            val prefs = com.example.TeamTxApplication.instance?.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+            val yaSembrado = prefs?.getBoolean("sitios_interes_sembrados_v2", false) ?: false
 
-            val snapshot = db.collection(collectionName).get().await()
-            val existingIds = snapshot.documents.mapNotNull { it.id.toLongOrNull() ?: it.getLong("id") }.toSet()
-            for (item in sitiosIniciales) {
-                if (item.id !in existingIds) {
-                    insertOrUpdate(item)
+            if (!yaSembrado) {
+                database.interestPointDao().upsertInterestPoints(sitiosIniciales)
+
+                val snapshot = db.collection(collectionName).get().await()
+                val existingIds = snapshot.documents.mapNotNull { it.id.toLongOrNull() ?: it.getLong("id") }.toSet()
+                for (item in sitiosIniciales) {
+                    if (item.id !in existingIds) {
+                        insertOrUpdate(item)
+                    }
                 }
-            }
-            val remotos = snapshot.documents.mapNotNull { doc ->
-                doc.toObject(BikerInterestPoint::class.java)?.let { enriquecerCamposImagenes(doc, it) }
-            }
-            if (remotos.isNotEmpty()) {
-                database.interestPointDao().upsertInterestPoints(remotos)
+                prefs?.let { p ->
+                    val editor = p.edit()
+                    editor.putBoolean("sitios_interes_sembrados_v2", true)
+                    editor.apply()
+                }
+                Log.d("FIREBASE_SYNC", "🌱 Siembra inicial de sitios de interés completada.")
+            } else {
+                val snapshot = db.collection(collectionName).get().await()
+                val remotos = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(BikerInterestPoint::class.java)?.let { enriquecerCamposImagenes(doc, it) }
+                }
+                if (remotos.isNotEmpty()) {
+                    database.interestPointDao().upsertInterestPoints(remotos)
+                }
             }
         } catch (e: Exception) {
             Log.w("FIREBASE_SYNC", "Aviso en sync de sitios de interés: ${e.message}")
-            try {
-                database.interestPointDao().upsertInterestPoints(sitiosIniciales)
-            } catch (_: Exception) {}
         }
     }
 }

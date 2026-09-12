@@ -544,6 +544,7 @@ fun ConfiguracionesScreen(
                         } else {
                             PreferenciasApp.radarActivo = false
                             com.example.radar.TelemetriaGps.desactivar(context)
+                            com.example.radar.GestorRadar.detener()
                         }
                     }
                 )

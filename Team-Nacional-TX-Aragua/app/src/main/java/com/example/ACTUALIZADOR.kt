@@ -104,6 +104,43 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 54,
+            versionName = "1.9.2-beta",
+            titulo = "Directorio de Pilotos Compacto, Inicio Silencioso y Control de Radar",
+            fecha = "12 sep 2026",
+            descripcionCorta = "Directorio de miembros ultra-compacto estilo lista de contactos con ficha expandible, inicio silencioso detrás de la SplashScreen sin parpadeos de verificación y control absoluto de visibilidad de radar en mapa.",
+            novedades = listOf(
+                "🏍️ Directorio de Pilotos Ultra-Compacto: Vista moderna y esbelta con avatar con halo de rango, LED de conexión en vivo, código TX monoespaciado y botones directos de WhatsApp y llamada.",
+                "📑 Tarjeta Completa Desplegable: Botón dedicado para expandir ficha técnica de la moto, tipo de sangre 🩸, notas de emergencia, solvencia y ficha/dossier oficial.",
+                "⚡ Inicio Silencioso: Verificación de sesión en segundo plano tras la Splash sin pantallas de bienvenida ni cuenta en verificación para usuarios activos.",
+                "📡 Control Estricto de Radar en Mapa: Ocultamiento total garantizado de pilotos en mapa cuando el radar está apagado."
+            ),
+            correcciones = listOf(
+                "Corregido: Estado de tarjetas de pilotos aislado con clave única remember(member.id) para evitar desfasajes al buscar o filtrar.",
+                "Corregido: Sincronización en tiempo real de sanciones y reactivaciones hacia Firestore.",
+                "Corregido: Cancelación de descargas de avatares y liberación de buffer de radar al desactivar ubicación."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
+            versionCode = 53,
+            versionName = "1.9.1-beta",
+            titulo = "Inmersión Total del Mapa y Control Directivo en Sitios de Interés",
+            fecha = "11 sep 2026",
+            descripcionCorta = "Inmersión total en Mapa TX sin franjas translúcidas, edición interactiva y eliminación protegida de comercios y sitios de interés con selector multimedia operativo.",
+            novedades = listOf(
+                "🗺️ Inmersión Total de Pantalla: El mapa aprovecha el 100% de la pantalla sin franjas translúcidas, ocultando batería y señal con gestos transitorios y soporte para agujeros de cámara/notches.",
+                "✏️ Edición en Vivo desde el Mapa: Al tocar cualquier comercio o punto turístico en el mapa se abre el formulario interactivo precargado con sus datos actuales.",
+                "🗑️ Eliminación Segura para Directivos y Desarrolladores: Solo directivos y desarrolladores tienen acceso a la eliminación definitiva de puntos de la base de datos.",
+                "📸 Captura y Previsualización Multimedia: Botones de cámara y galería 100% operativos con selector headless, FileProvider y preview en miniatura."
+            ),
+            correcciones = listOf(
+                "Corregido: Eliminada barra semitransparente superior sobre el mapa y restaurada inmersión automática tras cerrar diálogos.",
+                "Corregido: Persistencia real sin re-siembra accidental de comercios y sitios eliminados."
+            ),
+            esRecomendada = false
+        ),
+        NotaVersionDetallada(
             versionCode = 52,
             versionName = "1.9.0-beta",
             titulo = "Solución Definitiva de Invocación Directa en onClick sin Lag de Estado",
@@ -117,7 +154,7 @@ object GestorActualizaciones {
             correcciones = listOf(
                 "Corregido: Cierre prematuro del diálogo por ejecución sincrónica de LaunchedEffect."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 51,

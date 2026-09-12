@@ -43,6 +43,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         const val TAG_RODADAS = "TEAM_TX_RODADAS"
         const val TAG_SOS = "TEAM_TX_SOS"
         const val TAG_MEMBERS = "TEAM_TX_MEMBERS"
+        const val TAG_PILOTOS = "TEAM_TX_PILOTOS"
         const val TAG_TREASURY = "TEAM_TX_TREASURY"
         const val TAG_INVENTORY = "TEAM_TX_INVENTORY"
         const val TAG_DIRECTIVA = "TEAM_TX_DIRECTIVA"
@@ -64,13 +65,24 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
     val dismissedNoticeIds: StateFlow<Set<Long>> = _dismissedNoticeIds.asStateFlow()
 
     // ---------------- AUTHENTICATION & GATEKEEPER (Inicializados antes de init) ---------------- //
-    private val _isAuthenticated = MutableStateFlow(false)
+    private val _hasSavedSession: Boolean = prefs.getLong("PREF_LOGGED_IN_MEMBER_ID", -1L) > 0 ||
+            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null
+
+    private val _isAuthenticated = MutableStateFlow(_hasSavedSession)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
 
-    // 🔐 NUEVA PROPIEDAD: Estado del usuario desde Firestore
+    // 🔐 Estado del usuario desde Firestore
     // Valores posibles: "ACTIVO", "PENDIENTE", "RECHAZADO"
-    private val _usuarioEstado = MutableStateFlow("PENDIENTE")
+    // Para usuarios que ya tienen sesión guardada, arrancamos por defecto con su estado cacheado (ACTIVO)
+    // para evitar el flash de SalaEspera al reabrir la app
+    private val _usuarioEstado = MutableStateFlow(
+        if (_hasSavedSession) (prefs.getString("PREF_USUARIO_ESTADO", "ACTIVO") ?: "ACTIVO") else "PENDIENTE"
+    )
     val usuarioEstado: StateFlow<String> = _usuarioEstado.asStateFlow()
+
+    // 🛡️ Bandera de verificación de sesión completa en segundo plano
+    private val _isSessionRestored = MutableStateFlow(false)
+    val isSessionRestored: StateFlow<Boolean> = _isSessionRestored.asStateFlow()
 
     private val _isLeaderSuperAdmin = MutableStateFlow(false)
     val isLeaderSuperAdmin: StateFlow<Boolean> = _isLeaderSuperAdmin.asStateFlow()
@@ -413,22 +425,45 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
         durationDays: Int,
         suspendedBy: String = "Directiva Nacional"
     ) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val now = System.currentTimeMillis()
+            val endTs = if (durationDays > 0) now + (durationDays * 24L * 60L * 60L * 1000L) else 0L
             val updated = member.copy(
                 isSuspended = true,
                 suspensionReason = reason,
                 suspensionDurationDays = durationDays,
                 suspendedBy = suspendedBy,
                 suspensionStartTimestamp = now,
-                suspensionEndTimestamp = if (durationDays > 0) now + (durationDays * 24L * 60L * 60L * 1000L) else 0L
+                suspensionEndTimestamp = endTs
             )
             repository.updateMember(updated)
+
+            // ☁️ Sincronizar en Firestore para reflejo inmediato en todos los dispositivos
+            try {
+                val firestore = FirebaseFirestore.getInstance()
+                val uid = updated.firebaseUid
+                val data = mapOf(
+                    "isSuspended" to true,
+                    "suspensionReason" to reason,
+                    "suspensionDurationDays" to durationDays,
+                    "suspendedBy" to suspendedBy,
+                    "suspensionStartTimestamp" to now,
+                    "suspensionEndTimestamp" to endTs
+                )
+                if (!uid.isNullOrBlank()) {
+                    firestore.collection("usuarios").document(uid).set(data, SetOptions.merge())
+                    firestore.collection("users").document(uid).set(data, SetOptions.merge())
+                }
+                firestore.collection("members").document(updated.id.toString()).set(data, SetOptions.merge())
+                Log.i(TAG_PILOTOS, "Sanción sincronizada a Firestore para ${updated.nickname.ifBlank { updated.fullName }}")
+            } catch (e: Exception) {
+                Log.e(TAG_PILOTOS, "Error al sincronizar sanción en Firestore: ${e.message}")
+            }
         }
     }
 
     fun reactivateMember(member: MemberProfile) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val updated = member.copy(
                 isSuspended = false,
                 suspensionReason = "",
@@ -438,6 +473,28 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                 suspensionEndTimestamp = 0L
             )
             repository.updateMember(updated)
+
+            // ☁️ Sincronizar reactivación en Firestore
+            try {
+                val firestore = FirebaseFirestore.getInstance()
+                val uid = updated.firebaseUid
+                val data = mapOf(
+                    "isSuspended" to false,
+                    "suspensionReason" to "",
+                    "suspensionDurationDays" to 0,
+                    "suspendedBy" to "",
+                    "suspensionStartTimestamp" to 0L,
+                    "suspensionEndTimestamp" to 0L
+                )
+                if (!uid.isNullOrBlank()) {
+                    firestore.collection("usuarios").document(uid).set(data, SetOptions.merge())
+                    firestore.collection("users").document(uid).set(data, SetOptions.merge())
+                }
+                firestore.collection("members").document(updated.id.toString()).set(data, SetOptions.merge())
+                Log.i(TAG_PILOTOS, "Reactivación sincronizada a Firestore para ${updated.nickname.ifBlank { updated.fullName }}")
+            } catch (e: Exception) {
+                Log.e(TAG_PILOTOS, "Error al sincronizar reactivación en Firestore: ${e.message}")
+            }
         }
     }
 
@@ -2296,11 +2353,12 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---------------- AUTHENTICATION & GATEKEEPER (Declaraciones movidas al encabezado de la clase) ---------------- //
 
-    private fun saveSession(memberId: Long, email: String?, firebaseUid: String?) {
+    private fun saveSession(memberId: Long, email: String?, firebaseUid: String?, estado: String = "ACTIVO") {
         prefs.edit()
             .putLong("PREF_LOGGED_IN_MEMBER_ID", memberId)
             .putString("PREF_LOGGED_IN_EMAIL", email)
             .putString("PREF_LOGGED_IN_FIREBASE_UID", firebaseUid)
+            .putString("PREF_USUARIO_ESTADO", estado)
             .apply()
     }
 
@@ -2375,12 +2433,17 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
             .remove("PREF_LOGGED_IN_MEMBER_ID")
             .remove("PREF_LOGGED_IN_EMAIL")
             .remove("PREF_LOGGED_IN_FIREBASE_UID")
+            .remove("PREF_USUARIO_ESTADO")
             .apply()
+        _isAuthenticated.value = false
+        _usuarioEstado.value = "PENDIENTE"
+        _isSessionRestored.value = true
     }
 
     private fun checkAndRestoreSession() {
         viewModelScope.launch(Dispatchers.IO) {
-            val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+            try {
+                val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
             val savedMemberId = prefs.getLong("PREF_LOGGED_IN_MEMBER_ID", -1L)
             val savedEmail = prefs.getString("PREF_LOGGED_IN_EMAIL", null) ?: firebaseUser?.email
             val savedUid = prefs.getString("PREF_LOGGED_IN_FIREBASE_UID", null) ?: firebaseUser?.uid
@@ -2512,7 +2575,7 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                     _isDirectivaMode.value = true
                     if (finalMember.role == MemberRole.PRESIDENTE) _isLeaderSuperAdmin.value = true
                 }
-                saveSession(finalMember.id, finalMember.email?.ifBlank { null }, finalMember.firebaseUid)
+                saveSession(finalMember.id, finalMember.email?.ifBlank { null }, finalMember.firebaseUid, _usuarioEstado.value)
                 if (!finalMember.firebaseUid.isNullOrBlank()) {
                     iniciarSincronizacionDePerfil(finalMember.firebaseUid)
                 }
@@ -2523,9 +2586,19 @@ class TeamTxViewModel(application: Application) : AndroidViewModel(application) 
                         .addOnSuccessListener { Log.d("TeamTxViewModel", "Sesión restaurada: Auth anónima activada") }
                         .addOnFailureListener { e -> Log.e("TeamTxViewModel", "Error en Auth anónima al restaurar sesión", e) }
                 }
+            } else {
+                if (firebaseUser == null && savedMemberId <= 0) {
+                    _isAuthenticated.value = false
+                }
             }
+        } catch (e: Exception) {
+            Log.e("TeamTxViewModel", "Error en verificación de sesión: ${e.message}", e)
+        } finally {
+            _isSessionRestored.value = true
+            Log.i("TeamTxViewModel", "Verificación de sesión en segundo plano concluida: auth=${_isAuthenticated.value}, estado=${_usuarioEstado.value}")
         }
     }
+}
 
     fun logout() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -5061,6 +5134,8 @@ _isAuthenticated.value = true
             repository.deleteInterestPoint(spotId)
         }
     }
+
+    fun deleteInterestPoint(spotId: Long) = deleteSpotDefinitively(spotId)
 }
 
 
