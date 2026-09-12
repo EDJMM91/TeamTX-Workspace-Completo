@@ -928,7 +928,7 @@ object GestorActualizaciones {
      * Consulta y lista todas las versiones de APK alojadas en la carpeta 'updates' de Firebase Storage
      */
     suspend fun obtenerListaVersionesStorage(): List<StorageApkVersion> = withContext(Dispatchers.IO) {
-        val fallbackUrl = "https://firebasestorage.googleapis.com/v0/b/teamnacionaltx.firebasestorage.app/o/updates%2FTeamTX-latest.apk?alt=media&token=422ded53-82b3-48a5-945a-87e2c30745bb"
+        val fallbackUrl = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk"
         try {
             val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
             val updatesRef = storage.reference.child("updates")
@@ -940,14 +940,15 @@ object GestorActualizaciones {
                 if (item.name.endsWith(".apk", ignoreCase = true)) {
                     try {
                         val metadata = item.metadata.await()
-                        val downloadUrl = try { item.downloadUrl.await().toString() } catch (_: Exception) { fallbackUrl }
+                        val rawDownloadUrl = try { item.downloadUrl.await().toString() } catch (_: Exception) { fallbackUrl }
+                        val downloadUrl = if (rawDownloadUrl.isNotBlank() && !rawDownloadUrl.contains("firebasestorage.googleapis.com")) rawDownloadUrl else fallbackUrl
                         val sizeBytes = metadata.sizeBytes
                         val updatedTime = metadata.updatedTimeMillis
 
-                        val sizeMb = if (sizeBytes > 0) String.format(java.util.Locale.US, "%.1f MB", sizeBytes / (1024f * 1024f)) else "372.4 MB"
+                        val sizeMb = if (sizeBytes > 0) String.format(java.util.Locale.US, "%.1f MB", sizeBytes / (1024f * 1024f)) else "381.4 MB"
                         val dateStr = if (updatedTime > 0) {
                             java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale.getDefault()).format(java.util.Date(updatedTime))
-                        } else "30 ago 2026"
+                        } else "12 sep 2026"
 
                         val isBeta = item.name.contains("beta", ignoreCase = true)
                         val isStable = !isBeta || item.name.contains("estable", ignoreCase = true) || item.name.contains("latest", ignoreCase = true)
@@ -960,12 +961,15 @@ object GestorActualizaciones {
                                 val match = Regex("""v\d+(\.\d+)*(-[a-zA-Z0-9]+)?""").find(item.name)
                                 match?.value ?: item.name.removeSuffix(".apk")
                             }
-                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v${latestTop.versionName} (Última)"
+                            item.name.equals("TeamTX-latest.apk", ignoreCase = true) -> "v${latestTop.versionName}"
                             else -> item.name.removeSuffix(".apk")
                         }
 
                         val estimatedCode = when {
                             isLatest -> latestTop.versionCode
+                            item.name.contains("1.9.2") -> 54
+                            item.name.contains("1.9.1") -> 53
+                            item.name.contains("1.9.0") -> 52
                             item.name.contains("1.8") -> 46
                             item.name.contains("1.7") -> 39
                             item.name.contains("1.6") -> 36
@@ -1009,18 +1013,18 @@ object GestorActualizaciones {
                     StorageApkVersion(
                         fileName = "TeamTX-latest.apk",
                         downloadUrl = fallbackUrl,
-                        sizeBytes = 395443512L,
-                        formattedSize = "377.1 MB",
+                        sizeBytes = 399977015L,
+                        formattedSize = "381.4 MB",
                         updatedTimestamp = System.currentTimeMillis(),
-                        formattedDate = "11 sep 2026, 03:00 PM",
-                        versionName = "v${latestTop.versionName} (Recomendada)",
+                        formattedDate = latestTop.fecha,
+                        versionName = "v${latestTop.versionName}",
                         versionCode = latestTop.versionCode,
                         titulo = latestTop.titulo,
                         notas = latestTop.descripcionCorta,
                         novedades = latestTop.novedades,
                         correcciones = latestTop.correcciones,
-                        isStable = true,
-                        isBeta = false,
+                        isStable = !latestTop.versionName.contains("beta", ignoreCase = true),
+                        isBeta = latestTop.versionName.contains("beta", ignoreCase = true),
                         isRecommendedLatest = true
                     )
                 )
@@ -1028,24 +1032,24 @@ object GestorActualizaciones {
 
             versions
         } catch (e: Exception) {
-            Log.e(TAG, "Error listando versiones de Firebase Storage: ${e.message}", e)
+            Log.e(TAG, "Error en listAll de Firebase Storage: ${e.message}. Usando historial oficial...")
             val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
             listOf(
                 StorageApkVersion(
                     fileName = "TeamTX-latest.apk",
                     downloadUrl = fallbackUrl,
-                    sizeBytes = 395443512L,
-                    formattedSize = "377.1 MB",
+                    sizeBytes = 399977015L,
+                    formattedSize = "381.4 MB",
                     updatedTimestamp = System.currentTimeMillis(),
-                    formattedDate = "11 sep 2026, 03:00 PM",
-                    versionName = "v${latestTop.versionName} (Recomendada)",
+                    formattedDate = latestTop.fecha,
+                    versionName = "v${latestTop.versionName}",
                     versionCode = latestTop.versionCode,
                     titulo = latestTop.titulo,
                     notas = latestTop.descripcionCorta,
                     novedades = latestTop.novedades,
                     correcciones = latestTop.correcciones,
-                    isStable = true,
-                    isBeta = false,
+                    isStable = !latestTop.versionName.contains("beta", ignoreCase = true),
+                    isBeta = latestTop.versionName.contains("beta", ignoreCase = true),
                     isRecommendedLatest = true
                 )
             )
@@ -1067,8 +1071,11 @@ object GestorActualizaciones {
                     is String -> rawCode.trim().toIntOrNull() ?: 0
                     else -> 0
                 }
-                val name = doc.getString("versionName") ?: "v$code"
-                val url = (doc.getString("urlDescarga") ?: doc.getString("downloadUrl") ?: "").trim()
+                val name = (doc.getString("versionName") ?: "v$code").replace(" (Recomendada)", "").trim()
+                var url = (doc.getString("urlDescarga") ?: doc.getString("downloadUrl") ?: "").trim()
+                if (url.contains("firebasestorage.googleapis.com")) {
+                    url = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk"
+                }
                 val customNotas = doc.getString("notas") ?: ""
                 val customTitulo = doc.getString("titulo") ?: ""
                 val fecha = doc.getString("fechaPublicacion") ?: ""
@@ -1102,6 +1109,7 @@ object GestorActualizaciones {
         }
 
         if (listaResult.isEmpty()) {
+            val maxCode = HISTORIAL_VERSIONES_OFICIALES.maxOfOrNull { it.versionCode } ?: 54
             HISTORIAL_VERSIONES_OFICIALES.forEach { ver ->
                 val fallbackUrl = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-v${ver.versionName}.apk"
                 listaResult.add(
@@ -1109,7 +1117,7 @@ object GestorActualizaciones {
                         versionCode = ver.versionCode,
                         versionName = ver.versionName,
                         titulo = ver.titulo,
-                        urlDescarga = if (ver.versionCode == 27) "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk" else fallbackUrl,
+                        urlDescarga = if (ver.versionCode == maxCode) "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk" else fallbackUrl,
                         notas = ver.descripcionCorta,
                         novedades = ver.novedades,
                         correcciones = ver.correcciones,
@@ -1123,70 +1131,61 @@ object GestorActualizaciones {
     }
 
     /**
-     * Consulta las actualizaciones OTA sincronizando en tiempo real con Firebase Storage
-     * y la base de datos Firestore.
+     * Consulta las actualizaciones OTA sincronizando en tiempo real con ota_info.json (GitHub),
+     * la base de datos Firestore y Firebase Storage.
      */
     suspend fun verificarActualizacion(): InformacionOta = withContext(Dispatchers.IO) {
-        val urlOficialFirebaseStorage = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk"
+        val urlOficialApk = "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk"
         val urlInfoOtaJson = "https://raw.githubusercontent.com/EDJMM91/TeamTX-Workspace-Completo/main/Team-Nacional-TX-Aragua/apk/ota_info.json"
 
-        // 1. Consultar PRIMERO Firebase Storage directamente (la fuente real de los APKs)
-        var versionStorage: StorageApkVersion? = null
+        // 1. Consultar ota_info.json en GitHub (fuente primaria oficial y sin bloqueos de facturación)
+        var versionOtaJson: StorageApkVersion? = null
         try {
-            val lista = obtenerListaVersionesStorage()
-            versionStorage = lista.firstOrNull { it.isRecommendedLatest }
-                ?: lista.maxByOrNull { it.versionCode }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error consultando versiones en Storage: ${e.message}")
-        }
+            val connection = URL(urlInfoOtaJson).openConnection() as HttpURLConnection
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            connection.connect()
 
-        // 2. Consultar ota_info.json si está disponible
-        if (versionStorage == null) {
-            try {
-                val connection = URL(urlInfoOtaJson).openConnection() as HttpURLConnection
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
-                connection.connect()
-                
-                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                    val jsonStr = connection.inputStream.bufferedReader().use { it.readText() }
-                    val json = org.json.JSONObject(jsonStr)
-                    val code = json.optInt("versionCode", 0)
-                    val name = json.optString("versionName", "")
-                    val urlDesc = json.optString("urlDescarga", urlOficialFirebaseStorage)
-                    val notasJson = json.optString("notas", "")
-                    
-                    val listaNovedades = mutableListOf<String>()
-                    val jsonNov = json.optJSONArray("novedades")
-                    if (jsonNov != null) {
-                        for (i in 0 until jsonNov.length()) listaNovedades.add(jsonNov.getString(i))
-                    }
-                    
-                    val listaCorrecciones = mutableListOf<String>()
-                    val jsonCorr = json.optJSONArray("correcciones")
-                    if (jsonCorr != null) {
-                        for (i in 0 until jsonCorr.length()) listaCorrecciones.add(jsonCorr.getString(i))
-                    }
-                    
-                    versionStorage = StorageApkVersion(
-                        fileName = "TeamTX-latest.apk",
-                        downloadUrl = if (urlDesc.isNotBlank()) urlDesc else urlOficialFirebaseStorage,
-                        versionCode = code,
-                        versionName = name,
-                        titulo = "Actualización Oficial (GitHub/Storage)",
-                        notas = notasJson,
-                        novedades = listaNovedades,
-                        correcciones = listaCorrecciones,
-                        isRecommendedLatest = true
-                    )
-                    Log.d(TAG, "Versión detectada en ota_info.json: $name (Build $code)")
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val jsonStr = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = org.json.JSONObject(jsonStr)
+                val code = json.optInt("versionCode", 0)
+                val name = json.optString("versionName", "")
+                val urlDesc = json.optString("urlDescarga", urlOficialApk)
+                val notasJson = json.optString("notas", "")
+
+                val listaNovedades = mutableListOf<String>()
+                val jsonNov = json.optJSONArray("novedades")
+                if (jsonNov != null) {
+                    for (i in 0 until jsonNov.length()) listaNovedades.add(jsonNov.getString(i))
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error consultando ota_info.json: ${e.message}")
+
+                val listaCorrecciones = mutableListOf<String>()
+                val jsonCorr = json.optJSONArray("correcciones")
+                if (jsonCorr != null) {
+                    for (i in 0 until jsonCorr.length()) listaCorrecciones.add(jsonCorr.getString(i))
+                }
+
+                val urlSanitizada = if (urlDesc.isNotBlank() && !urlDesc.contains("firebasestorage.googleapis.com")) urlDesc else urlOficialApk
+
+                versionOtaJson = StorageApkVersion(
+                    fileName = "TeamTX-latest.apk",
+                    downloadUrl = urlSanitizada,
+                    versionCode = code,
+                    versionName = name,
+                    titulo = json.optString("titulo", "Actualización Oficial Team TX"),
+                    notas = notasJson,
+                    novedades = listaNovedades,
+                    correcciones = listaCorrecciones,
+                    isRecommendedLatest = true
+                )
+                Log.d(TAG, "Versión detectada en ota_info.json: $name (Build $code)")
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error consultando ota_info.json: ${e.message}")
         }
 
-        // 3. Consultar Firestore en colección 'configuracion' / 'OTA'
+        // 2. Consultar Firestore en colección 'configuracion' / 'OTA'
         var infoFirestore: InformacionOta? = null
         try {
             val db = FirebaseFirestore.getInstance()
@@ -1201,7 +1200,7 @@ object GestorActualizaciones {
                     is String -> rawCode.trim().toIntOrNull() ?: 0
                     else -> 0
                 }
-                val versionName = doc.getString("versionName") ?: "v$code"
+                val versionName = (doc.getString("versionName") ?: "v$code").replace(" (Recomendada)", "").trim()
                 var url = (doc.getString("urlDescarga") ?: doc.getString("downloadUrl") ?: "").trim()
                 val customNotas = doc.getString("notas") ?: ""
                 val customTitulo = doc.getString("titulo") ?: ""
@@ -1220,8 +1219,8 @@ object GestorActualizaciones {
                     rawCorrecciones.filterIsInstance<String>().forEach { listaCorreccionesFirestore.add(it) }
                 }
 
-                if (url.isBlank() || url.contains("github.com")) {
-                    url = urlOficialFirebaseStorage
+                if (url.isBlank() || url.contains("firebasestorage.googleapis.com")) {
+                    url = urlOficialApk
                 }
 
                 if (code > 0) {
@@ -1242,36 +1241,65 @@ object GestorActualizaciones {
             Log.e(TAG, "Consulta Firestore OTA falló: ${e.message}")
         }
 
-        // 4. Determinar la versión ganadora (priorizando la real más reciente de Storage)
-        val codeStorage = versionStorage?.versionCode ?: 0
-        val codeFirestore = infoFirestore?.versionCode ?: 0
+        // 3. Consultar Firebase Storage (secundario)
+        var versionStorage: StorageApkVersion? = null
+        try {
+            val lista = obtenerListaVersionesStorage()
+            versionStorage = lista.firstOrNull { it.isRecommendedLatest }
+                ?: lista.maxByOrNull { it.versionCode }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error consultando versiones en Storage: ${e.message}")
+        }
 
-        val resultadoFinal: InformacionOta = if (versionStorage != null && codeStorage >= codeFirestore) {
-            val detalle = obtenerDetalleVersion(codeStorage, versionStorage.versionName)
-            InformacionOta(
-                versionCode = codeStorage,
-                versionName = versionStorage.versionName.ifBlank { detalle.versionName },
-                titulo = versionStorage.titulo.ifBlank { detalle.titulo },
-                urlDescarga = if (versionStorage.downloadUrl.isNotBlank() && !versionStorage.downloadUrl.contains("github.com")) versionStorage.downloadUrl else urlOficialFirebaseStorage,
-                notas = versionStorage.notas.ifBlank { detalle.descripcionCorta },
-                novedades = if (versionStorage.novedades.isNotEmpty()) versionStorage.novedades else detalle.novedades,
-                correcciones = if (versionStorage.correcciones.isNotEmpty()) versionStorage.correcciones else detalle.correcciones,
-                fechaPublicacion = versionStorage.formattedDate.ifBlank { detalle.fecha }
-            )
-        } else if (infoFirestore != null) {
-            infoFirestore
-        } else {
-            val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
-            InformacionOta(
-                versionCode = latestTop.versionCode,
-                versionName = latestTop.versionName,
-                titulo = latestTop.titulo,
-                urlDescarga = urlOficialFirebaseStorage,
-                notas = latestTop.descripcionCorta,
-                novedades = latestTop.novedades,
-                correcciones = latestTop.correcciones,
-                fechaPublicacion = latestTop.fecha
-            )
+        // 4. Determinar la versión ganadora (priorizando la más reciente entre ota_info.json, Firestore y Storage)
+        val codeOta = versionOtaJson?.versionCode ?: 0
+        val codeFirestore = infoFirestore?.versionCode ?: 0
+        val codeStorage = versionStorage?.versionCode ?: 0
+        val maxDetectedCode = maxOf(codeOta, codeFirestore, codeStorage)
+
+        val resultadoFinal: InformacionOta = when {
+            versionOtaJson != null && versionOtaJson.versionCode >= maxDetectedCode && versionOtaJson.versionCode > 0 -> {
+                val detalle = obtenerDetalleVersion(versionOtaJson.versionCode, versionOtaJson.versionName)
+                InformacionOta(
+                    versionCode = versionOtaJson.versionCode,
+                    versionName = versionOtaJson.versionName.ifBlank { detalle.versionName },
+                    titulo = versionOtaJson.titulo.ifBlank { detalle.titulo },
+                    urlDescarga = if (versionOtaJson.downloadUrl.isNotBlank() && !versionOtaJson.downloadUrl.contains("firebasestorage.googleapis.com")) versionOtaJson.downloadUrl else urlOficialApk,
+                    notas = versionOtaJson.notas.ifBlank { detalle.descripcionCorta },
+                    novedades = if (versionOtaJson.novedades.isNotEmpty()) versionOtaJson.novedades else detalle.novedades,
+                    correcciones = if (versionOtaJson.correcciones.isNotEmpty()) versionOtaJson.correcciones else detalle.correcciones,
+                    fechaPublicacion = detalle.fecha
+                )
+            }
+            infoFirestore != null && infoFirestore.versionCode >= maxDetectedCode && infoFirestore.versionCode > 0 -> {
+                infoFirestore
+            }
+            versionStorage != null && versionStorage.versionCode >= maxDetectedCode && versionStorage.versionCode > 0 -> {
+                val detalle = obtenerDetalleVersion(versionStorage.versionCode, versionStorage.versionName)
+                InformacionOta(
+                    versionCode = versionStorage.versionCode,
+                    versionName = versionStorage.versionName.ifBlank { detalle.versionName },
+                    titulo = versionStorage.titulo.ifBlank { detalle.titulo },
+                    urlDescarga = if (versionStorage.downloadUrl.isNotBlank() && !versionStorage.downloadUrl.contains("firebasestorage.googleapis.com")) versionStorage.downloadUrl else urlOficialApk,
+                    notas = versionStorage.notas.ifBlank { detalle.descripcionCorta },
+                    novedades = if (versionStorage.novedades.isNotEmpty()) versionStorage.novedades else detalle.novedades,
+                    correcciones = if (versionStorage.correcciones.isNotEmpty()) versionStorage.correcciones else detalle.correcciones,
+                    fechaPublicacion = versionStorage.formattedDate.ifBlank { detalle.fecha }
+                )
+            }
+            else -> {
+                val latestTop = HISTORIAL_VERSIONES_OFICIALES.first()
+                InformacionOta(
+                    versionCode = latestTop.versionCode,
+                    versionName = latestTop.versionName,
+                    titulo = latestTop.titulo,
+                    urlDescarga = urlOficialApk,
+                    notas = latestTop.descripcionCorta,
+                    novedades = latestTop.novedades,
+                    correcciones = latestTop.correcciones,
+                    fechaPublicacion = latestTop.fecha
+                )
+            }
         }
 
         // 4. Sincronizar automáticamente hacia Firestore para actualizar la nube
