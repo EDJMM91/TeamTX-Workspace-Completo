@@ -152,14 +152,7 @@ fun WorkshopDirectoryScreen(
         "TODOS",
         "🏬 Comercios & Servicios",
         "🏕️ Sitios Turísticos & Ruta",
-        "Mirador / Parador Biker",
-        "Playa / Costa",
-        "Montaña / Ruta",
-        "Cascadas / Ríos / Pozos",
-        "Monumento / Sitio Histórico",
-        "Parque Nacional / Reserva Natural",
-        "Camping / Pernocta",
-        "Punto de Encuentro Caravana",
+        "Concesionario de Motos",
         "Venta de Repuestos TX",
         "Taller Mecánico",
         "Tienda de Accesorios",
@@ -167,12 +160,20 @@ fun WorkshopDirectoryScreen(
         "Autolavado Motero",
         "Electricidad & Baterías",
         "Tornería & Soldadura",
-        "Auxilio Vial 24H"
+        "Auxilio Vial 24H",
+        "Mirador / Parador Biker",
+        "Playa / Costa",
+        "Montaña / Ruta",
+        "Cascadas / Ríos / Pozos",
+        "Monumento / Sitio Histórico",
+        "Parque Nacional / Reserva Natural",
+        "Camping / Pernocta",
+        "Punto de Encuentro Caravana"
     )
 
     val filteredWorkshops = remember(combinedWorkshops, selectedState, selectedType, onlyCreditFilter, searchQuery) {
         combinedWorkshops.filter { w ->
-            val isComercioGroup = w.type in listOf("Venta de Repuestos TX", "Taller Mecánico", "Tienda de Accesorios", "Cauchera & Vulcanizadora", "Autolavado Motero", "Electricidad & Baterías", "Tornería & Soldadura", "Auxilio Vial 24H", "Taller", "Repuestos", "Autolavado", "Restaurante / Comida", "Posada / Hotel", "Estación de Servicio")
+            val isComercioGroup = w.type in listOf("Concesionario de Motos", "Concesionario", "Venta de Repuestos TX", "Taller Mecánico", "Tienda de Accesorios", "Cauchera & Vulcanizadora", "Autolavado Motero", "Electricidad & Baterías", "Tornería & Soldadura", "Auxilio Vial 24H", "Taller", "Repuestos", "Autolavado", "Restaurante / Comida", "Posada / Hotel", "Estación de Servicio")
             val matchState = selectedState == "TODOS" || w.state.equals(selectedState, ignoreCase = true)
             val matchType = when (selectedType) {
                 "TODOS" -> true
