@@ -440,55 +440,52 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 			// 5. Botón Radar Táctico (Alineado en columna derecha sin tapar zoom)
 			View btnRadar = findViewById(R.id.btn_team_tx_radar);
 			if (btnRadar != null) {
-				final GradientDrawable bgRadar = new GradientDrawable();
-				bgRadar.setShape(GradientDrawable.OVAL);
-				boolean radarActivo = false;
-				try {
-					Class<?> telClass = Class.forName("com.example.radar.TelemetriaGps");
-					radarActivo = (Boolean) telClass.getMethod("estaActivo", Context.class).invoke(null, this);
-				} catch (Exception ignored) {}
-				bgRadar.setColor(radarActivo ? Color.parseColor("#4CAF50") : Color.parseColor("#616161"));
-				btnRadar.setBackground(bgRadar);
+				sincronizarBotonRadar();
 
-				final boolean[] estadoRadar = {radarActivo};
 				btnRadar.setOnClickListener(v -> {
 					try {
-						estadoRadar[0] = !estadoRadar[0];
-						bgRadar.setColor(estadoRadar[0] ? Color.parseColor("#4CAF50") : Color.parseColor("#616161"));
-						btnRadar.setBackground(bgRadar);
+						android.content.SharedPreferences appPrefs = getSharedPreferences("team_tx_app_preferences", MODE_PRIVATE);
+						android.content.SharedPreferences radarPrefs = getSharedPreferences("prefs_radar_tx", MODE_PRIVATE);
+						boolean actualmenteActivo = radarPrefs.getBoolean("radar_activo", false);
+						boolean nuevoEstado = !actualmenteActivo;
 
-						Class<?> authClass = Class.forName("com.google.firebase.auth.FirebaseAuth");
-						Object authInstance = authClass.getMethod("getInstance").invoke(null);
-						String uid = (String) authInstance.getClass().getMethod("getUid").invoke(authInstance);
-						if (uid == null || uid.isEmpty()) return;
+						// 1. Guardar nuevo estado en ambas preferencias inmediatamente
+						radarPrefs.edit().putBoolean("radar_activo", nuevoEstado).apply();
+						appPrefs.edit().putBoolean("radar_activo_persistente", nuevoEstado).apply();
+
+						// 2. Actualizar visualmente el botón
+						GradientDrawable bgRadar = new GradientDrawable();
+						bgRadar.setShape(GradientDrawable.OVAL);
+						bgRadar.setColor(nuevoEstado ? Color.parseColor("#4CAF50") : Color.parseColor("#616161"));
+						btnRadar.setBackground(bgRadar);
 
 						Class<?> telClass = Class.forName("com.example.radar.TelemetriaGps");
 						Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
 
-						if (estadoRadar[0]) {
-							android.content.SharedPreferences prefs = getSharedPreferences("prefs_radar_tx", MODE_PRIVATE);
-							String nombre = prefs.getString("radar_nombre", "Piloto TX");
-							String rango = prefs.getString("radar_rango", "");
-							String avatar = prefs.getString("radar_avatar", "");
+						if (nuevoEstado) {
+							Class<?> authClass = Class.forName("com.google.firebase.auth.FirebaseAuth");
+							Object authInstance = authClass.getMethod("getInstance").invoke(null);
+							String uid = (String) authInstance.getClass().getMethod("getUid").invoke(authInstance);
+							if (uid == null) uid = "";
+
+							String nombre = radarPrefs.getString("radar_nombre", "Piloto TX");
+							String rango = radarPrefs.getString("radar_rango", "");
+							String avatar = radarPrefs.getString("radar_avatar", "");
+
 							telClass.getMethod("activar", Context.class, String.class, String.class, String.class, String.class)
 								.invoke(null, MapActivity.this, uid, nombre, rango, avatar);
-							
-							// Persistir globalmente para que al reabrir la app siga activo
-							getSharedPreferences("team_tx_app_preferences", MODE_PRIVATE).edit().putBoolean("radar_activo_persistente", true).apply();
 
 							net.osmand.plus.OsmandApplication osmApp = (net.osmand.plus.OsmandApplication) getApplication();
 							gestorClass.getMethod("iniciar",
 								Class.forName("net.osmand.plus.OsmandApplication"),
 								String.class, String.class, String.class, String.class)
 								.invoke(null, osmApp, uid, nombre, rango, avatar);
+
 							android.widget.Toast.makeText(MapActivity.this, "📡 Radar Táctico: ACTIVADO", android.widget.Toast.LENGTH_SHORT).show();
 						} else {
 							telClass.getMethod("desactivar", Context.class).invoke(null, MapActivity.this);
 							gestorClass.getMethod("detener").invoke(null);
 
-							// Persistir globalmente la desactivación
-							getSharedPreferences("team_tx_app_preferences", MODE_PRIVATE).edit().putBoolean("radar_activo_persistente", false).apply();
-							
 							android.widget.Toast.makeText(MapActivity.this, "📡 Radar Táctico: DESACTIVADO", android.widget.Toast.LENGTH_SHORT).show();
 						}
 					} catch (Exception e) {
@@ -528,6 +525,39 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 						android.util.Log.w("MAPA_TX", "Error al abrir diálogo SOS desde mapa: " + e.getMessage());
 					}
 				});
+			}
+		} catch (Exception ignored) {}
+	}
+
+	private void sincronizarBotonRadar() {
+		try {
+			View btnRadar = findViewById(R.id.btn_team_tx_radar);
+			if (btnRadar == null) return;
+
+			android.content.SharedPreferences appPrefs = getSharedPreferences("team_tx_app_preferences", MODE_PRIVATE);
+			android.content.SharedPreferences radarPrefs = getSharedPreferences("prefs_radar_tx", MODE_PRIVATE);
+
+			boolean radarActivo = false;
+			try {
+				Class<?> telClass = Class.forName("com.example.radar.TelemetriaGps");
+				radarActivo = (Boolean) telClass.getMethod("estaActivo", Context.class).invoke(null, this);
+			} catch (Exception ignored) {}
+
+			boolean appActivo = appPrefs.getBoolean("radar_activo_persistente", false);
+			boolean estadoUnificado = radarActivo || appActivo;
+
+			// Sincronizar ambas preferencias
+			radarPrefs.edit().putBoolean("radar_activo", estadoUnificado).apply();
+			appPrefs.edit().putBoolean("radar_activo_persistente", estadoUnificado).apply();
+
+			GradientDrawable bgRadar = new GradientDrawable();
+			bgRadar.setShape(GradientDrawable.OVAL);
+			bgRadar.setColor(estadoUnificado ? Color.parseColor("#4CAF50") : Color.parseColor("#616161"));
+			btnRadar.setBackground(bgRadar);
+
+			Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
+			if (!estadoUnificado) {
+				gestorClass.getMethod("detener").invoke(null);
 			}
 		} catch (Exception ignored) {}
 	}
@@ -1015,6 +1045,8 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 			Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
 			gestorClass.getMethod("registrarMapActivity", net.osmand.plus.activities.MapActivity.class).invoke(null, this);
 		} catch (Exception ignored) {}
+
+		sincronizarBotonRadar();
 
 		getMapView().getAnimatedDraggingThread().toggleAnimations();
 	}

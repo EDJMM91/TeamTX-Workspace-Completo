@@ -96,10 +96,10 @@ fun ConfiguracionesScreen(
     var velocidadMphConfig by remember { mutableStateOf(PreferenciasApp.velocidadEnMph) }
 
     // Radar Táctico
-    var radarActivo by remember { mutableStateOf(com.example.radar.TelemetriaGps.estaActivo(context) || PreferenciasApp.radarActivo) }
+    var radarActivo by remember { mutableStateOf(PreferenciasApp.radarActivo) }
 
     LaunchedEffect(Unit) {
-        radarActivo = com.example.radar.TelemetriaGps.estaActivo(context) || PreferenciasApp.radarActivo
+        radarActivo = PreferenciasApp.radarActivo
     }
 
     LazyColumn(

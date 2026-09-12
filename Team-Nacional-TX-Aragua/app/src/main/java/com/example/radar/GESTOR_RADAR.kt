@@ -243,18 +243,39 @@ object GestorRadar {
                 }
             }
 
-            todosLosPilotos.addAll(pilotos.filter { it.id != miUserId })
+            // Excluir de remotos mi propio ID y también coincidencias directas con mi nombre para evitar duplicar el piloto local
+            val miNombreLimpio = miNombre.trim().lowercase()
+            val remotosFiltrados = pilotos.filter { p ->
+                val mismoId = p.id == miUserId
+                val nombreRemoto = p.nombre.trim().lowercase()
+                val mismoNombre = miNombreLimpio.isNotBlank() && (
+                    nombreRemoto == miNombreLimpio ||
+                    nombreRemoto.startsWith(miNombreLimpio) ||
+                    miNombreLimpio.startsWith(nombreRemoto)
+                )
+                !mismoId && !mismoNombre
+            }
+            todosLosPilotos.addAll(remotosFiltrados)
+
+            // Deduplicar estrictamente la lista final por nombre para garantizar que nadie se pinte repetido
+            val pilotosUnicos = todosLosPilotos
+                .groupBy { it.nombre.trim().lowercase() }
+                .values
+                .mapNotNull { grupo -> grupo.maxByOrNull { it.timestamp } }
+
             if (radarHabilitado) {
-                mapaLayer?.actualizarPilotos(todosLosPilotos)
+                mapaLayer?.actualizarPilotos(pilotosUnicos)
+            } else {
+                mapaLayer?.limpiarPilotos()
             }
 
-            todosLosPilotos.forEach { piloto ->
+            pilotosUnicos.forEach { piloto ->
                 if (RadarFirebase.obtenerAvatarCacheado(piloto.avatarUrl) == null && piloto.avatarUrl.isNotBlank()) {
                     alcance.launch {
                         val bitmap = RadarFirebase.descargarAvatar(piloto.avatarUrl, app)
                         if (bitmap != null && radarHabilitado) {
                             mapaLayer?.cachearAvatar(piloto.avatarUrl, bitmap)
-                            mapaLayer?.actualizarPilotos(todosLosPilotos)
+                            mapaLayer?.actualizarPilotos(pilotosUnicos)
                         }
                     }
                 }
@@ -267,7 +288,10 @@ object GestorRadar {
     fun intentarRegistrarCapa() {
         val app = application ?: return
         val layer = mapaLayer ?: return
-        if (!radarHabilitado) return
+        if (!radarHabilitado) {
+            layer.limpiarPilotos()
+            return
+        }
         try {
             val mapView = app.osmandMap.mapView ?: return
             mapView.addLayer(layer, Z_RADAR)
@@ -307,6 +331,9 @@ object GestorRadar {
             if (app != null && layer != null) {
                 app.osmandMap?.mapView?.removeLayer(layer)
             }
+        } catch (_: Exception) {}
+        try {
+            application?.osmandMap?.mapView?.refreshMap()
         } catch (_: Exception) {}
         Log.d(ETIQUETA, "Radar desactivado por completo y pilotos limpiados del mapa")
     }

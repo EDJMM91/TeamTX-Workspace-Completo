@@ -117,7 +117,7 @@ class RadarMapLayer(context: Context) : OsmandMapLayer(context),
         }
     }
 
-    var radarHabilitado: Boolean = true
+    var radarHabilitado: Boolean = false
 
     private var pilotos: List<PilotoRadar> = emptyList()
     private var pilotoSeleccionado: ((PilotoRadar) -> Unit)? = null

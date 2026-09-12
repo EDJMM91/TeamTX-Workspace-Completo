@@ -120,7 +120,7 @@ fun MembersScreen(
     val prefijosPlaceholder = listOf("TX-DEV-", "TX-PIL-", "TX-DIR-")
 
     val miembrosSincronizados = remember(members) {
-        members.filter { m ->
+        val filtrados = members.filter { m ->
             val esPlaceholder = codigosPrueba.contains(m.memberNumber) ||
                     prefijosPlaceholder.any { m.memberNumber.startsWith(it) }
             val tieneEmailGoogle = !m.email.isNullOrBlank() && m.email?.endsWith("@teamtx.com") != true
@@ -129,10 +129,45 @@ fun MembersScreen(
             // Incluir si: tiene correo real, o estuvo activo recientemente, o es directiva real
             !esPlaceholder && (tieneEmailGoogle || activoReciente || esDirectivaReal)
         }
+
+        // Deduplicar estrictamente por correo electrónico normalizado o UID de Firebase para evitar pilotos repetidos
+        filtrados
+            .groupBy { m ->
+                val emailClean = m.email?.trim()?.lowercase()
+                val uidClean = m.firebaseUid?.trim()?.takeIf { it.isNotBlank() }
+                when {
+                    !emailClean.isNullOrBlank() -> "email:$emailClean"
+                    uidClean != null -> "uid:$uidClean"
+                    m.memberNumber.isNotBlank() -> "num:${m.memberNumber.trim()}"
+                    else -> "id:${m.id}"
+                }
+            }
+            .values
+            .mapNotNull { lista ->
+                // Conservar el perfil con actividad más reciente
+                lista.maxByOrNull { it.lastActiveTimestamp }
+            }
+            .sortedBy { it.memberNumber }
     }
 
-    // La lista base que se usa para filtrar depende del toggle
-    val membersBase = if (mostrarSoloSincronizados) miembrosSincronizados else members
+    // La lista base que se usa para filtrar depende del toggle (ambas deduplicadas por seguridad)
+    val membersDeduplicados = remember(members) {
+        members
+            .groupBy { m ->
+                val emailClean = m.email?.trim()?.lowercase()
+                val uidClean = m.firebaseUid?.trim()?.takeIf { it.isNotBlank() }
+                when {
+                    !emailClean.isNullOrBlank() -> "email:$emailClean"
+                    uidClean != null -> "uid:$uidClean"
+                    m.memberNumber.isNotBlank() -> "num:${m.memberNumber.trim()}"
+                    else -> "id:${m.id}"
+                }
+            }
+            .values
+            .mapNotNull { lista -> lista.maxByOrNull { it.lastActiveTimestamp } }
+            .sortedBy { it.memberNumber }
+    }
+    val membersBase = if (mostrarSoloSincronizados) miembrosSincronizados else membersDeduplicados
 
     // Compute unique chapters
     val chapters = remember(membersBase) {

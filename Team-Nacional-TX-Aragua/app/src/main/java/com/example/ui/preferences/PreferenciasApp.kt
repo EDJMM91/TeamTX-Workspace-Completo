@@ -201,10 +201,25 @@ object PreferenciasApp {
         get() = prefs.getBoolean("odometro_global_activo", false)
         set(value) = prefs.edit().putBoolean("odometro_global_activo", value).apply()
 
-    /** Radar Táctico / Compartir ubicación persistente */
+    /** Radar Táctico / Compartir ubicación persistente (Sincronizado con prefs_radar_tx y team_tx_app_preferences) */
     var radarActivo: Boolean
-        get() = prefs.getBoolean("radar_activo_persistente", false)
-        set(value) = prefs.edit().putBoolean("radar_activo_persistente", value).apply()
+        get() {
+            if (::prefsRadar.isInitialized && prefsRadar.contains("radar_activo")) {
+                return prefsRadar.getBoolean("radar_activo", false)
+            }
+            if (::prefs.isInitialized) {
+                return prefs.getBoolean("radar_activo_persistente", false)
+            }
+            return false
+        }
+        set(value) {
+            if (::prefsRadar.isInitialized) {
+                prefsRadar.edit().putBoolean("radar_activo", value).apply()
+            }
+            if (::prefs.isInitialized) {
+                prefs.edit().putBoolean("radar_activo_persistente", value).apply()
+            }
+        }
 
     // ─── ACCESOS RÁPIDOS BARRA INFERIOR (PERSISTENCIA TOTAL) ─────────────────
     private const val KEY_BOTTOM_TABS = "accesos_rapidos_bottom_tabs_config"

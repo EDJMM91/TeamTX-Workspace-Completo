@@ -48,6 +48,9 @@ class TelemetriaGps : Service() {
                 .putString(PREFS_AVATAR_URL, avatarProcesado)
                 .putString(PREFS_ALERTA_SOS, alertaSos)
                 .apply()
+            contexto.getSharedPreferences("team_tx_app_preferences", Context.MODE_PRIVATE)
+                .edit().putBoolean("radar_activo_persistente", true).apply()
+
             val intent = Intent(contexto, TelemetriaGps::class.java)
             contexto.startForegroundService(intent)
             Log.d(ETIQUETA, "Servicio de telemetría solicitado para: $nombre (SOS: $alertaSos)")
@@ -57,6 +60,9 @@ class TelemetriaGps : Service() {
             val prefs = contexto.getSharedPreferences(PREFS_NOMBRE, Context.MODE_PRIVATE)
             val userId = prefs.getString(PREFS_USER_ID, "") ?: ""
             prefs.edit().putBoolean(PREFS_ACTIVO, false).apply()
+            contexto.getSharedPreferences("team_tx_app_preferences", Context.MODE_PRIVATE)
+                .edit().putBoolean("radar_activo_persistente", false).apply()
+
             contexto.stopService(Intent(contexto, TelemetriaGps::class.java))
             if (userId.isNotBlank()) {
                 borrarUbicacionDelServidor(userId)
@@ -65,8 +71,11 @@ class TelemetriaGps : Service() {
         }
 
         fun estaActivo(contexto: Context): Boolean {
-            return contexto.getSharedPreferences(PREFS_NOMBRE, Context.MODE_PRIVATE)
+            val a = contexto.getSharedPreferences(PREFS_NOMBRE, Context.MODE_PRIVATE)
                 .getBoolean(PREFS_ACTIVO, false)
+            val b = contexto.getSharedPreferences("team_tx_app_preferences", Context.MODE_PRIVATE)
+                .getBoolean("radar_activo_persistente", false)
+            return a && b
         }
 
         private fun borrarUbicacionDelServidor(userId: String) {

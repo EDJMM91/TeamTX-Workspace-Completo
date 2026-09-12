@@ -141,11 +141,21 @@ object BuscadorPilotosMapa {
         dialog.show()
 
         val ahora = System.currentTimeMillis()
-        val pilotosEnMemoria = RadarFirebase.obtenerPilotosEnMemoria()
+        val radarActivo = GestorRadar.estaRadarActivo() || TelemetriaGps.estaActivo(activity)
+        val pilotosEnMemoria = if (radarActivo) {
+            RadarFirebase.obtenerPilotosEnMemoria()
+        } else {
+            emptyList()
+        }
 
-        if (pilotosEnMemoria.isEmpty()) {
-            emptyState.text = "No hay pilotos conectados al radar"
+        if (!radarActivo) {
+            emptyState.text = "El Radar Táctico está desactivado.\nActívalo tocando el botón de radar en el mapa."
             listView.visibility = View.GONE
+            countBadge.text = "Radar OFF"
+        } else if (pilotosEnMemoria.isEmpty()) {
+            emptyState.text = "No hay otros pilotos conectados al radar en este momento"
+            listView.visibility = View.GONE
+            countBadge.text = "0 pilotos"
         } else {
             emptyState.visibility = View.GONE
             listView.visibility = View.VISIBLE

@@ -17,8 +17,8 @@ object RadarFirebase {
 
     private const val ETIQUETA = "RADAR_FIREBASE"
     private const val COLECCION = "radar_en_vivo"
-    private const val TIMEOUT_MS = 12 * 3600_000L
-    private const val TIMEOUT_LIMPIEZA_MS = 24 * 3600_000L
+    private const val TIMEOUT_MS = 20 * 60_000L // 20 minutos de inactividad máxima en vivo
+    private const val TIMEOUT_LIMPIEZA_MS = 2 * 3600_000L // 2 horas para descartar del mapa por completo
     private const val CARPETA_AVATARS = "radar_avatars"
     private const val ARCHIVO_AVATAR_LOCAL = "avatar_local_permanente.jpg"
     private const val TAM_MAX_AVATAR_PX = 200
@@ -226,6 +226,11 @@ object RadarFirebase {
 
                     if (esFantasma || esUbicacionMuerta) {
                         pilotosEnMemoria.remove(id)
+                        if (esUbicacionMuerta) {
+                            try {
+                                db.collection(COLECCION).document(doc.id).delete()
+                            } catch (_: Exception) {}
+                        }
                         return@forEach
                     }
 
@@ -247,7 +252,13 @@ object RadarFirebase {
 
                 pilotosEnMemoria.keys.retainAll(idsEnFirebase)
 
-                val listaFinal = pilotosEnMemoria.values.sortedByDescending { it.timestamp }
+                // Deduplicar estrictamente por nombre de piloto conservando la ubicación más reciente
+                val listaFinal = pilotosEnMemoria.values
+                    .groupBy { it.nombre.trim().lowercase() }
+                    .values
+                    .mapNotNull { it.maxByOrNull { p -> p.timestamp } }
+                    .sortedByDescending { it.timestamp }
+
                 onPilotosActualizados(listaFinal)
 
                 Log.d(ETIQUETA, "Pilotos actualizados en radar: ${listaFinal.size}")
@@ -262,7 +273,13 @@ object RadarFirebase {
     }
 
     fun obtenerPilotosEnMemoria(): List<PilotoRadar> {
-        return pilotosEnMemoria.values.sortedByDescending { it.timestamp }
+        val ahora = System.currentTimeMillis()
+        return pilotosEnMemoria.values
+            .filter { it.activo || (ahora - it.timestamp < TIMEOUT_MS) }
+            .groupBy { it.nombre.trim().lowercase() }
+            .values
+            .mapNotNull { it.maxByOrNull { p -> p.timestamp } }
+            .sortedByDescending { it.timestamp }
     }
 
     suspend fun descargarAvatar(url: String, context: Context? = null): Bitmap? {
