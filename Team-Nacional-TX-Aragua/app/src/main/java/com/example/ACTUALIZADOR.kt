@@ -104,6 +104,25 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 56,
+            versionName = "1.9.4-beta",
+            titulo = "Gran Directorio Nacional de Concesionarios Empire Keeway y Bera (Aragua, Valencia y Caracas)",
+            fecha = "12 sep 2026",
+            descripcionCorta = "Expansión masiva del directorio a 124 registros oficiales con todos los concesionarios autorizados Empire Keeway y Bera Motorcycles de Aragua, Carabobo y Gran Caracas con financiamiento Cashea y cuotas directas.",
+            novedades = listOf(
+                "🏍️ Red Oficial Empire Keeway Ampliada: 18 nuevos concesionarios verificados en Maracay (San Jacinto, Constitución, El Limón, Cagua, Turmero, Palo Negro, La Victoria, Villa de Cura), Valencia (Av. Las Ferias, Los Sauces, San Diego, Guacara, Los Guayos, Naguanagua, Puerto Cabello) y Caracas (Sabana Grande, Quinta Crespo, Catia, La Candelaria, Chacao, Boleíta, La Trinidad).",
+                "⚡ Red Oficial Bera Motorcycles Ampliada: 19 nuevas salas de venta Bera en Maracay (La Romana, Av. Miranda, El Limón, Palo Negro, Santa Rita, Villa de Cura, La Victoria), Valencia (Av. Lara, El Viñedo, San Diego, Naguanagua, Puerto Cabello, Mariara) y Caracas (Torre Bera Chacao, Pérez Bonalde Catia, La Candelaria, Quinta Crespo, Bello Monte, Los Teques, Guarenas-Guatire).",
+                "💳 Financiamiento Cashea y Plan Cuotas Bera: Cada concesionario detalla opciones de pago a crédito, iniciales fraccionadas, Cashea (3 y 6 cuotas) y trámites INTT de placas y cascos.",
+                "🗺️ Filtro Inteligente de Regiones: Selector mejorado que agrupa 'Caracas' unificando Distrito Capital y Gran Caracas (Miranda) para localización inmediata de agencias.",
+                "🌱 Siembra v5 Automática: Sincronización transparente de los 124 registros hacia Room SQLite local y la colección 'workshops_directory' en Firestore."
+            ),
+            correcciones = listOf(
+                "Corregido: Búsqueda y filtrado por estado 'Caracas' sincronizado con municipios de Distrito Capital y Miranda.",
+                "Corregido: Actualización de la semilla de base de datos a v5 con resguardo de comercios y sitios de interés."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 55,
             versionName = "1.9.3-beta",
             titulo = "Directorio Biker 2026: Sitios Turísticos, Caucheras 24H, Talleres y Concesionarios Oficiales",
@@ -121,7 +140,7 @@ object GestorActualizaciones {
                 "Corregido: Detección y enlace reactivo del botón principal de actualización hacia la versión más reciente en la nube.",
                 "Corregido: Eliminación definitiva de llamadas bloqueantes a Firebase Storage en el ciclo de verificación OTA."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 54,

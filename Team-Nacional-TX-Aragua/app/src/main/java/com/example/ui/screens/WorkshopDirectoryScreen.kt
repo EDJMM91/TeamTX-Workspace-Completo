@@ -145,7 +145,7 @@ fun WorkshopDirectoryScreen(
             (currentMember?.role?.displayName?.contains("Desarrollador", ignoreCase = true) == true)
 
     val states = listOf(
-        "TODOS", "Aragua", "Carabobo", "Distrito Capital", "Miranda", "Lara", "Falcón",
+        "TODOS", "Aragua", "Carabobo", "Caracas", "Distrito Capital", "Miranda", "Lara", "Falcón",
         "Zulia", "Táchira", "Mérida", "Trujillo", "Guárico", "Anzoátegui", "Bolívar", "Yaracuy", "Portuguesa", "Barinas"
     )
     val types = listOf(
@@ -174,7 +174,10 @@ fun WorkshopDirectoryScreen(
     val filteredWorkshops = remember(combinedWorkshops, selectedState, selectedType, onlyCreditFilter, searchQuery) {
         combinedWorkshops.filter { w ->
             val isComercioGroup = w.type in listOf("Concesionario de Motos", "Concesionario", "Venta de Repuestos TX", "Taller Mecánico", "Tienda de Accesorios", "Cauchera & Vulcanizadora", "Autolavado Motero", "Electricidad & Baterías", "Tornería & Soldadura", "Auxilio Vial 24H", "Taller", "Repuestos", "Autolavado", "Restaurante / Comida", "Posada / Hotel", "Estación de Servicio")
-            val matchState = selectedState == "TODOS" || w.state.equals(selectedState, ignoreCase = true)
+            val matchState = selectedState == "TODOS" ||
+                w.state.equals(selectedState, ignoreCase = true) ||
+                (selectedState.equals("Caracas", ignoreCase = true) && (w.state.equals("Distrito Capital", ignoreCase = true) || w.state.equals("Miranda", ignoreCase = true) || w.city.contains("Caracas", ignoreCase = true) || w.address.contains("Caracas", ignoreCase = true))) ||
+                (selectedState.equals("Distrito Capital", ignoreCase = true) && (w.city.contains("Caracas", ignoreCase = true) || w.address.contains("Caracas", ignoreCase = true)))
             val matchType = when (selectedType) {
                 "TODOS" -> true
                 "🏬 Comercios & Servicios" -> isComercioGroup
