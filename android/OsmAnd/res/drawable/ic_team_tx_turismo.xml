@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+
+    <!-- Círculo de Fondo - Estilo Táctico Oscuro -->
+    <path
+        android:pathData="M22,2A20,20 0 1,0 22,42A20,20 0 1,0 22,2Z"
+        android:fillColor="#1E293B" />
+
+    <!-- Anillo / Borde Cian Neón Táctico -->
+    <path
+        android:pathData="M22,2A20,20 0 1,0 22,42A20,20 0 1,0 22,2Z"
+        android:strokeWidth="2.5"
+        android:strokeColor="#00E5FF"
+        android:fillColor="#00000000" />
+
+    <!-- Sol Dorado / Amanecer Turístico -->
+    <path
+        android:pathData="M29,14A4,4 0 1,0 29,6A4,4 0 1,0 29,14Z"
+        android:fillColor="#FBBF24" />
+
+    <!-- Cordillera Principal (Montaña Alta) -->
+    <path
+        android:pathData="M22,11L11,29H33L22,11Z"
+        android:fillColor="#10B981" />
+
+    <!-- Cima Nevada / Cumbre de la Montaña -->
+    <path
+        android:pathData="M22,11L18,17.5L22,19L26,17.5L22,11Z"
+        android:fillColor="#E0F2FE" />
+
+    <!-- Montaña Secundaria Frontal (Verde Bosque / Parque Nacional) -->
+    <path
+        android:pathData="M14,17L7,31H25L18,17L15.5,21.5L14,17Z"
+        android:fillColor="#059669" />
+
+    <!-- Camino / Carretera Panorámica -->
+    <path
+        android:pathData="M18,31L20,26H24L26,31H18Z"
+        android:fillColor="#F1F5F9" />
+
+    <!-- Línea Base / Horizonte Neón -->
+    <path
+        android:pathData="M6,31H38V33H6V31Z"
+        android:fillColor="#00E5FF" />
+</vector>

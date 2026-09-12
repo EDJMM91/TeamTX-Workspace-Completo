@@ -1,18 +1,18 @@
 {
-  "versionCode": 56,
-  "versionName": "1.9.4-beta",
+  "versionCode": 57,
+  "versionName": "1.9.5-beta",
   "urlDescarga": "https://github.com/EDJMM91/TeamTX-Workspace-Completo/raw/main/Team-Nacional-TX-Aragua/apk/TeamTX-latest.apk",
-  "titulo": "Gran Directorio Nacional de Concesionarios Empire Keeway y Bera (Aragua, Valencia y Caracas)",
-  "notas": "🚀 Release v1.9.4-beta: Expansión masiva del directorio a 124 registros oficiales con todos los concesionarios autorizados Empire Keeway y Bera Motorcycles de Aragua (Maracay, Cagua, Turmero, El Limón, La Victoria, Palo Negro, Villa de Cura), Carabobo (Valencia Sur/Norte, San Diego, Guacara, Naguanagua, Puerto Cabello, Mariara) y Gran Caracas (Chacao, Catia, La Candelaria, Quinta Crespo, Sabana Grande, Boleíta, Bello Monte, Los Teques, Guatire) con financiamiento Cashea y cuotas directas.",
+  "titulo": "Gran Expansión Nacional: Red Oficial de Concesionarios en Portuguesa, Barinas y Mérida (162 Registros)",
+  "notas": "🚀 Release v1.9.5-beta: Incorporación masiva de 38 nuevos concesionarios oficiales Empire Keeway y Bera Motorcycles cubriendo Portuguesa (Acarigua, Araure, Guanare, Turén, Biscucuy), Barinas (Barinas Centro, Cuatricentenaria, Alto Barinas, Barinitas, Socopó, Pedraza, Santa Bárbara) y Mérida (Las Américas, Los Próceres, Centro, Ejido, El Vigía Centro, Panamericana, Tovar). Base de datos nacional ampliada a 162 registros verificados con financiamiento Cashea y cuotas directas.",
   "novedades": [
-    "🏍️ Red Oficial Empire Keeway Ampliada: 18 nuevos concesionarios verificados en Maracay (San Jacinto, Constitución, El Limón, Cagua, Turmero, Palo Negro, La Victoria, Villa de Cura), Valencia (Av. Las Ferias, Los Sauces, San Diego, Guacara, Los Guayos, Naguanagua, Puerto Cabello) y Caracas (Sabana Grande, Quinta Crespo, Catia, La Candelaria, Chacao, Boleíta, La Trinidad).",
-    "⚡ Red Oficial Bera Motorcycles Ampliada: 19 nuevas salas de venta Bera en Maracay (La Romana, Av. Miranda, El Limón, Palo Negro, Santa Rita, Villa de Cura, La Victoria), Valencia (Av. Lara, El Viñedo, San Diego, Naguanagua, Puerto Cabello, Mariara) y Caracas (Torre Bera Chacao, Pérez Bonalde Catia, La Candelaria, Quinta Crespo, Bello Monte, Los Teques, Guarenas-Guatire).",
-    "💳 Financiamiento Cashea y Plan Cuotas Bera: Cada concesionario detalla opciones de pago a crédito, iniciales fraccionadas, Cashea (3 y 6 cuotas) y trámites INTT de placas y cascos.",
-    "🗺️ Filtro Inteligente de Regiones: Selector mejorado que agrupa 'Caracas' unificando Distrito Capital y Gran Caracas (Miranda) para localización inmediata de agencias.",
-    "🌱 Siembra v5 Automática: Sincronización transparente de los 124 registros hacia Room SQLite local y la colección 'workshops_directory' en Firestore."
+    "🌾 Cobertura Total en Portuguesa (13 Concesionarios): Sedes oficiales de Empire Keeway y Bera en Acarigua (Alianza, Las Lágrimas, 13 de Junio, Libertador), Araure (Bicentenaria, 5 de Diciembre), Guanare (Carrera 5, Av. Unda, Carrera 4), Turén (Villa Bruzual) y Biscucuy.",
+    "🤠 Cobertura Total en Barinas (13 Concesionarios): Sedes oficiales en Barinas (Av. 23 de Enero, Cuatricentenaria, Alto Barinas, Av. Sucre, Av. Francia), Barinitas (Pie de Monte), Socopó (Troncal 5 y Terminal), Pedraza (Ciudad Bolivia) y Santa Bárbara de Barinas.",
+    "🏔️ Cobertura Total en Mérida (12 Concesionarios): Salas de venta y servicio especializado para rutas andinas en Mérida (Av. Las Américas, Los Próceres, Centro), Ejido (Fernández Peña, Plaza Montalbán), El Vigía (Av. 15, Panamericana/Iberia, Bolívar) y Tovar (Valle del Mocotíes).",
+    "🏕️ Botón Dedicado de Sitios Turísticos en el Mapa: Nuevo botón táctico flotante en el HUD nativo del mapa para activar o desactivar de forma independiente los destinos turísticos, miradores y paradores biker, separado del botón de comercios.",
+    "🌱 Siembra v6 Automática: Sincronización transparente de los 162 registros hacia Room SQLite local y la colección 'workshops_directory' en Firestore."
   ],
   "correcciones": [
-    "Corregido: Búsqueda y filtrado por estado 'Caracas' sincronizado con municipios de Distrito Capital y Miranda.",
-    "Corregido: Actualización de la semilla de base de datos a v5 con resguardo de comercios y sitios de interés."
+    "Corregido: Actualización de la semilla de base de datos a v6 con georreferenciación precisa para los llanos occidentales y región andina.",
+    "Corregido: Filtros por estado para Portuguesa, Barinas y Mérida 100% operativos en el Directorio Global."
   ]
 }

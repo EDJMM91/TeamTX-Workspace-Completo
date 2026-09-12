@@ -494,6 +494,40 @@ object GestorRadar {
         return prefs.getBoolean("mostrar_directorio_en_mapa", true)
     }
 
+    @JvmStatic
+    fun alternarSitiosInteres(context: android.content.Context): Boolean {
+        val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+        val actual = prefs.getBoolean("mostrar_sitios_en_mapa", true)
+        val nuevo = !actual
+        prefs.edit().putBoolean("mostrar_sitios_en_mapa", nuevo).apply()
+
+        alcance.launch(Dispatchers.IO) {
+            try {
+                val db = com.example.data.local.AppDatabase.getDatabase(context, CoroutineScope(Dispatchers.IO))
+                val spots = db.interestPointDao().getAllInterestPoints().first()
+                withContext(Dispatchers.Main) {
+                    sincronizarSitiosInteresEnMapa(spots, nuevo)
+                }
+            } catch (_: Exception) {
+                withContext(Dispatchers.Main) {
+                    sincronizarSitiosInteresEnMapa(emptyList(), nuevo)
+                }
+            }
+        }
+        return nuevo
+    }
+
+    @JvmStatic
+    fun estaSitiosInteresVisible(context: android.content.Context): Boolean {
+        val prefs = context.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
+        return prefs.getBoolean("mostrar_sitios_en_mapa", true)
+    }
+
+    fun limpiarSitiosDelMapa() {
+        sitiosLayer?.limpiarSitios()
+        Log.d(ETIQUETA, "Sitios de interés limpiados del mapa")
+    }
+
     private const val Z_SITIOS = 7.2f
     private var sitiosLayer: SitiosInteresMapLayer? = null
 

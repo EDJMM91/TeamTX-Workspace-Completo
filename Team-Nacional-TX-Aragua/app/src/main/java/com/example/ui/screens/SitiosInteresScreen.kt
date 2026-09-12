@@ -31,6 +31,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.example.dashboard.DashboardFondoConfig
 import com.example.data.model.BikerInterestPoint
 import com.example.data.model.MemberProfile
+import com.example.radar.GestorRadar
 import com.example.ui.theme.*
 import com.example.util.SanitizadorImagenUrl
 
@@ -46,6 +47,8 @@ fun SitiosInteresScreen(
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("prefs_radar_tx", Context.MODE_PRIVATE) }
+    var mostrarEnMapa by remember { mutableStateOf(prefs.getBoolean("mostrar_sitios_en_mapa", true)) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategoryFilter by remember { mutableStateOf<String?>(null) }
     var reportSpotTarget by remember { mutableStateOf<BikerInterestPoint?>(null) }
@@ -121,6 +124,67 @@ fun SitiosInteresScreen(
                 ),
                 singleLine = true
             )
+
+            // Switch Táctico para Activar / Desactivar Sitios en el Mapa
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = if (mostrarEnMapa) Color(0xFFE0F2FE) else Color(0xFFF1F5F9),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 2.dp)
+                    .clickable {
+                        val nuevo = !mostrarEnMapa
+                        mostrarEnMapa = nuevo
+                        prefs.edit().putBoolean("mostrar_sitios_en_mapa", nuevo).apply()
+                        GestorRadar.sincronizarSitiosInteresEnMapa(interestPoints, nuevo)
+                        Toast.makeText(context, if (nuevo) "🏕️ Sitios turísticos activados en Mapa TX ✓" else "🏕️ Sitios turísticos ocultados del mapa", Toast.LENGTH_SHORT).show()
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Icon(
+                            Icons.Default.Explore,
+                            contentDescription = null,
+                            tint = if (mostrarEnMapa) Color(0xFF0284C7) else Color(0xFF64748B),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Mostrar Sitios Turísticos en Mapa TX",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = if (mostrarEnMapa) Color(0xFF0369A1) else Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = if (mostrarEnMapa) "Destinos, miradores y paradores biker visibles" else "Destinos ocultados del mapa táctico",
+                                fontSize = 10.sp,
+                                color = if (mostrarEnMapa) Color(0xFF0284C7) else Color(0xFF64748B)
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = mostrarEnMapa,
+                        onCheckedChange = { nuevo ->
+                            mostrarEnMapa = nuevo
+                            prefs.edit().putBoolean("mostrar_sitios_en_mapa", nuevo).apply()
+                            GestorRadar.sincronizarSitiosInteresEnMapa(interestPoints, nuevo)
+                            Toast.makeText(context, if (nuevo) "🏕️ Sitios turísticos activados en Mapa TX ✓" else "🏕️ Sitios turísticos ocultados del mapa", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFF0284C7),
+                            uncheckedThumbColor = Color(0xFF94A3B8),
+                            uncheckedTrackColor = Color(0xFFE2E8F0)
+                        )
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Chips de categorías
             LazyRow(

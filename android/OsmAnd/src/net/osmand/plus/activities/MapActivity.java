@@ -397,6 +397,33 @@ public class MapActivity extends OsmandActionBarActivity implements DownloadEven
 				});
 			}
 
+			// 3b. Botón Mostrar / Ocultar Sitios Turísticos en el Mapa
+			View btnSitios = findViewById(R.id.btn_team_tx_toggle_sitios);
+			final ImageView imgSitios = findViewById(R.id.img_team_tx_toggle_sitios);
+			if (btnSitios != null) {
+				try {
+					android.content.SharedPreferences prefs = getSharedPreferences("prefs_radar_tx", MODE_PRIVATE);
+					boolean visible = prefs.getBoolean("mostrar_sitios_en_mapa", true);
+					if (imgSitios != null) {
+						imgSitios.setAlpha(visible ? 1.0f : 0.35f);
+					}
+				} catch (Exception ignored) {}
+
+				btnSitios.setOnClickListener(v -> {
+					try {
+						Class<?> gestorClass = Class.forName("com.example.radar.GestorRadar");
+						boolean nuevoEstado = (Boolean) gestorClass.getMethod("alternarSitiosInteres", Context.class).invoke(null, MapActivity.this);
+						if (imgSitios != null) {
+							imgSitios.setAlpha(nuevoEstado ? 1.0f : 0.35f);
+						}
+						String msg = nuevoEstado ? "🏕️ Sitios turísticos: VISIBLE" : "🏕️ Sitios turísticos: OCULTO";
+						android.widget.Toast.makeText(MapActivity.this, msg, android.widget.Toast.LENGTH_SHORT).show();
+					} catch (Exception e) {
+						android.util.Log.w("MAPA_TX", "Error al alternar sitios turísticos: " + e.getMessage());
+					}
+				});
+			}
+
 			// 4. Botón Buscar Pilotos en el Mapa
 			View btnPilotos = findViewById(R.id.btn_team_tx_pilotos_map);
 			if (btnPilotos != null) {

@@ -104,6 +104,26 @@ object GestorActualizaciones {
 
     val HISTORIAL_VERSIONES_OFICIALES = listOf(
         NotaVersionDetallada(
+            versionCode = 57,
+            versionName = "1.9.5-beta",
+            titulo = "Gran Expansión Nacional: Red Oficial de Concesionarios en Portuguesa, Barinas y Mérida (162 Registros)",
+            fecha = "12 sep 2026",
+            descripcionCorta = "Incorporación masiva de 38 nuevos concesionarios oficiales Empire Keeway y Bera Motorcycles cubriendo Portuguesa, Barinas y Mérida. Base de datos nacional ampliada a 162 registros verificados con financiamiento Cashea y cuotas directas.",
+            novedades = listOf(
+                "🌾 Cobertura Total en Portuguesa (13 Concesionarios): Sedes oficiales de Empire Keeway y Bera en Acarigua (Alianza, Las Lágrimas, 13 de Junio, Libertador), Araure (Bicentenaria, 5 de Diciembre), Guanare (Carrera 5, Av. Unda, Carrera 4), Turén (Villa Bruzual) y Biscucuy.",
+                "🤠 Cobertura Total en Barinas (13 Concesionarios): Sedes oficiales en Barinas (Av. 23 de Enero, Cuatricentenaria, Alto Barinas, Av. Sucre, Av. Francia), Barinitas (Pie de Monte), Socopó (Troncal 5 y Terminal), Pedraza (Ciudad Bolivia) y Santa Bárbara de Barinas.",
+                "🏔️ Cobertura Total en Mérida (12 Concesionarios): Salas de venta y servicio especializado para rutas andinas en Mérida (Av. Las Américas, Los Próceres, Centro), Ejido (Fernández Peña, Plaza Montalbán), El Vigía (Av. 15, Panamericana/Iberia, Bolívar) y Tovar (Valle del Mocotíes).",
+                "💳 Financiamiento y Crédito en Toda la Red: Planes de financiamiento con Cashea (3 y 6 cuotas sin interés), Plan Cuotas Bera / CrediBera y facilidades directas de concesionarios con entrega inmediata de placas y cascos.",
+                "🏕️ Botón Dedicado de Sitios Turísticos en el Mapa: Nuevo botón táctico flotante en el HUD nativo del mapa para activar o desactivar de forma independiente los destinos turísticos, miradores y paradores biker, separado del botón de comercios.",
+                "🌱 Siembra v6 Automática: Sincronización transparente de los 162 registros hacia Room SQLite local y la colección 'workshops_directory' en Firestore."
+            ),
+            correcciones = listOf(
+                "Corregido: Actualización de la semilla de base de datos a v6 con georreferenciación precisa para los llanos occidentales y región andina.",
+                "Corregido: Filtros por estado para Portuguesa, Barinas y Mérida 100% operativos en el Directorio Global."
+            ),
+            esRecomendada = true
+        ),
+        NotaVersionDetallada(
             versionCode = 56,
             versionName = "1.9.4-beta",
             titulo = "Gran Directorio Nacional de Concesionarios Empire Keeway y Bera (Aragua, Valencia y Caracas)",
@@ -120,7 +140,7 @@ object GestorActualizaciones {
                 "Corregido: Búsqueda y filtrado por estado 'Caracas' sincronizado con municipios de Distrito Capital y Miranda.",
                 "Corregido: Actualización de la semilla de base de datos a v5 con resguardo de comercios y sitios de interés."
             ),
-            esRecomendada = true
+            esRecomendada = false
         ),
         NotaVersionDetallada(
             versionCode = 55,

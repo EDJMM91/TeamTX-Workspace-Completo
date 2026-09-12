@@ -38,7 +38,7 @@ class WorkshopDirectorySync(
     private suspend fun verificarYSembrarDirectorio() {
         try {
             val prefs = com.example.TeamTxApplication.instance?.getSharedPreferences("prefs_radar_tx", android.content.Context.MODE_PRIVATE)
-            val yaSembrado = prefs?.getBoolean("workshops_sembrados_v5", false) ?: false
+            val yaSembrado = prefs?.getBoolean("workshops_sembrados_v6", false) ?: false
 
             if (!yaSembrado) {
                 // 1. Siembra o actualización en Room localmente
@@ -54,10 +54,10 @@ class WorkshopDirectorySync(
                 }
                 prefs?.let { p ->
                     val editor = p.edit()
-                    editor.putBoolean("workshops_sembrados_v5", true)
+                    editor.putBoolean("workshops_sembrados_v6", true)
                     editor.apply()
                 }
-                Log.d("FIREBASE_SYNC", "🌱 Siembra de directorio v5 (concesionarios Aragua/Valencia/Caracas) completada con ${AppDatabase.INITIAL_WORKSHOPS.size} registros.")
+                Log.d("FIREBASE_SYNC", "🌱 Siembra de directorio v6 (Portuguesa, Barinas y Mérida) completada con ${AppDatabase.INITIAL_WORKSHOPS.size} registros.")
             } else {
                 // Si ya fue sembrado, descargar actualizaciones remotas sin forzar re-inserción de borrados
                 val snapshot = db.collection(collectionName).get().await()

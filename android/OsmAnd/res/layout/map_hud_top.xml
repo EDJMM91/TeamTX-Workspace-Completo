@@ -65,7 +65,7 @@
 		android:layout_width="48dp"
 		android:layout_height="48dp"
 		android:layout_gravity="top|end"
-		android:layout_marginTop="176dp"
+		android:layout_marginTop="172dp"
 		android:layout_marginEnd="@dimen/map_button_margin"
 		android:clickable="true"
 		android:focusable="true"
@@ -85,7 +85,7 @@
 		android:layout_width="48dp"
 		android:layout_height="48dp"
 		android:layout_gravity="top|end"
-		android:layout_marginTop="232dp"
+		android:layout_marginTop="224dp"
 		android:layout_marginEnd="@dimen/map_button_margin"
 		android:clickable="true"
 		android:focusable="true"
@@ -98,7 +98,28 @@
 			android:layout_height="44dp"
 			android:layout_gravity="center"
 			android:src="@drawable/bandera"
-			android:contentDescription="Mostrar u Ocultar Directorio en el Mapa" />
+			android:contentDescription="Mostrar u Ocultar Directorio Comercial en el Mapa" />
+	</FrameLayout>
+
+	<FrameLayout
+		android:id="@+id/btn_team_tx_toggle_sitios"
+		android:layout_width="48dp"
+		android:layout_height="48dp"
+		android:layout_gravity="top|end"
+		android:layout_marginTop="276dp"
+		android:layout_marginEnd="@dimen/map_button_margin"
+		android:clickable="true"
+		android:focusable="true"
+		android:elevation="2dp"
+		android:background="@android:color/transparent">
+
+		<androidx.appcompat.widget.AppCompatImageView
+			android:id="@+id/img_team_tx_toggle_sitios"
+			android:layout_width="44dp"
+			android:layout_height="44dp"
+			android:layout_gravity="center"
+			android:src="@drawable/ic_team_tx_turismo"
+			android:contentDescription="Mostrar u Ocultar Sitios Turísticos en el Mapa" />
 	</FrameLayout>
 
 	<FrameLayout
@@ -106,7 +127,7 @@
 		android:layout_width="48dp"
 		android:layout_height="48dp"
 		android:layout_gravity="top|end"
-		android:layout_marginTop="288dp"
+		android:layout_marginTop="328dp"
 		android:layout_marginEnd="@dimen/map_button_margin"
 		android:clickable="true"
 		android:focusable="true"
@@ -126,7 +147,7 @@
 		android:layout_width="48dp"
 		android:layout_height="48dp"
 		android:layout_gravity="top|end"
-		android:layout_marginTop="344dp"
+		android:layout_marginTop="380dp"
 		android:layout_marginEnd="@dimen/map_button_margin"
 		android:clickable="true"
 		android:focusable="true"
@@ -146,7 +167,7 @@
 		android:layout_width="48dp"
 		android:layout_height="48dp"
 		android:layout_gravity="top|end"
-		android:layout_marginTop="400dp"
+		android:layout_marginTop="432dp"
 		android:layout_marginEnd="@dimen/map_button_margin"
 		android:clickable="true"
 		android:focusable="true"
@@ -165,7 +186,7 @@
 		android:layout_width="48dp"
 		android:layout_height="48dp"
 		android:layout_gravity="top|end"
-		android:layout_marginTop="456dp"
+		android:layout_marginTop="484dp"
 		android:layout_marginEnd="@dimen/map_button_margin"
 		android:clickable="true"
 		android:focusable="true"
